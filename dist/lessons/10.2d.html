@@ -1,0 +1,165 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>10.2d Turn Logic: Selection + Iteration — AP CS Principles</title><meta name="description" content="Lesson 10.2d Turn Logic: Selection + Iteration — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="10.2d Turn Logic: Selection + Iteration — AP CS Principles"><meta property="og:description" content="Lesson 10.2d Turn Logic: Selection + Iteration — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="10.2c.html">&#9664; 10.2c</a><span class="lesson-id">10.2d</span><a href="10.2e.html">10.2e &#9654;</a></div><h1>10.2d — Turn Logic: Selection + Iteration</h1>
+
+<p class="lesson-lead">
+    The starter's other empty method: <code>AI_Turn()</code>. Your
+    opponent's brain. Today you build an AI that reads a list, makes
+    a decision, and takes its turn — the exam's algorithm
+    requirements (sequencing + selection + iteration) assembled into
+    one method you can point to on the exam as YOURS.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity rpg">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p><strong>What does an AI turn DO?</strong> Read the starter's
+    partially-implemented Deal() and your <a href="10.2c.html">10.2c</a>
+    draw; the AI's turn is a decision on top of the same lists.
+    Design the three layers before coding:</p>
+    <ol>
+        <li><strong>Traverse</strong> the AI's hand (iteration)</li>
+        <li><strong>Score</strong> each card by your game's rules
+            (selection: which is playable? which is best?)</li>
+        <li><strong>Play</strong> one: remove from hand, resolve its
+            effect, end turn (sequencing)</li>
+    </ol>
+    <p>That is literally the exam's algorithm definition wearing a
+    hat — and it is why this method is the Create PT's best friend:
+    a list, a procedure with parameters, a decision loop, a call.</p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            "AI" in your game is a set of IF statements — no
+            learning, no mystery. Why is that honest design for a
+            card game (what does the player actually want from a
+            jam opponent — cleverness, or READABLE rules)? Where
+            would REAL machine learning belong instead
+            (<a href="9.6a.html">9.6a</a> — and whose data would
+            it learn from)?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:sc1:q1" data-block="socratic" data-question="&quot;AI&quot; in your game is a set of IF statements — no learning, no mystery. Why is that honest design for a card game (what does the player actually want from a jam opponent — cleverness, or READABLE rules)? Where would REAL machine learning belong instead ( 9.6a — and whose data would it learn from)?" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity rpg">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~35 min</span>
+    </div>
+
+    <p><strong>Step 1 — the greedy AI (20 min).</strong> Fill
+    AI_Turn() in the starter's voice:</p>
+    <pre><code>public void AI_Turn()
+{
+    Card bestCard = null;
+    int bestScore = -1;
+
+    foreach (Card c in aiHand)              // ITERATION
+    {
+        if (c.cost &lt;= aiEnergy)              // SELECTION: playable?
+        {
+            int score = c.attack * 2 + c.defense;
+            if (score &gt; bestScore)           // SELECTION: best?
+            {
+                bestScore = score;
+                bestCard = c;
+            }
+        }
+    }
+
+    if (bestCard != null)                   // SELECTION: can we play?
+    {
+        aiHand.Remove(bestCard);
+        PlayCard(bestCard, owner: AI);      // your resolve procedure
+    }
+    else
+    {
+        Pass();
+    }
+    EndTurn();
+}</code></pre>
+    <p>Read it aloud: traverse, filter, compare, act, or pass. The
+    null check at the end is the same guard-clause religion as the
+    empty deck (<a href="10.2c.html">10.2c</a>) — an AI with
+    NOTHING playable must pass, not crash.</p>
+
+    <p><strong>Step 2 — the turn loop.</strong> Whose turn is it?
+    One bool (playerTurn) flipped by EndTurn(), with player input
+    gated behind it — the turret's cooldown pattern
+    (<a href="3.3a.html">3.3a</a>) repurposed as a STATE GATE.
+    Trace one full round on paper: player draws (Deal), plays,
+    ends turn → bool flips → AI_Turn() runs → bool flips back.</p>
+
+    <p><strong>Step 3 — a 1.0s pause for the AI turn.</strong> The
+    AI playing instantly feels like a bug to players. A simple
+    coroutine or a timer (<a href="3.3a.html">3.3a</a> timestamps!)
+    before AI_Turn() runs gives the game the rhythm of an
+    opponent. Feel is not decoration — it is legibility.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: AI bugs</h3>
+        <ol>
+            <li>The AI plays its best card EVERY turn and always
+                wins. Your game has a balance bug or an AI bug —
+                which, and what single number would you change to
+                test which one it is?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:bh1:q1" data-block="bug-hunt" data-question="The AI plays its best card EVERY turn and always wins. Your game has a balance bug or an AI bug — which, and what single number would you change to test which one it is?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The AI plays TWO cards in one turn. Where did the
+                gate fail — and why is "one action per turn" a
+                STATE question, not an IF question?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:bh1:q2" data-block="bug-hunt" data-question="The AI plays TWO cards in one turn. Where did the gate fail — and why is &quot;one action per turn&quot; a STATE question, not an IF question?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Best card score ties (two cards score 9). Which
+                does your foreach pick, and why is
+                "first found wins" actually FINE (what does
+                determinism buy a tester)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:bh1:q3" data-block="bug-hunt" data-question="Best card score ties (two cards score 9). Which does your foreach pick, and why is &quot;first found wins&quot; actually FINE (what does determinism buy a tester)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The player's turn triggers while AI_Turn() is
+                still resolving. Draw the timeline of the bool
+                flips — which flip came EARLY, and which line
+                must move?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:bh1:q4" data-block="bug-hunt" data-question="The player's turn triggers while AI_Turn() is still resolving. Draw the timeline of the bool flips — which flip came EARLY, and which line must move?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity rpg">
+    <div class="activity-header">
+        <span class="activity-label">Close of Day</span>
+        <span class="activity-time">~5 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: AI personality</h3>
+        <ol>
+            <li>Give the AI a PERSONALITY by changing the score
+                line: aggressive (attack × 3), defensive
+                (defense × 3 + heal bonus). Play each — can a
+                tester tell the difference blind? That is your
+                <a href="9.5a.html">9.5a</a> experiment design
+                muscle, in a jam.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:tk1:q1" data-block="tinker" data-question="Give the AI a PERSONALITY by changing the score line: aggressive (attack × 3), defensive (defense × 3 + heal bonus). Play each — can a tester tell the difference blind? That is your 9.5a experiment design muscle, in a jam." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Commit + push: <code>"10.2d: AI_Turn implemented + turn gate"</code>.</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Implement a greedy AI: traverse, filter, compare, act/pass</li>
+            <li>Explain the turn loop as a bool state gate</li>
+            <li>Label sequencing/selection/iteration inside AI_Turn on sight</li>
+            <li>Give an AI personality via one score line</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-10/lists-arrays.html">Lists &amp; Arrays</a> — traversals and filters</li>
+        <li><a href="../exam/create-performance-task.html">Create PT</a> — this method's second home</li>
+    </ul>
+    <p>Next: <a href="10.2e.html">10.2e — Card Jam: Build + Playtest</a></p>
+</div><div class="lab-bar" data-lesson="10.2d" data-lesson-title="Turn Logic: Selection + Iteration" data-count="6" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/6 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="10.2d" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="10.2c.html"><span class="dir">&#9664; Previous</span><span class="where">10.2c — Decks: Shuffle, Draw &amp; Traverse</span></a><a class="foot-next" href="10.2e.html"><span class="dir">Next &#9654;</span><span class="where">10.2e — Card Jam: Build + Playtest</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

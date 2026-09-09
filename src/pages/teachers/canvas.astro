@@ -1,0 +1,123 @@
+---
+// Teacher guide: the lab-forms -> Canvas loop for the CSP course.
+// Not linked from student navigation; linked from README.md.
+// Excluded from student search.
+import Base from '../../layouts/BaseLayout.astro';
+
+const SAMPLE_JSON = [
+  '{',
+  '  "format": "apcsp-lab-answers/1",',
+  '  "student": "Ada Lovelace",',
+  '  "lesson": "4.5a",',
+  '  "exportedAt": "2026-11-17T16:02:11.402Z",',
+  '  "answers": {',
+  '    "4.5a:bh1:q1": "The enemy jitters because the flip condition...",',
+  '    "4.5a:sc1:q1": "Falling out of the chase if means it returns..."',
+  '  }',
+  '}',
+].join('\n');
+---
+<Base title="Collecting Lab Answers via Canvas — AP CS Principles" active={undefined} root=".." docsHome="../docs/index.html" css="../style.css"
+  description="Teacher workflow: students answer lab questions on the lesson pages, download a JSON, and upload it to Canvas.">
+<div class="page" data-pagefind-ignore>
+  <nav>
+    <a href="../index.html">Home</a>
+    <span class="sep">/</span>
+    <span class="here">Teacher: Lab Forms + Canvas</span>
+  </nav>
+
+  <h1>Lab Forms + Canvas</h1>
+
+  <p>
+    Every reflection question in the lessons (bug hunts, tinker challenges,
+    socratic checkpoints) has an answer box, injected at build time by
+    <code>src/lib/formify.ts</code>. Answers save on the student's device
+    as they type, and each lesson has a
+    <strong>Download answers (.json)</strong> button that produces one
+    small, self-describing file — the question text, the student's
+    answer, and a stable question id (like <code>4.5a:sc1:q2</code>) all
+    travel together. This page is the whole loop for collecting and
+    returning them through Canvas.
+  </p>
+
+  <h2>1. What students do</h2>
+  <ol>
+    <li>Open the lesson (e.g. <a href="../lessons/1.4a.html">1.4a</a>).</li>
+    <li>Type their name in the bar at the bottom of the lesson once — it
+      is remembered on that device for every other lesson.</li>
+    <li>Answer the boxed questions as they work through the labs.
+      Everything autosaves locally; nothing is lost if they close the
+      tab.</li>
+    <li>Click <strong>Download answers (.json)</strong> and upload that
+      file to the Canvas assignment.</li>
+  </ol>
+  <p>
+    The Dashboard also has a <strong>My work</strong> panel: one file
+    backs up <em>all</em> answers plus progress, and can be restored on
+    another machine (useful when lab machines get reimaged).
+  </p>
+
+  <h2>2. Set up the Canvas assignment (once per lesson)</h2>
+  <ol>
+    <li>In Canvas: <strong>Assignments &rarr; + Assignment</strong>.</li>
+    <li>Submission Type: <strong>Online</strong>, check
+      <strong>File Uploads</strong>. (Leave "Allowed File Types" blank so
+      .json files upload cleanly.)</li>
+    <li>Set points and the due date, then Publish.</li>
+  </ol>
+
+  <h2>3. Read the submissions</h2>
+  <p>
+    Each submitted file is plain JSON you can open in any text editor,
+    a browser, or <code>cat</code>. It looks like this:
+  </p>
+  <pre><code>{SAMPLE_JSON}</code></pre>
+  <p>
+    Because the question text rides along in the file, you can grade from
+    the JSON alone — no need to open the site side by side. The id tells
+    you the lesson, the block (bh = bug hunt, tk = tinker, sc = socratic),
+    and the question number.
+  </p>
+
+  <h2>4. Return feedback</h2>
+  <ol>
+    <li>In the Canvas gradebook: <strong>SpeedGrader</strong> shows the
+      .json as an attachment; open it in a new tab and read.</li>
+    <li>Type the score and one line of feedback — the boxes are worth a
+      few completion points, not essays; the labs themselves are where
+      the learning shows.</li>
+    <li>For a whole-class snapshot, <strong>Download Submissions</strong>
+      on the assignment page and skim the files.</li>
+  </ol>
+
+  <div class="callout info">
+    <strong>Autoscored grading is a roadmap item.</strong> The AP CS A
+    sister site ships a grader script with per-question answer keys; this
+    site's verification layer (npm run verify) covers site integrity
+    only. If objective scoring becomes worth it, add
+    <code>src/data/answerKeys.ts</code> plus a
+    <code>scripts/grade.mjs</code> and this page already documents the
+    workflow shape.
+  </div>
+
+  <h2>5. The Create PT exception</h2>
+  <p>
+    College Board collaboration rules apply during the Create PT build
+    days (April 13-27). Answer boxes on those lessons stay usable for
+    <em>standup notes</em>, but the graded artifact is the program itself
+    submitted to the AP Digital Portfolio, not Canvas. Keep Canvas for
+    the process grade (commits, gates hit) and the exam clinics.
+  </p>
+
+  <h2>Site maintenance cheat-sheet</h2>
+  <table>
+    <tr><th>To do this</th><th>Run / edit this</th></tr>
+    <tr><td>Add or re-date a lesson</td><td><code>src/data/curriculum.ts</code> (SEQUENCE) — the dashboard, chain, pace table, and PACING.md all follow automatically</td></tr>
+    <tr><td>Rename a lesson title</td><td><code>src/data/lessons.ts</code> + the lesson page's h1</td></tr>
+    <tr><td>Scaffold a new lesson page</td><td><code>npm run new-lesson -- 9.11a</code></td></tr>
+    <tr><td>Check site integrity</td><td><code>npm run build &amp;&amp; npm run verify</code></td></tr>
+    <tr><td>Re-generate PACING.md / sitemap</td><td>happens inside every <code>npm run build</code></td></tr>
+    <tr><td>Search index</td><td>Pagefind runs in build; nothing to maintain</td></tr>
+  </table>
+</div>
+</Base>

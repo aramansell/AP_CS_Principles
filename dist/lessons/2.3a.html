@@ -1,0 +1,152 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>2.3a Health Potions &amp; the Max-Health Cap — AP CS Principles</title><meta name="description" content="Lesson 2.3a Health Potions &amp; the Max-Health Cap — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="2.3a Health Potions &amp; the Max-Health Cap — AP CS Principles"><meta property="og:description" content="Lesson 2.3a Health Potions &amp; the Max-Health Cap — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="2.2a.html">&#9664; 2.2a</a><span class="lesson-id">2.3a</span><a href="2.4a.html">2.4a &#9654;</a></div><h1>2.3a — Health Potions &amp; the Max-Health Cap</h1>
+
+<p class="lesson-lead">
+    You can take damage; now undo it. But healing without a cap breaks
+    the game — the potion becomes god mode. Today: your first real
+    <strong>if</strong> statement, protecting a rule the game designer
+    cares about.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>The starter has coins (trigger, +1) and spikes (collision, −1).
+    It has no potion. Predict the two bugs a naive potion causes
+    before you write anything:</p>
+    <ol>
+        <li>You have 3 health, drink 5 potions. What number is health?
+            Should it be? What does the Console say vs what the game
+            <em>should</em> say?</li>
+        <li>At what health value does drinking a potion stop matter
+            — and should it still "work"? (A designer question: is
+            a wasted potion annoying or fair?)</li>
+    </ol>
+
+    <p>
+        The AP exam calls this <strong>selection</strong> — an if that
+        changes behavior based on a condition. You have technically
+        seen ifs already (the tag checks); this is the first one that
+        encodes a <em>rule</em> instead of an identity. Same keyword,
+        different job.
+    </p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — the potion object.</strong> Make a Potion from
+    the pickup pattern: a GameObject with a SpriteRenderer (any
+    distinctive sprite), a BoxCollider2D with <strong>Is Trigger
+    checked</strong>, and the tag <strong>Potion</strong> (add it in
+    the tag list). Drag it to Assets/Prefabs to make it a prefab, like
+    the Coin.</p>
+
+    <p><strong>Step 2 — the naive version.</strong> In
+    PlayerController.OnTriggerEnter2D, add a branch:</p>
+    <pre><code>if (other.CompareTag("Potion"))
+{
+    if (StatManager.manager != null)
+    {
+        StatManager.manager.ChangeHealth(1);
+    }
+    Destroy(other.gameObject);
+}</code></pre>
+
+    <p>Run it, heal to full, keep drinking. Watch the Console. Health
+    is now 6, 7, 8 — the game's rule is gone. You built the exploit
+    yourself, on purpose. Fixing it comes next.</p>
+
+    <p><strong>Step 3 — the cap.</strong> Two ways to say "never more
+    than 3":</p>
+    <pre><code>// Option A: guard inside StatManager.ChangeHealth
+public void ChangeHealth(int amount)
+{
+    health += amount;
+    if (health &gt; 3)
+    {
+        health = 3;
+    }
+    Debug.Log("Health Changed! New Health: " + health);
+    ...
+}
+
+// Option B: the Math class
+health = Mathf.Min(health, 3);</code></pre>
+
+    <p>Read both. Which object should own the cap — the potion (it
+    heals), the player (it gets healed), or the StatManager (it owns
+    health)? The starter's answer is the StatManager, because the rule
+    protects <em>health</em>, and health is the StatManager's job.
+    Everything that touches health must obey the same cap — that is
+    the whole argument for putting the rule in one place.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Overheal and friends</h3>
+        <ol>
+            <li>What happens if the cap is &gt; 3 but health starts at
+                3 and you drink at exactly full? Trace it line by line.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.3a:bh1:q1" data-block="bug-hunt" data-question="What happens if the cap is &gt; 3 but health starts at 3 and you drink at exactly full? Trace it line by line." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Change the cap to &lt; 1 in the wrong direction — say
+                <code>if (health &lt; 1) { health = 1; }</code>. Now
+                spike yourself to zero. What rule did you just invent?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.3a:bh1:q2" data-block="bug-hunt" data-question="Change the cap to &lt; 1 in the wrong direction — say if (health &lt; 1) { health = 1; } . Now spike yourself to zero. What rule did you just invent?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Put the cap in the potion branch instead of ChangeHealth.
+                Why is that the same today but fragile the moment a
+                second healing item appears?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.3a:bh1:q3" data-block="bug-hunt" data-question="Put the cap in the potion branch instead of ChangeHealth. Why is that the same today but fragile the moment a second healing item appears?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What does Mathf.Min(health, 3) return when health is
+                −2? Is the min cap enough for the whole system — or do
+                you also need the death check to catch it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.3a:bh1:q4" data-block="bug-hunt" data-question="What does Mathf.Min(health, 3) return when health is −2? Is the min cap enough for the whole system — or do you also need the death check to catch it?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Design the economy</h3>
+        <ol>
+            <li>Should a potion be worth 1 health or 2? Make potions
+                spawn rarely and be worth 2 — what breaks, and what
+                does "rare" mean in a level design sense?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.3a:tk1:q1" data-block="tinker" data-question="Should a potion be worth 1 health or 2? Make potions spawn rarely and be worth 2 — what breaks, and what does &quot;rare&quot; mean in a level design sense?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Turn the max into a [SerializeField] so you can tune
+                maxHealth in the Inspector like xSpeed. Where exactly
+                do you declare it — and what replaces every hardcoded
+                3 in ChangeHealth?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.3a:tk1:q2" data-block="tinker" data-question="Turn the max into a [SerializeField] so you can tune maxHealth in the Inspector like xSpeed. Where exactly do you declare it — and what replaces every hardcoded 3 in ChangeHealth?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Hard: full health + potion = wasted. Make the potion
+                NOT be destroyed if it heals nothing. What does the
+                player feel, and which line did you touch?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.3a:tk1:q3" data-block="tinker" data-question="Hard: full health + potion = wasted. Make the potion NOT be destroyed if it heals nothing. What does the player feel, and which line did you touch?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Build a pickup object with trigger + custom tag from scratch</li>
+            <li>Explain selection: the if that encodes a rule vs the if that checks identity</li>
+            <li>Argue where a rule belongs (StatManager vs the item) and why</li>
+            <li>Trace an overheal exploit and cap it two ways</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the StatManager, caps, and the pickup family</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — why potions trigger</li>
+    </ul>
+    <p>Next: <a href="2.4a.html">2.4a — Prefabs, Spawning &amp; Playtesting</a></p>
+</div><div class="lab-bar" data-lesson="2.3a" data-lesson-title="Health Potions &amp; the Max-Health Cap" data-count="7" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/7 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.3a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="2.2a.html"><span class="dir">&#9664; Previous</span><span class="where">2.2a — Spikes: Collisions, Health &amp; Death</span></a><a class="foot-next" href="2.4a.html"><span class="dir">Next &#9654;</span><span class="where">2.4a — Prefabs, Spawning &amp; Playtesting</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

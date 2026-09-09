@@ -1,0 +1,174 @@
+---
+// Enemy State Machines — the full pattern reference (Unit 4 + Unit 8 boss edition).
+import Base from '../../../layouts/BaseLayout.astro';
+
+const crumbs = `<nav class="crumbs"><a href="../index.html">Docs</a> &gt; <a href="../unit-04/index.html">Unit 4</a> &gt; <span>Enemy State Machines</span></nav>`;
+
+const body = `<h1>Enemy State Machines</h1>
+
+<p class="lesson-lead">
+    Every enemy you build this year — the patrolling guard, the turret
+    that shoots, the boss with three phases — is the same idea: a thing
+    with a small set of behaviors, one of which is active, and the
+    conditions that trade between them. This is the pattern reference,
+    from the guard in Unit 4 to the boss in Unit 8.
+</p>
+
+<h2>What a state machine IS (in AP words)</h2>
+<p>
+    A state machine is <strong>state stored in fields</strong>
+    (<a href="../../lessons/1.3a.html">1.3a</a>), <strong>selection
+    choosing between behaviors</strong> (AAP-3), and <strong>Update
+    providing the iteration</strong> that asks the conditions over and
+    over. The exam's definition of an algorithm — sequencing,
+    selection, iteration — lives inside every enemy controller in the
+    starter, and you can point at each one:
+</p>
+<pre><code>private void Update()                         // ITERATION (60×/sec)
+{
+    if (isPlatformer)                         // SELECTION
+    {
+        PlatformerMove();                     // SEQUENCING: which behavior
+    }
+    else
+    {
+        TopDownMove();
+    }
+}</code></pre>
+
+<h2>The guard's machine (Unit 4)</h2>
+<p>
+    The starter's EnemyController implements a machine whose states are
+    mostly <em>implicit</em> — they exist as conditions, not as a named
+    enum:
+</p>
+<table>
+    <tr><th>State</th><th>Where it lives in the code</th><th>Transitions</th></tr>
+    <tr><td>PATROL</td><td>the else of the chase condition / PlatformerMove</td><td>→ CHASE when distance &lt; chaseDistance</td></tr>
+    <tr><td>CHASE</td><td>the if in TopDownMove</td><td>→ PATROL when the player is out of range</td></tr>
+    <tr><td>ATTACK</td><td>OnCollisionEnter2D / Stay2D → TryDamage</td><td>fires during either move state, on a cooldown</td></tr>
+</table>
+<p>
+    The elegant part: there is no "return to patrol" line anywhere.
+    The chase sits inside an if; when the if stops matching, the enemy
+    simply falls back to its default behavior. The patrol was never
+    switched OFF — it was outvoted. Drawn on paper
+    (<a href="../../lessons/4.5a.html">4.5a</a>), the machine is four
+    boxes and three arrows; coded, it is three ifs and a cooldown.
+</p>
+
+<h2>The turret, minimized</h2>
+<p>
+    Even the turret is a two-state machine: SHOOTING (in range AND off
+    cooldown) and WAITING — and the cooldown pattern
+    (<a href="../../lessons/3.3a.html">3.3a</a>) is what turns "in
+    range" into a rhythm. A timer plus a comparison IS a state machine
+    with a clock for a brain. This is why the cooldown pattern reappears
+    everywhere: attack rates, contact damage, jump mercies
+    (<a href="../../lessons/6.3a.html">6.3a</a>), turn gates
+    (<a href="../../lessons/10.2d.html">10.2d</a>).
+</p>
+
+<h2>Making states explicit (the enum upgrade)</h2>
+<p>
+    When a machine grows past "a couple of ifs," named states earn
+    their ceremony. The starter style would keep it simple:
+</p>
+<pre><code>private enum BossState { Idle, Attacking, Recovering, Dead }
+private BossState state = BossState.Idle;
+
+private void Update()
+{
+    switch (state)                              // explicit selection
+    {
+        case BossState.Idle:
+            state = BossState.Attacking;        // a transition
+            break;
+        case BossState.Attacking:
+            FireShockwave();
+            state = BossState.Recovering;
+            break;
+        case BossState.Recovering:
+            if (Time.time &gt;= lastAttackTime + attackInterval)
+            {
+                state = BossState.Idle;
+            }
+            break;
+    }
+}</code></pre>
+<p>
+    Two rules make explicit machines trustworthy:
+    <strong>one state active at a time</strong> (if two can be active,
+    you did not need a state machine), and <strong>every transition
+    has a condition you can read aloud</strong> ("recovering ends when
+    the interval has elapsed"). A machine whose transitions you cannot
+    narrate is a pile of ifs wearing a costume.
+</p>
+
+<h2>The boss's phase layer (Unit 8)</h2>
+<p>
+    The boss stacks a second machine ON TOP of the behavior one:
+    <strong>phases</strong> — a one-way ladder driven by health
+    thresholds (<a href="../../lessons/8.2a.html">8.2a</a>). Two design
+    facts make phases work:
+</p>
+<ul>
+    <li>Phase changes fire DOWNWARD ONLY (currentPhase guards in the
+        threshold check), so a phase entrance never re-runs</li>
+    <li>Phase changes swap NUMBERS via a phase table
+        (<a href="../../lessons/8.4a.html">8.4a</a>) — cooldowns,
+        speeds, attack sets — so the player SEES difficulty change
+        without a single new mechanic being taught</li>
+</ul>
+<p>
+    A phase is "the same machine with different constants" — which is
+    also the exam's cleanest example of managing complexity: one
+    table, one switch statement, six difficulty knobs.
+</p>
+
+<h2>Debugging a state machine</h2>
+<ul>
+    <li><strong>Instrument the trade:</strong> Debug.Log the state
+        name on every transition, watch the console flicker at
+        boundaries — a machine that flickers CHASE/PATROL at the range
+        edge is telling you the condition has no hysteresis (a bigger
+        chase-in radius than chase-out radius fixes it; that gap is
+        what <a href="../../lessons/6.3a.html">6.3a</a> calls mercy,
+        pointed at AI instead of the player)</li>
+    <li><strong>Reproduce before you theorize:</strong> stand where
+        the tester stood, in the state they were in. Most "AI bugs"
+        are boundary bugs at the transition line.</li>
+    <li><strong>Check the guards:</strong> a transition that fires
+        every frame is an unguarded if; a transition that never fires
+        is a wrong comparison or a wrong tag. Both are one Debug.Log
+        away.</li>
+</ul>
+
+<h2>Where you meet machines this year</h2>
+<ul>
+    <li>Patrol / chase / attack / return:
+        <a href="../../lessons/4.5a.html">4.5a</a> (drawn),
+        <a href="../../lessons/4.1a.html">4.1a</a>–<a href="../../lessons/4.4a.html">4.4a</a> (built)</li>
+    <li>Cooldowns as clock-machines:
+        <a href="../../lessons/3.3a.html">3.3a</a>,
+        <a href="../../lessons/6.3a.html">6.3a</a></li>
+    <li>Climb state (a movement state machine):
+        <a href="../../lessons/7.3a.html">7.3a</a></li>
+    <li>Boss phases:
+        <a href="../../lessons/8.2a.html">8.2a</a> (thresholds),
+        <a href="../../lessons/8.4a.html">8.4a</a> (attack tables)</li>
+    <li>Turn gates in the card jam:
+        <a href="../../lessons/10.2d.html">10.2d</a></li>
+</ul>
+
+<div class="unit-nav">
+    <span><a href="../unit-04/index.html">← Unit 4</a></span>
+    <span><a href="../index.html">All docs</a></span>
+    <span><a href="../unit-08/index.html">Unit 8: Boss Fight →</a></span>
+</div>`;
+---
+<Base title="Enemy State Machines — AP CS Principles Docs" active="docs" root="../.." docsHome="../index.html" css="../../style.css"
+  description="The state machine pattern from patrol/chase/attack to boss phases — explicit enums, transition guards, hysteresis, and how to debug them.">
+  <Fragment slot="breadcrumb" set:html={crumbs} />
+  <Fragment set:html={body} />
+</Base>

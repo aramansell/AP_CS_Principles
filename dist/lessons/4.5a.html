@@ -1,0 +1,164 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>4.5a The Full State Machine: Back to Patrol — AP CS Principles</title><meta name="description" content="Lesson 4.5a The Full State Machine: Back to Patrol — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="4.5a The Full State Machine: Back to Patrol — AP CS Principles"><meta property="og:description" content="Lesson 4.5a The Full State Machine: Back to Patrol — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="4.4a.html">&#9664; 4.4a</a><span class="lesson-id">4.5a</span><a href="5.1a.html">5.1a &#9654;</a></div><h1>4.5a — The Full State Machine: Back to Patrol</h1>
+
+<p class="lesson-lead">
+    Everything you built this unit is one animal: a machine with
+    states, transitions, and no memory it does not need. Today you draw
+    it, trace it, and connect it to the biggest idea in the AP exam's
+    algorithms unit: selection decides everything.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        You have written every line of this enemy already. Read the
+        whole Update path at once and count the behaviors:
+    </p>
+    <pre><code>private void Update()
+{
+    if (isPlatformer)
+    {
+        PlatformerMove();   // STATE: PATROL
+    }
+    else
+    {
+        TopDownMove();      // STATE: PATROL (when far) or CHASE (when near)
+    }
+}</code></pre>
+
+    <p>
+        Inside TopDownMove the chase is an if; outside it, the attack
+        is a collision handler with a cooldown. Now draw the machine
+        on paper — states as boxes, transitions as labeled arrows:
+    </p>
+    <table>
+        <tr><th>From</th><th>Event / condition</th><th>To</th></tr>
+        <tr><td>PATROL</td><td>distance to player &lt; chaseDistance</td><td>CHASE</td></tr>
+        <tr><td>CHASE</td><td>every frame: move toward player (normalized)</td><td>(stay in CHASE)</td></tr>
+        <tr><td>CHASE</td><td>contact (collision)</td><td>ATTACK (deals damage on cooldown)</td></tr>
+        <tr><td>CHASE</td><td>distance &gt;= chaseDistance</td><td>PATROL</td></tr>
+    </table>
+
+    <p>
+        The fourth row is the one the teacher's design asks about:
+        <strong>"returns to patrol when the player flees."</strong>
+        Find it in the code — there is no explicit "return to patrol"
+        line. The chase is inside an if; when the if stops matching,
+        the enemy simply falls back to doing nothing extra. The
+        patrol was never switched off, it was just outvoted. The most
+        elegant state machines hide exits inside conditions.
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The AP exam says an algorithm needs <strong>sequencing,
+            selection, and iteration</strong>. Label all three in the
+            enemy's code: where is sequence, where is selection, and
+            where is iteration? (The iteration one is sneaky — think
+            about what calls Update.)
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5a:sc1:q1" data-block="socratic" data-question="The AP exam says an algorithm needs sequencing, selection, and iteration . Label all three in the enemy's code: where is sequence, where is selection, and where is iteration? (The iteration one is sneaky — think about what calls Update.)" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — prove the diagram with Debug.Log.</strong>
+    Instrument TopDownMove for five minutes (then delete it):</p>
+    <pre><code>if (dist &lt; chaseDistance)
+{
+    Debug.Log("CHASE");
+    ...
+}
+else
+{
+    Debug.Log("PATROL");  // you will have to make the else explicit
+}</code></pre>
+
+    <p>Walk the boundary in and out: the Console flickers
+    CHASE/PATROL/CHASE. You are watching state transitions print in
+    real time. Why is "flickering at the edge" not a bug — and which
+    number (chaseDistance) would you tune to make the flicker stop?</p>
+
+    <p><strong>Step 2 — the ATTACK column is a lie (mostly).</strong>
+    Notice: attack is not a state in the code, it is a collision
+    event that can fire during CHASE or even during PATROL (walk into
+    a patrolling enemy!). Your diagram probably drew it as a state
+    anyway — because that is how it FEELS. Designers draw the
+    machine from the player's point of view; the code just makes the
+    arrows cheap. Bosses in Unit 8 will have real phase states —
+    this enemy fakes them.</p>
+
+    <p><strong>Step 3 — name the states out loud.</strong> Write the
+    three names — PATROL, CHASE, ATTACK — as comments next to the
+    code lines that implement them. The comment IS the design
+    document; the code is one implementation of it.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Break the machine</h3>
+        <ol>
+            <li>Swap the chaseDistance and patrolDistance values (5
+                and 3). Which behavior gets weird first — and does
+                the diagram still hold?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5a:bh1:q1" data-block="bug-hunt" data-question="Swap the chaseDistance and patrolDistance values (5 and 3). Which behavior gets weird first — and does the diagram still hold?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Make isPlatformer true in the Overworld. Which states
+                vanish — and what does that say about the enemy's
+                whole brain in the cave scenes?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5a:bh1:q2" data-block="bug-hunt" data-question="Make isPlatformer true in the Overworld. Which states vanish — and what does that say about the enemy's whole brain in the cave scenes?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Add a second chase if INSIDE the first: chase when
+                dist &lt; 5 AND dist &gt; 2. What did you just invent
+                (a dead zone!) — and where does the enemy stand when
+                the player stands still inside it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5a:bh1:q3" data-block="bug-hunt" data-question="Add a second chase if INSIDE the first: chase when dist &lt; 5 AND dist &gt; 2. What did you just invent (a dead zone!) — and where does the enemy stand when the player stands still inside it?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Design a fourth state</h3>
+        <ol>
+            <li>Invent FLEE: the enemy runs AWAY when you get within
+                1.5 (a cowardly guard). Which subtraction flips, and
+                where does the new arrow go on your diagram?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5a:tk1:q1" data-block="tinker" data-question="Invent FLEE: the enemy runs AWAY when you get within 1.5 (a cowardly guard). Which subtraction flips, and where does the new arrow go on your diagram?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Invent ENRAGE: after taking a hit (someday), double
+                speed for 3 seconds. What field counts the 3 seconds
+                — and which pattern does it borrow?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5a:tk1:q2" data-block="tinker" data-question="Invent ENRAGE: after taking a hit (someday), double speed for 3 seconds. What field counts the 3 seconds — and which pattern does it borrow?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Commit + push: <code>"4.5a: state diagram + states named"</code> — include a photo or ASCII of your diagram in the repo.</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Draw the enemy's state machine from memory, with conditions on the arrows</li>
+            <li>Find "return to patrol" in the code — as the absence of a match</li>
+            <li>Label sequencing, selection, and iteration in real code</li>
+            <li>Explain why a drawn state and a coded state are different things</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the full reference, with the boss preview</li>
+        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — every branch annotated</li>
+        <li><a href="../exam/reference-sheet.html">Exam Reference Sheet</a> — where selection meets pseudocode</li>
+    </ul>
+    <p>Next: <a href="5.1a.html">5.1a — The Axe: Item Pickups &amp; Inventory Bools</a> — Unit 5 begins.</p>
+</div><div class="lab-bar" data-lesson="4.5a" data-lesson-title="The Full State Machine: Back to Patrol" data-count="6" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/6 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="4.5a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="4.4a.html"><span class="dir">&#9664; Previous</span><span class="where">4.4a — Attack: Close-Range Danger</span></a><a class="foot-next" href="5.1a.html"><span class="dir">Next &#9654;</span><span class="where">5.1a — The Axe: Item Pickups &amp; Inventory Bools</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

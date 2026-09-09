@@ -1,0 +1,141 @@
+---
+// Lists & Arrays — the list reference (Unit 10, prep for card jam + grid jam).
+import Base from '../../../layouts/BaseLayout.astro';
+
+const crumbs = `<nav class="crumbs"><a href="../index.html">Docs</a> &gt; <a href="../unit-10/index.html">Unit 10</a> &gt; <span>Lists &amp; Arrays</span></nav>`;
+
+const body = `<h1>Lists &amp; Arrays</h1>
+
+<p class="lesson-lead">
+    One number was a field; a few flags were bools; many things in
+    order is a LIST — the data structure behind your card deck, your
+    playtest rows, and the grid jam's board. This is the reference
+    for the whole list family, AP pseudocode and C# side by side.
+</p>
+
+<h2>The vocabulary, both languages</h2>
+<table>
+    <tr><th>AP pseudocode</th><th>C# on a List</th><th>What it does</th></tr>
+    <tr><td>aList[i]</td><td>list[i]</td><td>Access index i. <strong>AP counts from 1; C# counts from 0</strong> — the exam's favorite off-by-one</td></tr>
+    <tr><td>APPEND(aList, item)</td><td>list.Add(item)</td><td>Add at the end</td></tr>
+    <tr><td>REMOVE(aList, i)</td><td>list.RemoveAt(i)</td><td>Remove at index (or Remove(item))</td></tr>
+    <tr><td>INSERT(aList, i, item)</td><td>list.Insert(i, item)</td><td>Squeeze into position i, shifting the rest right</td></tr>
+    <tr><td>LENGTH(aList)</td><td>list.Count</td><td>How many items</td></tr>
+    <tr><td>FOR EACH item IN aList</td><td>foreach (var item in list)</td><td>Visit every item, no index needed</td></tr>
+    <tr><td>FOR i FROM 1 TO LENGTH</td><td>for (int i = 0; i &lt; list.Count; i++)</td><td>Visit every INDEX — use when position matters</td></tr>
+</table>
+
+<h2>Array vs List — same idea, one difference that matters</h2>
+<p>
+    An <strong>array</strong> has a fixed size set at creation
+    (<code>int[] scores = new int[10];</code>); a <strong>List</strong>
+    grows and shrinks on demand. Underneath, a List IS an array that
+    copies itself into a bigger one when full — which is why adding is
+    usually instant and occasionally a little slow. Choose: a hand of
+    changing size wants a List; a fixed 8×8 board can be either (the
+    grid jam uses a 2D array, <a href="../../lessons/12.1b.html">12.1b</a>).
+    The exam uses "list" for both and only tests operations, never
+    capacity management.
+</p>
+
+<h2>The four patterns you will write forever</h2>
+
+<h3>1. Traverse to total</h3>
+<pre><code>AP:                                C#:
+total ← 0                          int total = 0;
+FOR EACH item IN aList             foreach (int item in list)
+    total ← total + item                total += item;</code></pre>
+
+<h3>2. Traverse with a filter (selection inside iteration)</h3>
+<pre><code>AP:                                C#:
+result ← []                        var result = new List&lt;int&gt;();
+FOR EACH item IN aList             foreach (int item in list)
+    IF (item &gt; threshold)             if (item &gt; threshold)
+        APPEND(result, item)               result.Add(item);</code></pre>
+
+<h3>3. Find the best (the AI score loop)</h3>
+<pre><code>AP:                                C#:
+best ← aList[1]                    int best = int.MinValue;
+FOR EACH item IN aList             foreach (int item in list)
+    IF (item &gt; best)                   if (item &gt; best)
+        best ← item                       best = item;</code></pre>
+<p>
+    This is the card AI's whole personality
+    (<a href="../../lessons/10.2d.html">10.2d</a>): score every
+    option, keep the winner. "Best" starts at an impossible value
+    so the first real item always replaces it.
+</p>
+
+<h3>4. Swap (the shuffle's spine)</h3>
+<pre><code>AP:                                C#:
+temp ← aList[i]                    var temp = list[i];
+aList[i] ← aList[r]                list[i] = list[r];
+aList[r] ← temp                    list[r] = temp;</code></pre>
+<p>
+    Fisher-Yates shuffles the whole deck from exactly this: walk
+    from the end, pick a random earlier-or-equal index, swap.
+    Every card gets one fair chance at every slot
+    (<a href="../../lessons/10.2c.html">10.2c</a>).
+</p>
+
+<h2>Two bugs, one rule</h2>
+<p>
+    <strong>Bug 1 — remove while traversing forward:</strong> deleting
+    item i shifts every later item left, and your loop's next step
+    skips one entirely. <strong>Fix:</strong> traverse BACKWARD
+    (from the end to the start) so the shift happens behind you:
+</p>
+<pre><code>for (int i = list.Count - 1; i &gt;= 0; i--)
+{
+    if (list[i].cost &gt; 5) list.RemoveAt(i);   // safe: shifts are behind
+}</code></pre>
+<p>
+    <strong>Bug 2 — the bounds:</strong> the last item is at index
+    Count − 1, not Count. Accessing list[Count] is the classic
+    IndexOutOfRange crash. The exam version: a list of 30 students
+    has valid indices 1–30 in AP and 0–29 in C#. Write both numbers
+    when counting matters — you have seen this trap in every MC set
+    (<a href="../../lessons/11.4a.html">11.4a</a>).
+</p>
+
+<h2>Lists of lists — the grid</h2>
+<pre><code>// 2D array — the grid jam's board
+int[,] grid = new int[8, 8];
+grid[row, col] = 1;                 // ROW first — always read aloud
+
+// list-of-lists — the AP shape
+List&lt;List&lt;int&gt;&gt; grid2 = new List&lt;List&lt;int&gt;&gt;();
+grid2[r][c]                          // same convention, row first</code></pre>
+<p>
+    Rows before columns is pure convention, but the convention is
+    everywhere; on a square board a swap is invisible, so test on a
+    rectangle (<a href="../../lessons/12.1b.html">12.1b</a>).
+    Symmetry on a grid is one expression:
+    <code>mirrorCol = W − 1 − col</code>.
+</p>
+
+<h2>Where you meet lists this year</h2>
+<ul>
+    <li><a href="../../lessons/10.2a.html">10.2a — the card kickoff</a> —
+        the starter's six lists, met</li>
+    <li><a href="../../lessons/10.2c.html">10.2c — shuffle, draw, traverse</a> —
+        the patterns above, shipped</li>
+    <li><a href="../../lessons/10.2d.html">10.2d — turn logic</a> —
+        the AI's find-the-best loop</li>
+    <li><a href="../../lessons/12.1b.html">12.1b — the grid core</a> —
+        2D and bounds</li>
+    <li><a href="scriptable-objects.html">ScriptableObjects</a> —
+        what your lists are full of</li>
+</ul>
+
+<div class="unit-nav">
+    <span><a href="../unit-09/encryption.html">← Encryption</a></span>
+    <span><a href="../index.html">All docs</a></span>
+    <span><a href="scriptable-objects.html">ScriptableObjects →</a></span>
+</div>`;
+---
+<Base title="Lists &amp; Arrays — AP CS Principles Docs" active="docs" root="../.." docsHome="../index.html" css="../../style.css"
+  description="The list reference: AP pseudocode vs C#, traversals, filters, find-the-best, swap, remove-while-traversing, and grids — with the card jam and grid jam as the proving grounds.">
+  <Fragment slot="breadcrumb" set:html={crumbs} />
+  <Fragment set:html={body} />
+</Base>

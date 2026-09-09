@@ -1,0 +1,138 @@
+---
+// The Internet — CSN-1/CSN-2 reference (Unit 9).
+import Base from '../../../layouts/BaseLayout.astro';
+
+const crumbs = `<nav class="crumbs"><a href="../index.html">Docs</a> &gt; <a href="../unit-09/index.html">Unit 9</a> &gt; <span>The Internet</span></nav>`;
+
+const body = `<h1>The Internet</h1>
+
+<p class="lesson-lead">
+    Every git push you have made this year crossed the planet in
+    packets, addressed to a name resolved by DNS, routed by machines
+    that know nothing about each other. This is the reference for how
+    that works — and the TCP/UDP trade the exam asks about every
+    single year.
+</p>
+
+<h2>Packets, not streams</h2>
+<p>
+    Nothing crosses the internet whole. Data is chopped into packets —
+    typically up to about 1,500 bytes each — and every packet carries
+    a header: source address, destination address, sequence number,
+    checksum. Packets from the same file may take different physical
+    routes; the receiver reassembles by sequence number, and a lost
+    packet is resent individually, not the whole file.
+</p>
+<pre><code>laptop → campus router → ISP → (several unknown hops) → github.com
+  packet 1 ──────────────────────→ arrives
+  packet 2 ──→ lost → resent, new route → arrives
+  packet 3 ───────────────────────────────→ arrives
+  receiver reassembles 1, 2, 3 by sequence number</code></pre>
+<p>
+    The design's superpower is that no single route is sacred —
+    "the internet routes around damage" because every router makes
+    only local decisions about the next hop. There is no map, no
+    master, and no single point of failure. That decentralization
+    is also the exam's favorite property of the internet's design.
+</p>
+
+<h2>TCP vs UDP — the reliability trade</h2>
+<table>
+    <tr><th></th><th>TCP</th><th>UDP</th></tr>
+    <tr><td>Promise</td><td>All packets arrive, in order, or the transfer fails</td><td>Best effort; loss and disorder tolerated</td></tr>
+    <tr><td>Mechanism</td><td>Handshake, acknowledgments, retransmission, sequencing</td><td>Fire and forget</td></tr>
+    <tr><td>Cost</td><td>Latency — waiting for receipts</td><td>No receipts, no order, no retry</td></tr>
+    <tr><td>Your life</td><td>git push, web pages, downloads, email</td><td>Game packets, voice, video calls</td></tr>
+</table>
+<p>
+    The one-sentence exam answer: <strong>games prefer UDP because a
+    late packet is worthless</strong> (the state has moved on) while
+    <strong>downloads prefer TCP because losing one byte of the file
+    corrupts it</strong>. Your own games run locally for now, but the
+    card jam's hypothetical leaderboard
+    (<a href="../../lessons/9.8a.html">9.8a</a>) is exactly the moment
+    these choices become real.
+</p>
+
+<h2>DNS — names to numbers</h2>
+<p>
+    Machines route by IP address (like 140.82.112.3); humans type
+    github.com. DNS is the lookup system that converts — and its
+    hierarchy is worth being able to sketch:
+</p>
+<ol>
+    <li>Your machine checks its own cache — hit? done in
+        microseconds</li>
+    <li>It asks the configured resolver (campus, home router, or
+        public DNS) — which also caches</li>
+    <li>The resolver walks the hierarchy if needed: root servers
+        (know the TLDs) → .com servers (know who runs the domain)
+        → github.com's servers (know the actual records)</li>
+    <li>Every level caches its answer for a time-to-live, which is
+        why the SECOND lookup is always faster than the first</li>
+</ol>
+<p>
+    Caching exists at every level because lookup latency is real —
+    and cache invalidation is why "turn it off and on again" is
+    actual engineering: you are flushing the machine's memory of a
+    lie.
+</p>
+
+<h2>Routing and latency</h2>
+<p>
+    <code>traceroute github.com</code> shows every hop and its
+    round-trip time. Big jumps usually mark ISP boundaries or ocean
+    crossings. Two facts to carry: <strong>latency is physics</strong>
+    (nothing beats the speed of light across an ocean), and
+    <strong>bandwidth is not latency</strong> — a fat pipe still
+    takes the same 80 ms to start answering. A laggy game and a
+    slow download are different diseases.
+</p>
+
+<h2>What the internet is, one paragraph (memorize the shape)</h2>
+<p>
+    The internet is a <strong>network of networks</strong>, connected
+    by routers, using shared standards (the TCP/IP family) so that
+    any machine can talk to any other without central coordination.
+    The web is NOT the internet — the web (HTTP pages) is one service
+    that rides on it, like email, game traffic, and git itself.
+    Encryption (<a href="encryption.html">the next page</a>) is
+    also a rider: TLS wraps the packets, it does not change the
+    routing.
+</p>
+
+<h2>The exam-question shapes</h2>
+<ul>
+    <li>"Which protocol for X?" — TCP for anything that must arrive
+        complete; UDP for anything that must arrive NOW</li>
+    <li>"Why can the internet keep working when a router fails?" —
+        packets reroute; no single path; local decisions</li>
+    <li>"What does DNS do?" — converts human-readable names to IP
+        addresses; hierarchy + caching</li>
+    <li>"Why do packets include sequencing information?" — so the
+        receiver can reassemble regardless of arrival order</li>
+    <li>"Latency vs bandwidth" — read carefully; they are never the
+        same answer</li>
+</ul>
+
+<h2>Where you meet networks this year</h2>
+<ul>
+    <li><a href="../../lessons/9.8a.html">9.8a — The Internet</a> —
+        the lesson (ping, traceroute, cache flush)</li>
+    <li><a href="../../lessons/9.9a.html">9.9a — Encryption</a> —
+        what happens on top of these packets</li>
+    <li><a href="encryption.html">Encryption reference</a> — TLS
+        rides on this</li>
+</ul>
+
+<div class="unit-nav">
+    <span><a href="binary-and-hex.html">← Binary &amp; Hex</a></span>
+    <span><a href="../index.html">All docs</a></span>
+    <span><a href="encryption.html">Encryption →</a></span>
+</div>`;
+---
+<Base title="The Internet — AP CS Principles Docs" active="docs" root="../.." docsHome="../index.html" css="../../style.css"
+  description="Packets, routing, TCP vs UDP, DNS, latency vs bandwidth — the CSN reference, told through your own git pushes.">
+  <Fragment slot="breadcrumb" set:html={crumbs} />
+  <Fragment set:html={body} />
+</Base>

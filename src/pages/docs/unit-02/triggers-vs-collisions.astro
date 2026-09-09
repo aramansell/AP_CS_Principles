@@ -1,0 +1,146 @@
+---
+// Triggers vs Collisions — the physics-family reference (Unit 2, used all year).
+import Base from '../../../layouts/BaseLayout.astro';
+
+const crumbs = `<nav class="crumbs"><a href="../index.html">Docs</a> &gt; <a href="../unit-02/index.html">Unit 2</a> &gt; <span>Triggers vs Collisions</span></nav>`;
+
+const body = `<h1>Triggers vs Collisions</h1>
+
+<p class="lesson-lead">
+    Unity physics gives you two ways for two objects to meet, and every
+    interactive thing you build this year is one or the other. Pick wrong
+    and your coin pushes the player around the screen; pick right and the
+    whole game feels invisible — which is the point. This is the complete
+    reference for the physics family: pickups, hazards, hitboxes, ladders.
+</p>
+
+<h2>The one-line rule</h2>
+<p>
+    <strong>A trigger asks "did we overlap?" A collider asks "can we
+    occupy the same space?"</strong> — triggers are for <em>events</em>
+    (you entered a region); collisions are for <em>physics</em> (you
+    cannot walk through a wall). Everything else follows from that.
+</p>
+
+<table>
+    <tr><th></th><th>Trigger</th><th>Collider (non-trigger)</th></tr>
+    <tr><td>Is Trigger checked?</td><td>Yes</td><td>No</td></tr>
+    <tr><td>Does physics resolve the overlap?</td><td>No — objects pass through</td><td>Yes — objects push/stop</td></tr>
+    <tr><td>Message you receive</td><td>OnTriggerEnter2D / Stay2D / Exit2D</td><td>OnCollisionEnter2D / Stay2D / Exit2D</td></tr>
+    <tr><td>Handler argument</td><td>Collider2D (no contact points)</td><td>Collision2D (with contact points)</td></tr>
+    <tr><td>Needs a Rigidbody?</td><td>At least one object in the pair</td><td>At least one object in the pair</td></tr>
+    <tr><td>Your game uses it for</td><td>coins, potions, ladders, hitboxes, prompts</td><td>ground, walls, spikes, enemy contact</td></tr>
+</table>
+
+<h2>Enter, Stay, Exit — the three moments</h2>
+<p>
+    Every overlap has a lifecycle, and Unity calls one method per moment:
+</p>
+<ul>
+    <li><strong>Enter</strong> fires ONCE, the first frame the shapes overlap</li>
+    <li><strong>Stay</strong> fires EVERY frame the overlap continues</li>
+    <li><strong>Exit</strong> fires ONCE, the first frame they no longer overlap</li>
+</ul>
+<p>
+    The classic bug pair: <strong>Enter-only</strong> handlers mean "one
+    event per bump" (a coin is collected once — but standing inside a
+    hazard deals damage only once). <strong>Stay</strong> handlers mean
+    "an event every frame" (a continuous hazard — but a coin collected
+    in Stay would try to collect itself 60 times a second and crash on
+    the second, because Destroy already removed it). The starter's
+    EnemyController uses BOTH: OnCollisionEnter2D and OnCollisionStay2D
+    both call TryDamage, and the damage cooldown
+    (<a href="../../lessons/4.4a.html">4.4a</a>) is what keeps the
+    per-frame Stay call from draining health at 60 hits per second.
+</p>
+
+<h2>The tag check — the first branch of every handler</h2>
+<p>
+    A handler fires for EVERY overlapping object — walls, other enemies,
+    the player, your own projectiles. The first line of almost every
+    handler you write this year filters with CompareTag:
+</p>
+<pre><code>private void OnTriggerEnter2D(Collider2D other)
+{
+    if (other.CompareTag("Coin"))
+    {
+        if (StatManager.manager != null)
+        {
+            StatManager.manager.ChangeCoins(1);
+        }
+        Destroy(other.gameObject);
+    }
+}</code></pre>
+<p>
+    Read the three habits in that shape: <strong>filter</strong> by tag
+    (what did we touch?), <strong>guard</strong> the singleton (does
+    the manager exist?), <strong>act and clean up</strong> (change the
+    number, remove the pickup). The silent-failure trap: a misspelled
+    tag does not throw — the branch simply never matches, and nothing
+    happens. When a trigger "does nothing," check the tag's spelling
+    FIRST, in both places: the object's Tag field and the string in
+    code.
+</p>
+
+<h2>Why pickups are triggers and hazards are colliders</h2>
+<p>
+    A coin must not shove the player when collected — overlap is an
+    event, not a wall: trigger. A spike is a physical thing you are
+    stopped by or standing on, AND an event when touched — collider,
+    with the damage handler riding on the collision message. The
+    turret's projectile splits the difference: its collider is a
+    <strong>trigger</strong> (bullets pass through the player's body
+    until they choose to "hit") but it dies on contact with anything
+    tagged appropriately — and the starter's Projectile also destroys
+    itself on the "Ground" tag.
+</p>
+
+<h2>The settings that break everything</h2>
+<ul>
+    <li><strong>Is Trigger unchecked when you meant it checked:</strong>
+        your pickup becomes a wall. Symptom: the player stops short of
+        the coin instead of collecting it.</li>
+    <li><strong>Rigidbody-less pairs:</strong> two static colliders
+        never generate trigger or collision messages — at least one
+        object in any pair needs a Rigidbody2D (the player carries
+        one; enemies too).</li>
+    <li><strong>Layer collisions off:</strong> the Physics 2D matrix
+        (Project Settings) can disable interactions between whole
+        LAYERS — if your layer pair is off there, no message ever
+        fires, tags or not. This is the same layer machinery as the
+        ground-check raycast mask
+        (<a href="../../lessons/6.2a.html">6.2a</a>).</li>
+    <li><strong>Z position / sorting:</strong> sorting layers decide
+        what DRAWS in front; physics happens regardless. An object
+        drawn behind a wall still collides with it — visual depth and
+        physical space are separate systems
+        (<a href="../../lessons/7.2a.html">7.2a</a>).</li>
+</ul>
+
+<h2>Where you meet each pattern this year</h2>
+<ul>
+    <li><strong>Trigger + tag + singleton:</strong> coins and potions
+        (<a href="../../lessons/2.1a.html">2.1a</a>,
+        <a href="../../lessons/2.3a.html">2.3a</a>), the axe
+        (<a href="../../lessons/5.1a.html">5.1a</a>), the boots
+        (<a href="../../lessons/6.4a.html">6.4a</a>), the ladder zone
+        (<a href="../../lessons/7.3a.html">7.3a</a>)</li>
+    <li><strong>Collision + damage + cooldown:</strong> spikes
+        (<a href="../../lessons/2.2a.html">2.2a</a>), enemy contact
+        (<a href="../../lessons/4.4a.html">4.4a</a>)</li>
+    <li><strong>Trigger hitboxes:</strong> your melee swing
+        (<a href="../../lessons/8.3a.html">8.3a</a>), the boss's
+        shockwave (<a href="../../lessons/8.4a.html">8.4a</a>)</li>
+</ul>
+
+<div class="unit-nav">
+    <span><a href="../unit-02/index.html">← Unit 2</a></span>
+    <span><a href="../index.html">All docs</a></span>
+    <span><a href="../reference/unity-csharp-quickref.html">C# Quick Reference →</a></span>
+</div>`;
+---
+<Base title="Triggers vs Collisions — AP CS Principles Docs" active="docs" root="../.." docsHome="../index.html" css="../../style.css"
+  description="The complete reference for Unity triggers vs collisions: enter/stay/exit, tag checks, pickups vs hazards, and every setting that silently breaks them.">
+  <Fragment slot="breadcrumb" set:html={crumbs} />
+  <Fragment set:html={body} />
+</Base>

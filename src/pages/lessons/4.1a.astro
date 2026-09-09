@@ -1,0 +1,155 @@
+---
+// Lesson 4.1a — The Enemy: Waypoint Patrols
+// EnemyController.PlatformerMove: startPosition, patrolDistance, flip.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>4.1a — The Enemy: Waypoint Patrols</h1>
+
+<p class="lesson-lead">
+    The turret never moves; the enemy hunts. Start with its calmest
+    behavior: a guard walking a beat, back and forth, forever — a loop
+    built from one saved position and one sign flip.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>Read the patrol half of EnemyController.cs:</p>
+    <pre><code>[SerializeField] private float speed = 2.0f;
+[SerializeField] private float patrolDistance = 3.0f;
+private Vector3 startPosition;
+private int direction = 1;
+
+private void Start()
+{
+    startPosition = transform.position;
+    ...
+}
+
+private void PlatformerMove()
+{
+    transform.Translate(Vector2.right * direction * speed * Time.deltaTime);
+
+    float dist = Vector3.Distance(startPosition, transform.position);
+    if (dist &gt; patrolDistance)
+    {
+        direction *= -1; // Switch direction
+        ...
+    }
+}</code></pre>
+
+    <p>Predict before running: the enemy starts at x = 5. Where does
+    it turn around — at x = 8, x = 2, or both? Draw the walk as a line
+    with turn-around points. Then: why does Start save
+    startPosition — what would break if Update saved it instead?</p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The patrol is a loop with no loop keyword — Translate every
+            frame, flip when far. Where is the "repeat" hiding, and
+            what would the AP exam's REPEAT UNTIL version of this look
+            like?
+        </p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — rebuild the patrol from a blank
+    EnemyController.</strong> Comment out PlatformerMove's body and
+    bring it back in order: remember start (Start) → walk
+    (Translate with direction × speed × deltaTime — the movement
+    pattern from <a href="1.4a.html">1.4a</a>, wearing a sign) →
+    measure (Distance from start) → flip (direction *= -1). Run after
+    each step; the walk is boring alone, the flip is the behavior.</p>
+
+    <p><strong>Step 2 — the invisible leash.</strong> There are no
+    markers in the scene — no waypoint gizmos, nothing. The enemy
+    patrols <em>relative to where it spawned</em>: move the prefab
+    instance in the scene and the beat moves too. patrolDistance is
+    the leash length, a serialized knob like every other. What is the
+    patrol shape if you set patrolDistance to 0? To 100?</p>
+
+    <p><strong>Step 3 — direction as signed state.</strong> A single
+    int, 1 or −1, is the enemy's entire memory of where it is going.
+    Multiplying by −1 flips the sign — one line, no ifs. This is the
+    trick behind every "which way am I facing" field in games; your
+    sprite.flipX from <a href="4.2a.html">4.2a</a> reads this exact
+    value.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The runaway guard</h3>
+        <ol>
+            <li>Move the enemy mid-patrol in the Scene view while in
+                PLAY mode. What is its new turnaround pattern, and why
+                does it never find its old beat?</li>
+            <li>Save startPosition in Update instead of Start. The
+                enemy... what? Explain using the value startPosition
+                holds on frame 2.</li>
+            <li>Change direction *= -1 to direction = 1. What single
+                behavior remains — and where does the enemy end up
+                after ten seconds?</li>
+            <li>Set speed to 20 and watch a full beat. Which side of
+                the leash does the flip overshoot — and why does a
+                big speed make the patrol longer than
+                patrolDistance?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Design the beat</h3>
+        <ol>
+            <li>Place two enemies with overlapping patrols guarding a
+                coin. Where do the beats intersect, and can the player
+                time the gap?</li>
+            <li>Patrol on ONE axis only, by code. What would you change
+                to make a vertical guard (an elevator enemy)?</li>
+            <li>Hard: a patrol that pauses at each end for one second.
+                Which pattern from <a href="3.3a.html">3.3a</a> do you
+                reach for — and what is the "cooldown" here?</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Rebuild the patrol: save start → translate → measure → flip</li>
+            <li>Explain why Start saves the anchor and Update cannot</li>
+            <li>Explain direction as signed state and the *= −1 flip</li>
+            <li>Design patrol layouts (overlaps, leashes, choke points) on purpose</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — patrol, chase, and the state machine</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the full reference</li>
+    </ul>
+    <p>Next: <a href="4.2a.html">4.2a — Patrol Polish: Bounds, Flips &amp; Animations</a></p>
+</div>`;
+---
+<Lesson id="4.1a" title="4.1a The Enemy: Waypoint Patrols — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

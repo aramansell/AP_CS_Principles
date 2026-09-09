@@ -1,0 +1,164 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>5.3a Into the Cave: Scene Loading &amp; Mode Switch — AP CS Principles</title><meta name="description" content="Lesson 5.3a Into the Cave: Scene Loading &amp; Mode Switch — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="5.3a Into the Cave: Scene Loading &amp; Mode Switch — AP CS Principles"><meta property="og:description" content="Lesson 5.3a Into the Cave: Scene Loading &amp; Mode Switch — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="5.2a.html">&#9664; 5.2a</a><span class="lesson-id">5.3a</span><a href="6.1a.html">6.1a &#9654;</a></div><h1>5.3a — Into the Cave: Scene Loading &amp; Mode Switch</h1>
+
+<p class="lesson-lead">
+    You break the door, you walk in — and the game you are playing
+    quietly becomes a different game. Today: how ONE player script
+    runs as a top-down character on the surface and a platformer
+    underground, decided by nothing but the scene's own name.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>Read the branch in PlayerController.Start:</p>
+    <pre><code>private bool isPlatformer;
+
+private void Start()
+{
+    string sceneName = SceneManager.GetActiveScene().name;
+    if (sceneName == "Platformer" || sceneName == "Start")
+    {
+        isPlatformer = true;
+        rb.gravityScale = 0;
+    }
+}</code></pre>
+
+    <p>
+        Wait — read it again, slowly. "Platformer" and "Start" set
+        isPlatformer = <strong>true</strong>... and then set gravity to
+        <strong>0</strong>? That reads backwards — until you learn the
+        starter's naming: the "Start" scene IS the top-down overworld
+        (that is where you respawned in
+        <a href="2.2a.html">2.2a</a>), and "Platformer" is the cave
+        scene. Top-down means NO gravity — a top-down character who
+        falls is a broken top-down character. The bool's name is the
+        confession: isPlatformer means "we are in a scene where the
+        movement style is top-down-or-platformer, not pure physics."
+        Trace which scene you are IN before you judge any branch.
+    </p>
+
+    <p>
+        Predict: the player walks into the cave door area. What must
+        happen to the WHOLE world to put you in a platformer — same
+        scene with a camera pan, or a brand-new scene load? Where did
+        you last see SceneManager.LoadScene, and who called it?
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            One component behaving differently per scene is the
+            <strong>instance</strong> idea: every scene gets its own
+            Player object, each with the same script but different
+            rules. What is saved between scenes (StatManager!) and
+            what is born fresh — and why do coins survive the door
+            but position cannot?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3a:sc1:q1" data-block="socratic" data-question="One component behaving differently per scene is the instance idea: every scene gets its own Player object, each with the same script but different rules. What is saved between scenes (StatManager!) and what is born fresh — and why do coins survive the door but position cannot?" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — open the cave.</strong> The starter ships a
+    Platformer scene (Assets/Scenes — check it exists; if your fork
+    names it differently, use YOUR name and update the string in
+    Start). Wire the cave door's lever event
+    (<a href="5.2a.html">5.2a</a>) or a new trigger to:</p>
+    <pre><code>SceneManager.LoadScene("Platformer");</code></pre>
+    <p>
+        Run it. The whole world is swapped in one frame. The Console
+        from the overworld is gone, the enemies are gone, the coins
+        are gone — everything except what a DontDestroyOnLoad
+        singleton carries. Walk around: the same PlayerController
+    </p>
+
+    <p><strong>Step 2 — feel the mode.</strong> In the cave scene, try
+    WASD: vertical input does something DIFFERENT now — or nothing,
+    depending on how the branch is built. Read Update's
+    isPlatformer branch: which input does the platformer branch
+    ignore, and what does top-down use instead of AddForce for
+    movement? Your movement table from <a href="1.4a.html">1.4a</a>
+    gets a second column today.</p>
+
+    <p><strong>Step 3 — the physics flip.</strong> Top-down:
+    gravityScale 0, vertical ySpeed translation. Platformer
+    physics: gravity ON, and jump via AddForce Impulse. Same script,
+    opposite physics. Change gravityScale in the Inspector while in
+    the cave — watch your character fall like a stone (2) or float
+    like a moon astronaut (0.05). THAT is the number you will tune in
+    <a href="6.1a.html">6.1a</a>.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The wrong-world player</h3>
+        <ol>
+            <li>Rename the Platformer scene to "Cave" in the Project
+                window but do NOT update the string in Start.
+                Describe every symptom, then find it — how long did
+                the silent-string hunt take this time?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3a:bh1:q1" data-block="bug-hunt" data-question="Rename the Platformer scene to &quot;Cave&quot; in the Project window but do NOT update the string in Start. Describe every symptom, then find it — how long did the silent-string hunt take this time?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Load the Platformer scene directly (File → Play from
+                that scene) without breaking the door. Does the game
+                work — and why is that both a feature and a
+                bug?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3a:bh1:q2" data-block="bug-hunt" data-question="Load the Platformer scene directly (File → Play from that scene) without breaking the door. Does the game work — and why is that both a feature and a bug?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In the cave, the E-key lever scan runs. Place a lever
+                in the cave and press E. Is the interaction system
+                overworld-only — should it be?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3a:bh1:q3" data-block="bug-hunt" data-question="In the cave, the E-key lever scan runs. Place a lever in the cave and press E. Is the interaction system overworld-only — should it be?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The overworld keeps gravityScale 0 in Start. Delete
+                that line and press Play in the overworld. Where did
+                the player go — and why did "falls forever" look
+                like "nothing happened"?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3a:bh1:q4" data-block="bug-hunt" data-question="The overworld keeps gravityScale 0 in Start. Delete that line and press Play in the overworld. Where did the player go — and why did &quot;falls forever&quot; look like &quot;nothing happened&quot;?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Mode design</h3>
+        <ol>
+            <li>Coins carry across the door (singleton) but your
+                position does not. Design the respawn contract: if
+                you die in the cave, where do you wake — and what
+                does LoadScene("Start") from
+                <a href="2.2a.html">2.2a</a> already give you?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3a:tk1:q1" data-block="tinker" data-question="Coins carry across the door (singleton) but your position does not. Design the respawn contract: if you die in the cave, where do you wake — and what does LoadScene(&quot;Start&quot;) from 2.2a already give you?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Add a second cave scene ("Cave2") and a door deeper
+                in. What strings must match now — and would a
+                scene-name LIST be better than an if?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3a:tk1:q2" data-block="tinker" data-question="Add a second cave scene (&quot;Cave2&quot;) and a door deeper in. What strings must match now — and would a scene-name LIST be better than an if?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Commit + push: <code>"5.3a: door opens, mode switches, physics flips"</code>.</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Explain the scene-name branch and the (confusing) isPlatformer/gravityScale pairing</li>
+            <li>Load a scene from code and from an event</li>
+            <li>Explain what survives a scene change (singletons) and what does not</li>
+            <li>Tune gravityScale and describe what it changes about the genre</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — the scene-switch reference</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — SceneManager, gravityScale</li>
+    </ul>
+    <p>Next: <a href="6.1a.html">6.1a — Jump: Gravity &amp; Impulse</a> — Unit 6 begins.</p>
+</div><div class="lab-bar" data-lesson="5.3a" data-lesson-title="Into the Cave: Scene Loading &amp; Mode Switch" data-count="7" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/7 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="5.3a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="5.2a.html"><span class="dir">&#9664; Previous</span><span class="where">5.2a — The Door: Breaking In with Events</span></a><a class="foot-next" href="6.1a.html"><span class="dir">Next &#9654;</span><span class="where">6.1a — Gravity &amp; Jump: AddForce Impulse</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

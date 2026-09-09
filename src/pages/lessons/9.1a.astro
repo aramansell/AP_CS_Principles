@@ -1,0 +1,158 @@
+---
+// Lesson 9.1a — Binary: How Numbers Live in Memory
+// expand-app CSP concept: bits, powers of two, counting in base 2.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>9.1a — Binary: How Numbers Live in Memory</h1>
+
+<p class="lesson-lead">
+    All semester you have typed <code>int</code> and
+    <code>float</code> like they were words. Underneath, every one of
+    your coins, every xSpeed of 5, every cooldown of 2f is a stack of
+    bits — and once you can READ them, half the AP exam's data
+    questions become easy points.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p><strong>Base 10 first (you already know it).</strong> The
+    number 273 means 2×100 + 7×10 + 3×1. Each place is worth TEN times
+    the one to its right, because you have ten fingers' worth of
+    symbols (0–9). Binary is the same game with two symbols:</p>
+    <table>
+        <tr><th>Place</th><td>8s</td><td>4s</td><td>2s</td><td>1s</td></tr>
+        <tr><th>Bits</th><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+        <tr><th>Worth</th><td>8</td><td>0</td><td>2</td><td>1</td></tr>
+    </table>
+    <p>1011₂ = 8 + 0 + 2 + 1 = <strong>11</strong>. Each place is a
+    power of two: 1, 2, 4, 8, 16, 32, 64, 128.</p>
+
+    <p><strong>Why computers chose 2.</strong> Every wire in the
+    machine holds either HIGH or LOW, on or off, 1 or 0 — your game
+    runs on billions of yes/no questions per second. An 8-bit number
+    (a byte) counts 0–255; an int like your health (3) or coins (0)
+    is 32 bits wide, so its range is enormous — but NOT infinite, and
+    that is the fact that matters:</p>
+    <pre><code>Your turret cooldown 2f stored as a float:
+0 10000000 00000000000000000000000  → the bits of 2.0f
+(int) 2f is 00000000000000000000000000000010  → the bits of 2</code></pre>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            Coins are an int, maxHealth is an int, jumpForce is a
+            float. Why would coins NEVER want to be a float — and
+            what goes wrong with money (0.1 + 0.2) in binary? Try it:
+            Debug.Log(0.1f + 0.2f == 0.3f); — why does it print
+            False?
+        </p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p><strong>Step 1 — count in binary with your hands.</strong>
+    Right thumb = 1, right index = 2, right middle = 4, right ring =
+    8, right pinky = 16. Count 0–31 by raising fingers. When you can
+    get to your coin count without stalls, you have it.</p>
+
+    <p><strong>Step 2 — read your own game's numbers.</strong>
+    Convert, on paper, into 8-bit binary:</p>
+    <ol>
+        <li>health = 3 → 00000011</li>
+        <li>attackCooldown = 2 → 00000010</li>
+        <li>maxAttackRange = 7 → 00000111</li>
+        <li>patrolDistance = 3, chaseDistance = 5 → convert both</li>
+        <li>The number of B days in the semester: 81 lessons → does
+            it fit in 7 bits? (128 says yes, 64 says no — which
+            one is right?)</li>
+    </ol>
+
+    <p><strong>Step 3 — bit tricks your game ALREADY plays.</strong>
+    <code>direction = direction * -1</code> from
+    <a href="4.1a.html">4.1a</a>? In binary, negation is a bit
+    pattern operation (two's complement: flip every bit, add 1). And
+    your booleans — hasAxe, isGrounded, isOnLadder — are single bits.
+    A byte could hold EIGHT of your booleans. Unity spends a byte
+    per bool anyway — memory is cheap now, but the exam wants you to
+    KNOW a bool is a bit.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Bit logic</h3>
+        <ol>
+            <li>What is the largest 4-bit number? (1111₂ = 15 — why
+                is "all ones" always one less than the next
+                power?)</li>
+            <li>10000000₂ + 10000000₂ = ? (Warning: in 8 bits, the
+                answer OVERFLOWS. What happens to the ninth bit —
+                and what does your int do when it overflows?)</li>
+            <li>Debug.Log(int.MaxValue + 1); — run it. What number
+                printed, and why is the biggest positive suddenly
+                the most negative?</li>
+            <li>Your coins count past 2,147,483,647 (impossible on
+                foot — but a cheat could). What is the smallest
+                code change that prevents the overflow?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Own it</h3>
+        <ol>
+            <li>Write your birth year in binary. (Check with a
+                partner — each digit of YOUR answer should be
+                verifiable by powers of two.)</li>
+            <li>AP practice: "A video game stores a player's health
+                as an 8-bit binary number. What is the maximum
+                health?" — write the answer and the REASON
+                (2⁸ − 1), not just the number.</li>
+            <li>Hard: one bit of extra health (a 9th bit) doubles
+                the max. Why does +1 bit mean ×2 range — and why
+                do we not just add bits forever (what is the
+                tradeoff the exam keeps asking about)?</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Convert any small decimal to binary and back, showing powers of two</li>
+            <li>Explain WHY hardware uses base 2 (voltage states)</li>
+            <li>Demonstrate int overflow and explain it with bits</li>
+            <li>Say what a bool really costs and why range doubles per bit</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-09/binary-and-hex.html">Binary &amp; Hex</a> — the full reference with practice tables</li>
+        <li><a href="../exam/reference-sheet.html">Exam Reference Sheet</a> — binary on the AP exam</li>
+        <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — the whole map</li>
+    </ul>
+    <p>Next: <a href="9.2a.html">9.2a — Hex, RGB &amp; Data Abstraction</a></p>
+</div>`;
+---
+<Lesson id="9.1a" title="9.1a Binary: How Numbers Live in Memory — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

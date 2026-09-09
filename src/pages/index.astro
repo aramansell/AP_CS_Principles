@@ -1,0 +1,219 @@
+---
+// Dashboard — rebuilt at every `npm run build` from src/data/curriculum.ts
+// and src/data/lessons.ts. Lesson lists can never drift out of sync with
+// the pacing calendar: both render from the same SEQUENCE data.
+import Base from '../layouts/BaseLayout.astro';
+import { PHASES, phaseLessons, EXAM_DATE, CPT_DEADLINE, mediumDate } from '../data/curriculum';
+import { LESSONS } from '../data/lessons';
+
+const TABS = { 1: 'Phase 1', 2: 'Phase 2', 3: 'Phase 3', 4: 'Phase 4', 5: 'Create PT', 6: 'Season 2' } as const;
+const MIDDOT = '·';
+const totalLessons = Object.keys(LESSONS).length;
+---
+<Base title="Dashboard — AP CS Principles (Unity)" active="dashboard" root="" docsHome="docs/index.html" css="style.css"
+  description="IBW AP CS Principles dashboard — a year of Unity on B days: the starter project, game jams, the Create PT, and the AP exam.">
+<h1>Dashboard</h1>
+
+<p>
+    Pick your phase below. This course runs on <strong>B days</strong>,
+    September to the AP exam on <strong>{mediumDate(EXAM_DATE)}</strong>
+    (with the Create performance task due <strong>{CPT_DEADLINE}</strong>),
+    then Season 2 jams after it. Lessons are numbered
+    <strong>Unit.Lesson</strong> with activities <strong>a, b, c</strong>.
+    We build one real game all first semester, jam all second semester,
+    and weave the AP CS Principles big ideas through every week.
+</p>
+
+<p>
+    <strong>Plan by day, not by guess:</strong> the
+    <a href="pace.html">Pacing Calendar</a> maps every single B-day of the
+    year to its work. Check it when you miss a day, or to see what is coming.
+</p>
+
+<div class="dashboard-total" data-total data-pagefind-ignore>
+    <strong>0</strong> of {totalLessons} lessons complete on this device.
+    <button class="progress-reset" data-reset type="button">reset progress</button>
+</div>
+
+<div class="mywork" data-pagefind-ignore>
+    <h2>My work</h2>
+    <p>
+        Your lesson answers and progress are saved on this device as you go.
+        Back them up, or move them to another machine, with one file:
+    </p>
+    <div class="mywork-row">
+        <input id="mywork-name" type="text" placeholder="Student name (first last)" autocomplete="name" />
+        <button id="mywork-download" type="button" class="lab-download">Download all my work</button>
+        <label class="mywork-import">Restore from file
+            <input id="mywork-import" type="file" accept=".json,application/json" />
+        </label>
+    </div>
+    <p class="mywork-note" id="mywork-note"></p>
+</div>
+
+<div class="unit-selector" id="unit-nav" data-pagefind-ignore>
+    {Object.entries(TABS).map(([p, label], idx) => (
+        <a href={`#phase-${p}`} class={idx === 0 ? 'active' : undefined}>{label}</a>
+    ))}
+</div>
+
+{Object.entries(TABS).map(([p, label], idx) => {
+    const d = PHASES[Number(p)];
+    const lids = phaseLessons(Number(p));
+    return (
+    <div id={`phase-${p}`} class="unit-section" style={idx === 0 ? 'display:block;' : 'display:none;'}>
+        <h2>{d.name}</h2>
+        <p>{[d.ced, d.weight].filter(Boolean).join(` ${MIDDOT} `)} ${MIDDOT} {d.span} ${MIDDOT} {d.units}</p>
+
+        <div class="phase-progress" data-phase-lessons={lids.join(' ')} data-pagefind-ignore>
+            <div class="bar"><div class="fill"></div></div>
+            <span class="count">0/{lids.length}</span>
+        </div>
+
+        <ul class="lesson-list">
+            {lids.map((lid) => {
+                const meta = LESSONS[lid];
+                return (
+                    <li data-lesson={lid}>
+                        <span class="lesson-num">{meta.group}</span>
+                        <span class="lesson-title"><a href={`lessons/${lid}.html`}>{lid} {meta.title}</a></span>
+                        <span class={`badge ${meta.badgeClass}`}>{meta.badgeLabel}</span>
+                    </li>
+                );
+            })}
+        </ul>
+    </div>
+    );
+})}
+</Base>
+
+<script>
+// Phase tab switcher — plain DOM, no framework needed.
+document.querySelectorAll('#unit-nav a').forEach((link) => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('#unit-nav a').forEach((l) => l.classList.remove('active'));
+        document.querySelectorAll('.unit-section').forEach((s) => (s.style.display = 'none'));
+        link.classList.add('active');
+        const target = document.querySelector(link.getAttribute('href'));
+        if (target) target.style.display = 'block';
+    });
+});
+if (window.location.hash) {
+    const match = document.querySelector('#unit-nav a[href="' + window.location.hash + '"]');
+    if (match) match.click();
+}
+
+// Progress readout - reads the same localStorage key the lesson pages write.
+const KEY = 'apcsp-progress';
+const read = function () {
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; }
+};
+
+function renderProgress() {
+    const done = read();
+    let totalDone = 0;
+    let totalAll = 0;
+    document.querySelectorAll('.phase-progress').forEach(function (bar) {
+        const lids = (bar.dataset.phaseLessons || '').split(' ').filter(Boolean);
+        const n = lids.filter(function (id) { return done[id]; }).length;
+        const fill = bar.querySelector('.fill');
+        const count = bar.querySelector('.count');
+        if (fill) fill.style.width = lids.length ? Math.round((100 * n) / lids.length) + '%' : '0%';
+        if (count) count.textContent = n + '/' + lids.length;
+        totalDone += n;
+        totalAll += lids.length;
+        lids.forEach(function (id) {
+            const li = document.querySelector('li[data-lesson="' + id + '"]');
+            if (li) li.classList.toggle('done', !!done[id]);
+        });
+    });
+    const strong = document.querySelector('[data-total] strong');
+    if (strong) strong.textContent = String(totalDone);
+}
+renderProgress();
+document.querySelector('[data-reset]').addEventListener('click', function () {
+    localStorage.removeItem(KEY);
+    renderProgress();
+});
+</script>
+
+<script>
+// My work — backup / restore of progress + all lab answers in one file.
+// Uses the same localStorage keys the lesson pages write.
+(function () {
+    'use strict';
+    var PKEY = 'apcsp-progress';
+    var AKEY = 'apcsp-lab-answers';
+    var NKEY = 'apcsp-lab-student';
+
+    var nameEl = document.getElementById('mywork-name');
+    var dlBtn = document.getElementById('mywork-download');
+    var importEl = document.getElementById('mywork-import');
+    var noteEl = document.getElementById('mywork-note');
+
+    function note(msg, isError) {
+        if (!noteEl) return;
+        noteEl.textContent = msg;
+        noteEl.classList.toggle('error', !!isError);
+    }
+
+    if (nameEl) {
+        nameEl.value = localStorage.getItem(NKEY) || '';
+        nameEl.addEventListener('input', function () {
+            try { localStorage.setItem(NKEY, nameEl.value); } catch (e) {}
+        });
+    }
+
+    if (dlBtn) dlBtn.addEventListener('click', function () {
+        var student = (nameEl && nameEl.value.trim()) || '';
+        if (!student) { note('Add your name first so the backup file is labeled.', true); return; }
+        var payload = {
+            format: 'apcsp-work-backup/1',
+            student: student,
+            exportedAt: new Date().toISOString(),
+            progress: JSON.parse(localStorage.getItem(PKEY) || '{}'),
+            answers: JSON.parse(localStorage.getItem(AKEY) || '{}')
+        };
+        var count = Object.keys(payload.answers).filter(function (k) {
+            return (payload.answers[k] || '').trim();
+        }).length;
+        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        var a = document.createElement('a');
+        var safe = student.replace(/[^A-Za-z0-9._-]+/g, '_');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'APCSP_backup_' + safe + '.json';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+        note('Downloaded. This file has your progress and ' + count + ' saved answers — keep it somewhere safe.');
+    });
+
+    if (importEl) importEl.addEventListener('change', function () {
+        var file = importEl.files && importEl.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+            try {
+                var data = JSON.parse(String(reader.result));
+                if (data.format !== 'apcsp-work-backup/1') {
+                    note('That file is not a My-work backup from this site.', true);
+                    return;
+                }
+                localStorage.setItem(PKEY, JSON.stringify(data.progress || {}));
+                localStorage.setItem(AKEY, JSON.stringify(data.answers || {}));
+                if (data.student && nameEl) {
+                    nameEl.value = data.student;
+                    localStorage.setItem(NKEY, data.student);
+                }
+                note('Restored ' + Object.keys(data.progress || {}).length + ' lessons and ' +
+                    Object.keys(data.answers || {}).length + ' answers. Reloading…');
+                setTimeout(function () { location.reload(); }, 800);
+            } catch (e) {
+                note('Could not read that file — is it the JSON you downloaded here?', true);
+            }
+        };
+        reader.readAsText(file);
+    });
+})();
+</script>

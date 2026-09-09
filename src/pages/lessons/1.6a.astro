@@ -1,0 +1,175 @@
+---
+// Lesson 1.6a — Animation States: IsWalking, WalkDir, Attack
+// The Animator as a state machine students can see; parameters the code sets.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>1.6a — Animation States: IsWalking, WalkDir, Attack</h1>
+
+<p class="lesson-lead">
+    Your player already walks. It does not <em>look</em> alive. Today:
+    the Animator window, four parameters, and the moment you realize
+    animation is the first state machine you ever build — you just get to
+    see this one.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>Read <code>UpdateAnimation()</code> in PlayerController.cs — the
+    code that drives all of today:</p>
+    <pre><code>bool isMoving = xDirection != 0 || yDirection != 0;
+anim.SetBool("IsWalking", isMoving);
+
+if (isMoving)
+{
+    if (Mathf.Abs(xDirection) &gt;= Mathf.Abs(yDirection))
+    {
+        anim.SetInteger("WalkDir", 1); // Side
+        sprite.flipX = xDirection &gt; 0;
+    }
+    else if (!isPlatformer)
+    {
+        if (yDirection &gt; 0)
+        {
+            anim.SetInteger("WalkDir", 0); // Up
+            ...
+        }
+        else
+        {
+            anim.SetInteger("WalkDir", 2); // Down
+            ...
+        }
+    }
+}
+
+if (Input.GetMouseButtonDown(0))
+{
+    anim.SetTrigger("Attack");
+}</code></pre>
+
+    <p>
+        Predict: the code sets <strong>four</strong> things on the
+        Animator — <code>IsWalking</code> (bool), <code>WalkDir</code>
+        (int: 0 up, 1 side, 2 down), <code>Attack</code> (trigger) — and
+        the sprite's <code>flipX</code>. Draw the four cases
+        (standing / walking left-right / walking up / walking down) and
+        what the animator should show for each. Check yourself against
+        the game after the lab.
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The code never says "play the walk frames." It only sets
+            <em>state</em> — IsWalking true, WalkDir 2 — and something
+            else decides what animation to run. Where is that decision
+            actually made, and why is splitting it out like this the same
+            idea as the StatManager being separate from the player?
+        </p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        <strong>Step 1 — open the Animator.</strong> Select the Player in
+        the Overworld scene, then Window → Animation → Animator. The
+        player's Animator Controller opens: boxes (states) connected by
+        arrows (transitions). Find the PlayerAnimator child in the
+        Hierarchy — the animator lives on the child, which is why the
+        code says <code>GetComponentInChildren&lt;Animator&gt;()</code>.
+    </p>
+
+    <p>
+        <strong>Step 2 — read the conditions.</strong> Click the arrow
+        from the side-walk state to the idle state and read the
+        Inspector: "Exit when IsWalking is false." Click the transitions
+        between up/side/down: they fire on WalkDir equals 0 / 1 / 2.
+        The parameters tab (left of the window) lists all three. That is
+        the whole contract: <strong>code sets parameters, the Animator
+        reads them.</strong>
+    </p>
+
+    <p>
+        <strong>Step 3 — the axe variant.</strong> The Player prefab ships
+        with animation variants including one holding an <strong>axe</strong>.
+        Find the axe-walk state(s) in the animator. Nothing points at them
+        yet — you will wire hasAxe into this machine in
+        <a href="5.1a.html">5.1a</a>. Today: just find it, and leave a
+        comment in your fork's README about which state names exist.
+    </p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Break the walk cycle</h3>
+        <p>Break each one in the Animator window, run the game, describe what you see, then fix it:</p>
+        <ol>
+            <li>Set the side→idle transition's condition to "IsWalking
+                is true." What does walking do now, and why?</li>
+            <li>Delete the WalkDir condition from the up/side transition.
+                What happens when you walk diagonally up-right — and
+                why did the code's <code>&gt;=</code> matter?</li>
+            <li>In the code, comment out the <code>sprite.flipX</code>
+                line. Which direction can you never face, and what
+                exactly did flipX do?</li>
+            <li>Set the Attack trigger from the code — click the mouse.
+                The trigger fires once per click: what would break if
+                the code used SetBool instead of SetTrigger?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Your animation state diagram</h3>
+        <ol>
+            <li>On paper, draw every state the Player animator can be in,
+                with arrows and the parameter conditions on each arrow.
+                How many states does the shipped animator have, and can
+                every state reach every other one?</li>
+            <li>Write your own C# one-liner that makes the player look
+                attacked: where would you put a Hurt trigger if the
+                boss unit needed one?</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Open the Animator window and read transitions + conditions</li>
+            <li>Explain SetBool vs SetInteger vs SetTrigger with the player's parameters as examples</li>
+            <li>Explain the code↔Animator split: code sets state, Animator plays frames</li>
+            <li>Draw the player's animation state diagram from memory</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — animation states section</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the same idea, running the enemy (preview it now if you are curious)</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the Animator API rows</li>
+    </ul>
+    <p>Next: <a href="2.1a.html">2.1a — Coins: Triggers, Tags &amp; the StatManager</a> — Unit 2 begins.</p>
+</div>`;
+---
+<Lesson id="1.6a" title="1.6a Animation States: IsWalking, WalkDir, Attack — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

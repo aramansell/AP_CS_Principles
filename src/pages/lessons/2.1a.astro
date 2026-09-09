@@ -1,0 +1,156 @@
+---
+// Lesson 2.1a — Coins: Triggers, Tags & the StatManager
+// The pickup pattern: OnTriggerEnter2D, CompareTag, ChangeCoins, Destroy.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>2.1a — Coins: Triggers, Tags &amp; the StatManager</h1>
+
+<p class="lesson-lead">
+    Collecting a coin is the first real <strong>event</strong> in your
+    game: two objects meet, code runs, state changes, and the world
+    updates. One pickup pattern, reused all year — learn it once here.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>Read the pickup half of PlayerController.cs:</p>
+    <pre><code>private void OnTriggerEnter2D(Collider2D other)
+{
+    if (other.CompareTag("Coin"))
+    {
+        if (StatManager.manager != null)
+        {
+            StatManager.manager.ChangeCoins(1);
+        }
+        Destroy(other.gameObject);
+    }
+}</code></pre>
+
+    <p>
+        Predict: the coin spins in place until you touch it. Which object
+        runs this code — the coin or the player? And when it says
+        <code>Destroy(other.gameObject)</code>, which object vanishes?
+        What would happen if it destroyed <code>gameObject</code> (no
+        "other.") instead?
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            ChangeCoins(1) increments a counter that lives on a
+            completely different object, the StatManager — a singleton
+            that survives scene loads. Why not just keep <code>coins</code>
+            as a field on the Player? What breaks the moment the player
+            dies and the Start scene reloads?
+        </p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — rebuild the handler.</strong> Comment out the
+    coin branch in OnTriggerEnter2D, then retype it in three lines:
+    check the tag, tell the StatManager, destroy the coin. Run the game
+    between each line: after line 1 you can walk through coins
+    silently; after line 2 the Console counts but the coin survives;
+    after line 3 the whole pattern is back. One line = one
+    responsibility — that is why it feels clean.</p>
+
+    <p><strong>Step 2 — read the money printer.</strong> Open
+    StatManager.cs and find the method your line calls:</p>
+    <pre><code>public void ChangeCoins(int amount)
+{
+    coins += amount;
+    Debug.Log("Coins Changed! New Total: " + coins);
+}</code></pre>
+    <p>
+        One plus sign and a log line. The Console is your scoreboard for
+        now — the UI comes later. Trace it: what does
+        <code>ChangeCoins(-1)</code> do, and when will you use that in
+        a shop, someday?
+    </p>
+
+    <p><strong>Step 3 — verify the tag.</strong> Select a Coin prefab
+    (Assets/Prefabs). Its Inspector has a Tag field at the top: it says
+    <strong>Coin</strong>, a custom tag someone added in the tag list.
+    Trigger + tag is the whole identification system: no names, no
+    references, just "are you one of the things I care about?"</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Silence is the enemy</h3>
+        <ol>
+            <li>Change the code's tag to <code>compareTag("coin")</code>
+                (lowercase). Play. What happens — and why is a typo'd
+                tag the most silent bug in Unity?</li>
+            <li>Clear the Coin tag in the Inspector (set it to
+                Untagged). Now what happens, and what does that say
+                about where identity actually lives?</li>
+            <li>Comment out the Destroy line. Why is "the counter is
+                right but the coin is still there" a worse game than
+                the first bug?</li>
+            <li>Walk into a spike instead of a coin. Why does
+                nothing print — and which handler would spikes need
+                instead? (Tomorrow's whole lesson: see
+                <a href="2.2a.html">2.2a</a>.)</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Make the pickup yours</h3>
+        <ol>
+            <li>Add a second coin value: big coins. Give the prefab a
+                different tag ("BigCoin"), a bigger sprite, and pass 5
+                instead of 1. What changed in the handler — one branch
+                or two?</li>
+            <li>The StatManager logs "Coins Changed!" — make it print
+                the total only, with no words. Which line did you touch,
+                and who else sees that change?</li>
+            <li>Make coins play a sound instead of only logging. (Hint:
+                the prefab needs an AudioSource + one line of code you
+                will have to find. Note the approach for later units.)</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Write the pickup pattern from memory: trigger → tag → change state → destroy</li>
+            <li>Say which object runs OnTriggerEnter2D and what <code>other</code> refers to</li>
+            <li>Explain why a singleton StatManager beats a player field for coins</li>
+            <li>Debug a silent tag mismatch in under a minute</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — triggers, tags, the StatManager in depth</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the reference for why coins trigger and spikes collide</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the five patterns table</li>
+    </ul>
+</div>`;
+---
+<Lesson id="2.1a" title="2.1a Coins: Triggers, Tags &amp; the StatManager — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

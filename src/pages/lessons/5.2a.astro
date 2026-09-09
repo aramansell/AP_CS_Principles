@@ -1,0 +1,176 @@
+---
+// Lesson 5.2a — The Door: Breaking In with Events
+// Lever.Interact, the E key + distance check, UnityEvents in the Inspector.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>5.2a — The Door: Breaking In with Events</h1>
+
+<p class="lesson-lead">
+    You have an axe; the cave door does not care — yet. Today you wire
+    the last gap shut: press E near a lever, the lever fires a
+    <strong>UnityEvent</strong>, and the door opens without the lever
+    ever knowing what a door is. That gap between cause and effect is
+    called <em>abstraction</em>, and it is the most AP-exam-flavored
+    idea in the whole starter.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>Read the player half of the interaction — PlayerController.Update:</p>
+    <pre><code>if (Input.GetKeyDown(KeyCode.E))
+{
+    Lever[] levers = FindObjectsByType&lt;Lever&gt;(FindObjectsSortMode.None);
+    foreach (Lever lever in levers)
+    {
+        if (Vector3.Distance(transform.position, lever.transform.position) &lt; 2.0f)
+        {
+            lever.Interact();
+        }
+    }
+}</code></pre>
+
+    <p>And the lever's whole personality — Lever.cs:</p>
+    <pre><code>[SerializeField] private UnityEvent onLeverOn;
+[SerializeField] private UnityEvent onLeverOff;
+
+public void Interact()
+{
+    isOn = !isOn; // Toggle state
+    if (isOn)
+    {
+        if (spriteRenderer != null &amp;&amp; onSprite != null) spriteRenderer.sprite = onSprite;
+        onLeverOn.Invoke();
+    }
+    else
+    {
+        if (spriteRenderer != null &amp;&amp; offSprite != null) spriteRenderer.sprite = offSprite;
+        onLeverOff.Invoke();
+    }
+}</code></pre>
+
+    <p>
+        Predict: the word "door" appears nowhere in Lever.cs. How can a
+        lever open a door it has never met? Which window would you open
+        to teach the lever about the door — and what does that say
+        about where the "game rules" actually live?
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The AP exam calls a procedure that calls other procedures
+            without knowing their names <strong>abstraction</strong> —
+            the same word as the Create PT's "manage complexity." What
+            complexity does UnityEvent manage here — write down what
+            the lever WOULD have needed to know otherwise.
+        </p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — the 2-unit social contract.</strong> Press E
+    anywhere: the code finds EVERY lever and asks each one "within
+    2.0 units of me?" — the same Distance pattern as the turret
+    (<a href="3.1a.html">3.1a</a>), pointed inward instead of outward.
+    Stand near the cave door's lever and press E: sprite swaps
+    (onSprite), isOn flips, and the UnityEvent fires. Press E again:
+    everything un-fires. Toggles are honest machines — every cause
+    has a reverse.</p>
+
+    <p><strong>Step 2 — wire the door, no code.</strong> Select the
+    Switch/lever object near the cave entrance. In the Inspector find
+    <strong>On Lever On</strong> (the UnityEvent). The plus button
+    adds a listener: drag the DOOR GameObject into the slot, choose
+    what to call on it — <code>GameObject → SetActive(false)</code>
+    for a vanishing door, or destroy it, or play an animation. Run:
+    press E near it. The door obeys. You just changed the game's
+    rules from the Inspector, with zero lines of code.</p>
+
+    <p><strong>Step 3 — respect the gate.</strong> Here is the design
+    contract the next lesson honors: the door should only open for
+    the axe-holder. Does the lever check hasAxe? No — the lever
+    checks nothing. Where SHOULD the check live: the lever, the door,
+    or the player? Write your answer; tomorrow's cave lesson
+    (<a href="5.3a.html">5.3a</a>) takes the door off its hinges
+    anyway, so argue it as a designer would.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The event that wouldn't</h3>
+        <ol>
+            <li>Walk away 5 units and press E. What does the
+                foreach-_distance combo protect you from — and what
+                would pressing E do EVERYWHERE without it?</li>
+            <li>Wire the door's SetActive(false) into
+                <strong>On Lever Off</strong> instead of On. Now what
+                is the E-press sequence to get in — and is that a
+                puzzle or a bug?</li>
+            <li>Leave the lever's onSprite field empty. Does the event
+                still fire? What does that tell you about the sprite
+                swap and the event — which is decoration and which is
+                the machinery?</li>
+            <li>Add a SECOND lever and stand between them (both within
+                2 units). Press E once — what happened, and should
+                one keypress ever flip two switches?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Event design</h3>
+        <ol>
+            <li>Wire the lever to TWO listeners: open the door AND play
+                a sound/animation. Does the lever notice? Why is
+                "whoever wants to know, listens" the scalable
+                direction?</li>
+            <li>Make a FALSE wall: the lever opens a secret passage
+                instead of the cave. How many lines of code did that
+                cost?</li>
+            <li>Hard: make the lever only work when hasAxe is true.
+                Which script gains an if — and can you do it with
+                zero changes to Lever.cs?</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Explain UnityEvents as cause-and-effect with a gap: the lever never names the door</li>
+            <li>Wire a listener in the Inspector and change game rules with no code</li>
+            <li>Explain the E-key interaction: FindObjectsByType + Distance &lt; 2.0</li>
+            <li>Argue where an item-gate check belongs</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — levers, events, scene switches</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — FindObjectsByType, UnityEvents</li>
+    </ul>
+    <p>Next: <a href="5.3a.html">5.3a — Into the Cave: Scene Loading &amp; Mode Switch</a></p>
+</div>`;
+---
+<Lesson id="5.2a" title="5.2a The Door: Breaking In with Events — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

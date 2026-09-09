@@ -1,0 +1,115 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ScriptableObjects — AP CS Principles Docs</title><meta name="description" content="The ScriptableObject reference: data as assets, references vs copies, when to use them, and why a List of card assets is the Create PT's most legible list."><meta property="og:title" content="ScriptableObjects — AP CS Principles Docs"><meta property="og:description" content="The ScriptableObject reference: data as assets, references vs copies, when to use them, and why a List of card assets is the Create PT's most legible list."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"><link rel="stylesheet" href="../../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../../index.html">Dashboard</a><a href="../index.html" class="active" aria-current="page">Docs</a><a href="../../projects.html">Projects</a><a href="../../exam/index.html">Exam</a><a href="../../search.html">Search</a></nav><div class="page" id="main-content"><nav class="crumbs"><a href="../index.html">Docs</a> &gt; <a href="../unit-10/index.html">Unit 10</a> &gt; <span>ScriptableObjects</span></nav><h1>ScriptableObjects</h1>
+
+<p class="lesson-lead">
+    A ScriptableObject is a data class that becomes a FILE in your
+    project — editable in the Inspector, reusable everywhere, with no
+    scene attached. It is Unity's way of saying "content is data,"
+    and it is the pipeline behind every card in the card jam.
+</p>
+
+<h2>The definition, and the two-line comparison</h2>
+<p>
+    A MonoBehaviour lives ON a scene object and runs code in the
+    frame loop (Start, Update). A ScriptableObject lives IN the
+    project as an asset and <strong>holds values</strong> — nothing
+    more. You do not add it to a GameObject; you create instances in
+    Assets and reference them.
+</p>
+<table>
+    <tr><th></th><th>MonoBehaviour</th><th>ScriptableObject</th></tr>
+    <tr><td>Attached to</td><td>GameObject in a scene</td><td>Nothing — it IS an asset (.asset file)</td></tr>
+    <tr><td>Lifecycle methods</td><td>Start, Update, collisions</td><td>OnEnable at most — no frame loop</td></tr>
+    <tr><td>Each scene has</td><td>its own instance</td><td>references to the SAME asset</td></tr>
+    <tr><td>Edited in</td><td>Inspector, per scene object</td><td>Inspector, in the project, everywhere</td></tr>
+    <tr><td>Your year used it for</td><td>every controller</td><td>Card data (<a href="../../lessons/10.2b.html">10.2b</a>)</td></tr>
+</table>
+
+<h2>Writing one</h2>
+<pre><code>[CreateAssetMenu(menuName = "Cards/New Card")]
+public class Card : ScriptableObject
+{
+    public string cardName;
+    public Sprite art;
+    public int cost;
+    public int attack;
+    public int defense;
+    public string description;
+}</code></pre>
+<p>
+    Then: right-click in Assets → Create → Cards → New Card. An
+    .asset file appears; the Inspector shows your fields; you fill
+    them in. That is the whole "pipeline": one class definition,
+    then unlimited data, no further code.
+</p>
+<pre><code>// referencing them — the deck is a list of card ASSETS:
+[SerializeField] private List&lt;Card&gt; startingDeck;
+// drag card assets into the list in the Inspector. Done.</code></pre>
+
+<h2>Assets are referenced, not copied</h2>
+<p>
+    The subtle, load-bearing fact: when three different hands hold
+    "the same card," memory holds <strong>one card object with many
+    references</strong> — the same relationship your scene YAML has
+    to sprites by guid (<a href="../../lessons/9.4a.html">9.4a</a>).
+    Consequences, good and bad:
+</p>
+<ul>
+    <li>Good: one edit ("this card costs 3 now") updates every deck
+        and every hand everywhere, instantly</li>
+    <li>Good: memory — a 30-card deck is 30 pointers, not 30 copies</li>
+    <li>Bad: <strong>runtime edits persist.</strong> Change a card's
+        attack during Play mode, stop, and the change is STILL THERE —
+        asset data outlives the session in a way scene data does
+        not. Never mutate ScriptableObject fields as "temporary
+        game state"; clone first if you need per-run copies
+        (Instantiate makes a runtime copy for exactly this)</li>
+    <li>Bad: deleting the asset file breaks every reference — the
+        same pink-missing-sprite disaster as deleting a sprite
+        without its consumers</li>
+</ul>
+
+<h2>When to reach for one (and when not)</h2>
+<p>
+    Reach for a ScriptableObject when the data is
+    <strong>authored content</strong>: many instances, edited by
+    designers, referenced from scenes and lists, and stable across
+    play sessions — cards, weapons, enemy types, level configs,
+    palette definitions
+    (<a href="../../lessons/9.2a.html">9.2a</a>'s palette is a
+    candidate). Do NOT use one for <strong>live state</strong>:
+    current health, this run's coins, a hand's current contents —
+    that belongs to the scene/prefab world (fields on
+    MonoBehaviours) or the singleton that survives scenes
+    (<a href="../../lessons/2.1a.html">2.1a</a>). The rule of thumb:
+    ScriptableObjects are the nouns in the dictionary;
+    MonoBehaviours are the sentences being spoken right now.
+</p>
+
+<h2>The exam connection</h2>
+<p>
+    The Create PT's rubric wants a <strong>list</strong> that
+    participates meaningfully. A List of ScriptableObject assets is
+    the most legible version of that in Unity — the list's purpose
+    (a deck) and its content (authored cards) are visible in two
+    Inspector panes, no code spelunking required. The
+    abstraction argument is clean too: one Card class describes
+    ALL cards — that is a data abstraction managing content
+    complexity, in writing, with screenshots
+    (<a href="../../lessons/11.1b.html">11.1b</a>).
+</p>
+
+<h2>Where you meet ScriptableObjects this year</h2>
+<ul>
+    <li><a href="../../lessons/10.2b.html">10.2b — cards as assets</a> —
+        the lesson this reference serves</li>
+    <li><a href="lists-arrays.html">Lists &amp; Arrays</a> — the
+        lists that hold them</li>
+    <li><a href="../../lessons/9.4a.html">9.4a — Your Scene Is
+        Data</a> — the asset/guid system underneath</li>
+</ul>
+
+<div class="unit-nav">
+    <span><a href="lists-arrays.html">← Lists &amp; Arrays</a></span>
+    <span><a href="../index.html">All docs</a></span>
+    <span><a href="../unit-11/index.html">Unit 11: Create PT →</a></span>
+</div></div><!-- .page --></body></html>

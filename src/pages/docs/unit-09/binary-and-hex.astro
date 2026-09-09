@@ -1,0 +1,137 @@
+---
+// Binary & Hex — the DAT-1 reference (Unit 9).
+import Base from '../../../layouts/BaseLayout.astro';
+
+const crumbs = `<nav class="crumbs"><a href="../index.html">Docs</a> &gt; <a href="../unit-09/index.html">Unit 9</a> &gt; <span>Binary &amp; Hex</span></nav>`;
+
+const body = `<h1>Binary &amp; Hex</h1>
+
+<p class="lesson-lead">
+    Every value in your game — health, coins, a sprite's color, the
+    position of a turret — is a stack of bits in memory. This is the
+    reference for reading them: base 2, base 16, the ranges the exam
+    asks about, and the overflow you can trigger in your own game
+    with one line of code.
+</p>
+
+<h2>Why base 2 exists</h2>
+<p>
+    Hardware holds only two reliable voltage states — high and low, on
+    and off, 1 and 0. Everything the machine does must be expressible
+    as answers to yes/no questions, so every number, every letter,
+    every frame of your game is bits. You write <code>5</code>; the
+    machine reads 101.
+</p>
+
+<h2>Reading binary</h2>
+<p>
+    Each place is worth twice the place to its right — powers of two.
+    To read a binary number, add the values where a 1 sits:
+</p>
+<table>
+    <tr><th>Place</th><td>2³ = 8</td><td>2² = 4</td><td>2¹ = 2</td><td>2⁰ = 1</td><td>Total</td></tr>
+    <tr><td>1011</td><td>1 → 8</td><td>0</td><td>1 → 2</td><td>1 → 1</td><td><strong>11</strong></td></tr>
+    <tr><td>0110</td><td>0</td><td>1 → 4</td><td>1 → 2</td><td>0</td><td><strong>6</strong></td></tr>
+    <tr><td>1111</td><td>1 → 8</td><td>1 → 4</td><td>1 → 2</td><td>1 → 1</td><td><strong>15</strong></td></tr>
+</table>
+<p>
+    Two facts the exam builds questions on: <strong>all ones is always
+    one less than the next power of two</strong> (1111 = 16 − 1), and
+    <strong>n bits count 0 through 2ⁿ − 1</strong>. Four bits: 0–15.
+    Eight bits (a byte): 0–255. Thirty-two bits (a C# int): up to
+    2,147,483,647 — a number you have seen in
+    <a href="../../lessons/9.1a.html">9.1a</a>'s overflow demo.
+</p>
+
+<h2>Converting, by hand</h2>
+<ul>
+    <li><strong>Decimal → binary:</strong> subtract the largest power
+        of two that fits, repeat. 13 = 8 + 4 + 1 = 1101.</li>
+    <li><strong>Binary → decimal:</strong> add the place values where
+        bits are 1 (the table above).</li>
+    <li><strong>Count up:</strong> the rightmost bit flips every step;
+        carry left when a place rolls past 1, exactly like 9 → 10 in
+        decimal.</li>
+</ul>
+
+<h2>Hexadecimal — binary with better handwriting</h2>
+<p>
+    One hex digit covers exactly four bits, so a byte is always two
+    hex digits and 8 bits never needs 8 written characters. 0xFF =
+    255. 0x10 = 16 (yes, sixteen — it is one sixteen and zero ones,
+    not ten).
+</p>
+<table>
+    <tr><th>Dec</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td><td>15</td></tr>
+    <tr><th>Hex</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>A</td><td>B</td><td>C</td><td>D</td><td>E</td><td>F</td></tr>
+    <tr><th>Bin</th><td>0000</td><td>0001</td><td>0010</td><td>0011</td><td>0100</td><td>0101</td><td>0110</td><td>0111</td><td>1000</td><td>1001</td><td>1010</td><td>1011</td><td>1100</td><td>1101</td><td>1110</td><td>1111</td></tr>
+</table>
+<p>
+    Where you touch hex this year: sprite colors — Unity's Color32 is
+    four bytes (R, G, B, alpha), and the site's theme blue
+    #6cb2ff is (108, 178, 255) in decimal. Where the web touches
+    hex: every CSS color. The details are in
+    <a href="../../lessons/9.2a.html">9.2a</a>.
+</p>
+
+<h2>Overflow — the bug you can build in one line</h2>
+<pre><code>Debug.Log(int.MaxValue + 1);   // prints -2147483648</code></pre>
+<p>
+    Add 1 to the largest 32-bit signed int and the sum cannot fit, so
+    the bit pattern wraps around to the most negative number — the
+    sign bit itself. The exam loves this as "rounding" for integers;
+    the same idea in binary arithmetic is called overflow. Your game
+    will not hit it with honest play (2.1 billion coins!), but any
+    code that adds without checking can, and a cheat engine can make
+    your coins negative in a heartbeat. Guard clauses are not just
+    about nulls — they are about ranges.
+</p>
+
+<h2>Floats are bits too — and they lie</h2>
+<pre><code>Debug.Log(0.1f + 0.2f == 0.3f);   // False!</code></pre>
+<p>
+    A float stores numbers in binary scientific notation (sign,
+    exponent, fraction bits), and 0.1 has no exact binary
+    representation — the same way 1/3 has no exact decimal one.
+    The comparison is close but not equal. That is why game code
+    compares floats with tolerances, or uses ints for anything that
+    must count exactly (coins are int for this reason —
+    <a href="../../lessons/5.1a.html">5.1a</a>'s right-size-the-data
+    argument, now with bit-level proof).
+</p>
+
+<h2>The exam-question shapes</h2>
+<ul>
+    <li>"How many distinct values can be represented with n bits?" —
+        2ⁿ. Name the RANGE too if asked: 0 to 2ⁿ−1 (unsigned) or
+        −2ⁿ⁻¹ to 2ⁿ⁻¹−1 (signed)</li>
+    <li>"A game stores health as an 8-bit binary number; max
+        health?" — 255. Reason with the power, not a memorized
+        number</li>
+    <li>"Adding one bit doubles the range" — why: the new leftmost
+        place doubles every existing pattern's headroom</li>
+    <li>"Which is the largest?" — four binary/hex/decimal values,
+        normalized to one base first</li>
+</ul>
+
+<h2>Where you meet bits this year</h2>
+<ul>
+    <li><a href="../../lessons/9.1a.html">9.1a — Binary</a> — the
+        lesson with the finger-counting warmup</li>
+    <li><a href="../../lessons/9.2a.html">9.2a — Hex, RGB</a> —
+        colors as bytes, palettes as data</li>
+    <li><a href="../../lessons/9.4a.html">9.4a — Your Scene Is
+        Data</a> — the files all this lives inside</li>
+</ul>
+
+<div class="unit-nav">
+    <span><a href="../unit-09/index.html">← Unit 9</a></span>
+    <span><a href="../index.html">All docs</a></span>
+    <span><a href="the-internet.html">The Internet →</a></span>
+</div>`;
+---
+<Base title="Binary &amp; Hex — AP CS Principles Docs" active="docs" root="../.." docsHome="../index.html" css="../../style.css"
+  description="The binary and hexadecimal reference: place values, conversion, bit ranges, overflow, float precision lies, and every exam-question shape.">
+  <Fragment slot="breadcrumb" set:html={crumbs} />
+  <Fragment set:html={body} />
+</Base>

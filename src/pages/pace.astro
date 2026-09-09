@@ -1,0 +1,87 @@
+---
+// Pacing Calendar — rebuilt at every `npm run build` from
+// src/data/curriculum.ts. PACING.md is regenerated from the same data
+// by src/integrations/pacing-md.ts.
+import Base from '../layouts/BaseLayout.astro';
+import { SEQUENCE, DAY_NOTES, KIND_LABEL, EXAM_DATE, EXAM_TIME, CPT_DEADLINE, CED_TOPICS, coveredTopics, prettyDate, longDate } from '../data/curriculum';
+
+const NBSP = '\u00A0';
+const covered = coveredTopics();
+const allCovered = covered.size === Object.keys(CED_TOPICS).length;
+---
+<Base title="Pacing Calendar 2026-27 — AP CS Principles" active="dashboard" root="" docsHome="docs/index.html" css="style.css"
+  description="Every B day of the 2026-27 school year mapped to its AP CS Principles + Unity work, from the IBW Trivory calendar.">
+<h1>Pacing Calendar, 2026-27</h1>
+
+<p>
+    Every B-day of the school year, mapped to its work. Built from the IBW
+    Trivory calendar (trivory.com/ibw/calendar, read Sept 2026). The class
+    meets on B days only; this calendar is the contract between the syllabus
+    and the clock.
+</p>
+
+<p>
+    <strong>The shape:</strong> first semester we build one real game — a
+    2D RPG that becomes a 2D platformer when you enter a cave — from the
+    cs-curriculum-main starter repo, ending with your own boss fight and
+    the semester final (a normal B day, Jan 21). Second semester: the CSP
+    big ideas Unity cannot teach alone (data, systems, impact), then three
+    game jams, with the <strong>Create performance task due
+    {CPT_DEADLINE}</strong> and the <strong>AP exam on
+    {longDate(EXAM_DATE)} at {EXAM_TIME} ({EXAM_DATE})</strong>. The exam is an A-day
+    Friday morning — you take it before school-day classes start. After
+    it: Season 2 jams, for the love of the game.
+    {allCovered && <>All {Object.keys(CED_TOPICS).length} CED topic families are covered by the exam.</>}
+</p>
+
+<table class="pace-table">
+    <tr><th>Date</th><th>Type</th><th>Unit</th><th>What we do</th><th>CED topics</th></tr>
+    {SEQUENCE.map((e) => {
+        const notes: string[] = [];
+        if (DAY_NOTES[e.d] && e.note) {
+            notes.push(DAY_NOTES[e.d], e.note);
+        } else if (DAY_NOTES[e.d]) {
+            notes.push(DAY_NOTES[e.d]);
+        } else if (e.note) {
+            notes.push(e.note);
+        }
+        return (
+        <tr class={`kind-${e.kind}`} data-d={e.d}>
+            <td>{prettyDate(e.d)}</td>
+            <td>{KIND_LABEL[e.kind]}</td>
+            <td>{e.group}</td>
+            <td>
+                {e.title}
+                {e.lessons.length > 0 && <> <span class="day-note">({e.lessons.join(', ')})</span></>}
+                {notes.map((n) => <><br /><span class="day-note">{n}</span></>)}
+            </td>
+            <td class="ced">{e.ced.length ? e.ced.join(', ') : NBSP}</td>
+        </tr>
+        );
+    })}
+</table>
+
+<p style="margin-top:2rem; color:var(--muted); font-size:13px;">
+    Calendar sources: IBW Trivory calendar (trivory.com/ibw/calendar, read
+    Sept 2026) — 82 regular B days plus the Jan 21 finals B day, Sep 1-Jun 3.
+    No-school days this year: Oct 9 + Oct 14, Veterans Day (Nov 11),
+    Thanksgiving week (Nov 23-27), winter break (Dec 21-Jan 1), MLK Day
+    (Jan 18), semester break (Jan 25-26), Presidents Day (Feb 15), Mar 3,
+    spring break (Mar 22-26), Memorial Day (May 31). Snow days are not
+    modeled; if one lands on a B day, shift work forward and let the
+    placeholder jam days (Jun 1 + Jun 3) absorb it. June finals (Jun 4-8)
+    carry no A/B label — the semester 2 final meets on this course's block
+    during finals week.
+</p>
+</Base>
+
+<style>
+.pace-table td { font-size: 13px; padding: 0.45rem 0.6rem; }
+.pace-table .ced { color: var(--muted); font-size: 12px; }
+.day-note { color: var(--muted); font-size: 12px; }
+tr.kind-exam td { background: rgba(224,85,85,0.10); font-weight: 600; }
+tr.kind-test td { background: rgba(232,184,75,0.07); }
+tr.kind-jam td, tr.kind-season2 td { background: rgba(240,160,96,0.07); }
+tr.kind-cpt td { background: rgba(232,184,75,0.10); }
+tr.kind-clinic td, tr.kind-eve td { background: rgba(185,142,255,0.07); }
+</style>

@@ -1,0 +1,171 @@
+---
+// Lesson 5.1a — The Axe: Item Pickups & Inventory Bools
+// hasAxe as boolean state; the pickup family grows up.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>5.1a — The Axe: Item Pickups &amp; Inventory Bools</h1>
+
+<p class="lesson-lead">
+    Coins and potions changed numbers. The axe changes what you
+    <em>are</em>: it flips a boolean, swaps your animation variant, and
+    suddenly you look like someone who can break down a door. Today:
+    inventory as true/false flags — the cheapest data structure that
+    can possibly work.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>
+        Look at the shipped Player prefab in Assets/Prefabs: it uses
+        the <strong>PlayerAnimator with Axe/Shovel variants</strong> —
+        the art for axe-wielding already exists. And in
+        PlayerController, find the animation branch from
+        <a href="1.6a.html">1.6a</a> that runs on mouse click
+        (Attack trigger). The starter is aching to hand you an axe.
+    </p>
+
+    <p>
+        Predict: where should "has an axe" live? A new int field? A
+        list of items? A bool? Argue for your answer in one sentence
+        before reading on — the starter's design uses a
+        <strong>bool</strong> (hasAxe), because one item, one
+        yes/no, is the honest data structure. Six items would be six
+        bools; sixty would be a list (see the card jam in
+        <a href="10.2a.html">10.2a</a> — that is the list era).
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The AP exam loves questions that ask what data type fits
+            the job. Why is a bool the right abstraction for "has an
+            axe" but the WRONG one for "how many coins"? What does
+            "right size the data" mean — one sentence.
+        </p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — the field.</strong> In PlayerController, add
+    the pickup family's newest member:</p>
+    <pre><code>// Inventory
+private bool hasAxe = false;</code></pre>
+
+    <p><strong>Step 2 — the pickup.</strong> The AxeItem prefab exists
+    in Assets/Prefabs: check its collider (trigger) and its tag
+    (Axe? add it if missing — same ritual as
+    <a href="2.3a.html">2.3a</a>). Grow OnTriggerEnter2D with a third
+    branch:</p>
+    <pre><code>if (other.CompareTag("Axe"))
+{
+    hasAxe = true;
+    // swap to the axe animation variant:
+    // set the animator's parameter for the axe layer/variant here
+    Destroy(other.gameObject);
+}</code></pre>
+
+    <p>
+        Notice what this branch does NOT do: it touches no StatManager,
+        prints no count. Not every pickup is a number. The axe is
+        <em>capability</em>: a boolean that future code will read
+        before allowing an action. You are building a permission.
+    </p>
+
+    <p><strong>Step 3 — see the permission.</strong> Prove hasAxe is
+    real state: add a temporary print in Update —</p>
+    <pre><code>Debug.Log("hasAxe: " + hasAxe);</code></pre>
+    <p>Run, watch it spam false, pick up the axe, watch it spam
+    true. Delete the print after; the proof is in the behavior.</p>
+
+    <p><strong>Step 4 — the art swap.</strong> Open the Player's
+    Animator: the axe variant states exist but nothing transitions
+    INTO them. Add an Animator bool parameter (axePickedUp, say), a
+    transition from the normal set to the axe set on "true", and set
+    it from your pickup branch — the same code-sets-parameter,
+    animator-plays-frames split from <a href="1.6a.html">1.6a</a>,
+    now driving an equipment change. When it works, your little
+    sprite stops being a tourist.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The phantom axe</h3>
+        <ol>
+            <li>Set hasAxe = true as the field's starting value. What
+                does the game grant you before you ever found it —
+                and what did the default-after-pickup design protect
+                against?</li>
+            <li>Pick up the axe, die on a spike (death loop from
+                <a href="2.2a.html">2.2a</a>), and watch your back.
+                Do you still have the axe? Should you — and whose
+                decision is that, code or designer?</li>
+            <li>Add a SECOND axe to the map. Pick up both. What does
+                hasAxe become after the second one — and why is
+                "true" the only correct answer even though the count
+                is two?</li>
+            <li>You swap the animator parameter name to "hasAxe" in
+                code but the Animator still says "axePickedUp".
+                What is the symptom — silence, an error, or
+                nothing?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Inventory design</h3>
+        <ol>
+            <li>Add a shovel sibling (the art variant exists!). Two
+                bools, two tags, two branches — at what number of
+                items does copy-pasting branches become the wrong
+                design?</li>
+            <li>Design the HUD: how would the player SEE that they
+                hold an axe? Argue sprite-only vs a UI icon — and
+                which does the art variant already give you for
+                free?</li>
+            <li>Hard: one-use axe — breaking the door consumes it
+                (hasAxe = false, swap back). Which script flips the
+                bool back, and why must it NOT be the pickup branch?</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Explain inventory bools vs counters and when each fits</li>
+            <li>Build an item that grants capability instead of a number</li>
+            <li>Drive an animation-variant swap from code through an Animator parameter</li>
+            <li>Trace hasAxe across death (does it persist? should it?)</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — items, events, scenes</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the pickup family</li>
+    </ul>
+    <p>Next: <a href="5.2a.html">5.2a — The Door: Breaking In with Events</a></p>
+</div>`;
+---
+<Lesson id="5.1a" title="5.1a The Axe: Item Pickups &amp; Inventory Bools — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

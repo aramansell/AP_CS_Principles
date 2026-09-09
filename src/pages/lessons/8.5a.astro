@@ -1,0 +1,142 @@
+---
+// Lesson 8.5a — Win, Lose & the Death Loop
+// Boss death → door opens; player death mid-fight; the loop's fairness.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>8.5a — Win, Lose &amp; the Death Loop</h1>
+
+<p class="lesson-lead">
+    Every fight ends one of two ways, and today both are real: the
+    boss dies and the door opens... or YOU die at 90% and learn what
+    your death loop actually costs. The endgame is where design
+    promises get tested.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — win.</strong> In BossManager.Die()
+    (<a href="8.2a.html">8.2a</a>), the boss's last act opens the
+    door — a UnityEvent, exactly the lever's machinery from
+    <a href="5.2a.html">5.2a</a>, fired by code instead of a keypress:</p>
+    <pre><code>[SerializeField] private UnityEvent onBossDead;
+
+private void Die()
+{
+    Debug.Log("BOSS DOWN");
+    onBossDead.Invoke();
+    Destroy(gameObject);
+}</code></pre>
+    <p>Wire the listener in the Inspector: the exit door's
+    SetActive(false), or a lever-style animation. Notice the design
+    decision you just made: the boss does not know what a door is.
+    Cause and effect, separated by an event — the same abstraction,
+    now on your boss's tombstone.</p>
+
+    <p><strong>Step 2 — lose (you know this road).</strong> Player
+    death is <a href="2.2a.html">2.2a</a>'s loop: ChangeHealth hits
+    zero → LoadScene("Start"). But a boss-fight death has a NEW
+    question: what happens to the boss's health? Run it: die, walk
+    back, re-enter. The boss is at full health, because the boss
+    lived in the scene you just reloaded. Was that a bug or a
+    design? Argue both sides — arcade says full reset (the fight
+    is the test); modern says checkpoint (the fight is a story).
+    Your game is an arcade: embrace it.</p>
+
+    <p><strong>Step 3 — the death audit, boss edition.</strong> The
+    walk-back is the real cost of dying here. Time it: spawn →
+    through your cave beats → arena door → first exchange. That
+    number is the player's frustration bill every wipe. Over 60
+    seconds and the final fight punishes the player for reaching
+    it. Fix options (pick one, defend it): a shortcut that opens
+    when the player first SEES the boss door; a checkpoint trigger
+    just outside the arena; or shorter cave beats — the
+    <a href="7.5a.html">7.5a</a> audit comes home.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The two-loop tangle</h3>
+        <ol>
+            <li>You die mid-shockwave; the scene reloads; a wave
+                spawns in the NEW scene. Why CANNOT that happen
+                (what does Destroy do to scene objects — and what
+                does DontDestroyOnLoad protect instead)?</li>
+            <li>Die exactly as your swing connects — health 0 at
+                the same frame as ChangeHealth(-1) on the boss.
+                Who wins? What does the order of operations in
+                that single frame decide, and why do games
+                resolve deaths AFTER the frame?</li>
+            <li>The boss dies while the player is mid-jump over a
+                shockwave. The door opens, the wave still flies,
+                and the level wants to celebrate. Should the
+                remaining waves die with the boss? Wire it:
+                Die() finds all Shockwaves and destroys them —
+                which pattern from <a href="5.2a.html">5.2a</a>
+                (FindObjectsByType) does that reuse?</li>
+            <li>Player HP reaches zero in the SAME tick the boss's
+                does. LoadScene fires; onBossDead fires. What did
+                the player see for one frame — and why does the
+                answer decide the FIGHT's winner for the record?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Playtest</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>Partner plays the fight. You watch for ONE thing per run:</p>
+    <ul>
+        <li>Run 1 — did they read the telegraphs? (Count dodges
+            that looked deliberate vs. lucky)</li>
+        <li>Run 2 — did the phase changes change their BEHAVIOR,
+            or just the numbers on the bar?</li>
+        <li>Run 3 — the victory: did the open door tell them the
+            game was over (or did they keep looking for
+            trouble)?</li>
+    </ul>
+
+    <div class="tinker">
+        <h3>Tinker: Endgame polish</h3>
+        <ol>
+            <li>Apply one fix from the runs, then re-run the exact
+                beat that revealed it.</li>
+            <li>Write your endgame numbers in the repo (fights to
+                first clear, seconds per fight): this is real
+                <a href="9.5a.html">9.5a</a>-style data and it
+                belongs in a commit message.</li>
+            <li>Commit + push: <code>"8.5a: win/lose loops + death audit"</code>.</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Fire a UnityEvent from code when the boss dies</li>
+            <li>Explain scene-local boss health as an arcade design decision</li>
+            <li>Run a death audit with a stopwatch and defend your fix choice</li>
+            <li>Read three playtests for telegraphs, phases, and the victory read</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-08/index.html">Unit 8: Boss Fight</a> — win/lose design</li>
+        <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — events and scene loads, again</li>
+    </ul>
+    <p>Next: <a href="8.6a.html">8.6a — Boss Studio + Final Review</a></p>
+</div>`;
+---
+<Lesson id="8.5a" title="8.5a Win, Lose &amp; the Death Loop — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

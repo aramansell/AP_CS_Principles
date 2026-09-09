@@ -1,0 +1,180 @@
+---
+// Lesson 1.4a — Movement I: Input, Direction, Vector
+// The core build lab: input axis -> direction, direction * speed *
+// deltaTime -> vector, transform.Translate. Predict-first, then rebuild
+// the starter's movement from a stripped script.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>1.4a — Movement I: Input, Direction, Vector</h1>
+
+<p class="lesson-lead">
+    Movement is the first real algorithm you build, and it hides the whole
+    AP model inside it: <strong>input → processing → output</strong>.
+    Today you write the three lines that every game in this course is
+    built on.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>
+        Before you type anything, read the shipped
+        <code>PlayerController.cs</code> (Assets/Scripts) and find these
+        lines in <code>Update()</code>:
+    </p>
+    <pre><code>xDirection = Input.GetAxis("Horizontal"); // A/D or Left/Right Arrows
+yDirection = Input.GetAxis("Vertical");   // W/S or Up/Down Arrows
+
+xVector = new Vector2(xDirection * xSpeed * Time.deltaTime, 0);
+
+transform.Translate(xVector);</code></pre>
+
+    <p>
+        Predict, in writing, before you run it: if
+        <code>xSpeed</code> is <code>5</code>, how far does the player
+        move in one second of holding D? (Careful — the answer is not 5
+        pixels.) What does <code>Input.GetAxis("Horizontal")</code>
+        return the instant you are not pressing anything?
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            <code>Input.GetAxis("Horizontal")</code> returns 0, or a smooth
+            ramp toward +1 (D) / -1 (A). Why is a smooth ramp better for
+            movement than <code>Input.GetKeyDown</code>, which is just
+            yes/no? What would the game feel like if it snapped between 0
+            and 1?
+        </p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        <strong>Rebuild it yourself.</strong> Open
+        <code>PlayerController.cs</code> and comment out (or delete) every
+        line of <code>Update()</code>. Now bring movement back, one piece
+        at a time, in this exact order — run the game after each step:
+    </p>
+
+    <p><strong>Step 1 — the variables.</strong> You need somewhere for
+    input to live. These already exist at the top of the file — find them
+    and explain to your neighbor what <code>[SerializeField]</code> is
+    doing there (check the Inspector while the game is not running):
+    </p>
+    <pre><code>[SerializeField] private float xSpeed = 5.0f;
+[SerializeField] private float ySpeed = 5.0f;
+
+private float xDirection;
+private float yDirection;</code></pre>
+
+    <p>
+        <strong>Step 2 — read the input.</strong> Grab the player's intent:
+    </p>
+    <pre><code>xDirection = Input.GetAxis("Horizontal");
+yDirection = Input.GetAxis("Vertical");</code></pre>
+    <p>
+        Run it. The player still does not move — but the game is already
+        <em>reading</em> the player. Nothing happens with data until you
+        use it: input is not behavior.
+    </p>
+
+    <p><strong>Step 3 — combine into a vector.</strong> Direction alone
+    is free; speed alone is nothing. Their product, scaled by how long
+    this frame lasted, is <em>motion</em>:
+    </p>
+    <pre><code>xVector = new Vector2(xDirection * xSpeed * Time.deltaTime, 0);
+yVector = new Vector2(0, yDirection * ySpeed * Time.deltaTime);</code></pre>
+
+    <p><strong>Step 4 — move.</strong></p>
+    <pre><code>transform.Translate(xVector);
+transform.Translate(yVector);</code></pre>
+
+    <div class="callout info">
+        <strong>Why Time.deltaTime?</strong> Update runs once per frame —
+        60 times a second on this laptop, 240 on a gaming monitor, maybe
+        25 on a friend's potato. Without deltaTime, the player would move
+        <em>xSpeed per frame</em>: fast on good machines, slow on bad
+        ones. Multiplying by the frame time makes it
+        <strong>xSpeed per second, on every machine</strong>. Same input,
+        same output, any hardware — that is the abstraction doing its job.
+    </div>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Break the movement on purpose</h3>
+        <p>Make each bug, run it, describe what you see, then fix it:</p>
+        <ol>
+            <li>Change <code>xSpeed</code> to <code>0</code> in the
+                Inspector. Which direction still works, and why doesn't
+                changing the Inspector break the script?</li>
+            <li>Delete just <code>* Time.deltaTime</code> from the
+                xVector line. The player now moves about how many times
+                faster at 60 fps?</li>
+            <li>Swap the arguments: <code>new Vector2(0, xDirection * xSpeed * Time.deltaTime)</code>.
+                What did you break and what still works?</li>
+            <li>Type <code>Transform.Translate</code> (capital T). What
+                does the error mean?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Make it yours</h3>
+        <ol>
+            <li>Give the player a different top speed horizontally than
+                vertically (try 8 and 4). What games actually do this,
+                and why would a designer want it?</li>
+            <li>Set <code>xSpeed</code> to <code>-5</code> in the
+                Inspector and play. Describe what happens and why the
+                <em>animation</em> still faces the right way.</li>
+            <li>Press A and W at the same time. The player moves
+                diagonally — is it faster than pure-right? (Measure:
+                walk across the screen both ways and count seconds.)
+                Games fix this with normalization — file that away for
+                the turret unit.</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Draw the pipeline: input → direction → × speed → × deltaTime → vector → Translate</li>
+            <li>Say what <code>Input.GetAxis</code> returns for A, D, and nothing (−1, +1, 0)</li>
+            <li>Explain <code>Time.deltaTime</code> to someone who has never coded</li>
+            <li>Explain why the Inspector can override <code>xSpeed</code> without touching the code</li>
+            <li>Break and fix a movement bug on purpose in under a minute</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — input, vectors, deltaTime in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the API tables</li>
+    </ul>
+    <p>Coming up next: <a href="1.5a.html">1.5a — Movement II: Speed, deltaTime &amp; Tuning</a></p>
+</div>`;
+---
+<Lesson id="1.4a" title="1.4a Movement I: Input, Direction, Vector — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

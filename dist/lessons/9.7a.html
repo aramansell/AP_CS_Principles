@@ -1,0 +1,158 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>9.7a Computer Systems: What Runs Your Game — AP CS Principles</title><meta name="description" content="Lesson 9.7a Computer Systems: What Runs Your Game — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="9.7a Computer Systems: What Runs Your Game — AP CS Principles"><meta property="og:description" content="Lesson 9.7a Computer Systems: What Runs Your Game — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="9.6a.html">&#9664; 9.6a</a><span class="lesson-id">9.7a</span><a href="9.8a.html">9.8a &#9654;</a></div><h1>9.7a — Computer Systems: What Runs Your Game</h1>
+
+<p class="lesson-lead">
+    60 frames per second means the machine has 16.67 milliseconds to
+    run YOUR Update, the physics, and a million pixels. Today: the
+    four organs of every computer — and why knowing them turns your
+    tuning instincts into engineering.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p><strong>The four organs — and what your game asks of each:</strong></p>
+    <table>
+        <tr><th>Organ</th><th>Job</th><th>Your game's demand</th></tr>
+        <tr><td><strong>CPU</strong></td><td>Executes instructions — your C#</td><td>Every Update: input, Distance checks, cooldowns, FindWithTag</td></tr>
+        <tr><td><strong>GPU</strong></td><td>Draws pixels — massively parallel</td><td>Tilemap, sprites, particles, your camera view, 60×</li></td></tr>
+        <tr><td><strong>RAM</strong></td><td>Working memory — fast, forgets at power-off</td><td>Loaded scene, all your fields, the tilemap in memory</td></tr>
+        <tr><td><strong>Storage (SSD/HDD)</strong></td><td>Persistent — slow, remembers</td><td>The .unity files, assets, your whole project (<a href="9.4a.html">9.4a</a>)</td></tr>
+    </table>
+
+    <p><strong>The frame budget.</strong> 60 fps = 16.67 ms per
+    frame. Inside that: all Update()s, physics step, culling, and
+    the GPU draw — usually 5–12 ms of CPU work in a game like
+    yours, leaving slack for spikes (a burst of turrets firing).
+    Your deltaTime habits (<a href="1.5a.html">1.5a</a>) exist
+    because the frame rate is a NEGOTIATION with hardware, not a
+    constant.</p>
+
+    <p><strong>The frame pipeline, in order:</strong></p>
+    <pre><code>1. Input    → your GetAxis/GetKeyDown (Input System)
+2. Update  → YOUR code runs (movement, cooldowns, AI ifs)
+3. Physics → collision resolution, rigidbody integration
+4. Render  → sprites sorted (<a href="7.2a.html">7.2a</a> layers!) and drawn</code></pre>
+    <p>That order explains a bug you have MET: the turret's
+    projectile spawns in one frame and damages on a LATER frame's
+    physics pass. Nothing is instant; everything is scheduled.</p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            Unity calls Update before physics and FixedUpdate on
+            the physics clock. Why would physics need a FIXED
+            timestep while your Update does not — and which of
+            your systems (cooldown timer vs. AddForce jump) would
+            break if you moved it into the wrong one?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.7a:sc1:q1" data-block="socratic" data-question="Unity calls Update before physics and FixedUpdate on the physics clock. Why would physics need a FIXED timestep while your Update does not — and which of your systems (cooldown timer vs. AddForce jump) would break if you moved it into the wrong one?" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p><strong>Step 1 — watch the budget.</strong> Unity's Window →
+    Analysis → Profiler (attach while playing): see the frame time
+    ms by ms. Find your Update cost, the physics cost, the render
+    cost. On a simple scene it is mostly render. Where does the
+    spike happen when all three turrets fire simultaneously?</p>
+
+    <p><strong>Step 2 — feel CPU vs GPU.</strong> Make each
+    expensive in turn:</p>
+    <ol>
+        <li>CPU: spawn 200 enemies (each has Update + Distance to
+            player). Watch fps fall — the CPU is saturated by
+            per-frame LOGIC</li>
+        <li>GPU: spawn 200 large sprites over a huge particle
+            burst. The frame drops differently — draw calls, not
+            logic. Read the Profiler's Hierarchy to see which
+            organ is complaining</li>
+    </ol>
+
+    <p><strong>Step 3 — RAM meets your scene data.</strong> Load the
+    overworld: RAM holds it. Load the Platformer scene
+    (<a href="5.3a.html">5.3a</a>): the old scene UNLOADS — that is
+    the hitch you sometimes see mid-door. The singleton survives
+    because DontDestroyOnLoad says "this one is not scene-RAM
+    anymore."</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Slow on a friend's laptop</h3>
+        <ol>
+            <li>Your game runs 60 fps in the lab but 25 fps on a
+                school Chromebook. Name the organ that likely
+                hurts first for a 2D Unity game — and which knob
+                (quality settings? resolution? particle count?)
+                respects it<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.7a:bh1:q1" data-block="bug-hunt" data-question="Your game runs 60 fps in the lab but 25 fps on a school Chromebook. Name the organ that likely hurts first for a 2D Unity game — and which knob (quality settings? resolution? particle count?) respects it" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>FindObjectsByType runs in the lever branch each E
+                press (<a href="5.2a.html">5.2a</a>). Why is
+                that cheap ON AN E-PRESS and expensive inside
+                Update — and what did you learn about WHERE code
+                runs, not just WHAT it does?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.7a:bh1:q2" data-block="bug-hunt" data-question="FindObjectsByType runs in the lever branch each E press ( 5.2a ). Why is that cheap ON AN E-PRESS and expensive inside Update — and what did you learn about WHERE code runs, not just WHAT it does?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why does your game take 10 seconds to BUILD but
+                loads instantly in the editor after — and what is
+                warm in RAM that was cold at launch?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.7a:bh1:q3" data-block="bug-hunt" data-question="Why does your game take 10 seconds to BUILD but loads instantly in the editor after — and what is warm in RAM that was cold at launch?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The exam classic: "Which is volatile — RAM or
+                storage?" Answer, then explain why your coins
+                reset when you quit (<a href="2.1a.html">2.1a</a>)
+                using exactly those two words.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.7a:bh1:q4" data-block="bug-hunt" data-question="The exam classic: &quot;Which is volatile — RAM or storage?&quot; Answer, then explain why your coins reset when you quit ( 2.1a ) using exactly those two words." placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Spec like an engineer</h3>
+        <ol>
+            <li>Find your machine's four numbers (About This Mac /
+                dxdiag): CPU speed, RAM GB, GPU name, storage
+                type. Write them next to your game's measured fps
+                — a spec sheet for YOUR build.</li>
+            <li>Write a minimum-spec sentence for your game:
+                "Playable at ___ fps on a machine with at least
+                ___." How would you FIND the second blank
+                honestly (borrow machines, not vibes)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.7a:tk1:q1" data-block="tinker" data-question="Write a minimum-spec sentence for your game: &quot;Playable at ___ fps on a machine with at least ___.&quot; How would you FIND the second blank honestly (borrow machines, not vibes)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Hard: 30 fps vs 60 fps — your deltaTime movement
+                works on both (<a href="1.5a.html">1.5a</a>
+                proof). But your cooldowns use Time.time — what
+                CHANGES at low fps for a cooldown, if anything —
+                and why is that "correct" (wall-clock vs
+                frame-clock)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.7a:tk1:q2" data-block="tinker" data-question="Hard: 30 fps vs 60 fps — your deltaTime movement works on both ( 1.5a proof). But your cooldowns use Time.time — what CHANGES at low fps for a cooldown, if anything — and why is that &quot;correct&quot; (wall-clock vs frame-clock)?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Name the four organs with your game's demand on each</li>
+            <li>Read the Profiler and identify CPU vs GPU saturation</li>
+            <li>Explain the frame pipeline order and a bug it predicts</li>
+            <li>Explain volatile RAM vs persistent storage with your own coins</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — computer systems in the CED</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Update vs FixedUpdate</li>
+    </ul>
+    <p>Next: <a href="9.8a.html">9.8a — The Internet: Packets, Routing &amp; DNS</a></p>
+</div><div class="lab-bar" data-lesson="9.7a" data-lesson-title="Computer Systems: What Runs Your Game" data-count="7" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/7 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="9.7a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="9.6a.html"><span class="dir">&#9664; Previous</span><span class="where">9.6a — Bias, Filtering &amp; Fair Data</span></a><a class="foot-next" href="9.8a.html"><span class="dir">Next &#9654;</span><span class="where">9.8a — The Internet: Packets, Routing &amp; DNS</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

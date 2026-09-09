@@ -1,0 +1,172 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>9.9a Encryption: Keys, TLS &amp; Public Key — AP CS Principles</title><meta name="description" content="Lesson 9.9a Encryption: Keys, TLS &amp; Public Key — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="9.9a Encryption: Keys, TLS &amp; Public Key — AP CS Principles"><meta property="og:description" content="Lesson 9.9a Encryption: Keys, TLS &amp; Public Key — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="9.8a.html">&#9664; 9.8a</a><span class="lesson-id">9.9a</span><a href="9.10a.html">9.10a &#9654;</a></div><h1>9.9a — Encryption: Keys, TLS &amp; Public Key</h1>
+
+<p class="lesson-lead">
+    When you pushed to GitHub, the URL said https — and your repo
+    crossed the public internet unread by every router along the
+    way. Today: how a secret can cross an open network twice, why
+    two keys are better than one, and the one math fact protecting
+    everything you own.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p><strong>Symmetric — one shared key.</strong> The Caesar
+    cipher you probably did in elementary school: shift letters by
+    a key (3: CAT → FDW). Same key encrypts and decrypts. Fast,
+    simple, and cursed by one problem: to agree on the key, you must
+    already have a secure channel. The internet never had one.</p>
+
+    <p><strong>Asymmetric — two keys, a public pair.</strong> In
+    the 1970s, math (huge prime numbers) delivered the miracle: you
+    publish a PUBLIC key anyone can use to lock messages to you,
+    and keep a PRIVATE key that is the only thing that unlocks
+    them. Publishing the lock does not reveal the key — that is
+    the fact everything rides on. RSA: factoring a number with two
+    600-digit prime factors would take the world's computers
+    longer than your lifetime; the exam wants the IDEA, not the
+    factoring.</p>
+    <table>
+        <tr><th></th><th>Symmetric (AES)</th><th>Asymmetric (RSA)</th></tr>
+        <tr><td>Keys</td><td>One shared secret</td><td>Public + private pair</td></tr>
+        <tr><td>Speed</td><td>Very fast</td><td>Slow</td></tr>
+        <tr><td>Perfect at</td><td>Bulk data — encrypting the actual packets</td><td>Proving identity — the handshake</td></tr>
+    </table>
+
+    <p><strong>TLS — the handshake (https).</strong> The web uses
+    BOTH: asymmetric to establish trust, symmetric for the actual
+    conversation. When you see the lock icon:</p>
+    <pre><code>1. Browser → github.com:  "hello"
+2. Server → browser:    certificate + its PUBLIC key
+3. Browser checks the certificate against trusted authorities
+4. Browser generates a random SESSION key, encrypts it with the
+   server's public key, sends it
+5. Server decrypts it with its private key — the ONLY one who can
+6. Both switch to fast symmetric encryption with the shared key</code></pre>
+    <p>Step 3 is what "certificate" means — a third party vouches
+    that this public key really belongs to github.com. Without it,
+    anyone on your wifi could impersonate the site and hand you
+    THEIR key (a man-in-the-middle attack).</p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            Why does TLS not simply use asymmetric encryption for
+            everything (hint: your 2 MB project push at RSA speed)?
+            The exam phrasing: "explain how symmetric and
+            asymmetric encryption are EACH used in secure
+            transactions" — write the one-sentence version now.
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.9a:sc1:q1" data-block="socratic" data-question="Why does TLS not simply use asymmetric encryption for everything (hint: your 2 MB project push at RSA speed)? The exam phrasing: &quot;explain how symmetric and asymmetric encryption are EACH used in secure transactions&quot; — write the one-sentence version now." placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p><strong>Step 1 — caesar by hand.</strong> Encrypt "BOSS"
+    with key 3 on paper (ERVV). Pass to a partner who decrypts.
+    Then: which letter appeared twice in the ciphertext — and why
+    does that PATTERN (frequency analysis) break Caesar without
+    knowing the key at all? Weak ciphers die to the STATISTICS of
+    language, not to brute force.</p>
+
+    <p><strong>Step 2 — see your own TLS.</strong> In a browser:
+    open github.com, click the padlock → view certificate. Read
+    the fields: issuer (a trusted authority), public key info,
+    valid dates, and the subject (github.com). This document is
+    Step 3 of the handshake, sitting still. Now try
+    <code>https://your-teacher-does-not-own-this-site.example</code>
+    or any bad cert page and READ the browser's refusal — you now
+    know exactly which step failed.</p>
+
+    <p><strong>Step 3 — your git connection.</strong>
+    <code>git remote -v</code> in your project. Is it an https or an
+    ssh URL? Both are encrypted. SSH is the asymmetric idea with a
+    different protocol: your ssh keypair IS your public/private
+    pair (<code>~/.ssh/id_ed25519.pub</code> vs the private file).
+    If you set up GitHub Desktop, it did https + TLS. Either way,
+    your pushes have been unread to every router
+    (<a href="9.8a.html">9.8a</a>) since day one.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Crypto failures</h3>
+        <ol>
+            <li>You encrypt your save file with the key stored IN
+                the game the players download. What did you
+                actually build (obfuscation, not security) — and
+                why does every "DRM cracked" headline follow from
+                this exact design?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.9a:bh1:q1" data-block="bug-hunt" data-question="You encrypt your save file with the key stored IN the game the players download. What did you actually build (obfuscation, not security) — and why does every &quot;DRM cracked&quot; headline follow from this exact design?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The exam classic: a site uses the same key for
+                public and private. What breaks FIRST — and why
+                is "key distribution" the sentence that answers
+                it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.9a:bh1:q2" data-block="bug-hunt" data-question="The exam classic: a site uses the same key for public and private. What breaks FIRST — and why is &quot;key distribution&quot; the sentence that answers it?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Your password vault uses one hash for every user's
+                same password "password123." Why does a SALT (a
+                random per-user value mixed in) change the
+                stolen-database story completely?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.9a:bh1:q3" data-block="bug-hunt" data-question="Your password vault uses one hash for every user's same password &quot;password123.&quot; Why does a SALT (a random per-user value mixed in) change the stolen-database story completely?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Quantum computing question the exam is probing at:
+                if factoring becomes fast, what specifically dies
+                (asymmetric) and what survives (symmetric) — and
+                why is the industry switching standards NOW
+                rather than later?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.9a:bh1:q4" data-block="bug-hunt" data-question="Quantum computing question the exam is probing at: if factoring becomes fast, what specifically dies (asymmetric) and what survives (symmetric) — and why is the industry switching standards NOW rather than later?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Threat modeling</h3>
+        <ol>
+            <li>Threat-model your game: a hypothetical cloud
+                leaderboard. What is the asset (scores), who are
+                the attackers (cheaters), and which trust
+                boundary must the server own (<a href="9.8a.html">9.8a</a>
+                tinker answer, upgraded)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.9a:tk1:q1" data-block="tinker" data-question="Threat-model your game: a hypothetical cloud leaderboard. What is the asset (scores), who are the attackers (cheaters), and which trust boundary must the server own ( 9.8a tinker answer, upgraded)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Write the exam answer: "Which is true about public
+                key encryption?" — make up the two wrong
+                options too (the exam is written by people who
+                write wrong options; knowing WHY they are wrong
+                is the skill).<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.9a:tk1:q2" data-block="tinker" data-question="Write the exam answer: &quot;Which is true about public key encryption?&quot; — make up the two wrong options too (the exam is written by people who write wrong options; knowing WHY they are wrong is the skill)." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Hard: why can you not reverse a HASH (one-way
+                function), and why does your password log in as
+                a HASH comparison rather than a decryption?
+                (Nothing was ever encrypted — it was
+                fingerprinted.)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.9a:tk1:q3" data-block="tinker" data-question="Hard: why can you not reverse a HASH (one-way function), and why does your password log in as a HASH comparison rather than a decryption? (Nothing was ever encrypted — it was fingerprinted.)" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Explain symmetric vs asymmetric with a use case for each</li>
+            <li>Narrate the TLS handshake's six steps and where certificates fit</li>
+            <li>Read a real certificate and name what its fields prove</li>
+            <li>Explain why hashing is not encryption, and what a salt buys</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-09/encryption.html">Encryption</a> — the full reference</li>
+        <li><a href="../docs/unit-09/the-internet.html">The Internet</a> — where TLS rides</li>
+    </ul>
+    <p>Next: <a href="9.10a.html">9.10a — Impact, Ethics &amp; Licenses (Your Fork!)</a></p>
+</div><div class="lab-bar" data-lesson="9.9a" data-lesson-title="Encryption: Keys, TLS &amp; Public Key" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="9.9a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="9.8a.html"><span class="dir">&#9664; Previous</span><span class="where">9.8a — The Internet: Packets, Routing &amp; DNS</span></a><a class="foot-next" href="9.10a.html"><span class="dir">Next &#9654;</span><span class="where">9.10a — Impact, Ethics &amp; Licenses (Your Fork!)</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

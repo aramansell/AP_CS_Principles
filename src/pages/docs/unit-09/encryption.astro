@@ -1,0 +1,148 @@
+---
+// Encryption — the crypto reference (Unit 9).
+import Base from '../../../layouts/BaseLayout.astro';
+
+const crumbs = `<nav class="crumbs"><a href="../index.html">Docs</a> &gt; <a href="../unit-09/index.html">Unit 9</a> &gt; <span>Encryption</span></nav>`;
+
+const body = `<h1>Encryption</h1>
+
+<p class="lesson-lead">
+    Your repo crossed the public internet unread by every router
+    along the way — because of a padlock icon and one mathematically
+    stubborn idea from the 1970s. This is the reference for symmetric
+    vs asymmetric keys, the TLS handshake, hashes, and every phrasing
+    of the question the exam uses.
+</p>
+
+<h2>Symmetric — one shared key</h2>
+<p>
+    The same key encrypts and decrypts. Fast, simple, and the cipher
+    you have already built by hand (Caesar: shift letters by 3). Its
+    fatal flaw is not strength — it is <strong>key
+    distribution</strong>: to agree on a shared key you already need
+    a private channel, and the public internet never offered one.
+</p>
+<pre><code>message + key → ciphertext  →  ciphertext + key → message
+
+CAT  → (+3) → FDW  →  FDW  → (−3) → CAT</code></pre>
+<p>
+    Caesar dies not to brute force but to the <strong>statistics of
+    language</strong> — frequency analysis. The most common letters
+    in English are ETAOIN; match their ciphertext patterns and the
+    key falls out. Every real symmetric cipher since scrambles the
+    pattern, but the lesson remains: a cipher that preserves any
+    structure is a puzzle, not a lock.
+</p>
+
+<h2>Asymmetric — the public pair</h2>
+<p>
+    The breakthrough: generate a KEY PAIR where one key encrypts and
+    only the other decrypts. You publish the PUBLIC key (literally —
+    on your website, in a certificate); you keep the PRIVATE key
+    secret. Anyone can lock a message to you; nobody but you can
+    open it. Publishing the lock reveals nothing about the key —
+    that asymmetry rests on one math fact: multiplying two huge
+    primes is easy, but factoring their product back into those
+    primes is intractable for any computer you can buy.
+</p>
+<table>
+    <tr><th></th><th>Symmetric (e.g. AES)</th><th>Asymmetric (e.g. RSA)</th></tr>
+    <tr><td>Keys</td><td>One shared secret</td><td>Public + private pair</td></tr>
+    <tr><td>Speed</td><td>Very fast</td><td>Slow</td></tr>
+    <tr><td>Solves</td><td>Bulk encryption</td><td>Key exchange + identity</td></tr>
+    <tr><td>Struggles with</td><td>Getting the key there</td><td>Volume</td></tr>
+</table>
+
+<h2>TLS — using both, for the best of both</h2>
+<p>
+    HTTPS is the two working together. The asymmetric part builds
+    trust once per session; the symmetric part does the actual work.
+    The handshake, in six lines:
+</p>
+<pre><code>1. browser → server:          "hello"
+2. server → browser:          certificate + public key
+3. browser verifies the certificate against a trusted authority
+4. browser:                   generates random session key,
+                              encrypts it with the server's PUBLIC key
+5. server:                    decrypts it with its PRIVATE key
+                              (the only being that can)
+6. both sides:                switch to fast symmetric, session key only</code></pre>
+<p>
+    Step 3 is what "certificate" means: a third party vouches that
+    this public key really belongs to github.com. Without that
+    verification, anyone on your wifi could impersonate the site and
+    hand you THEIR key — the man-in-the-middle attack. When your
+    browser says a certificate is invalid, step 3 failed, and the
+    correct move is to close the tab, not click through.
+</p>
+
+<h2>Hashing — encryption's cousin that is NOT encryption</h2>
+<p>
+    A hash is a one-way fingerprint: any input becomes a fixed-size
+    output, and no reasonable path leads back.
+    <code>password123</code> → <code>ef92b778bafe...</code>. There
+    is no key because there is no decryption — login works by
+    hashing what you type and comparing fingerprints. Salting
+    (mixing a random per-user value in before hashing) makes every
+    stored hash different even for identical passwords, defeating
+    the precomputed-table attack. The exam phrasing to know: a hash
+    provides <strong>integrity</strong> (did this change?) and
+    <strong>password storage</strong>, never secrecy.
+</p>
+
+<h2>The exam-question shapes</h2>
+<ul>
+    <li>"Which is true of public key encryption?" — the public key
+        cannot decrypt what it encrypted; only the private key can</li>
+    <li>"Why are symmetric and asymmetric EACH used in a secure
+        transaction?" — asymmetric to agree on identity and exchange
+        a session key; symmetric for the fast bulk data</li>
+    <li>"Lossy" trap: encryption is not compression
+        (<a href="../../lessons/9.3a.html">9.3a</a>) — nothing is
+        sacrificed, everything is restored</li>
+    <li>"A login system stores hashes of passwords" — why? So the
+        service itself never possesses the passwords; a stolen
+        database yields fingerprints, not secrets</li>
+    <li>"What does a certificate prove?" — that the public key
+        belongs to the named party, per a trusted authority</li>
+</ul>
+
+<h2>What can break it (and what cannot)</h2>
+<ul>
+    <li><strong>Key in the lockbox with the treasure:</strong> your
+        game encrypts saves with a key shipped inside the game. Every
+        player IS the holder of the key — this is obfuscation, not
+        security, and it is why client-side anti-cheat fails
+        (<a href="../../lessons/9.8a.html">9.8a</a>'s leaderboard
+        lesson: the client can lie; the server must verify)</li>
+    <li><strong>Quantum:</strong> if factoring huge numbers becomes
+        easy, asymmetric crypto breaks (symmetric mostly survives) —
+        which is why standards are migrating to post-quantum
+        algorithms now</li>
+    <li><strong>Implementation bugs, not math bugs:</strong> the
+        algorithms are fine; the code around them (random number
+        generation, certificate checking) is where real attacks
+        happen</li>
+</ul>
+
+<h2>Where you meet crypto this year</h2>
+<ul>
+    <li><a href="../../lessons/9.9a.html">9.9a — Encryption</a> —
+        the lesson (Caesar by hand, reading your own certificate)</li>
+    <li><a href="the-internet.html">The Internet reference</a> —
+        the packets TLS wraps</li>
+    <li><a href="../unit-09/index.html">Unit 9</a> — the full
+        data &amp; systems map</li>
+</ul>
+
+<div class="unit-nav">
+    <span><a href="the-internet.html">← The Internet</a></span>
+    <span><a href="../index.html">All docs</a></span>
+    <span><a href="../unit-10/index.html">Unit 10: Jam Season →</a></span>
+</div>`;
+---
+<Base title="Encryption — AP CS Principles Docs" active="docs" root="../.." docsHome="../index.html" css="../../style.css"
+  description="Symmetric vs asymmetric keys, the TLS handshake, certificates, hashes and salts — every encryption question shape the exam uses.">
+  <Fragment slot="breadcrumb" set:html={crumbs} />
+  <Fragment set:html={body} />
+</Base>

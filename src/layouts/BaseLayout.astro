@@ -1,0 +1,70 @@
+---
+/**
+ * Base layout — the shell every page on the site shares.
+ * Ported from the AP CS A Guide's BaseLayout: one place for <head>, top nav,
+ * and the .page wrapper.
+ *
+ * Props:
+ *   title    - page <title>, verbatim (may contain HTML entities)
+ *   active   - which top-nav tab is highlighted
+ *   root     - relative prefix to the site root ('' | '..' | '../..')
+ *   docsHome - relative href to docs/index.html (differs inside docs/)
+ *   css      - relative href of the stylesheet this page uses
+ */
+interface Props {
+  title: string;
+  active?: 'dashboard' | 'docs' | 'projects' | 'exam' | 'search';
+  root: string;
+  docsHome: string;
+  css: string;
+  /** page description for <meta> / social previews (optional) */
+  description?: string;
+}
+const { title, active, root, docsHome, css, description } = Astro.props;
+const desc = description ?? 'IBW AP CS Principles — a year of Unity: build a 2D RPG, run game jams, ship the Create PT, pass the AP exam.';
+// title props are verbatim (may contain entities like &amp;) — decode to
+// plain text so attribute interpolation doesn't double-escape them.
+const plainTitle = title
+  .replace(/&amp;/g, '&')
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"')
+  .replace(/&#39;/g, "'");
+
+const tabs = [
+  { key: 'dashboard', href: `${root ? root + '/' : ''}index.html`, label: 'Dashboard' },
+  { key: 'docs', href: docsHome, label: 'Docs' },
+  { key: 'projects', href: `${root ? root + '/' : ''}projects.html`, label: 'Projects' },
+  { key: 'exam', href: `${root ? root + '/' : ''}exam/index.html`, label: 'Exam' },
+  { key: 'search', href: `${root ? root + '/' : ''}search.html`, label: 'Search' },
+] as const;
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title set:html={title}></title>
+<meta name="description" content={desc}>
+<meta property="og:title" content={plainTitle} />
+<meta property="og:description" content={desc} />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="AP CS Principles" />
+<link rel="icon" type="image/svg+xml" href={(root ? root + '/' : '') + 'favicon.svg'} />
+<link rel="stylesheet" href={css}>
+</head>
+<body>
+
+<a class="skip-link" href="#main-content">Skip to content</a>
+
+<nav class="top-nav" data-pagefind-ignore>
+    {tabs.map((t) => <a href={t.href} class={t.key === active ? 'active' : undefined} aria-current={t.key === active ? 'page' : undefined}>{t.label}</a>)}
+</nav>
+
+<div class="page" id="main-content">
+    {Astro.slots.has('breadcrumb') && <slot name="breadcrumb" />}
+    <slot />
+</div><!-- .page -->
+
+</body>
+</html>
