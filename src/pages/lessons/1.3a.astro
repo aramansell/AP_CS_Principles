@@ -1,111 +1,154 @@
 ---
 // Lesson 1.3a — Your First Script: Variables & Update
-// A brand-new script (PlayerLogger.cs), not the shipped PlayerController:
-// class syntax, [SerializeField], Update(), Debug.Log.
+// Documentation-first: MonoBehaviour lifecycle, [SerializeField], Time.time, Debug.Log.
+// Non-exact example (SystemBeacon) + Student specification for PlayerLogger.cs.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>1.3a — Your First Script: Variables &amp; Update</h1>
 
 <p class="lesson-lead">
-    Today you write C# that runs inside your game. Not the player's code —
-    that already works. Your own tiny script, from scratch, so the big
-    one stops being magic.
+    Today you write C# that runs inside your game. Not by copying lines someone else wrote,
+    but by reading Unity's core engine documentation, analyzing an analogous diagnostic script,
+    and engineering your own custom logger from scratch.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">Read the Docs</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p>Open <code>Assets/Scripts/PlayerController.cs</code> and look at the
-    skeleton that runs on the Player right now:</p>
-    <pre><code>public class PlayerController : MonoBehaviour
-{
-    private Animator anim;
+    <p>
+        Every script in Unity that attaches to a GameObject inherits from <code>MonoBehaviour</code>.
+        This base class connects your code to the engine's game loop and provides key lifecycle methods:
+    </p>
 
-    private void Start()
-    {
-        anim = GetComponentInChildren&lt;Animator&gt;();
-        if (anim != null)
-        {
-            anim.SetBool("IsWalking", true);
-        }
-    }
-}</code></pre>
-
-    <p>Notice what is here — and what is missing. There is a <code>Start()</code> method
-    that grabs the Animator and starts the walk cycle, but there is no <code>Update()</code>
-    method yet! Predict before running anything: if you add an <code>Update()</code> method
-    with <code>Debug.Log("hello")</code> inside it, roughly how many times does "hello"
-    print in ten seconds? Ten? One? Something much bigger? Write your answer down — we check
-    it after you build your own script.</p>
+    <table>
+        <tr><th>Engine API</th><th>Signature / Type</th><th>Description &amp; Behavior</th></tr>
+        <tr>
+            <td><code>Start()</code></td>
+            <td><code>void Start()</code></td>
+            <td>Lifecycle hook. Called automatically by Unity exactly once before the first frame of gameplay. Used for initialization and caching references.</td>
+        </tr>
+        <tr>
+            <td><code>Update()</code></td>
+            <td><code>void Update()</code></td>
+            <td>Lifecycle hook. Called automatically every single frame. At 60 FPS, this runs 60 times per second. Used for polling input, updating timers, and continuous logic.</td>
+        </tr>
+        <tr>
+            <td><code>Debug.Log()</code></td>
+            <td><code>void Debug.Log(object message)</code></td>
+            <td>Prints a string or value directly to the Unity Console window. Essential developer feedback for seeing what your code is doing.</td>
+        </tr>
+        <tr>
+            <td><code>Time.time</code></td>
+            <td><code>float</code> (read-only)</td>
+            <td>The total elapsed time in seconds since the game entered Play mode. Constantly increases while the game runs.</td>
+        </tr>
+        <tr>
+            <td><code>[SerializeField]</code></td>
+            <td>Attribute prefix: <code>[SerializeField] private float speed;</code></td>
+            <td>Instructs Unity to serialize the private field and display it as an editable control in the Inspector window without exposing it to other classes.</td>
+        </tr>
+    </table>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The class name is <code>PlayerController</code> and the file is
-            PlayerController.cs. Why does Unity force that match, when a
-            regular program would happily let you rename a file?
-        </p>
+        <h3>Socratic: Lifecycle and Timing</h3>
+        <ol>
+            <li>If your computer runs the game at 120 FPS, how many times will <code>Update()</code> execute in a single second? What if it runs on a battery-saving laptop at 30 FPS?</li>
+            <li>If you write <code>Debug.Log("hello")</code> directly inside <code>Update()</code> without an interval check, what happens to your Unity Console in 5 seconds?</li>
+            <li>Why does software engineering encourage <code>[SerializeField] private</code> rather than making every field <code>public</code>? (Hint: Who should be allowed to change a component's internal variables?)</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Step 1 — create the script.</strong> In the Project
-    window, right-click Assets/Scripts → Create → C# Script (or, in
-    newer Unity: Create → Scripting → MonoBehaviour Script). Name it
-    <code>PlayerLogger</code> — the file must match the class exactly.
-    Open it. Unity writes you a starter that gives you two methods:
-    <code>Start</code> and <code>Update</code>.
-    </p>
-
-    <p><strong>Step 2 — add a field.</strong> Inside the class, above
-    the methods:</p>
-    <pre><code>[SerializeField] private float reportDelay = 1.0f;
-private float nextReportTime = 0f;</code></pre>
     <p>
-        A normal private field is the script's secret. But prefixing it with
-        <code>[SerializeField]</code> instructs Unity to expose it as an editable
-        knob in the Inspector window without making it accessible to other scripts.
+        Read this analogous example from an automated diagnostic probe.
+        Notice how it declares a tuning knob, tracks internal time, and gates its output so it logs on an interval:
     </p>
 
-    <p><strong>Step 3 — print on a timer.</strong> In Update:</p>
-    <pre><code>private void Update()
+    <pre><code>using UnityEngine;
+
+// An automated beacon that reports status on a scheduled interval
+public class SystemBeacon : MonoBehaviour
 {
-    if (Time.time &gt;= nextReportTime)
+    // Designer knob exposed in Inspector
+    [SerializeField] private float pingInterval = 2.5f;
+
+    // Internal memory: timestamp when the next ping is allowed
+    private float nextPingTime = 0f;
+
+    private void Start()
     {
-        Debug.Log("Still here at " + Time.time);
-        nextReportTime = nextReportTime + reportDelay;
+        Debug.Log("SystemBeacon initialized on " + gameObject.name);
+    }
+
+    private void Update()
+    {
+        // Has the game clock reached or passed our scheduled target time?
+        if (Time.time &gt;= nextPingTime)
+        {
+            Debug.Log("Beacon pulse at " + Time.time + " seconds");
+
+            // Advance the next scheduled timestamp into the future
+            nextPingTime = Time.time + pingInterval;
+        }
     }
 }</code></pre>
 
-    <p><strong>Step 4 — attach it.</strong> Drag PlayerLogger.cs onto
-    the Player in the Hierarchy (or Add Component → Player Logger).
-    Scripts are components — attaching is how a GameObject gets the
-    ability. Press Play and read the Console.</p>
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>When the game first starts, <code>Time.time</code> is 0. If <code>nextPingTime</code> is initialized to 0, does the beacon log on the very first frame of <code>Update()</code>?</li>
+            <li>After the first ping with <code>pingInterval = 2.5f</code>, what is the new value of <code>nextPingTime</code>? At what timestamp will the second ping fire?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Turn</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        <strong>Your Engineering Mission: Build <code>PlayerLogger.cs</code>.</strong>
+        You will create your own custom diagnostic script from scratch and attach it to the Player GameObject.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural Specification for <code>PlayerLogger.cs</code>:</strong>
+        <ol>
+            <li><strong>File &amp; Class Name:</strong> In <code>Assets/Scripts/</code>, create a new C# script named <code>PlayerLogger.cs</code>. The class name inside the file must match the filename exactly.</li>
+            <li><strong>Inspector Knob:</strong> Declare a serialized private float field named <code>reportDelay</code> with a default value of <code>1.0f</code>.</li>
+            <li><strong>Timestamp Memory:</strong> Declare a private float field named <code>nextReportTime</code> initialized to <code>0f</code>.</li>
+            <li><strong>Timed Execution in Update:</strong> In <code>Update()</code>, write an <code>if</code> statement that checks whether the current <code>Time.time</code> is greater than or equal to <code>nextReportTime</code>.</li>
+            <li><strong>Action &amp; Advancement:</strong> Inside the <code>if</code> branch, log a message showing the current time (e.g. <code>"Player active at: " + Time.time</code>), then advance <code>nextReportTime</code> by adding <code>reportDelay</code> to <code>Time.time</code>.</li>
+            <li><strong>Attach to Player:</strong> In the Unity Editor, select the Player in the Hierarchy and attach your <code>PlayerLogger</code> component.</li>
+        </ol>
+    </div>
+
+    <p>
+        Press Play in Unity and open the Console window (Window → General → Console).
+        Verify that your logger prints once per second without spamming hundreds of lines per second!
+    </p>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: Break the logger on purpose</h3>
-        <p>Make each bug, run it, explain the Console, then fix it:</p>
+        <h3>Bug Hunt: Break the Logger on Purpose</h3>
+        <p>Introduce each issue temporarily to understand the engine error states, then fix it:</p>
         <ol>
-            <li>Rename the class <code>playerLogger</code> (lowercase p)
-                in the code only. What does Unity say when you press Play?</li>
-            <li>Drag the script onto the Turret instead of the Player and
-                play. Does it still print — and what does that tell you
-                about which object a script belongs to?</li>
-            <li>Change the condition to <code>if (Time.time &gt; nextReportTime + reportDelay)</code>.
-                What changed about the rhythm, and can you explain why?</li>
-            <li>Delete the whole <code>nextReportTime</code> update line.
-                What fills the Console, and why is that a problem for
-                your first answer in the Predict block?</li>
+            <li>Rename the class to <code>playerLogger</code> (lowercase p) in the code while leaving the file named <code>PlayerLogger.cs</code>. What error appears in Unity when you press Play?</li>
+            <li>Attach the script to the Turret instead of the Player. Does it still run? What does this prove about how components relate to GameObjects?</li>
+            <li>Comment out the line that advances <code>nextReportTime</code>. What happens to the Console output within 2 seconds?</li>
         </ol>
     </div>
 </div>
@@ -118,28 +161,22 @@ private float nextReportTime = 0f;</code></pre>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Make the logger useful</h3>
+        <h3>Tinker: Extending the Logger</h3>
         <ol>
-            <li>Make it print the player's position instead of the time —
-                Google is allowed: search "unity transform.position". What
-                kind of value does <code>transform.position</code> hold?</li>
-            <li>Change reportDelay to 0.25 in the Inspector while playing.
-                Does the change survive after you press stop, and why?</li>
-            <li>Give the logger a second [SerializeField] int called
-                maxReports and stop logging after that many. Where did you
-                put the check — and would a while loop have worked here
-                instead?</li>
+            <li>While the game is running, select the Player and change <code>reportDelay</code> to <code>0.25</code> in the Inspector. What happens to the print rate? When you stop the game, what value does <code>reportDelay</code> revert to?</li>
+            <li>Modify your log statement to output the object's position: <code>transform.position</code>. What 3-dimensional data structure does it print?</li>
+            <li>Add a second serialized field: <code>[SerializeField] private int maxReports = 5;</code>. How would you prevent the logger from running once it has logged 5 times?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Create a new C# script and attach it to a GameObject</li>
-            <li>Explain what runs, when: Start once vs Update every frame</li>
-            <li>Write a [SerializeField] private field and tune it in the Inspector</li>
-            <li>Explain the difference between a class name and a file name</li>
-            <li>Use Debug.Log + a timer instead of spamming every frame</li>
+            <li>Create a new C# script and attach it to a GameObject as a component</li>
+            <li>Explain what runs when: <code>Start()</code> once vs <code>Update()</code> every frame</li>
+            <li>Write a <code>[SerializeField] private</code> field and explain how it differs from a public field</li>
+            <li>Explain the critical rule: C# class name must match filename 1:1</li>
+            <li>Implement interval-based execution with <code>Time.time</code> instead of spamming every frame</li>
         </ul>
     </div>
 </div>

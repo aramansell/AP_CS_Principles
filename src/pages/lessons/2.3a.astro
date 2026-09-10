@@ -82,44 +82,110 @@ const body = `<h1>2.3a — Health Potions &amp; the Max-Health Cap</h1>
         <li>Drag the Potion GameObject into <code>Assets/Prefabs</code> to make it a reusable prefab!</li>
     </ol>
 
-    <p><strong>Step 2 — Add Max Health and Capping to StatManager.cs.</strong>
-    Open <code>StatManager.cs</code>. Add <code>maxHealth</code> and update <code>ChangeHealth</code>:</p>
-    <pre><code>    [SerializeField] private int maxHealth = 3;
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
-    public void ChangeHealth(int amount)
+    <p>
+        Examine how a resource management system caps its inventory so that gathering bonuses
+        never exceed container capacity. Notice how the logic lives inside the manager, not the pickup item:
+    </p>
+
+    <pre><code>using UnityEngine;
+
+// Resource manager capping fuel reserves to tank volume
+public class FuelTankManager : MonoBehaviour
+{
+    public static FuelTankManager instance;
+
+    [SerializeField] private int currentFuel = 50;
+    [SerializeField] private int maxCapacity = 100;
+
+    public void AddFuel(int amount)
     {
-        health += amount;
+        // Add resources
+        currentFuel += amount;
 
-        // Cap health so it never exceeds maxHealth
-        if (health &gt; maxHealth)
+        // Selection ceiling: clamp value so it cannot exceed maximum
+        if (currentFuel &gt; maxCapacity)
         {
-            health = maxHealth;
+            currentFuel = maxCapacity;
         }
 
-        Debug.Log("Health Changed! New Health: " + health);
+        Debug.Log("Fuel tank refueled: " + currentFuel + " / " + maxCapacity);
+    }
+}</code></pre>
 
-        if (health &lt;= 0)
-        {
-            Debug.Log("Player Died!");
-            HandleDeath();
-        }
-    }</code></pre>
+    <p>And here is how an environmental pickup invokes the manager when collected:</p>
 
-    <p><strong>Step 3 — Handle the Potion in PlayerController.cs.</strong>
-    Open <code>PlayerController.cs</code> and add a branch inside <code>OnTriggerEnter2D</code>:</p>
-    <pre><code>    if (other.CompareTag("Potion"))
+    <pre><code>using UnityEngine;
+
+// Consumable item collected via trigger overlap
+public class FuelCanister : MonoBehaviour
+{
+    private void OnTriggerEnter2D(Collider2D hitCollider)
     {
-        if (StatManager.manager != null)
+        if (hitCollider.CompareTag("Vehicle"))
         {
-            StatManager.manager.ChangeHealth(1);
+            if (FuelTankManager.instance != null)
+            {
+                FuelTankManager.instance.AddFuel(25);
+            }
+
+            // Consumable vanishes after being used
+            Destroy(gameObject);
         }
-        Destroy(other.gameObject);
-    }</code></pre>
+    }
+}</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>If <code>currentFuel</code> is 90 and <code>AddFuel(25)</code> is called, trace the execution: what does <code>currentFuel</code> equal after the addition? What does it equal after the <code>if</code> check?</li>
+            <li>What would happen if <code>FuelCanister</code> checked the fuel level instead of <code>FuelTankManager</code>? Why should the rules of a stat belong to the manager of that stat?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Turn</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — Create the Potion Prefab.</strong></p>
+    <ol>
+        <li>In the Hierarchy, right-click → <strong>2D Object → Sprite</strong>, name it <strong>Potion</strong>.</li>
+        <li>Assign a potion sprite from <code>Assets/Artwork</code>.</li>
+        <li>Add a <strong>BoxCollider2D</strong> or <strong>CircleCollider2D</strong>, and check <strong>Is Trigger</strong>.</li>
+        <li>At the top of the Inspector, click Tag → <strong>Add Tag...</strong>, create the tag <strong>Potion</strong>, and assign it to the Potion.</li>
+        <li>Drag the Potion GameObject into <code>Assets/Prefabs</code> to make it a reusable prefab!</li>
+    </ol>
+
+    <div class="callout">
+        <strong>Architectural Specification for <code>StatManager.cs</code>:</strong>
+        <ol>
+            <li><strong>Max Health Knob:</strong> Declare <code>[SerializeField] private int maxHealth = 3;</code>.</li>
+            <li><strong>Health Ceiling Guard:</strong> Inside <code>ChangeHealth(int amount)</code>, after modifying <code>health</code>, implement a ceiling check (using an <code>if</code> conditional, <code>Mathf.Min</code>, or <code>Mathf.Clamp</code>) to guarantee that <code>health</code> can never exceed <code>maxHealth</code>.</li>
+        </ol>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
+        <ol>
+            <li><strong>Handle Potion Trigger:</strong> Inside your existing <code>OnTriggerEnter2D(Collider2D other)</code> method, add an additional branch to check <code>other.CompareTag("Potion")</code>.</li>
+            <li><strong>Heal &amp; Destroy:</strong> If matched, check <code>StatManager.manager != null</code>, call <code>StatManager.manager.ChangeHealth(1);</code>, and destroy the collected potion object (<code>Destroy(other.gameObject);</code>).</li>
+        </ol>
+    </div>
 
     <p>
         Save both files and press Play!
-        Walk into spikes to drop your health to 2, then walk into a potion. Your health restores to 3!
-        Walk into a second potion at full health: your health stays capped at 3 instead of climbing to 4.
+        Walk into spikes to drop your health to 2, then walk into a potion: your health restores to 3.
+        Walk into another potion while at full health: your health stays capped at 3 instead of climbing to 4!
     </p>
 
     <div class="bug-hunt">

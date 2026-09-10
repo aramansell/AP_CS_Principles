@@ -42,30 +42,56 @@
     </div>
 
     <p>
-        <strong>Step 3 — spawn with code.</strong> The turret will do
-        this to you soon (projectiles!), so build the smallest version
-        now. Make a new script <code>TestSpawner.cs</code> on a new
-        empty GameObject:</p>
+    <p>
+        <strong>Step 3 — Read the Spawning API.</strong> In games, many objects are not pre-placed
+        in the scene by hand; they are stamped dynamically into existence at runtime. Unity provides
+        the <code>Instantiate()</code> function to create instances of prefabs from code:
+    </p>
+
+    <table>
+        <tr><th>Function Signature</th><th>Return Type</th><th>Description &amp; Behavior</th></tr>
+        <tr>
+            <td><code>Instantiate(original, position, rotation)</code></td>
+            <td><code>Object</code> (or <code>GameObject</code>)</td>
+            <td>Clones the specified prefab asset or GameObject at the given 3D coordinates with the given orientation.</td>
+        </tr>
+        <tr>
+            <td><code>Quaternion.identity</code></td>
+            <td><code>Quaternion</code></td>
+            <td>Represents "no rotation" — the object aligns perfectly with the world coordinate axes.</td>
+        </tr>
+    </table>
+
+    <p>Look at how a signaling flare launcher stamps instances of a prefab template into the world:</p>
+
     <pre><code>using UnityEngine;
 
-public class TestSpawner : MonoBehaviour
+// Launches distress flares from a prefab template
+public class FlareLauncher : MonoBehaviour
 {
-    [SerializeField] private GameObject coinPrefab;
+    // Slot in Inspector to assign the master prefab asset
+    [SerializeField] private GameObject flarePrefab;
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.P))
+        // When F is tapped, stamp a new clone into the world
+        if (Input.GetKeyDown(KeyCode.F))
         {
-            Instantiate(coinPrefab, transform.position, Quaternion.identity);
+            Instantiate(flarePrefab, transform.position, Quaternion.identity);
         }
     }
 }</code></pre>
 
-    <p>Drag the Coin prefab into the spawner's slot, press Play, and
-    press P a few times. You are stamping live objects from a template
-    — the exact line the turret's AttackPlayer uses, and the card
-    jam's Deal(). Then stop. Every spawned coin vanishes — you are
-    editing in a dream again (<a href="1.2a.html">1.2a</a>).</p>
+    <div class="callout">
+        <strong>Architectural Challenge — Build a Dynamic Item Spawner:</strong>
+        <p>
+            Create your own testing script (e.g. <code>ItemSpawner.cs</code>) attached to an empty GameObject.
+            Expose a <code>[SerializeField] private GameObject itemPrefab;</code> slot.
+            Inside <code>Update()</code>, check for a key press (such as <code>KeyCode.P</code>) and call
+            <code>Instantiate()</code> using your prefab slot, the spawner's <code>transform.position</code>,
+            and <code>Quaternion.identity</code>. Assign your Coin or Potion prefab in the Inspector and test it in Play mode!
+        </p>
+    </div>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Factory faults</h3>

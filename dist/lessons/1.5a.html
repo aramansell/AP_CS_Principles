@@ -58,20 +58,49 @@
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~20 min</span>
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Code defaults vs. Inspector overrides.</strong> Look at the top of <code>PlayerController.cs</code>:</p>
-    <pre><code>[SerializeField] private float xSpeed = 5.0f;
-[SerializeField] private float ySpeed = 5.0f;</code></pre>
+    <p>
+        Look at how this planetary rover component separates serialized designer defaults from
+        its frame-scaled update logic:
+    </p>
+
+    <pre><code>using UnityEngine;
+
+// Planetary survey rover comparing translation and velocity
+public class RoverEngine : MonoBehaviour
+{
+    // Serialized designer tuning knobs
+    [SerializeField] private float cruiseSpeed = 6.0f;
+    [SerializeField] private float sprintMultiplier = 1.5f;
+
+    private void Update()
+    {
+        float steer = Input.GetAxis("Horizontal");
+
+        // Distance = Rate * Time (frame independence)
+        float frameStep = steer * cruiseSpeed * Time.deltaTime;
+        transform.Translate(new Vector3(frameStep, 0, 0));
+    }
+}</code></pre>
 
     <p>
-        When you write <code>= 5.0f</code> in code, you are setting a <strong>fallback default</strong>.
-        However, because these fields have <code>[SerializeField]</code>, Unity stores the actual value
-        inside the scene file (<code>Overworld.unity</code>). If you change the value in the Inspector,
-        the Inspector override wins every time!
+        <strong>Code defaults vs. Inspector overrides:</strong>
+        When you write <code>= 6.0f</code> in your class definition, you are establishing a <strong>fallback default</strong>.
+        However, the moment a field has <code>[SerializeField]</code>, Unity stores the actual value
+        inside the scene or prefab asset. If the value in the Inspector differs from the number written in your C# file,
+        <strong>the Inspector value always overrides the code</strong>!
     </p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Live-Tuning Workflow</span>
+        <span class="activity-time">~20 min</span>
+    </div>
 
     <p><strong>The live-tuning workflow:</strong></p>
     <ol>

@@ -37,30 +37,69 @@ const body = `<h1>3.4a — Turret Damage, Tuning &amp; Playtest</h1>
 </div>
 
 <!-- ============================================================ -->
+<!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Examine how an environmental hazard delivers damage upon contact and immediately destroys
+        itself to prevent multi-hit bugs:
+    </p>
+
+    <pre><code>using UnityEngine;
+
+// Environmental hazard that inflicts damage upon contact and shatters
+public class FallingIcicle : MonoBehaviour
+{
+    // Tuning knob: damage delivered per strike
+    [SerializeField] private int impactDamage = 2;
+
+    private void OnTriggerEnter2D(Collider2D hitEntity)
+    {
+        // 1. Filter: only affect targets with the matching tag
+        if (hitEntity.CompareTag("PlayerTarget"))
+        {
+            // 2. Deliver damage through the central manager
+            if (GameHealthSystem.instance != null)
+            {
+                GameHealthSystem.instance.InflictDamage(impactDamage);
+            }
+
+            // 3. Destroy this projectile immediately so it cannot strike again
+            Destroy(gameObject);
+        }
+    }
+}</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>If you omit <code>Destroy(gameObject);</code> from the impact callback, what happens if the player remains inside the projectile's collider for 10 consecutive frames?</li>
+            <li>Why does <code>FallingIcicle</code> pass positive <code>impactDamage</code> to a method called <code>InflictDamage()</code>, whereas in our project we pass negative <code>-damage</code> to <code>ChangeHealth()</code>? (Hint: Read the method names!).</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Turn</span>
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — Add Damage to Projectile.cs.</strong> Open <code>Assets/Scripts/Projectile.cs</code>.
-    Add a damage variable and an <code>OnTriggerEnter2D</code> method:</p>
-    <pre><code>    [SerializeField] private int damage = 1;
-
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        // Only damage the player
-        if (other.CompareTag("Player"))
-        {
-            if (StatManager.manager != null)
-            {
-                StatManager.manager.ChangeHealth(-damage);
-            }
-
-            // Destroy the bullet on impact
-            Destroy(gameObject);
-        }
-    }</code></pre>
+    <div class="callout">
+        <strong>Architectural Specification for <code>Projectile.cs</code>:</strong>
+        <ol>
+            <li><strong>Damage Tuning Knob:</strong> Declare a serialized private int field named <code>damage</code> with a default value of <code>1</code>.</li>
+            <li><strong>Trigger Callback:</strong> Declare <code>private void OnTriggerEnter2D(Collider2D other)</code>.</li>
+            <li><strong>Target Filter:</strong> Verify that <code>other.CompareTag("Player")</code> is true.</li>
+            <li><strong>Deliver Negative Health:</strong> If matched, check that <code>StatManager.manager != null</code> and call <code>StatManager.manager.ChangeHealth(-damage);</code>.</li>
+            <li><strong>Impact Cleanup:</strong> Call <code>Destroy(gameObject);</code> so the bullet vanishes upon contact with the player.</li>
+        </ol>
+    </div>
 
     <p>
         Save and test in Unity. Walk into a bullet: your health drops from 3 to 2, the bullet vanishes,

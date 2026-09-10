@@ -40,64 +40,110 @@
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Examine how an autonomous exploration probe breaks down its single-axis motion pipeline.
+        Notice the three distinct operations: reading input data, calculating a scaled displacement vector,
+        and modifying the object's transform:
+    </p>
+
+    <pre><code>using UnityEngine;
+
+// An exploration probe navigating deep-sea trenches
+public class SubmarineProbe : MonoBehaviour
+{
+    // Designer knob exposed in Inspector
+    [SerializeField] private float lateralThrust = 4.0f;
+
+    // Internal memory for input and motion data
+    private float steerInput;
+    private Vector2 displacement;
+
+    private void Update()
+    {
+        // 1. Poll virtual axis (-1.0 to 1.0)
+        steerInput = Input.GetAxis("Horizontal");
+
+        // 2. Scale direction by speed and elapsed frame time
+        float step = steerInput * lateralThrust * Time.deltaTime;
+        displacement = new Vector2(step, 0);
+
+        // 3. Shift position in space
+        transform.Translate(displacement);
+    }
+}</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>In <code>SubmarineProbe</code>, <code>displacement.y</code> is <code>0</code>. If you wanted the probe to submerge deeper and rise using the vertical axis, what would the Y calculation look like?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:sc2:q1" data-block="socratic" data-question="In SubmarineProbe , displacement.y is 0 . If you wanted the probe to submerge deeper and rise using the vertical axis, what would the Y calculation look like?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why does the probe multiply by <code>Time.deltaTime</code> inside the vector calculation rather than inside <code>transform.Translate()</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:sc2:q2" data-block="socratic" data-question="Why does the probe multiply by Time.deltaTime inside the vector calculation rather than inside transform.Translate() ?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Turn</span>
         <span class="activity-time">~25 min</span>
     </div>
 
     <p>
-        <strong>Build movement from scratch.</strong> Open <code>Assets/Scripts/PlayerController.cs</code>.
-        Notice that right now it only contains an Animator reference in <code>Start()</code>.
-        Let's construct movement step-by-step by solving our three smaller sub-problems.
+        <strong>Your Engineering Mission: Build 2D Movement in <code>PlayerController.cs</code>.</strong>
+        Open <code>Assets/Scripts/PlayerController.cs</code>. You will construct a full two-axis movement pipeline
+        from scratch by solving three modular sub-problems.
     </p>
 
-    <p><strong>Sub-problem 1 — Declare variables for settings and input state.</strong>
-    Add these fields at the top of the <code>PlayerController</code> class:
-    </p>
-    <pre><code>[SerializeField] private float xSpeed = 5.0f;
-[SerializeField] private float ySpeed = 5.0f;
-
-private float xDirection;
-private float yDirection;
-
-private Vector2 xVector;
-private Vector2 yVector;</code></pre>
-
-    <p><strong>Sub-problem 2 — Read player intent in Update.</strong>
-    Create the <code>Update()</code> method. Each frame, capture the player's horizontal and vertical inputs:
-    </p>
-    <pre><code>private void Update()
-{
-    // 1. Get User Input
-    xDirection = Input.GetAxis("Horizontal"); // A/D or Left/Right Arrows
-    yDirection = Input.GetAxis("Vertical");   // W/S or Up/Down Arrows
-}</code></pre>
-    <p>
-        Save and run the game. Does the player move yet? No! Input is merely data sitting in memory.
-        Nothing in the scene changes until data is turned into an action.
-    </p>
-
-    <p><strong>Sub-problem 3 — Turn intent into motion vectors and apply them.</strong>
-    Multiply direction by speed and frame duration (<code>Time.deltaTime</code>), then translate the player's Transform:
-    </p>
-    <pre><code>    // 2. Calculate Movement Vectors
-    xVector = new Vector2(xDirection * xSpeed * Time.deltaTime, 0);
-    yVector = new Vector2(0, yDirection * ySpeed * Time.deltaTime);
-
-    // 3. Apply Movement
-    transform.Translate(xVector);
-    transform.Translate(yVector);</code></pre>
+    <div class="callout">
+        <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
+        <ol>
+            <li>
+                <strong>Variables &amp; Tuning Knobs:</strong>
+                At the top of the class, declare:
+                <ul>
+                    <li>Two serialized private float fields: <code>xSpeed</code> (default <code>5.0f</code>) and <code>ySpeed</code> (default <code>5.0f</code>).</li>
+                    <li>Two private float fields to store raw axis input: <code>xDirection</code> and <code>yDirection</code>.</li>
+                    <li>Two private <code>Vector2</code> fields to store calculated offsets: <code>xVector</code> and <code>yVector</code>.</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Sub-Problem 1 (Read Input):</strong>
+                Inside <code>Update()</code>, poll Unity's virtual axes:
+                <ul>
+                    <li>Query <code>Input.GetAxis("Horizontal")</code> and store the result in <code>xDirection</code>.</li>
+                    <li>Query <code>Input.GetAxis("Vertical")</code> and store the result in <code>yDirection</code>.</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Sub-Problem 2 (Construct Vectors):</strong>
+                Convert directional intent into physical displacement scaled by frame rate:
+                <ul>
+                    <li>Calculate <code>xVector</code> using <code>new Vector2(...)</code> with X scaled by <code>xDirection * xSpeed * Time.deltaTime</code> and Y set to <code>0</code>.</li>
+                    <li>Calculate <code>yVector</code> using <code>new Vector2(...)</code> with X set to <code>0</code> and Y scaled by <code>yDirection * ySpeed * Time.deltaTime</code>.</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Sub-Problem 3 (Apply Translation):</strong>
+                Call <code>transform.Translate()</code> for each vector to displace the player's position in world space.
+            </li>
+        </ol>
+    </div>
 
     <p>
-        Save the script and return to Unity. Press Play. Press WASD or the arrow keys.
-        Your character now moves smoothly through the world!
+        Save your script and return to the Unity Editor. Press Play and press WASD or the arrow keys.
+        Your character should now glide smoothly in all four directions!
     </p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Testing Assumptions</h3>
         <ol>
-            <li>What happens if you delete <code>* Time.deltaTime</code> from the <code>xVector</code> calculation? Why does the player suddenly blast off at supersonic speed?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q1" data-block="bug-hunt" data-question="What happens if you delete * Time.deltaTime from the xVector calculation? Why does the player suddenly blast off at supersonic speed?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you delete <code>* Time.deltaTime</code> from your vector calculation? Why does the player suddenly blast off into deep space on the first keypress?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q1" data-block="bug-hunt" data-question="What happens if you delete * Time.deltaTime from your vector calculation? Why does the player suddenly blast off into deep space on the first keypress?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>In the Inspector for Player, change <code>xSpeed</code> to <code>0</code>. What happens when you press A and D versus W and S?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q2" data-block="bug-hunt" data-question="In the Inspector for Player, change xSpeed to 0 . What happens when you press A and D versus W and S?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>What happens if you accidentally swap the vectors and write <code>transform.Translate(yVector)</code> for horizontal movement?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q3" data-block="bug-hunt" data-question="What happens if you accidentally swap the vectors and write transform.Translate(yVector) for horizontal movement?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you accidentally swap the vectors and pass <code>yVector</code> when moving horizontally?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q3" data-block="bug-hunt" data-question="What happens if you accidentally swap the vectors and pass yVector when moving horizontally?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -138,4 +184,4 @@ private Vector2 yVector;</code></pre>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — input and vector functions</li>
     </ul>
     <p>Coming up next: <a href="1.5a.html">1.5a — Movement II: Speed, deltaTime &amp; Tuning</a></p>
-</div><div class="lab-bar" data-lesson="1.4a" data-lesson-title="Movement I: Input, Direction, Vector" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="1.4a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.3a.html"><span class="dir">&#9664; Previous</span><span class="where">1.3a — Your First Script: Variables &amp; Update</span></a><a class="foot-next" href="1.5a.html"><span class="dir">Next &#9654;</span><span class="where">1.5a — Movement II: Speed, deltaTime &amp; Tuning</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+</div><div class="lab-bar" data-lesson="1.4a" data-lesson-title="Movement I: Input, Direction, Vector" data-count="10" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/10 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="1.4a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.3a.html"><span class="dir">&#9664; Previous</span><span class="where">1.3a — Your First Script: Variables &amp; Update</span></a><a class="foot-next" href="1.5a.html"><span class="dir">Next &#9654;</span><span class="where">1.5a — Movement II: Speed, deltaTime &amp; Tuning</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

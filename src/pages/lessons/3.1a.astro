@@ -52,50 +52,91 @@ const body = `<h1>3.1a — The Turret: Distance &amp; the Detection Radius</h1>
 </div>
 
 <!-- ============================================================ -->
+<!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Step 1 — Create TurretController.cs.</strong>
-    In <code>Assets/Scripts/</code>, create a new C# script named <code>TurretController.cs</code>:</p>
+    <p>
+        Examine how an automated security spotlight finds its target, measures Euclidean distance,
+        and triggers an alert when an object enters its detection sphere:
+    </p>
+
     <pre><code>using UnityEngine;
 
-public class TurretController : MonoBehaviour
+// Automated motion-sensing spotlight
+public class ProximityLight : MonoBehaviour
 {
-    [SerializeField] private float maxAttackRange = 7f;
+    // Designer tuning knob for sensing radius
+    [SerializeField] private float sensorRadius = 8.0f;
 
-    private Transform playerTransform;
+    // Cached reference to the target's transform
+    private Transform targetTransform;
 
     private void Start()
     {
-        // Cache the player reference once at startup
-        GameObject playerObj = GameObject.FindWithTag("Player");
-        if (playerObj != null)
+        // Cache the target reference ONCE at startup to avoid expensive per-frame searches
+        GameObject detectedObj = GameObject.FindWithTag("TargetDrone");
+        if (detectedObj != null)
         {
-            playerTransform = playerObj.transform;
+            targetTransform = detectedObj.transform;
         }
         else
         {
-            Debug.LogError("TurretController: No GameObject with tag 'Player' found in scene!");
+            Debug.LogWarning("ProximityLight: No target found with tag 'TargetDrone'!");
         }
     }
 
     private void Update()
     {
-        if (playerTransform == null) return;
+        // Safety guard: do nothing if no target exists
+        if (targetTransform == null) return;
 
-        // Calculate distance to player
-        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+        // Measure straight-line 3D Euclidean distance
+        float currentDist = Vector3.Distance(transform.position, targetTransform.position);
 
-        // Check if player is inside attack range
-        if (distanceToPlayer &lt;= maxAttackRange)
+        // Evaluate proximity threshold
+        if (currentDist &lt;= sensorRadius)
         {
-            Debug.Log("Player in range! Distance: " + distanceToPlayer);
+            Debug.Log("Motion detected! Target distance: " + currentDist);
         }
     }
 }</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>Why is calling <code>GameObject.FindWithTag()</code> in <code>Start()</code> considered a best practice, while calling it inside <code>Update()</code> causes major game lag?</li>
+            <li>What does the guard clause <code>if (targetTransform == null) return;</code> do? What error would crash the console if this line were removed and no player existed?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Turn</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural Specification for <code>TurretController.cs</code>:</strong>
+        <ol>
+            <li><strong>File &amp; Class Name:</strong> In <code>Assets/Scripts/</code>, create a new script named <code>TurretController.cs</code>.</li>
+            <li><strong>Detection Range Knob:</strong> Declare a serialized private float field named <code>maxAttackRange</code> with a default value of <code>7f</code>.</li>
+            <li><strong>Cached Reference:</strong> Declare a private <code>Transform playerTransform;</code> field.</li>
+            <li><strong>Initialization in Start:</strong> In <code>Start()</code>, search the scene for the player using <code>GameObject.FindWithTag("Player")</code>. If found, store its <code>transform</code> in <code>playerTransform</code>. If null, log an error alerting the developer that no GameObject has the tag "Player".</li>
+            <li><strong>Distance Check in Update:</strong> In <code>Update()</code>:
+                <ul>
+                    <li>Guard against null player reference (return early if null).</li>
+                    <li>Calculate the distance between the turret's position (<code>transform.position</code>) and the player's position (<code>playerTransform.position</code>) using <code>Vector3.Distance</code>.</li>
+                    <li>If the distance is less than or equal to <code>maxAttackRange</code>, log a message showing that the player is in range along with the calculated distance.</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
 
     <p><strong>Step 2 — Attach to the Turret in Unity.</strong></p>
     <ol>

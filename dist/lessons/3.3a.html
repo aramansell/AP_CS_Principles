@@ -51,51 +51,90 @@
 </div>
 
 <!-- ============================================================ -->
+<!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Examine how an industrial laser cutter uses compound boolean logic and timestamp tracking
+        to prevent hardware overheating:
+    </p>
+
+    <pre><code>using UnityEngine;
+
+// Industrial tool managing pulse intervals via timestamp gating
+public class LaserDrill : MonoBehaviour
+{
+    // Designer knob: delay required between pulses
+    [SerializeField] private float pulseCooldown = 1.5f;
+
+    // Internal memory: timestamp of the previous discharge
+    private float lastPulseTime = 0f;
+
+    public void AttemptDischarge(bool sensorTargetAcquired)
+    {
+        // Compound condition: target is valid AND cooldown duration has elapsed
+        if (sensorTargetAcquired &amp;&amp; Time.time &gt;= lastPulseTime + pulseCooldown)
+        {
+            FirePulse();
+
+            // Reset the timestamp memory to current engine clock
+            lastPulseTime = Time.time;
+        }
+    }
+
+    private void FirePulse()
+    {
+        Debug.Log("Laser pulse discharged at: " + Time.time);
+    }
+}</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>If <code>lastPulseTime</code> is <code>4.0</code> and <code>pulseCooldown</code> is <code>1.5</code>, what is the earliest <code>Time.time</code> value at which <code>Time.time &gt;= lastPulseTime + pulseCooldown</code> evaluates to true?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc2:q1" data-block="socratic" data-question="If lastPulseTime is 4.0 and pulseCooldown is 1.5 , what is the earliest Time.time value at which Time.time &gt;= lastPulseTime + pulseCooldown evaluates to true?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In boolean logic, if <code>sensorTargetAcquired</code> is <code>false</code>, does Unity bother evaluating the right-hand side of the <code>&amp;&amp;</code> operator? (This is called <strong>short-circuit evaluation</strong>).<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc2:q2" data-block="socratic" data-question="In boolean logic, if sensorTargetAcquired is false , does Unity bother evaluating the right-hand side of the &amp;&amp; operator? (This is called short-circuit evaluation )." placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Turn</span>
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — Declare Cooldown Variables.</strong> Open <code>TurretController.cs</code>.
-    Add these fields near the top of the class:</p>
-    <pre><code>    [SerializeField] private float attackCooldown = 2f;
-    private float lastAttackTime = 0f;</code></pre>
-
-    <p>Notice the roles:</p>
-    <ul>
-        <li><code>attackCooldown</code> has <code>[SerializeField]</code>: it is a designer tuning knob (wait 2 seconds between shots).</li>
-        <li><code>lastAttackTime</code> is private and hidden: it is internal memory tracking when the turret last shot.</li>
-    </ul>
-
-    <p><strong>Step 2 — Implement the Compound Condition.</strong> In <code>Update()</code>,
-    combine the distance check and the cooldown check using the logical AND operator (<code>&amp;&amp;</code>):</p>
-    <pre><code>    private void Update()
-    {
-        if (playerTransform == null) return;
-
-        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
-
-        // Both conditions must be true: player in range AND cooldown has passed
-        if (distanceToPlayer &lt;= maxAttackRange &amp;&amp; Time.time &gt;= lastAttackTime + attackCooldown)
-        {
-            AttackPlayer();
-            lastAttackTime = Time.time; // Reset the timestamp
-        }
-    }</code></pre>
+    <div class="callout">
+        <strong>Architectural Specification for <code>TurretController.cs</code>:</strong>
+        <ol>
+            <li><strong>Cooldown Tuning Knob:</strong> Declare a serialized private float field named <code>attackCooldown</code> with a default value of <code>2f</code>.</li>
+            <li><strong>Timestamp Memory:</strong> Declare a private float field named <code>lastAttackTime</code> initialized to <code>0f</code>.</li>
+            <li><strong>Compound Gating in Update:</strong> In <code>Update()</code>, modify your attack conditional to require <strong>both</strong> conditions using <code>&amp;&amp;</code>:
+                <ul>
+                    <li>The player must be within range: <code>distanceToPlayer &lt;= maxAttackRange</code>.</li>
+                    <li>AND enough time must have passed: <code>Time.time &gt;= lastAttackTime + attackCooldown</code>.</li>
+                </ul>
+            </li>
+            <li><strong>Reset Clock on Attack:</strong> Inside the <code>if</code> branch, call <code>AttackPlayer();</code>, and immediately record the current time by assigning <code>lastAttackTime = Time.time;</code>.</li>
+        </ol>
+    </div>
 
     <p>
         Save and return to Unity. Press Play and walk inside the turret's attack radius.
-        Instead of a solid wall of bullets, the turret now fires a single projectile, waits exactly 2 seconds,
+        Instead of a solid wall of bullets, the turret now fires a single projectile, pauses for 2 seconds,
         and then fires again!
     </p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Timer Faults</h3>
         <ol>
-            <li>What happens if you comment out the line <code>lastAttackTime = Time.time;</code>? Why does the turret revert back to firing 60 bullets per second?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q1" data-block="bug-hunt" data-question="What happens if you comment out the line lastAttackTime = Time.time; ? Why does the turret revert back to firing 60 bullets per second?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>In the Inspector for Turret, change <code>Attack Cooldown</code> to <code>0.5</code>. Test it in play mode. How does the threat level change?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q2" data-block="bug-hunt" data-question="In the Inspector for Turret, change Attack Cooldown to 0.5 . Test it in play mode. How does the threat level change?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>What happens if you initialize <code>private float lastAttackTime = 100f;</code> in code? When the game starts, how many seconds must you wait before the turret can take its very first shot?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q3" data-block="bug-hunt" data-question="What happens if you initialize private float lastAttackTime = 100f; in code? When the game starts, how many seconds must you wait before the turret can take its very first shot?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you comment out the line updating <code>lastAttackTime</code>? Why does the turret revert back to firing 60 bullets per second?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q1" data-block="bug-hunt" data-question="What happens if you comment out the line updating lastAttackTime ? Why does the turret revert back to firing 60 bullets per second?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In the Inspector for Turret, change <code>Attack Cooldown</code> to <code>0.5</code>. Test it in play mode. How does the encounter pacing change?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q2" data-block="bug-hunt" data-question="In the Inspector for Turret, change Attack Cooldown to 0.5 . Test it in play mode. How does the encounter pacing change?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you initialize <code>private float lastAttackTime = 100f;</code> in your code? When the game starts, how many seconds must you wait before the turret can take its very first shot?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q3" data-block="bug-hunt" data-question="What happens if you initialize private float lastAttackTime = 100f; in your code? When the game starts, how many seconds must you wait before the turret can take its very first shot?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -108,22 +147,10 @@
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Testing the Countdown Timer Alternative</h3>
+        <h3>Tinker: Testing Countdown Timers</h3>
         <ol>
-            <li>In <code>TurretController.cs</code>, try implementing the second approach:
-            <pre><code>private float timer = 0f;
-
-private void Update()
-{
-    timer -= Time.deltaTime;
-    if (distanceToPlayer &lt;= maxAttackRange &amp;&amp; timer &lt;= 0f)
-    {
-        AttackPlayer();
-        timer = attackCooldown;
-    }
-}</code></pre>
-            Does the turret behave identically in play mode? Compare both code snippets: which one feels more natural to your personal mental model of time?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:tk1:q1" data-block="tinker" data-question="In TurretController.cs , try implementing the second approach: private float timer = 0f; private void Update() { timer -= Time.deltaTime; if (distanceToPlayer &lt;= maxAttackRange &amp;&amp; timer &lt;= 0f) { AttackPlayer(); timer = attackCooldown; } } Does the turret behave identically in play mode? Compare both code snippets: which one feels more natural to your personal mental model of time?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>How could you use this exact same cooldown pattern to prevent the player from taking damage from spikes 60 times a second if they stand on them?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:tk1:q2" data-block="tinker" data-question="How could you use this exact same cooldown pattern to prevent the player from taking damage from spikes 60 times a second if they stand on them?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Instead of timestamp checking with <code>Time.time</code>, try engineering a countdown timer using <code>timer -= Time.deltaTime;</code>. When <code>timer &lt;= 0f</code>, fire and reset <code>timer = attackCooldown;</code>. Which timing approach feels cleaner to you?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:tk1:q1" data-block="tinker" data-question="Instead of timestamp checking with Time.time , try engineering a countdown timer using timer -= Time.deltaTime; . When timer &lt;= 0f , fire and reset timer = attackCooldown; . Which timing approach feels cleaner to you?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>How could you use this exact same cooldown pattern to prevent the player from taking spike damage 60 times a second if they stand on a spike?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:tk1:q2" data-block="tinker" data-question="How could you use this exact same cooldown pattern to prevent the player from taking spike damage 60 times a second if they stand on a spike?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 
@@ -148,4 +175,4 @@ private void Update()
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Time APIs and logical operators</li>
     </ul>
     <p>Next: <a href="3.4a.html">3.4a — Turret Damage, Tuning &amp; Playtest</a></p>
-</div><div class="lab-bar" data-lesson="3.3a" data-lesson-title="Fire Rate: Cooldowns &amp; Time" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.3a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.2a.html"><span class="dir">&#9664; Previous</span><span class="where">3.2a — Projectiles: Instantiate, Fire, Destroy</span></a><a class="foot-next" href="3.4a.html"><span class="dir">Next &#9654;</span><span class="where">3.4a — Turret Damage, Tuning &amp; Playtest</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+</div><div class="lab-bar" data-lesson="3.3a" data-lesson-title="Fire Rate: Cooldowns &amp; Time" data-count="10" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/10 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.3a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.2a.html"><span class="dir">&#9664; Previous</span><span class="where">3.2a — Projectiles: Instantiate, Fire, Destroy</span></a><a class="foot-next" href="3.4a.html"><span class="dir">Next &#9654;</span><span class="where">3.4a — Turret Damage, Tuning &amp; Playtest</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

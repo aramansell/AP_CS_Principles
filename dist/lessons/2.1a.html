@@ -59,70 +59,119 @@
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Step 1 — Set up the Coin in the Inspector.</strong> Select the <code>Coin</code> prefab in <code>Assets/Prefabs</code>:</p>
-    <ol>
-        <li>Verify it has a <strong>CircleCollider2D</strong> (or BoxCollider2D).</li>
-        <li>Check the box for <strong>Is Trigger</strong> (make it an overlap zone, not a wall).</li>
-        <li>At the very top of the Inspector, verify its <strong>Tag</strong> is set to <strong>Coin</strong>. (If "Coin" is not in the list, click <em>Add Tag...</em> and create it).</li>
-    </ol>
+    <p>
+        Examine how an arcade score-tracking system separates its persistent manager from an item collector.
+        Notice two key software patterns: the <strong>Singleton Pattern</strong> (global access + persistence)
+        and the <strong>Trigger Callback</strong>:
+    </p>
 
-    <p><strong>Step 2 — Build StatManager.cs from scratch.</strong> Where should coin counts live?
-    If we store coins inside <code>PlayerController</code>, dying or reloading the scene would wipe out our score!
-    Instead, we build a dedicated manager script that survives.</p>
-
-    <p>In <code>Assets/Scripts/</code>, create a new C# script named <code>StatManager.cs</code>:</p>
     <pre><code>using UnityEngine;
 
-public class StatManager : MonoBehaviour
+// Persistent singleton manager tracking score across scenes
+public class GameScoreKeeper : MonoBehaviour
 {
-    public static StatManager manager;
+    // Static reference reachable from any script without GetComponent
+    public static GameScoreKeeper instance;
 
-    [SerializeField] private int coins = 0;
+    [SerializeField] private int crystalScore = 0;
 
     private void Awake()
     {
-        if (manager == null)
+        // Enforce singleton rule: exactly one instance exists
+        if (instance == null)
         {
-            manager = this;
-            DontDestroyOnLoad(gameObject);
+            instance = this;
+            DontDestroyOnLoad(gameObject); // Survives scene changes
         }
         else
         {
-            Destroy(gameObject);
+            Destroy(gameObject); // Prevent duplicate managers
         }
     }
 
-    public void ChangeCoins(int amount)
+    public void AddCrystals(int qty)
     {
-        coins += amount;
-        Debug.Log("Coins Changed! New Total: " + coins);
+        crystalScore += qty;
+        Debug.Log("Crystals collected! Current tally: " + crystalScore);
     }
 }</code></pre>
 
-    <p>In your scene Hierarchy, right-click → <strong>Create Empty</strong>, name it <strong>StatManager</strong>,
-    and attach your new <code>StatManager.cs</code> component to it.</p>
+    <p>And here is how a collector script responds to an overlap event:</p>
 
-    <p><strong>Step 3 — Write the pickup trigger in PlayerController.cs.</strong>
-    Open <code>PlayerController.cs</code> and add this method below <code>Update()</code>:</p>
-    <pre><code>private void OnTriggerEnter2D(Collider2D other)
+    <pre><code>using UnityEngine;
+
+// Collector component checking trigger overlaps
+public class CrystalCollector : MonoBehaviour
 {
-    if (other.CompareTag("Coin"))
+    private void OnTriggerEnter2D(Collider2D hitCollider)
     {
-        if (StatManager.manager != null)
+        // 1. Identify what entered our trigger zone
+        if (hitCollider.CompareTag("EnergyCrystal"))
         {
-            StatManager.manager.ChangeCoins(1);
+            // 2. Notify the global manager
+            if (GameScoreKeeper.instance != null)
+            {
+                GameScoreKeeper.instance.AddCrystals(5);
+            }
+
+            // 3. Remove the picked-up object, NOT this collector!
+            Destroy(hitCollider.gameObject);
         }
-        Destroy(other.gameObject);
     }
 }</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>In <code>CrystalCollector</code>, what is the type of <code>hitCollider</code>? Why must we write <code>hitCollider.gameObject</code> inside <code>Destroy()</code> instead of passing <code>hitCollider</code> directly?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1a:sc2:q1" data-block="socratic" data-question="In CrystalCollector , what is the type of hitCollider ? Why must we write hitCollider.gameObject inside Destroy() instead of passing hitCollider directly?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If <code>GameScoreKeeper.instance</code> were a regular variable instead of <code>static</code>, why would <code>CrystalCollector</code> be unable to write <code>GameScoreKeeper.instance</code> directly?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1a:sc2:q2" data-block="socratic" data-question="If GameScoreKeeper.instance were a regular variable instead of static , why would CrystalCollector be unable to write GameScoreKeeper.instance directly?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Turn</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — Set up the Coin Prefab in the Inspector.</strong> Select <code>Assets/Prefabs/Coin</code>:</p>
+    <ol>
+        <li>Verify it has a 2D collider (e.g. <code>CircleCollider2D</code>).</li>
+        <li>Check the box for <strong>Is Trigger</strong>. (A pickup must be an overlap zone, not a solid wall!).</li>
+        <li>At the very top of the Inspector, verify its <strong>Tag</strong> is set to <strong>Coin</strong>. (If "Coin" is not listed, click <em>Add Tag...</em> and create it).</li>
+    </ol>
+
+    <div class="callout">
+        <strong>Architectural Specification for <code>StatManager.cs</code>:</strong>
+        <ol>
+            <li><strong>File &amp; Class Name:</strong> In <code>Assets/Scripts/</code>, create a new script named <code>StatManager.cs</code>.</li>
+            <li><strong>Global Singleton Pointer:</strong> Declare a <code>public static StatManager manager;</code> field.</li>
+            <li><strong>State Variable:</strong> Declare a <code>[SerializeField] private int coins = 0;</code> field.</li>
+            <li><strong>Awake Lifecycle:</strong> In <code>Awake()</code>, check if <code>manager == null</code>. If so, assign <code>manager = this;</code> and call <code>DontDestroyOnLoad(gameObject);</code>. If <code>manager</code> already exists, call <code>Destroy(gameObject);</code>.</li>
+            <li><strong>Public Mutation Method:</strong> Write a <code>public void ChangeCoins(int amount)</code> method. Inside, add <code>amount</code> to <code>coins</code> and log the new total using <code>Debug.Log</code>.</li>
+            <li><strong>Hierarchy Setup:</strong> In the Overworld scene, create an empty GameObject named <code>StatManager</code> and attach your new <code>StatManager</code> component to it.</li>
+        </ol>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
+        <ol>
+            <li><strong>Trigger Callback:</strong> Below <code>Update()</code>, declare <code>private void OnTriggerEnter2D(Collider2D other)</code>.</li>
+            <li><strong>Tag Verification:</strong> Check if <code>other.CompareTag("Coin")</code> is true.</li>
+            <li><strong>State Update:</strong> If it matches, check that <code>StatManager.manager != null</code> and call <code>StatManager.manager.ChangeCoins(1);</code>.</li>
+            <li><strong>Object Cleanup:</strong> Call <code>Destroy(other.gameObject);</code> so the collected coin vanishes from the scene.</li>
+        </ol>
+    </div>
 
     <p>
-        Save both files and press Play in Unity. Walk into a coin!
-        The coin vanishes, and your Console proudly prints <code>Coins Changed! New Total: 1</code>!
+        Save both files and press Play in Unity. Walk your character into a coin!
+        The coin should vanish upon contact, and the Unity Console will print the new coin total!
     </p>
 
     <div class="bug-hunt">
@@ -172,4 +221,4 @@ public class StatManager : MonoBehaviour
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Collider2D and MonoBehaviour lifecycle</li>
     </ul>
     <p>Next: <a href="2.2a.html">2.2a — Spikes: Collisions, Health &amp; Death</a></p>
-</div><div class="lab-bar" data-lesson="2.1a" data-lesson-title="Coins: Triggers, Tags &amp; the StatManager" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.1a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.6a.html"><span class="dir">&#9664; Previous</span><span class="where">1.6a — Animation States: IsWalking, WalkDir, Attack</span></a><a class="foot-next" href="2.2a.html"><span class="dir">Next &#9654;</span><span class="where">2.2a — Spikes: Collisions, Health &amp; Death</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+</div><div class="lab-bar" data-lesson="2.1a" data-lesson-title="Coins: Triggers, Tags &amp; the StatManager" data-count="10" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/10 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.1a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.6a.html"><span class="dir">&#9664; Previous</span><span class="where">1.6a — Animation States: IsWalking, WalkDir, Attack</span></a><a class="foot-next" href="2.2a.html"><span class="dir">Next &#9654;</span><span class="where">2.2a — Spikes: Collisions, Health &amp; Death</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

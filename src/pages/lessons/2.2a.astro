@@ -60,47 +60,130 @@ const body = `<h1>2.2a — Spikes: Collisions, Health &amp; Death</h1>
         <li>Ensure its Tag is set to <strong>Spikes</strong>.</li>
     </ol>
 
-    <p><strong>Step 2 — Add Health and Death to StatManager.cs.</strong>
-    Open <code>Assets/Scripts/StatManager.cs</code> and expand it with health tracking:</p>
-    <pre><code>    [SerializeField] private int health = 3;
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
-    public void ChangeHealth(int amount)
+    <p>
+        Examine how a vehicle damage simulation responds to solid barrier impacts and manages
+        a crash-recovery loop. Notice the key differences between <code>Collision2D</code> and <code>Collider2D</code>:
+    </p>
+
+    <pre><code>using UnityEngine;
+using UnityEngine.SceneManagement;
+
+// Manages vehicle hull integrity and respawn penalties
+public class VehicleManager : MonoBehaviour
+{
+    public static VehicleManager instance;
+
+    [SerializeField] private int durability = 100;
+    [SerializeField] private int credits = 50;
+
+    public void ApplyDamage(int hitPoints)
     {
-        health += amount;
-        Debug.Log("Health Changed! New Health: " + health);
+        durability -= hitPoints;
+        Debug.Log("Hull integrity: " + durability + "%");
 
-        if (health &lt;= 0)
+        // Has the vehicle taken fatal damage?
+        if (durability &lt;= 0)
         {
-            Debug.Log("Player Died!");
-            HandleDeath();
+            TriggerCrashRespawn();
         }
     }
 
-    private void HandleDeath()
+    private void TriggerCrashRespawn()
     {
-        // Halve coins rounded down as a death penalty
-        coins = Mathf.FloorToInt(coins / 2f);
-        health = 3;
-        UnityEngine.SceneManagement.SceneManager.LoadScene("Start");
-    }</code></pre>
+        // Penalty: halve current credits (rounded down)
+        credits = Mathf.FloorToInt(credits / 2f);
+        durability = 100;
 
-    <p><strong>Step 3 — Add OnCollisionEnter2D to PlayerController.cs.</strong>
-    Open <code>PlayerController.cs</code> and add the collision handler right below <code>OnTriggerEnter2D</code>:</p>
-    <pre><code>private void OnCollisionEnter2D(Collision2D collision)
+        // Reload the home garage scene
+        SceneManager.LoadScene("Garage");
+    }
+}</code></pre>
+
+    <p>And here is how the physical collision is received on the vehicle body:</p>
+
+    <pre><code>using UnityEngine;
+
+// Vehicle that physically bumps into solid track boundaries
+public class BumperCar : MonoBehaviour
 {
-    if (collision.gameObject.CompareTag("Spikes"))
+    // Note: Parameter is Collision2D, representing a physical impact
+    private void OnCollisionEnter2D(Collision2D impact)
     {
-        if (StatManager.manager != null)
+        // Physical collisions store the GameObject on impact.gameObject
+        if (impact.gameObject.CompareTag("HazardBarrier"))
         {
-            StatManager.manager.ChangeHealth(-1);
+            if (VehicleManager.instance != null)
+            {
+                VehicleManager.instance.ApplyDamage(25);
+            }
         }
     }
 }</code></pre>
 
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>In <code>BumperCar</code>, why do we write <code>impact.gameObject.CompareTag(...)</code> whereas in <code>OnTriggerEnter2D</code> we wrote <code>other.CompareTag(...)</code>? (Hint: What type is <code>other</code> versus <code>impact</code>?)</li>
+            <li>In <code>TriggerCrashRespawn</code>, why is <code>credits / 2f</code> converted with <code>Mathf.FloorToInt()</code> rather than regular integer division?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Turn</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — Configure the Spikes Prefab.</strong> Open <code>Assets/Prefabs/Spikes</code>:</p>
+    <ol>
+        <li>Verify it has a <strong>BoxCollider2D</strong> (or PolygonCollider2D).</li>
+        <li>Ensure <strong>Is Trigger</strong> is <strong>unchecked</strong>. (Spikes are physical obstacles that stop movement).</li>
+        <li>Ensure its Tag is set to <strong>Spikes</strong>. (Create the tag if needed).</li>
+    </ol>
+
+    <div class="callout">
+        <strong>Architectural Specification for <code>StatManager.cs</code>:</strong>
+        <ol>
+            <li><strong>Health State:</strong> Declare <code>[SerializeField] private int health = 3;</code>.</li>
+            <li><strong>Public Health Modifier:</strong> Write <code>public void ChangeHealth(int amount)</code>:
+                <ul>
+                    <li>Add <code>amount</code> to <code>health</code>.</li>
+                    <li>Print a log with the updated health total.</li>
+                    <li>If <code>health &lt;= 0</code>, print <code>"Player Died!"</code> and call <code>HandleDeath();</code>.</li>
+                </ul>
+            </li>
+            <li><strong>Private Death Handler:</strong> Write <code>private void HandleDeath()</code>:
+                <ul>
+                    <li>Deduct a death penalty: halve <code>coins</code> rounded down using <code>Mathf.FloorToInt(coins / 2f)</code>.</li>
+                    <li>Reset <code>health</code> back to <code>3</code>.</li>
+                    <li>Reload the starting scene using <code>UnityEngine.SceneManagement.SceneManager.LoadScene("Start");</code>.</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
+        <ol>
+            <li><strong>Physical Collision Callback:</strong> Below <code>OnTriggerEnter2D</code>, declare <code>private void OnCollisionEnter2D(Collision2D collision)</code>.</li>
+            <li><strong>Tag Check:</strong> Check if <code>collision.gameObject.CompareTag("Spikes")</code> is true.</li>
+            <li><strong>Damage Delivery:</strong> If matched, check that <code>StatManager.manager != null</code> and call <code>StatManager.manager.ChangeHealth(-1);</code>.</li>
+        </ol>
+    </div>
+
     <p>
         Save your files and hit Play in Unity. Walk into a spike!
-        Your player physically stops against the spike, and the Console logs <code>Health Changed! New Health: 2</code>.
-        Hit it three times: health hits 0, your coins are halved, and the Start scene loads!
+        Your player should physically stop against the spike, and the Console will log <code>Health Changed! New Health: 2</code>.
+        Hit it three times: health drops to 0, your coins are halved, and the Start scene loads!
     </p>
 
     <div class="bug-hunt">

@@ -67,71 +67,122 @@ const body = `<h1>3.2a — Projectiles: Instantiate, Fire, Destroy</h1>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
+<!-- ============================================================ -->
+<div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Step 1 — Build Projectile.cs from scratch.</strong> In <code>Assets/Scripts/</code>, create a new C# script named <code>Projectile.cs</code>:</p>
+    <p>
+        Examine how a dungeon dart trap coordinates spawning, aiming, and translational ballistics.
+        Notice the two distinct responsibilities: the launcher handles creation, while the projectile
+        handles its own orientation, trajectory, and self-destruction:
+    </p>
+
     <pre><code>using UnityEngine;
 
-public class Projectile : MonoBehaviour
+// Trap launcher coordinating projectile instantiation
+public class DartTrap : MonoBehaviour
 {
-    [SerializeField] private float speed = 6f;
-    [SerializeField] private float lifetime = 4f;
+    [SerializeField] private GameObject dartPrefab;
+    [SerializeField] private Transform trapMuzzle;
 
-    public void Initialize(Vector3 targetPosition)
+    public void FireDartAt(Vector3 targetCoords)
     {
-        // 1. Calculate direction toward the target
-        Vector3 direction = (targetPosition - transform.position).normalized;
+        if (dartPrefab == null || trapMuzzle == null) return;
 
-        // 2. Rotate the sprite so its right side faces the target
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+        // 1. Spawn projectile clone at muzzle
+        GameObject spawnedDart = Instantiate(dartPrefab, trapMuzzle.position, Quaternion.identity);
 
-        // 3. Schedule automatic cleanup after lifetime seconds
-        Destroy(gameObject, lifetime);
+        // 2. Pass target coordinates to the projectile component
+        Dart dartScript = spawnedDart.GetComponent&lt;Dart&gt;();
+        if (dartScript != null)
+        {
+            dartScript.LaunchToward(targetCoords);
+        }
+    }
+}</code></pre>
+
+    <p>And here is how the projectile manages its orientation and flight:</p>
+
+    <pre><code>using UnityEngine;
+
+// Ballistic dart that rotates to face target and flies forward
+public class Dart : MonoBehaviour
+{
+    [SerializeField] private float flightSpeed = 10f;
+    [SerializeField] private float autoDestroyTime = 3f;
+
+    public void LaunchToward(Vector3 destination)
+    {
+        // 1. Calculate normalized direction vector toward destination
+        Vector3 flightVector = (destination - transform.position).normalized;
+
+        // 2. Convert vector direction into 2D angle (degrees)
+        float rotationAngle = Mathf.Atan2(flightVector.y, flightVector.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.AngleAxis(rotationAngle, Vector3.forward);
+
+        // 3. Schedule self-destruction so dodged darts do not leak memory
+        Destroy(gameObject, autoDestroyTime);
     }
 
     private void Update()
     {
-        // Fly forward along its rotated local right vector
-        transform.Translate(Vector3.right * speed * Time.deltaTime);
+        // Fly forward along the rotated local right axis
+        transform.Translate(Vector3.right * flightSpeed * Time.deltaTime);
     }
 }</code></pre>
 
-    <p>In <code>Assets/Prefabs/</code>, select the <code>Turret_Projectile</code> prefab and attach your new <code>Projectile.cs</code> script to it.</p>
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>Why is <code>transform.rotation</code> calculated using <code>Vector3.forward</code> as the axis of rotation? In 2D math, which axis points toward the camera screen?</li>
+            <li>In <code>Dart.Update()</code>, why does <code>Vector3.right</code> fly toward the target? (Hint: How did <code>LaunchToward</code> rotate the transform?)</li>
+        </ol>
+    </div>
+</div>
 
-    <p><strong>Step 2 — Add AttackPlayer to TurretController.cs.</strong> Open <code>TurretController.cs</code>.
-    Declare slots for the projectile prefab and spawn point, then write <code>AttackPlayer()</code>:</p>
-    <pre><code>    [SerializeField] private GameObject projectilePrefab;
-    [SerializeField] private Transform projectileSpawnPoint;
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Turn</span>
+        <span class="activity-time">~25 min</span>
+    </div>
 
-    private void AttackPlayer()
-    {
-        if (projectilePrefab == null || projectileSpawnPoint == null) return;
+    <div class="callout">
+        <strong>Architectural Specification for <code>Projectile.cs</code>:</strong>
+        <ol>
+            <li><strong>File &amp; Class Name:</strong> In <code>Assets/Scripts/</code>, create a new script named <code>Projectile.cs</code>.</li>
+            <li><strong>Designer Knobs:</strong> Declare serialized float fields for <code>speed</code> (default <code>6f</code>) and <code>lifetime</code> (default <code>4f</code>).</li>
+            <li><strong>Initialization Method:</strong> Write a <code>public void Initialize(Vector3 targetPosition)</code> method:
+                <ul>
+                    <li>Calculate the direction from current position to target: <code>(targetPosition - transform.position).normalized</code>.</li>
+                    <li>Compute rotation angle using <code>Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg</code>.</li>
+                    <li>Set <code>transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);</code>.</li>
+                    <li>Call <code>Destroy(gameObject, lifetime);</code> to schedule automatic memory cleanup.</li>
+                </ul>
+            </li>
+            <li><strong>Per-Frame Flight in Update:</strong> In <code>Update()</code>, translate the projectile forward along its local right axis using <code>transform.Translate(Vector3.right * speed * Time.deltaTime);</code>.</li>
+            <li><strong>Prefab Attachment:</strong> Select <code>Assets/Prefabs/Turret_Projectile</code> and attach your new <code>Projectile</code> component to it.</li>
+        </ol>
+    </div>
 
-        // Spawn projectile at muzzle position with no initial rotation
-        GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, Quaternion.identity);
-
-        // Aim and fire at player's current position
-        proj.GetComponent&lt;Projectile&gt;().Initialize(playerTransform.position);
-    }</code></pre>
-
-    <p><strong>Step 3 — Wire the Inspector slots.</strong></p>
-    <ol>
-        <li>Select the <strong>Turret</strong> in the Overworld scene.</li>
-        <li>Drag <code>Assets/Prefabs/Turret_Projectile</code> into the <strong>Projectile Prefab</strong> slot.</li>
-        <li>In the Hierarchy, expand the Turret GameObject to find its child <strong>projectileSpawnPoint</strong>, and drag it into the <strong>Projectile Spawn Point</strong> slot.</li>
-    </ol>
-
-    <p>
-        In <code>TurretController.Update()</code>, call <code>AttackPlayer();</code> inside your range check:
-    </p>
-    <pre><code>        if (distanceToPlayer &lt;= maxAttackRange)
-        {
-            AttackPlayer();
-        }</code></pre>
+    <div class="callout">
+        <strong>Architectural Specification for <code>TurretController.cs</code>:</strong>
+        <ol>
+            <li><strong>Inspector Slots:</strong> Add serialized private fields for <code>GameObject projectilePrefab;</code> and <code>Transform projectileSpawnPoint;</code>.</li>
+            <li><strong>Attack Method:</strong> Write a private method <code>AttackPlayer()</code>:
+                <ul>
+                    <li>Guard against null references for <code>projectilePrefab</code> or <code>projectileSpawnPoint</code>.</li>
+                    <li>Instantiate the projectile at <code>projectileSpawnPoint.position</code> with <code>Quaternion.identity</code>.</li>
+                    <li>Retrieve the <code>Projectile</code> component from the instantiated object and call its <code>Initialize()</code> method, passing <code>playerTransform.position</code>.</li>
+                </ul>
+            </li>
+            <li><strong>Call from Update:</strong> Inside your existing range check (when distance is less than or equal to <code>maxAttackRange</code>), call <code>AttackPlayer();</code>.</li>
+            <li><strong>Wire Slots in Inspector:</strong> Select the Turret in the Overworld scene. Drag the <code>Turret_Projectile</code> prefab into the projectile slot, and drag the child <code>projectileSpawnPoint</code> into the spawn point slot.</li>
+        </ol>
+    </div>
 
     <p>
         Save and press Play. Walk near the turret.

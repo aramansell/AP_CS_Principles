@@ -54,47 +54,130 @@
         <li>Ensure its Tag is set to <strong>Spikes</strong>.</li>
     </ol>
 
-    <p><strong>Step 2 — Add Health and Death to StatManager.cs.</strong>
-    Open <code>Assets/Scripts/StatManager.cs</code> and expand it with health tracking:</p>
-    <pre><code>    [SerializeField] private int health = 3;
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
-    public void ChangeHealth(int amount)
+    <p>
+        Examine how a vehicle damage simulation responds to solid barrier impacts and manages
+        a crash-recovery loop. Notice the key differences between <code>Collision2D</code> and <code>Collider2D</code>:
+    </p>
+
+    <pre><code>using UnityEngine;
+using UnityEngine.SceneManagement;
+
+// Manages vehicle hull integrity and respawn penalties
+public class VehicleManager : MonoBehaviour
+{
+    public static VehicleManager instance;
+
+    [SerializeField] private int durability = 100;
+    [SerializeField] private int credits = 50;
+
+    public void ApplyDamage(int hitPoints)
     {
-        health += amount;
-        Debug.Log("Health Changed! New Health: " + health);
+        durability -= hitPoints;
+        Debug.Log("Hull integrity: " + durability + "%");
 
-        if (health &lt;= 0)
+        // Has the vehicle taken fatal damage?
+        if (durability &lt;= 0)
         {
-            Debug.Log("Player Died!");
-            HandleDeath();
+            TriggerCrashRespawn();
         }
     }
 
-    private void HandleDeath()
+    private void TriggerCrashRespawn()
     {
-        // Halve coins rounded down as a death penalty
-        coins = Mathf.FloorToInt(coins / 2f);
-        health = 3;
-        UnityEngine.SceneManagement.SceneManager.LoadScene("Start");
-    }</code></pre>
+        // Penalty: halve current credits (rounded down)
+        credits = Mathf.FloorToInt(credits / 2f);
+        durability = 100;
 
-    <p><strong>Step 3 — Add OnCollisionEnter2D to PlayerController.cs.</strong>
-    Open <code>PlayerController.cs</code> and add the collision handler right below <code>OnTriggerEnter2D</code>:</p>
-    <pre><code>private void OnCollisionEnter2D(Collision2D collision)
+        // Reload the home garage scene
+        SceneManager.LoadScene("Garage");
+    }
+}</code></pre>
+
+    <p>And here is how the physical collision is received on the vehicle body:</p>
+
+    <pre><code>using UnityEngine;
+
+// Vehicle that physically bumps into solid track boundaries
+public class BumperCar : MonoBehaviour
 {
-    if (collision.gameObject.CompareTag("Spikes"))
+    // Note: Parameter is Collision2D, representing a physical impact
+    private void OnCollisionEnter2D(Collision2D impact)
     {
-        if (StatManager.manager != null)
+        // Physical collisions store the GameObject on impact.gameObject
+        if (impact.gameObject.CompareTag("HazardBarrier"))
         {
-            StatManager.manager.ChangeHealth(-1);
+            if (VehicleManager.instance != null)
+            {
+                VehicleManager.instance.ApplyDamage(25);
+            }
         }
     }
 }</code></pre>
 
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>In <code>BumperCar</code>, why do we write <code>impact.gameObject.CompareTag(...)</code> whereas in <code>OnTriggerEnter2D</code> we wrote <code>other.CompareTag(...)</code>? (Hint: What type is <code>other</code> versus <code>impact</code>?)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:sc2:q1" data-block="socratic" data-question="In BumperCar , why do we write impact.gameObject.CompareTag(...) whereas in OnTriggerEnter2D we wrote other.CompareTag(...) ? (Hint: What type is other versus impact ?)" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In <code>TriggerCrashRespawn</code>, why is <code>credits / 2f</code> converted with <code>Mathf.FloorToInt()</code> rather than regular integer division?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:sc2:q2" data-block="socratic" data-question="In TriggerCrashRespawn , why is credits / 2f converted with Mathf.FloorToInt() rather than regular integer division?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Turn</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — Configure the Spikes Prefab.</strong> Open <code>Assets/Prefabs/Spikes</code>:</p>
+    <ol>
+        <li>Verify it has a <strong>BoxCollider2D</strong> (or PolygonCollider2D).</li>
+        <li>Ensure <strong>Is Trigger</strong> is <strong>unchecked</strong>. (Spikes are physical obstacles that stop movement).</li>
+        <li>Ensure its Tag is set to <strong>Spikes</strong>. (Create the tag if needed).</li>
+    </ol>
+
+    <div class="callout">
+        <strong>Architectural Specification for <code>StatManager.cs</code>:</strong>
+        <ol>
+            <li><strong>Health State:</strong> Declare <code>[SerializeField] private int health = 3;</code>.</li>
+            <li><strong>Public Health Modifier:</strong> Write <code>public void ChangeHealth(int amount)</code>:
+                <ul>
+                    <li>Add <code>amount</code> to <code>health</code>.</li>
+                    <li>Print a log with the updated health total.</li>
+                    <li>If <code>health &lt;= 0</code>, print <code>"Player Died!"</code> and call <code>HandleDeath();</code>.</li>
+                </ul>
+            </li>
+            <li><strong>Private Death Handler:</strong> Write <code>private void HandleDeath()</code>:
+                <ul>
+                    <li>Deduct a death penalty: halve <code>coins</code> rounded down using <code>Mathf.FloorToInt(coins / 2f)</code>.</li>
+                    <li>Reset <code>health</code> back to <code>3</code>.</li>
+                    <li>Reload the starting scene using <code>UnityEngine.SceneManagement.SceneManager.LoadScene("Start");</code>.</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
+        <ol>
+            <li><strong>Physical Collision Callback:</strong> Below <code>OnTriggerEnter2D</code>, declare <code>private void OnCollisionEnter2D(Collision2D collision)</code>.</li>
+            <li><strong>Tag Check:</strong> Check if <code>collision.gameObject.CompareTag("Spikes")</code> is true.</li>
+            <li><strong>Damage Delivery:</strong> If matched, check that <code>StatManager.manager != null</code> and call <code>StatManager.manager.ChangeHealth(-1);</code>.</li>
+        </ol>
+    </div>
+
     <p>
         Save your files and hit Play in Unity. Walk into a spike!
-        Your player physically stops against the spike, and the Console logs <code>Health Changed! New Health: 2</code>.
-        Hit it three times: health hits 0, your coins are halved, and the Start scene loads!
+        Your player should physically stop against the spike, and the Console will log <code>Health Changed! New Health: 2</code>.
+        Hit it three times: health drops to 0, your coins are halved, and the Start scene loads!
     </p>
 
     <div class="bug-hunt">
@@ -144,4 +227,4 @@
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — physics callbacks</li>
     </ul>
     <p>Next: <a href="2.3a.html">2.3a — Health Potions &amp; the Max-Health Cap</a></p>
-</div><div class="lab-bar" data-lesson="2.2a" data-lesson-title="Spikes: Collisions, Health &amp; Death" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.2a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="2.1a.html"><span class="dir">&#9664; Previous</span><span class="where">2.1a — Coins: Triggers, Tags &amp; the StatManager</span></a><a class="foot-next" href="2.3a.html"><span class="dir">Next &#9654;</span><span class="where">2.3a — Health Potions &amp; the Max-Health Cap</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+</div><div class="lab-bar" data-lesson="2.2a" data-lesson-title="Spikes: Collisions, Health &amp; Death" data-count="10" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/10 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.2a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="2.1a.html"><span class="dir">&#9664; Previous</span><span class="where">2.1a — Coins: Triggers, Tags &amp; the StatManager</span></a><a class="foot-next" href="2.3a.html"><span class="dir">Next &#9654;</span><span class="where">2.3a — Health Potions &amp; the Max-Health Cap</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
