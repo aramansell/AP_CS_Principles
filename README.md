@@ -93,5 +93,5 @@ Course design and the starter project: the AP CS Principles class at
 Ida B. Wells High School, Portland, OR. Site architecture ported from
 the AP CS A Guide (same build system, same lab-forms idea). Starter game:
 `cs-curriculum-main`; card jam template: `Card-Game-Template-main` —
-both used under their open-source licenses (see lesson 9.10a for the
+both used under their open-source licenses (see lesson 9.10 for the
 attribution discussion your students should have).

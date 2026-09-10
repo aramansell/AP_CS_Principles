@@ -1,0 +1,173 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>6.2a Ground Checks: No Infinite Jumps — AP CS Principles</title><meta name="description" content="Lesson 6.2 Ground Checks: No Infinite Jumps — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="6.2a Ground Checks: No Infinite Jumps — AP CS Principles"><meta property="og:description" content="Lesson 6.2 Ground Checks: No Infinite Jumps — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="6.1.html">&#9664; 6.1</a><span class="lesson-id">6.2</span><a href="6.3.html">6.3 &#9654;</a></div><h1>6.2 — Ground Checks: No Infinite Jumps</h1>
+
+<p class="lesson-lead">
+    Yesterday's jump has a problem you already met in
+    <a href="6.1.html">6.1</a>'s bug hunt: tap Space in mid-air and
+    you fly. A jump you can spam is a jetpack. Today: one boolean,
+    kept honest by physics — the ground check, the single most reused
+    pattern in platformer code.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>Here is the ground check the starter style calls for — new
+    code, same voice as PlayerController (private fields, serialized
+    knobs, Update work):</p>
+    <pre><code>[SerializeField] private LayerMask groundLayer;
+[SerializeField] private float groundCheckDistance = 0.2f;
+private bool isGrounded;
+
+private void Update()
+{
+    // Ask physics: is there ground just below my feet?
+    RaycastHit2D hit = Physics2D.Raycast(
+        transform.position,
+        Vector2.down,
+        groundCheckDistance,
+        groundLayer);
+
+    isGrounded = hit.collider != null;
+
+    if (isPlatformer)
+    {
+        if (Input.GetKeyDown(KeyCode.Space) &amp;&amp; isGrounded)
+        {
+            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+        }
+    }
+}</code></pre>
+
+    <p>
+        Predict: the raycast is a question you ask the physics engine
+        60 times a second — "is a ground-layer collider within 0.2
+        units under my center?" isGrounded is not stored anywhere
+        else; it is <strong>re-derived every frame</strong>. Why is
+        re-asking better than remembering (contrast with the lever's
+        isOn, which remembers)? When is memory the right tool and when
+        is asking?
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The jump condition is now a compound AND: key down AND
+            grounded. In AP pseudocode that is
+            <code>IF (key AND grounded)</code>. Why does the order of
+            the checks not matter to the computer here — but matter
+            enormously if the second check were expensive (a
+            FindWithTag)?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:sc1:q1" data-block="socratic" data-question="The jump condition is now a compound AND: key down AND grounded. In AP pseudocode that is IF (key AND grounded) . Why does the order of the checks not matter to the computer here — but matter enormously if the second check were expensive (a FindWithTag)?" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — the layer mask.</strong> Raycasts need a
+    target. In the Platformer scene, select your tilemap/ground
+    GameObjects, and in the Inspector set their Layer to a new layer
+    named "Ground" (Add Layer... → type it, apply to all ground
+    objects). Then drag "Ground" into the player's
+    <code>groundLayer</code> field. Without the mask, the ray would
+    hit the player's own collider — read that bug in Step 3.</p>
+
+    <p><strong>Step 2 — trust but verify with a debug ray.</strong>
+    Gizmos make the invisible question visible:</p>
+    <pre><code>private void OnDrawGizmos()
+{
+    Gizmos.color = Color.green;
+    Gizmos.DrawLine(transform.position,
+        transform.position + Vector3.down * groundCheckDistance);
+}</code></pre>
+    <p>Scene view: a green whisker under the character. On the
+    ground it touches tile; in the air it dangles. If your jump does
+    not work, the whisker is the FIRST thing you look at — does it
+    actually reach the tile? (Character center to tile top might be
+    longer than 0.2 — that is the number you tune.)</p>
+
+    <p><strong>Step 3 — the self-hit bug.</strong> Temporarily set
+    groundLayer to "Everything". Now the ray hits the player's own
+    collider: isGrounded is ALWAYS true and Space is a jetpack
+    again. Layer masks are not decoration — they are how you say
+    "I care about SOME objects." Same reason turret projectiles
+    ignore the turret that fired them.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The flying ant</h3>
+        <ol>
+            <li>Set groundCheckDistance to 2. You can jump while
+                standing on AIR near a ledge. Where does the
+                character "stand" — and what did you just build
+                (a hint from <a href="6.3.html">6.3</a> called
+                coyote time, but broken)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:bh1:q1" data-block="bug-hunt" data-question="Set groundCheckDistance to 2. You can jump while standing on AIR near a ledge. Where does the character &quot;stand&quot; — and what did you just build (a hint from 6.3 called coyote time, but broken)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Remove the groundLayer mask field entirely and pass
+                ~0 (no mask). Which collider does the ray find
+                first — the player's own — and what is the symptom?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:bh1:q2" data-block="bug-hunt" data-question="Remove the groundLayer mask field entirely and pass ~0 (no mask). Which collider does the ray find first — the player's own — and what is the symptom?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Jump onto a spike. Mid-hit, does isGrounded matter?
+                Why does the death loop from
+                <a href="2.2.html">2.2</a> never need to know
+                about grounded-ness?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:bh1:q3" data-block="bug-hunt" data-question="Jump onto a spike. Mid-hit, does isGrounded matter? Why does the death loop from 2.2 never need to know about grounded-ness?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Walk off a ledge and press Space exactly 0.1 seconds
+                after leaving the ground. Rejected! Why is this the
+                #1 player complaint about ground checks — and what
+                does 6.3 promise to do about it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:bh1:q4" data-block="bug-hunt" data-question="Walk off a ledge and press Space exactly 0.1 seconds after leaving the ground. Rejected! Why is this the #1 player complaint about ground checks — and what does 6.3 promise to do about it?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Check design</h3>
+        <ol>
+            <li>Two feet, one check: what would break if the ray fired
+                from the character's center while the character
+                stands on the very EDGE of a tile? Fix: fire it from
+                the feet — which coordinate do you adjust?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:tk1:q1" data-block="tinker" data-question="Two feet, one check: what would break if the ray fired from the character's center while the character stands on the very EDGE of a tile? Fix: fire it from the feet — which coordinate do you adjust?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Raycast vs OnCollisionStay2D with ground tag — the
+                other classic approach. One needs a mask and a
+                distance; the other needs a layer/tag and gives you
+                the ground object. Which is easier for moving
+                platforms?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:tk1:q2" data-block="tinker" data-question="Raycast vs OnCollisionStay2D with ground tag — the other classic approach. One needs a mask and a distance; the other needs a layer/tag and gives you the ground object. Which is easier for moving platforms?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Hard: the jump reads "key AND grounded" — but the
+                animation should ALSO know (jump pose vs. walk
+                cycle). Which parameter does your Animator gain, and
+                which line sets it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:tk1:q3" data-block="tinker" data-question="Hard: the jump reads &quot;key AND grounded&quot; — but the animation should ALSO know (jump pose vs. walk cycle). Which parameter does your Animator gain, and which line sets it?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Build the raycast ground check: mask, distance, hit.collider != null</li>
+            <li>Show it with a Gizmo whisker and tune the distance</li>
+            <li>Explain the self-hit bug and what layer masks prevent</li>
+            <li>Explain re-derived state vs remembered state, with an example of each</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — ground checks in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Physics2D.Raycast, LayerMask</li>
+    </ul>
+    <p>Next: <a href="6.3.html">6.3 — Jump Feel: Fall Speed &amp; Coyote Time</a></p>
+</div><div class="lab-bar" data-lesson="6.2" data-lesson-title="Ground Checks: No Infinite Jumps" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="6.2" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="6.1.html"><span class="dir">&#9664; Previous</span><span class="where">6.1 — Gravity &amp; Jump: AddForce Impulse</span></a><a class="foot-next" href="6.3.html"><span class="dir">Next &#9654;</span><span class="where">6.3 — Jump Feel: Fall Speed &amp; Coyote Time</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

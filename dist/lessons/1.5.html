@@ -1,0 +1,168 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>1.5a Movement II: Speed, deltaTime &amp; Tuning — AP CS Principles</title><meta name="description" content="Lesson 1.5 Movement II: Speed, deltaTime &amp; Tuning — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="1.5a Movement II: Speed, deltaTime &amp; Tuning — AP CS Principles"><meta property="og:description" content="Lesson 1.5 Movement II: Speed, deltaTime &amp; Tuning — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="1.4.html">&#9664; 1.4</a><span class="lesson-id">1.5</span><a href="1.6.html">1.6 &#9654;</a></div><h1>1.5 — Movement II: Speed, deltaTime &amp; Tuning</h1>
+
+<p class="lesson-lead">
+    Movement works, but does it <em>feel</em> right? In game development, feel is
+    the intersection of physics, math, and tuning. Today you compare the different functions
+    Unity provides for moving objects, learn why <code>Time.deltaTime</code> is critical
+    for fair gameplay, and tune your character's speed knobs live.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        In Unity, there is rarely just one way to solve a problem. Depending on your game's
+        design, different movement functions offer different advantages. Read this comparison
+        of four common Unity movement techniques:
+    </p>
+
+    <table>
+        <tr><th>Movement Technique</th><th>How It Works</th><th>Best Used For</th></tr>
+        <tr>
+            <td><code>transform.Translate(vector)</code></td>
+            <td>Directly offsets the object's coordinates. Bypasses the physics simulation during movement.</td>
+            <td>Simple top-down games, moving UI, linear projectiles, bullets without gravity.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.MovePosition(position)</code></td>
+            <td>Sweeps the physics body to the target position, stopping cleanly against solid colliders.</td>
+            <td>Kinematic characters, moving platforms, top-down games that must never clip into walls.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.linearVelocity = vector</code></td>
+            <td>Assigns a direct velocity vector to the physics body. Unity's physics engine handles movement.</td>
+            <td>Snappy platformers, arcade physics, carrying momentum across surfaces.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.AddForce(vector)</code></td>
+            <td>Applies a physical push or impulse to the object, factoring in mass, drag, and inertia.</td>
+            <td>Jumping, thrusters, ice physics, knockback from explosions or enemy hits.</td>
+        </tr>
+    </table>
+
+    <div class="socratic">
+        <h3>Socratic: Choosing the Right Tool for the Job</h3>
+        <ol>
+            <li>What happens if a high-speed character uses <code>transform.Translate</code> to move through a thin wall? (Hint: If the character jumps 2 units in one frame, what happens to the 0.5-unit wall in between?)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:sc1:q1" data-block="socratic" data-question="What happens if a high-speed character uses transform.Translate to move through a thin wall? (Hint: If the character jumps 2 units in one frame, what happens to the 0.5-unit wall in between?)" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In what scenarios would you choose <code>Rigidbody2D.MovePosition</code> over <code>transform.Translate</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:sc1:q2" data-block="socratic" data-question="In what scenarios would you choose Rigidbody2D.MovePosition over transform.Translate ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why would a game about a spaceship drifting in space prefer <code>AddForce</code> over <code>Translate</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:sc1:q3" data-block="socratic" data-question="Why would a game about a spaceship drifting in space prefer AddForce over Translate ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>For our top-down overworld, why is starting with <code>transform.Translate</code> clean and simple for learning?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:sc1:q4" data-block="socratic" data-question="For our top-down overworld, why is starting with transform.Translate clean and simple for learning?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Examine how each function and language feature operates in isolation across completely different systems:
+    </p>
+
+    <p><strong>Example 1 — Fallback Defaults vs. Inspector Overrides on a Racing Kart:</strong></p>
+    <pre><code>// Code sets a fallback default, but whatever number is typed into the Inspector wins!
+[SerializeField] private float topSpeedMph = 45.0f;</code></pre>
+
+    <p><strong>Example 2 — Frame-Rate Independence on a Grandfather Clock Pendulum:</strong></p>
+    <pre><code>// Multiplying rate by Time.deltaTime guarantees 30 degrees of rotation per second,
+// whether running on a 30 FPS phone or a 240 FPS gaming PC:
+float degreesThisFrame = swingSpeedDegreesPerSecond * Time.deltaTime;</code></pre>
+
+    <p><strong>Example 3 — Four Movement Function Signatures Compared:</strong></p>
+    <pre><code>// 1. Direct coordinate offset (arcade / bullets / moving UI):
+transform.Translate(new Vector3(stepDistance, 0, 0));
+
+// 2. Kinematic sweep (stops cleanly against walls without penetration):
+rb2d.MovePosition(rb2d.position + stepVector);
+
+// 3. Velocity assignment (arcade platformers):
+rb2d.linearVelocity = new Vector2(runSpeed, rb2d.linearVelocity.y);
+
+// 4. Force impulse (rocket thrusters / jump launch):
+rb2d.AddForce(Vector2.up * launchThrust, ForceMode2D.Impulse);</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>If a designer changes <code>topSpeedMph</code> to <code>60.0f</code> in the Inspector, but the C# file says <code>= 45.0f</code>, which number runs in the game?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:sc2:q1" data-block="socratic" data-question="If a designer changes topSpeedMph to 60.0f in the Inspector, but the C# file says = 45.0f , which number runs in the game?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In Example 3, why does <code>transform.Translate</code> take a relative displacement vector (how far to step right now), whereas <code>MovePosition</code> takes an absolute target coordinate in world space?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:sc2:q2" data-block="socratic" data-question="In Example 3, why does transform.Translate take a relative displacement vector (how far to step right now), whereas MovePosition takes an absolute target coordinate in world space?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Live-Tuning Workflow</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p><strong>The live-tuning workflow:</strong></p>
+    <ol>
+        <li>Press Play in Unity. Walk around the overworld.</li>
+        <li>While the game is running, select the Player in the Hierarchy. In the Inspector, change <code>xSpeed</code> to <code>3</code>. Walk around. Too sluggish?</li>
+        <li>Change <code>xSpeed</code> to <code>12</code>. Notice how responsive and rapid it feels.</li>
+        <li>Test several numbers until you find the speed that feels right for exploration (try between 4 and 7).</li>
+        <li><strong>Remember your favorite number, exit Play mode</strong>, and set that value in edit mode so it saves permanently!</li>
+    </ol>
+
+    <div class="callout trap">
+        <strong>Remember the play-mode rule:</strong> Any value you change while the Play button is blue
+        resets when you stop the game. Use play mode to <em>find</em> your number, then enter it in edit mode to <em>keep</em> it.
+    </div>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The deltaTime Abstraction</h3>
+        <ol>
+            <li>Temporarily delete <code>* Time.deltaTime</code> from <code>xVector</code> in <code>Update()</code>. Run the game. What happens when you tap D?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:bh1:q1" data-block="bug-hunt" data-question="Temporarily delete * Time.deltaTime from xVector in Update() . Run the game. What happens when you tap D?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If a game runs at 60 frames per second on your laptop and 240 frames per second on a high-end desktop, how many times farther would the player move on the faster machine without <code>Time.deltaTime</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:bh1:q2" data-block="bug-hunt" data-question="If a game runs at 60 frames per second on your laptop and 240 frames per second on a high-end desktop, how many times farther would the player move on the faster machine without Time.deltaTime ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why is <code>Time.deltaTime</code> considered an essential <strong>abstraction</strong> for multi-platform game development?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:bh1:q3" data-block="bug-hunt" data-question="Why is Time.deltaTime considered an essential abstraction for multi-platform game development?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Asymmetric Movement &amp; Feel</h3>
+        <ol>
+            <li>In the Inspector, set <code>ySpeed</code> to <code>3.5</code> while leaving <code>xSpeed</code> at <code>5.0</code>. Walk around. In top-down 2D games, why do many classic RPGs make vertical movement slightly slower than horizontal movement?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:tk1:q1" data-block="tinker" data-question="In the Inspector, set ySpeed to 3.5 while leaving xSpeed at 5.0 . Walk around. In top-down 2D games, why do many classic RPGs make vertical movement slightly slower than horizontal movement?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Press W and D together to move diagonally. If horizontal speed is 5 and vertical speed is 5, Pythagorean theorem says diagonal speed is (\approx 7.07\). How could you use vector normalization (<code>vector.normalized</code>) to keep speed constant in all directions?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.5:tk1:q2" data-block="tinker" data-question="Press W and D together to move diagonally. If horizontal speed is 5 and vertical speed is 5, Pythagorean theorem says diagonal speed is (\approx 7.07\). How could you use vector normalization ( vector.normalized ) to keep speed constant in all directions?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Compare four ways to move an object in Unity (<code>Translate</code>, <code>MovePosition</code>, <code>linearVelocity</code>, <code>AddForce</code>)</li>
+            <li>Explain what scenarios require physics sweep functions instead of direct translation</li>
+            <li>Explain the relationship between code defaults and serialized Inspector overrides</li>
+            <li>Explain how <code>Time.deltaTime</code> produces identical real-world speed across differing framerates</li>
+            <li>Save your tuned speeds and commit your changes</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — speed, vectors, and physics functions</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Rigidbody2D and Transform APIs</li>
+    </ul>
+    <p>Next: <a href="1.6.html">1.6 — Animation States</a></p>
+</div><div class="lab-bar" data-lesson="1.5" data-lesson-title="Movement II: Speed, deltaTime &amp; Tuning" data-count="11" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/11 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="1.5" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.4.html"><span class="dir">&#9664; Previous</span><span class="where">1.4 — Movement I: Input, Direction, Vector</span></a><a class="foot-next" href="1.6.html"><span class="dir">Next &#9654;</span><span class="where">1.6 — Animation States: IsWalking, WalkDir, Attack</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

@@ -1,0 +1,181 @@
+---
+// Lesson 8.3 — Player Attack: Fight Back
+// Melee hitbox on mouse click; hitting the boss; the attack contract.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>8.3 — Player Attack: Fight Back</h1>
+
+<p class="lesson-lead">
+    You have a swing animation and an axe. Today the swing stops
+    being decoration: a click spawns a hitbox, the hitbox checks for
+    enemies, and the boss's number goes DOWN. The combat loop — the
+    sentence "I hit it, it hurt" — takes about ten lines.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>
+        Recall the player's attack animation from
+        <a href="1.6.html">1.6</a>: mouse button 0 sets the Attack
+        trigger. That trigger plays frames; frames convince nobody.
+        The QUESTIONS to answer before writing code:
+    </p>
+    <ul>
+        <li>WHERE does the hitbox live when no attack is happening?
+            (Not "hidden somewhere" — destroyed, or deactivated, or
+            zero-sized. Pick one and say why.)</li>
+        <li>WHEN does damage happen — the instant of the click, or
+            during part of the swing? (Real games: a window within
+            the animation. Ours: a fixed window after the click —
+            simpler, same contract.)</li>
+        <li>WHAT stops you from hitting the boss EVERY frame of the
+            window? (You already own the answer: the
+            <a href="3.3.html">3.3</a> cooldown pattern — your
+            swing has a fire rate, exactly like the turret.)</li>
+    </ul>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The AP exam calls two-way interaction "input →
+            program behavior → output." Write this fight as that
+            sentence: input (___), behavior (___), output (___).
+            Where does the OUTPUT become a new INPUT (the boss
+            reacting)? That loop — you act, world answers — is
+            what interactivity IS.
+        </p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — the hitbox.</strong> Child of the player:
+    a GameObject named AttackHitbox with a Box Collider 2D, Is
+    Trigger, sized to reach one tile in front (about 1.2 × 1). No
+    Renderer. On the "Player" physics layer is fine — your
+    <a href="7.2.html">7.2</a> raycast masks mean the hitbox will
+    never confuse the ground check (it is a trigger, and triggers
+    are not what ground raycasts ask about).</p>
+
+    <p><strong>Step 2 — the window + cooldown.</strong> In
+    PlayerController, where the mouse-0 branch already sets the
+    Attack trigger, add the damage window in the starter's voice:</p>
+    <pre><code>[SerializeField] private float attackRange = 1.2f;
+[SerializeField] private float attackCooldown = 0.8f;
+private float lastAttackTime;
+
+private void Update()
+{
+    if (Input.GetMouseButtonDown(0) &amp;&amp; Time.time &gt;= lastAttackTime + attackCooldown)
+    {
+        lastAttackTime = Time.time;
+        animator.SetTrigger("Attack");   // your 1.6 line
+        TryHitEnemies();
+    }
+}
+
+private void TryHitEnemies()
+{
+    Collider2D[] hits = Physics2D.OverlapBoxAll(
+        transform.position + (Vector3)(Vector2.right * facingDir * 0.7f),
+        new Vector2(attackRange, 1f), 0f, enemyLayer);
+
+    foreach (Collider2D hit in hits)
+    {
+        BossManager bm = hit.GetComponent&lt;BossManager&gt;();
+        if (bm != null) bm.ChangeHealth(-1);
+    }
+}</code></pre>
+    <p>facingDir is your <a href="4.1.html">4.1</a> sign trick:
+    1 or −1, wherever you last read your horizontal input. If your
+    swing should hit ALL directions (a spin), drop facingDir —
+    your spec decides, code obeys.</p>
+
+    <p><strong>Step 3 — wire the boss.</strong> The boss collider is
+    on the enemyLayer (set it!). Click near the boss: the bar from
+    <a href="8.2.html">8.2</a> falls by one. YOU HAVE A FIGHT.
+    Everything else this unit is tuning, phases, and drama.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The phantom swing</h3>
+        <ol>
+            <li>Set attackCooldown to 0 and hold the mouse. How many
+                hits per second does a held button deal — and why
+                did the turret teach you to predict this
+                (<a href="3.3.html">3.3</a>)?</li>
+            <li>OverlapBoxAll with the wrong layer mask (Everything).
+                What else does your swing hit — pickups?
+                Projectiles? What does the projectile's Ground-tag
+                destroy teach you about collateral damage?</li>
+            <li>The boss deals CONTACT damage
+                (<a href="4.4.html">4.4</a> style) AND you must
+                stand close to hit it. Play the range game: how
+                many frames are you inside the boss's touch when
+                you land your swing — and should the boss have a
+                melee cooldown LONGER than your swing's (argue
+                with numbers)?</li>
+            <li>Hit the boss in PHASE 3 — does your attack still
+                work? Why must damage-dealing be phase-INDEPENDENT
+                (a hint: what did phase guards protect
+                <a href="8.2.html">8.2</a> from)?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Combat design</h3>
+        <ol>
+            <li>Tune the range game: attackRange 1.2 vs. boss contact
+                radius. Where does your 8.1 arithmetic land NOW —
+                is the fight still 60–90 seconds? Adjust HP, not
+                the range, until the pace matches the spec.</li>
+            <li>Add hit FEEDBACK: the boss flashes white for 0.1s on
+                taking a hit (a sprite tint swap). Why is
+                "no reaction" the deadliest combat bug even when
+                the numbers work?</li>
+            <li>Commit + push: <code>"8.3a: player melee + boss takes damage"</code>.</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Build a trigger hitbox and a click window with a cooldown</li>
+            <li>Use OverlapBoxAll with a layer mask and facing direction</li>
+            <li>Connect the swing to BossManager.ChangeHealth and see the bar move</li>
+            <li>Tune the range game against the contact damage trade</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-08/index.html">Unit 8: Boss Fight</a> — the player-attack reference</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — hitboxes are triggers</li>
+    </ul>
+    <p>Next: <a href="8.4.html">8.4 — Boss Attacks: Patterns &amp; Phases</a></p>
+</div>`;
+---
+<Lesson id="8.3" title="8.3a Player Attack: Fight Back — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

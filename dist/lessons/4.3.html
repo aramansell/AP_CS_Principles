@@ -1,0 +1,159 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>4.3a Chase: The Aggro Radius — AP CS Principles</title><meta name="description" content="Lesson 4.3 Chase: The Aggro Radius — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="4.3a Chase: The Aggro Radius — AP CS Principles"><meta property="og:description" content="Lesson 4.3 Chase: The Aggro Radius — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="4.2.html">&#9664; 4.2</a><span class="lesson-id">4.3</span><a href="4.4.html">4.4 &#9654;</a></div><h1>4.3 — Chase: The Aggro Radius</h1>
+
+<p class="lesson-lead">
+    Patrol is calm. Now the enemy notices you. One distance check turns
+    a guard into a hunter — and normalization makes the hunter fair,
+    because it moves at the same speed from every angle.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>Read the chase half of EnemyController.cs:</p>
+    <pre><code>[SerializeField] private float chaseDistance = 5.0f;
+private Transform playerTransform;
+
+private void Start()
+{
+    GameObject player = GameObject.FindWithTag("Player");
+    if (player != null)
+    {
+        playerTransform = player.transform;
+    }
+    ...
+}
+
+private void TopDownMove()
+{
+    if (playerTransform == null) return;
+
+    float dist = Vector3.Distance(transform.position, playerTransform.position);
+
+    if (dist &lt; chaseDistance)
+    {
+        Vector3 dir = (playerTransform.position - transform.position).normalized;
+        transform.Translate(dir * speed * Time.deltaTime);
+        ...
+    }
+}</code></pre>
+
+    <p>
+        Predict: you walk circles around the enemy at exactly the
+        radius's edge. Does it lurch diagonally faster than straight —
+        remember the diagonal tinker from
+        <a href="1.5.html">1.5</a>? What did <code>.normalized</code>
+        do about that, and what would the chase feel like without it?
+        (Fix the memory first, then re-answer.)
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The enemy finds the player ONCE in Start and holds the
+            reference in playerTransform. Why is that safer than
+            calling FindWithTag every frame — and when would the
+            cached transform become a null disaster (hint: scene
+            changes, like the cave door in <a href="5.3.html">5.3</a>)?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:sc1:q1" data-block="socratic" data-question="The enemy finds the player ONCE in Start and holds the reference in playerTransform. Why is that safer than calling FindWithTag every frame — and when would the cached transform become a null disaster (hint: scene changes, like the cave door in 5.3 )?" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — aim the pursuit vector.</strong> The whole hunt
+    is one line of arithmetic:
+    <code>(playerTransform.position - transform.position)</code> is
+    the arrow FROM the enemy TO you. Minus order matters — subtract
+    backwards and the enemy flees. Try it: flip the subtraction, run
+    the game, watch your enemy become a coward. Restore.</p>
+
+    <p><strong>Step 2 — normalize, seen.</strong> With
+    <code>.normalized</code>: walking toward you from any angle, the
+    enemy covers the same distance per second. Without it (delete the
+    call, keep everything else): the closer it gets, the SHORTER the
+    vector, the slower it closes in — an asymptote of menace. That is
+    why the turret's projectile used normalized in
+    <a href="3.2.html">3.2</a>: constant bullet speed from every
+    firing angle.</p>
+
+    <p><strong>Step 3 — two thresholds, one brain.</strong> The enemy
+    now has patrolDistance (3) AND chaseDistance (5). Both use the
+    same Distance call in different modes. Which wins when you are
+    inside BOTH — and what does the enemy do in the moment you step
+    from 5.1 to 4.9? Watch the flip: it is a state change with no if
+    for "switch to chase" — the chase IS the if.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The broken hunter</h3>
+        <ol>
+            <li>Delete the null check in Start and remove the Player
+                from the scene. What crashes — and where exactly
+                (which line, which method)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:bh1:q1" data-block="bug-hunt" data-question="Delete the null check in Start and remove the Player from the scene. What crashes — and where exactly (which line, which method)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set chaseDistance to 100. Where does "chasing" stop
+                being a behavior and start being teleport-adjacent —
+                and why is 100 really "there is no patrol
+                anymore"?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:bh1:q2" data-block="bug-hunt" data-question="Set chaseDistance to 100. Where does &quot;chasing&quot; stop being a behavior and start being teleport-adjacent — and why is 100 really &quot;there is no patrol anymore&quot;?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set the enemy's speed HIGHER than the player's xSpeed.
+                Can the player escape at all — and what does that do
+                to the game's fairness contract?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:bh1:q3" data-block="bug-hunt" data-question="Set the enemy's speed HIGHER than the player's xSpeed. Can the player escape at all — and what does that do to the game's fairness contract?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Return early: <code>if (playerTransform == null)
+                return;</code>. Why must this run BEFORE the Distance
+                call — what would Unity say otherwise?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:bh1:q4" data-block="bug-hunt" data-question="Return early: if (playerTransform == null) return; . Why must this run BEFORE the Distance call — what would Unity say otherwise?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Aggro design</h3>
+        <ol>
+            <li>Set chaseDistance slightly LARGER than the turret's
+                range and place them together. What combined kill zone
+                did you design, and where is the one safe line?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:tk1:q1" data-block="tinker" data-question="Set chaseDistance slightly LARGER than the turret's range and place them together. What combined kill zone did you design, and where is the one safe line?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Give the chase a memory: once you are seen, the enemy
+                keeps chasing even outside the radius until you reach
+                12 away. What new field does that need — and does
+                the AP exam's word "state" apply to it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:tk1:q2" data-block="tinker" data-question="Give the chase a memory: once you are seen, the enemy keeps chasing even outside the radius until you reach 12 away. What new field does that need — and does the AP exam's word &quot;state&quot; apply to it?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Hard: LOS — should walls stop the chase? What Unity
+                feature would you have to borrow (hint: raycast),
+                and why is that too expensive to run 60×/second?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:tk1:q3" data-block="tinker" data-question="Hard: LOS — should walls stop the chase? What Unity feature would you have to borrow (hint: raycast), and why is that too expensive to run 60×/second?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Write the pursuit: subtraction → normalize → translate, in that order</li>
+            <li>Explain what normalized buys (constant speed) and show the bug without it</li>
+            <li>Explain the cached playerTransform and its null danger</li>
+            <li>Design an aggro radius that reads as fair to the player</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — chase and pursuit math</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — chase as a state</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — normalized, FindWithTag</li>
+    </ul>
+    <p>Next: <a href="4.4.html">4.4 — Attack: Close-Range Danger</a></p>
+</div><div class="lab-bar" data-lesson="4.3" data-lesson-title="Chase: The Aggro Radius" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="4.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="4.2.html"><span class="dir">&#9664; Previous</span><span class="where">4.2 — Patrol Polish: Bounds, Flips &amp; Animations</span></a><a class="foot-next" href="4.4.html"><span class="dir">Next &#9654;</span><span class="where">4.4 — Attack: Close-Range Danger</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

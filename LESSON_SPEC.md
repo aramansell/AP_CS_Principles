@@ -36,7 +36,7 @@ const body = <BACKTICK><HTML body — see rules below><BACKTICK>;
 
 Notes:
 - The backtick line for `const body` is a **JavaScript template literal**.
-- <ID> like `4.2a` appears in the Lesson id prop EXACTLY (it must be in LESSON_CHAIN — it is).
+- <ID> like `4.2` appears in the Lesson id prop EXACTLY (it must be in LESSON_CHAIN — it is).
 - Title text in the title prop may use &amp; entities but not raw &.
 
 ## CRITICAL escaping rules (violations break the build)
@@ -85,7 +85,7 @@ Relative from a lesson page (lessons live at `lessons/`):
 - Exam hub (exists): `../exam/index.html`, `../exam/create-performance-task.html`,
   `../exam/written-responses.html`, `../exam/mc-strategy.html`, `../exam/reference-sheet.html`
 - Dataset: `../data/playtests.csv`
-- Other lessons in the same folder: e.g. `1.5a.html`, `4.2a.html` — you may link prev/next lesson by relative filename. Only link lessons adjacent to yours or referenced in your brief.
+- Other lessons in the same folder: e.g. `1.5.html`, `4.2.html` — you may link prev/next lesson by relative filename. Only link lessons adjacent to yours or referenced in your brief.
 NEVER link anywhere else. Never use absolute URLs except https://github.com/ and https://trivory.com/ in prose if needed (avoid).
 
 ## Content quality bar
@@ -102,9 +102,9 @@ NEVER link anywhere else. Never use absolute URLs except https://github.com/ and
 
 - `cs-curriculum-main/Assets/Scripts/PlayerController.cs` — BAREBONES STARTER: only plays the walking animation in `Start()` (`anim.SetBool("IsWalking", true)`). The player does NOT move, cannot collect coins, cannot take damage, and has no physics/interaction handlers. Students build movement from scratch in Unit 1 (1.4a/1.5a), hook up directional animation parameters in 1.6a, and add collision/trigger responses in Unit 2.
 - `cs-curriculum-main/Assets/Scripts/StatManager.cs` — NOT IN STARTER: Built from scratch in Unit 2 (2.1a) as a persistent singleton (`public static StatManager manager`, `Awake()`, `DontDestroyOnLoad`). Stores `health` and `coins`, exposes `ChangeCoins(int amount)` and `ChangeHealth(int amount)`, and handles the death reset loop (`HandleDeath()`).
-- `cs-curriculum-main/Assets/Scripts/TurretController.cs` — NOT IN STARTER: Built from scratch in Unit 3 (3.1a-3.3a). Finds the player by tag, measures `Vector3.Distance`, uses the `Time.time >= lastAttackTime + attackCooldown` cooldown pattern, and calls `Instantiate(projectilePrefab, ...)`.
+- `cs-curriculum-main/Assets/Scripts/TurretController.cs` — NOT IN STARTER: Built from scratch in Unit 3 (3.1-3.3a). Finds the player by tag, measures `Vector3.Distance`, uses the `Time.time >= lastAttackTime + attackCooldown` cooldown pattern, and calls `Instantiate(projectilePrefab, ...)`.
 - `cs-curriculum-main/Assets/Scripts/Projectile.cs` — NOT IN STARTER: Built from scratch in Unit 3 (3.2a, 3.4a). Implements movement toward target direction (`transform.Translate` / `velocity`), lifetime cleanup with `Destroy()`, and damage delivery via `OnTriggerEnter2D` calling `StatManager.manager.ChangeHealth(-1)`.
-- `cs-curriculum-main/Assets/Scripts/EnemyController.cs` — NOT IN STARTER: Built from scratch in Unit 4 (4.1a-4.5a). Handles waypoint patrolling, top-down chase logic, contact damage with cooldown, and the full state machine.
+- `cs-curriculum-main/Assets/Scripts/EnemyController.cs` — NOT IN STARTER: Built from scratch in Unit 4 (4.1-4.5a). Handles waypoint patrolling, top-down chase logic, contact damage with cooldown, and the full state machine.
 - `cs-curriculum-main/Assets/Scripts/Lever.cs` — NOT IN STARTER: Built in Unit 5 (5.2a). Sprite toggling and UnityEvent wiring to open the cave door.
 - `cs-curriculum-main/Assets/Scripts/Package Scripts/` — RETAINED UTILITIES: `CameraController.cs` (smooth camera follow), `SceneSwitch.cs` (scene transition trigger), and `TopDown_EnemyAnimator.cs` (enemy sprite animation helper).
 - Scenes: `Assets/_Scenes` = Start, Overworld, Platformer. Prefabs in `Assets/Prefabs`: Coin, Spikes, Player, Turret, Turret_Projectile, MobileEnemy, AxeItem, Switch. (Turret and MobileEnemy prefabs are cleaned of missing component references so they start clean). Artwork: Top_Down (WallsTileSet, TP Grass) and Platformer (CavesTileSet, CaveEntranceTileSet) + PlayerAnimator (Axe/Shovel variants).
@@ -114,71 +114,71 @@ READ the actual files for any lesson touching them — never invent APIs that co
 ## Unit briefs (what each lesson covers)
 
 Unit 1 — Setup & Movement (Sept):
-- 1.1a Launch: Fork the starter, clone it, press Play. The character walks in place, but cannot move and has no game logic. We build everything from scratch.
-- 1.2a Editor tour: five panes (Hierarchy/Scene/Game/Inspector/Project), GameObject vs Component vs Transform, play mode vs edit mode (edits in play mode vanish — demo it), saving scenes.
-- 1.3a First script: MonoBehaviour lifecycle, Start vs Update, Debug.Log as developer eyes, [SerializeField] private fields vs Inspector controls. Bug hunt: typo in class name, unattached script, runaway Update logging.
-- 1.4a Movement I: Problem breakdown (Input -> Direction Vector -> Position Translate). Comparing Unity input functions (Input.GetAxis vs Input.GetAxisRaw vs Input.GetKey). Writing movement logic from scratch in PlayerController.cs.
-- 1.5a Movement II: Comparing movement functions (transform.Translate vs Rigidbody2D.MovePosition vs linearVelocity vs AddForce) with scenarios; Time.deltaTime frame independence; live-tuning knobs (xSpeed, ySpeed).
-- 1.6a Animation states: Animator window on Player; dynamically controlling IsWalking (bool), WalkDir (int: 0 up, 1 side, 2 down), and sprite.flipX inside PlayerController.cs UpdateAnimation().
+- 1.1 Launch: Fork the starter, clone it, press Play. The character walks in place, but cannot move and has no game logic. We build everything from scratch.
+- 1.2 Editor tour: five panes (Hierarchy/Scene/Game/Inspector/Project), GameObject vs Component vs Transform, play mode vs edit mode (edits in play mode vanish — demo it), saving scenes.
+- 1.3 First script: MonoBehaviour lifecycle, Start vs Update, Debug.Log as developer eyes, [SerializeField] private fields vs Inspector controls. Bug hunt: typo in class name, unattached script, runaway Update logging.
+- 1.4 Movement I: Problem breakdown (Input -> Direction Vector -> Position Translate). Comparing Unity input functions (Input.GetAxis vs Input.GetAxisRaw vs Input.GetKey). Writing movement logic from scratch in PlayerController.cs.
+- 1.5 Movement II: Comparing movement functions (transform.Translate vs Rigidbody2D.MovePosition vs linearVelocity vs AddForce) with scenarios; Time.deltaTime frame independence; live-tuning knobs (xSpeed, ySpeed).
+- 1.6 Animation states: Animator window on Player; dynamically controlling IsWalking (bool), WalkDir (int: 0 up, 1 side, 2 down), and sprite.flipX inside PlayerController.cs UpdateAnimation().
 
 Unit 2 — Stats & Pickups (Sept-Oct):
-- 2.1a Coins: Problem breakdown for pickups. OnTriggerEnter2D(Collider2D other), trigger colliders on Coin prefabs, tag comparison (CompareTag vs ==). Building StatManager.cs singleton from scratch to track coin count.
-- 2.2a Spikes: Deep comparative analysis (how spikes are similar to coins vs how they differ). Solid collision (Is Trigger = false) vs triggers. OnCollisionEnter2D(Collision2D collision), tracking health in StatManager, and building the death loop (HandleDeath).
-- 2.3a Potions: 3-way comparative analysis (coin vs spike vs potion). Capping health via selection; comparing bounding functions (if statements vs Mathf.Min vs Mathf.Clamp).
-- 2.4a Prefabs & spawning: Prefabs vs scene instances (overrides, blue bar), spawning with Instantiate, playtest discipline (tune one variable at a time, test with hypotheses).
+- 2.1 Coins: Problem breakdown for pickups. OnTriggerEnter2D(Collider2D other), trigger colliders on Coin prefabs, tag comparison (CompareTag vs ==). Building StatManager.cs singleton from scratch to track coin count.
+- 2.2 Spikes: Deep comparative analysis (how spikes are similar to coins vs how they differ). Solid collision (Is Trigger = false) vs triggers. OnCollisionEnter2D(Collision2D collision), tracking health in StatManager, and building the death loop (HandleDeath).
+- 2.3 Potions: 3-way comparative analysis (coin vs spike vs potion). Capping health via selection; comparing bounding functions (if statements vs Mathf.Min vs Mathf.Clamp).
+- 2.4 Prefabs & spawning: Prefabs vs scene instances (overrides, blue bar), spawning with Instantiate, playtest discipline (tune one variable at a time, test with hypotheses).
 
 Unit 3 — The Turret (Oct):
-- 3.1a Detection radius: Problem breakdown of enemy awareness. Comparing targeting approaches (GameObject.FindWithTag cached in Start vs serialized Transform). Comparing distance functions (Vector3.Distance vs sqrMagnitude). Building TurretController.cs from scratch.
-- 3.2a Projectiles: Spawning, aiming, translation, and lifetime destruction. Comparing projectile movement techniques (transform.Translate vs Rigidbody2D.linearVelocity). Building Projectile.cs from scratch.
-- 3.3a Cooldowns: Rate-limiting attacks. Comparing 3 timing approaches (Time.time timestamp vs countdown timer with Time.deltaTime vs Coroutines). Compound conditionals (&&).
-- 3.4a Damage + playtest: Adding damage to Projectile.cs, connecting projectile hits back to StatManager.ChangeHealth(-1). The 4 difficulty knobs, turret personalities (Sniper, Sentry, Mortar), partner playtesting.
+- 3.1 Detection radius: Problem breakdown of enemy awareness. Comparing targeting approaches (GameObject.FindWithTag cached in Start vs serialized Transform). Comparing distance functions (Vector3.Distance vs sqrMagnitude). Building TurretController.cs from scratch.
+- 3.2 Projectiles: Spawning, aiming, translation, and lifetime destruction. Comparing projectile movement techniques (transform.Translate vs Rigidbody2D.linearVelocity). Building Projectile.cs from scratch.
+- 3.3 Cooldowns: Rate-limiting attacks. Comparing 3 timing approaches (Time.time timestamp vs countdown timer with Time.deltaTime vs Coroutines). Compound conditionals (&&).
+- 3.4 Damage + playtest: Adding damage to Projectile.cs, connecting projectile hits back to StatManager.ChangeHealth(-1). The 4 difficulty knobs, turret personalities (Sniper, Sentry, Mortar), partner playtesting.
 
 Unit 4 — The Enemy (Oct-Nov):
-- 4.1a Patrol: EnemyController PlatformerMove: startPosition saved in Start; transform.Translate(Vector2.right * direction * speed * Time.deltaTime); when Vector3.Distance(start, now) > patrolDistance → direction *= -1. Predict the bug (stuck flipping) before seeing the guard clause.
-- 4.2a Patrol polish: the stuck-flip guard clauses; SpriteRenderer flipX = direction < 0; animation if the enemy has one.
-- 4.3a Chase: TopDownMove: find player GameObject.FindWithTag("Player") in Start; chaseDistance 5; move (player - enemy).normalized * speed * deltaTime — normalization for constant speed (ties to 1.4a diagonal tinker!).
-- 4.4a Attack: OnCollisionEnter2D/OnCollisionStay2D with "Player" → TryDamage; damageCooldown 1.0; Time.time > lastDamageTime + cooldown; why cooldown on damage too.
-- 4.5a Full state machine: the if/else shape of TopDownMove+TryDamage as STATES (idle/chase/attack); draw the state diagram on paper; AP: algorithms with selection; socratic: where is "return to patrol if player flees" in the code (the chase if has no else — falling out of the if = returning to patrol).
+- 4.1 Patrol: EnemyController PlatformerMove: startPosition saved in Start; transform.Translate(Vector2.right * direction * speed * Time.deltaTime); when Vector3.Distance(start, now) > patrolDistance → direction *= -1. Predict the bug (stuck flipping) before seeing the guard clause.
+- 4.2 Patrol polish: the stuck-flip guard clauses; SpriteRenderer flipX = direction < 0; animation if the enemy has one.
+- 4.3 Chase: TopDownMove: find player GameObject.FindWithTag("Player") in Start; chaseDistance 5; move (player - enemy).normalized * speed * deltaTime — normalization for constant speed (ties to 1.4 diagonal tinker!).
+- 4.4 Attack: OnCollisionEnter2D/OnCollisionStay2D with "Player" → TryDamage; damageCooldown 1.0; Time.time > lastDamageTime + cooldown; why cooldown on damage too.
+- 4.5 Full state machine: the if/else shape of TopDownMove+TryDamage as STATES (idle/chase/attack); draw the state diagram on paper; AP: algorithms with selection; socratic: where is "return to patrol if player flees" in the code (the chase if has no else — falling out of the if = returning to patrol).
 
 Unit 5 — Axe & Cave (Nov):
-- 5.1a Axe pickup: AxeItem prefab; hasAxe bool on PlayerController; OnTriggerEnter2D → pickup, sprite/animation variant swap (PlayerAnimator Axe), show axe in hand; inventory as booleans (data abstraction lite).
-- 5.2a Lever/door: Lever.Interact() toggles; E key handler in PlayerController Update (FindObjectsByType<Lever>, distance < 2.0); UnityEvents onLeverOn/onLeverOff wired in Inspector to open the cave door; sprite swap; socratic: UnityEvents = calling procedures without code — abstraction or magic?
-- 5.3a Into the cave: SceneSwitch/SceneManager.LoadScene("Platformer"); isPlatformer decided from scene name in Start; gravityScale 2 vs 0; StatManager persists (DontDestroyOnLoad); AP: scene = data? no — systems composed of modules.
+- 5.1 Axe pickup: AxeItem prefab; hasAxe bool on PlayerController; OnTriggerEnter2D → pickup, sprite/animation variant swap (PlayerAnimator Axe), show axe in hand; inventory as booleans (data abstraction lite).
+- 5.2 Lever/door: Lever.Interact() toggles; E key handler in PlayerController Update (FindObjectsByType<Lever>, distance < 2.0); UnityEvents onLeverOn/onLeverOff wired in Inspector to open the cave door; sprite swap; socratic: UnityEvents = calling procedures without code — abstraction or magic?
+- 5.3 Into the cave: SceneSwitch/SceneManager.LoadScene("Platformer"); isPlatformer decided from scene name in Start; gravityScale 2 vs 0; StatManager persists (DontDestroyOnLoad); AP: scene = data? no — systems composed of modules.
 
 Unit 6 — Jumping (Nov):
-- 6.1a Gravity & jump: AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse) on Space; gravityScale 2; force vs transform.Translate; predict: what happens holding Space (infinite jump bug).
-- 6.2a Ground checks: the infinite jump bug; options (flag set on collision with ground layer, raycast, coyote timer); jumps-used counter reset on ground; pick one and build it.
-- 6.3a Jump feel: faster falling (extra gravity when falling / lower jump when releasing early), coyote time, jump buffering — pick 2, tune by playtest; deltaTime again.
-- 6.4a Double jump: boots pickup sets maxJumps = 2 (pickup pattern from 2.1/5.1); reset on landing; tinker: 3 jumps? air control?
-- 6.5a Platforming studio: build a 3-challenge gauntlet teaching each mechanic; cross-playtest.
+- 6.1 Gravity & jump: AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse) on Space; gravityScale 2; force vs transform.Translate; predict: what happens holding Space (infinite jump bug).
+- 6.2 Ground checks: the infinite jump bug; options (flag set on collision with ground layer, raycast, coyote timer); jumps-used counter reset on ground; pick one and build it.
+- 6.3 Jump feel: faster falling (extra gravity when falling / lower jump when releasing early), coyote time, jump buffering — pick 2, tune by playtest; deltaTime again.
+- 6.4 Double jump: boots pickup sets maxJumps = 2 (pickup pattern from 2.1/5.1); reset on landing; tinker: 3 jumps? air control?
+- 6.5 Platforming studio: build a 3-challenge gauntlet teaching each mechanic; cross-playtest.
 
 Unit 7 — Levels & Ladders (Dec):
-- 7.1a Tilemaps: Tilemap + Tile Palette windows; paint with CavesTileSet/CaveEntranceTileSet; ground vs decor layers.
-- 7.2a Tile collision: TilemapCollider2D + CompositeCollider2D; why composite; sorting layers; one-way platforms if time.
-- 7.3a Ladders I: ladder zone trigger → climbing state: gravityScale 0, move freely on Y (reuse Input.GetAxis("Vertical")), keep x input; the isPlatformer if chain grows.
-- 7.4a Ladders II: mount/dismount (enter from top/bottom), jump off ladder, top-of-ladder platform; polish.
-- 7.5a Design a big cave: flow (teach→test→reward), difficulty ramp, landmarks, secrets, softlocks to avoid; DESIGN ON PAPER FIRST (CRD-2 planning); spec sheet.
-- 7.6a/7.7a Studios: build days; 7.7a adds cross-playtest with playtest sheet + iterate.
+- 7.1 Tilemaps: Tilemap + Tile Palette windows; paint with CavesTileSet/CaveEntranceTileSet; ground vs decor layers.
+- 7.2 Tile collision: TilemapCollider2D + CompositeCollider2D; why composite; sorting layers; one-way platforms if time.
+- 7.3 Ladders I: ladder zone trigger → climbing state: gravityScale 0, move freely on Y (reuse Input.GetAxis("Vertical")), keep x input; the isPlatformer if chain grows.
+- 7.4 Ladders II: mount/dismount (enter from top/bottom), jump off ladder, top-of-ladder platform; polish.
+- 7.5 Design a big cave: flow (teach→test→reward), difficulty ramp, landmarks, secrets, softlocks to avoid; DESIGN ON PAPER FIRST (CRD-2 planning); spec sheet.
+- 7.6a/7.7a Studios: build days; 7.7 adds cross-playtest with playtest sheet + iterate.
 
 Unit 8 — Boss Fight (Jan, 6 lessons then the Jan 21 final):
-- 8.1a Boss design: spec-first (CRD-2): name, health, phases, attacks, win/lose on one page; review what makes the starter bosses fun; approve specs in pairs. NO CODE TODAY.
-- 8.2a Boss body: sprite + BossController.cs (health, maxHealth); health bar (UI Slider); phase field.
-- 8.3a Player attack: melee swing or projectile toward mouse; damage the boss; reuse collision patterns.
-- 8.4a Boss attacks: pick patterns (charge, volley, minion spawn); phase change at health thresholds (selection!).
-- 8.5a Win/lose: reuse the death loop (StatManager); victory → LoadScene or victory UI; fail states, restart flow; socratic on error handling.
-- 8.6a Boss studio + semester review: cross-playtest + a written concepts check prep (predict outputs of short code — the final's format).
+- 8.1 Boss design: spec-first (CRD-2): name, health, phases, attacks, win/lose on one page; review what makes the starter bosses fun; approve specs in pairs. NO CODE TODAY.
+- 8.2 Boss body: sprite + BossController.cs (health, maxHealth); health bar (UI Slider); phase field.
+- 8.3 Player attack: melee swing or projectile toward mouse; damage the boss; reuse collision patterns.
+- 8.4 Boss attacks: pick patterns (charge, volley, minion spawn); phase change at health thresholds (selection!).
+- 8.5 Win/lose: reuse the death loop (StatManager); victory → LoadScene or victory UI; fail states, restart flow; socratic on error handling.
+- 8.6 Boss studio + semester review: cross-playtest + a written concepts check prep (predict outputs of short code — the final's format).
 
 Unit 9 — Data & Systems (Jan-Feb, CSP Concept lessons; expand-app flavor; less Unity, more big ideas; each has a worksheet-style tinker or socratic and links its concept doc):
-- 9.1a Binary: bits, place values, byte; count in binary on fingers; C# int = 32 bits; what Debug.Log shows vs what memory holds (DAT-1). Tinker: convert 13, 255, 256; why does 255 matter.
-- 9.2a Hex & RGB: hex digits, #RRGGBB, Color32, the hex↔binary bridge; inspect Unity's color picker; AP: hexadecimal as shorthand for binary (DAT-1).
-- 9.3a Compression: lossless (PNG, ZIP) vs lossy (JPEG, MP3); run-length encoding by hand; why game assets ship compressed; tradeoff questions (DAT-2).
-- 9.4a Scenes are data: open a .unity/.prefab/.meta file in a text editor — YAML!; GUIDs in .meta; scene = data describing objects; file size math; socratic on metadata.
-- 9.5a Datasets: ../data/playtests.csv — load in Sheets/Excel; filter, aggregate (count, mean, min/max); answer "where do players die most"; DAT-2 insights from data.
-- 9.6a Bias & fair data: sampling bias in our playtest sheet (who did we ask?); filtering; the ethics roundtable: who is excluded; IOC-1. Socratic heavy.
-- 9.7a Computer systems: CPU/GPU/RAM/storage; what happens in one rendered frame; why framerate varies machine to machine (deltaTime callback!); CSN-1. Table of specs.
-- 9.8a The Internet: packet switching, routing, IP/DNS; trace the path of a WebGL build upload; bandwidth vs latency (MC trap!); CSN-1/CSN-2.
-- 9.9a Encryption: symmetric keys, public/private key, TLS/HTTPS; why saves and accounts encrypt; no math beyond XOR-ish intuition; CSN-2.
-- 9.10a Impact & licenses: open source licenses (the starter's license, MIT, GPL, CC); attribution in your fork's README; digital divide; who benefits/who is harmed by games; IOC-1. End with: add an ATTRIBUTION section to your repo.
+- 9.1 Binary: bits, place values, byte; count in binary on fingers; C# int = 32 bits; what Debug.Log shows vs what memory holds (DAT-1). Tinker: convert 13, 255, 256; why does 255 matter.
+- 9.2 Hex & RGB: hex digits, #RRGGBB, Color32, the hex↔binary bridge; inspect Unity's color picker; AP: hexadecimal as shorthand for binary (DAT-1).
+- 9.3 Compression: lossless (PNG, ZIP) vs lossy (JPEG, MP3); run-length encoding by hand; why game assets ship compressed; tradeoff questions (DAT-2).
+- 9.4 Scenes are data: open a .unity/.prefab/.meta file in a text editor — YAML!; GUIDs in .meta; scene = data describing objects; file size math; socratic on metadata.
+- 9.5 Datasets: ../data/playtests.csv — load in Sheets/Excel; filter, aggregate (count, mean, min/max); answer "where do players die most"; DAT-2 insights from data.
+- 9.6 Bias & fair data: sampling bias in our playtest sheet (who did we ask?); filtering; the ethics roundtable: who is excluded; IOC-1. Socratic heavy.
+- 9.7 Computer systems: CPU/GPU/RAM/storage; what happens in one rendered frame; why framerate varies machine to machine (deltaTime callback!); CSN-1. Table of specs.
+- 9.8 The Internet: packet switching, routing, IP/DNS; trace the path of a WebGL build upload; bandwidth vs latency (MC trap!); CSN-1/CSN-2.
+- 9.9 Encryption: symmetric keys, public/private key, TLS/HTTPS; why saves and accounts encrypt; no math beyond XOR-ish intuition; CSN-2.
+- 9.10 Impact & licenses: open source licenses (the starter's license, MIT, GPL, CC); attribution in your fork's README; digital divide; who benefits/who is harmed by games; IOC-1. End with: add an ATTRIBUTION section to your repo.
 
 Unit 10 — Jam Season (Feb-Apr, rpg flavor, process-forward):
 - 10.1a 2-Button Jam kickoff: what a jam is; the constraint (exactly 2 inputs — keyboard keys or mouse buttons or UI buttons); 2.5 weeks; solo or pair; constraints breed creativity; pitch: one sentence + 3 bullets; scope ruthlessly. Link exam/create-performance-task as "the Create PT is a solo jam with a rubric."
@@ -198,11 +198,11 @@ Unit 11 — Create PT & Exam (Apr-May; hybrid/assessment flavor):
 - 11.1b-e Build days 1-4: 11.1b = the loop (input→state→output) runs ugly; 11.1c = list + procedure land (hard requirement gate); 11.1d = edge cases + error handling you can TALK about (you need a bug story for WR2b); 11.1e = list check + feature freeze + PPR prep. Each day: 10-min standup, build, commit, push, 2-min partner check.
 - 11.2a Video + PPR: record <60s (input → behavior); PPR screen captures (list, procedure, algorithm); do it in class.
 - 11.2b Submit as final: walk the AP Digital Portfolio submission together in class; submitted ≠ in progress; deadline Apr 30 11:59 PM ET is national.
-- 11.3a WR practice: answer all four WR prompts about YOUR program with YOUR PPR open (drills from ../exam/written-responses.html); peer-score with the rubric rows.
+- 11.3 WR practice: answer all four WR prompts about YOUR program with YOUR PPR open (drills from ../exam/written-responses.html); peer-score with the rubric rows.
 - 11.4a MC strategy + set 1: pacing plan, question types, trap catalog (../exam/mc-strategy.html); 20-question timed set, self-score, tag misses.
 - 11.4b MC set 2: data & networks focus (binary, hex, compression, bandwidth/latency, encryption); tag misses.
 - 11.4c MC set 3 + WR drill: mixed 20 + one more WR round; top-3 leaks identified for tomorrow.
-- 11.5a Exam eve: Bluebook app check, laptop charge, logistics (date/time/room), strategy final pass (skip-star-return), sleep. Short, calm page.
+- 11.5 Exam eve: Bluebook app check, laptop charge, logistics (date/time/room), strategy final pass (skip-star-return), sleep. Short, calm page.
 
 Unit 12 — Season 2 (May-Jun):
 - 12.1a Grid/Symmetry jam kickoff: constraint = build around a grid (match-3, 2048, minesweeper, tactics) or symmetry (mirrored levels, twin control); pitch; scope; reuse everything you know.

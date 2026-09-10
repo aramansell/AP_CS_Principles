@@ -1,0 +1,142 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>7.2a Tile Collision, Layers &amp; Sorting — AP CS Principles</title><meta name="description" content="Lesson 7.2 Tile Collision, Layers &amp; Sorting — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="7.2a Tile Collision, Layers &amp; Sorting — AP CS Principles"><meta property="og:description" content="Lesson 7.2 Tile Collision, Layers &amp; Sorting — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="7.1.html">&#9664; 7.1</a><span class="lesson-id">7.2</span><a href="7.3.html">7.3 &#9654;</a></div><h1>7.2 — Tile Collision, Layers &amp; Sorting</h1>
+
+<p class="lesson-lead">
+    Painted tiles are pretty pictures until physics says they are
+    rock. Today: what makes a tilemap solid, why every tilemap ships
+    with a partner called Composite, and the two different meanings
+    of "layer" that confuse every beginner exactly once.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p><strong>Step 1 — the collider that is 500 colliders.</strong>
+    Select the ground Tilemap child:
+    <code>Add Component → Tilemap Collider 2D</code>. Press Play:
+    you can stand on your cave. What just happened: the component
+    builds <strong>one small collider per solid tile</strong>. A
+    40-tile floor is 40 colliders. It works — and it is quietly
+    expensive.</p>
+
+    <p><strong>Step 2 — the composite.</strong> Now add
+    <code>Add Component → Composite Collider 2D</code>. Unity
+    attaches a Rigidbody 2D automatically (the tilemap's own, set to
+    static — let it). Back on the Tilemap Collider 2D, check
+    <strong>Used By Composite</strong>. Press Play again: same solid
+    floor, but the 40 colliders are fused into ONE shape. Why it
+    matters to you beyond performance: your ground raycast from
+    <a href="6.2.html">6.2</a> fires one question per frame — a
+    composite answers once, cleanly. And your character no longer
+    catches on the seams between tiles (the invisible-wall bug).</p>
+
+    <p><strong>Step 3 — the two "layers," untangled.</strong></p>
+    <table>
+        <tr><th></th><th>Layer (physics)</th><th>Sorting Layer (render)</th></tr>
+        <tr><td>What it controls</td><td>Who collides with whom; raycasts; masks</td><td>What draws in front of what</td></tr>
+        <tr><td>Lives on</td><td>Inspector top-right</td><td>SpriteRenderer → Sorting Layer</td></tr>
+        <tr><td>Game use</td><td>Ground / Player / Enemies / Projectiles</td><td>Background / Ground / Player / FX / UI</td></tr>
+    </table>
+    <p>
+        Do both now: create physics layers Ground, Player, Enemy,
+        Projectile, Decoration and assign them; create sorting layers
+        Background, Ground, Entities, FX and assign those. When your
+        player draws BEHIND a wall, that is sorting; when your raycast
+        hits a decoration, that is physics layers. Different walls,
+        different fixes.
+    </p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The invisible wall</h3>
+        <ol>
+            <li>Walk along your tile floor and randomly stop mid-tile.
+                The seam bug! Which component in Step 2 makes seams
+                disappear — and why did physics see a wall that art
+                could not?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.2:bh1:q1" data-block="bug-hunt" data-question="Walk along your tile floor and randomly stop mid-tile. The seam bug! Which component in Step 2 makes seams disappear — and why did physics see a wall that art could not?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Paint decorations (background rocks) on the GROUND
+                tilemap. Now your ground raycast hits a decorative
+                pebble. Which of the two layer systems fixes it —
+                and how (a separate tilemap + its own physics
+                layer)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.2:bh1:q2" data-block="bug-hunt" data-question="Paint decorations (background rocks) on the GROUND tilemap. Now your ground raycast hits a decorative pebble. Which of the two layer systems fixes it — and how (a separate tilemap + its own physics layer)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set the enemy prefab to the Ground physics layer by
+                accident. What did you just make the ENEMY stand on
+                — and why does your player fall THROUGH the same
+                enemy?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.2:bh1:q3" data-block="bug-hunt" data-question="Set the enemy prefab to the Ground physics layer by accident. What did you just make the ENEMY stand on — and why does your player fall THROUGH the same enemy?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The turret's projectile raycast-ignores the turret
+                (<a href="3.2.html">3.2</a>). Which fix would
+                layers give you — and which is already in the
+                starter (spawn OUTSIDE the turret's own collider)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.2:bh1:q4" data-block="bug-hunt" data-question="The turret's projectile raycast-ignores the turret ( 3.2 ). Which fix would layers give you — and which is already in the starter (spawn OUTSIDE the turret's own collider)?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Design Lab</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Depth is a sorting-layer performance. Build this vertical
+        slice in your cave, using at least three sorting layers:
+    </p>
+    <ol>
+        <li>Background: dark distant rocks (no physics layer, no
+            collider — pure picture)</li>
+        <li>Ground: the playable rock</li>
+        <li>Entities: player, enemy, turret</li>
+        <li>FX: your coin sparkle / attack swing (draws over
+            entities — and OVER the player, which is why it must be
+            its own layer)</li>
+    </ol>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The AP exam asks how computing can trade resource use
+            against performance — 500 tile colliders vs. one
+            composite is a case study. What resource did you spend
+            (a component, a moment of setup) and what did you save
+            (per-frame checks)? Frame it in one sentence like a
+            Create PT response.
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.2:sc1:q1" data-block="socratic" data-question="The AP exam asks how computing can trade resource use against performance — 500 tile colliders vs. one composite is a case study. What resource did you spend (a component, a moment of setup) and what did you save (per-frame checks)? Frame it in one sentence like a Create PT response." placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Depth tricks</h3>
+        <ol>
+            <li>Make a FOREGROUND pillar (sorting layer above the
+                player) the player walks BEHIND. What classic game
+                moment did you just build (hiding!)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.2:tk1:q1" data-block="tinker" data-question="Make a FOREGROUND pillar (sorting layer above the player) the player walks BEHIND. What classic game moment did you just build (hiding!)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>One-way platforms: the tile you can jump UP through
+                but stand ON. What property of the collider (not a
+                layer!) does this need — hint: Platform Effector
+                2D. Try it on one tile group.</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Make a tilemap solid: Tilemap Collider + Composite + Used By Composite</li>
+            <li>Explain the seam bug and what the composite fixes</li>
+            <li>Keep physics layers and sorting layers straight, with one use for each</li>
+            <li>Build a 3+ sorting-layer scene with a foreground hide</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a> — colliders and layers</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the component cheat-sheet</li>
+    </ul>
+    <p>Next: <a href="7.3.html">7.3 — Ladders I: The Climbing State</a></p>
+</div><div class="lab-bar" data-lesson="7.2" data-lesson-title="Tile Collision, Layers &amp; Sorting" data-count="6" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/6 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="7.2" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="7.1.html"><span class="dir">&#9664; Previous</span><span class="where">7.1 — Tilemaps: The Level Editor</span></a><a class="foot-next" href="7.3.html"><span class="dir">Next &#9654;</span><span class="where">7.3 — Ladders I: The Climbing State</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>7.4a Ladders II: Mounts, Tops &amp; Polish — AP CS Principles</title><meta name="description" content="Lesson 7.4 Ladders II: Mounts, Tops &amp; Polish — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="7.4a Ladders II: Mounts, Tops &amp; Polish — AP CS Principles"><meta property="og:description" content="Lesson 7.4 Ladders II: Mounts, Tops &amp; Polish — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="7.3.html">&#9664; 7.3</a><span class="lesson-id">7.4</span><a href="7.5.html">7.5 &#9654;</a></div><h1>7.4 — Ladders II: Mounts, Tops &amp; Polish</h1>
+
+<p class="lesson-lead">
+    Your ladder works in the middle — and fails at both ends. Today:
+    the top-of-ladder problem (the hardest 3 tiles in platformer
+    engineering), the mount prompt, and the polish pass that makes
+    climbing feel like an answer to a question the level asked.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p><strong>The top-of-ladder problem.</strong> Climb to the top
+    of yesterday's ladder (<a href="7.3.html">7.3</a>) and keep
+    holding W. You rise INTO the floor above (or hover at the seam,
+    depending on your geometry). Every game with ladders has solved
+    this; the three classic answers:</p>
+    <table>
+        <tr><th>Solution</th><th>Feel</th><th>Cost</th></tr>
+        <tr><td><strong>Stop-at-top:</strong> when grounded ABOVE the ladder top, exit climb state</td><td>Honest, sudden</td><td>Needs a check: raycast down when climbing past the top</td></tr>
+        <tr><td><strong>Pop-off:</strong> climbing W past the top applies a small hop</td><td>Flows into a jump</td><td>Physics fiddly — can overshoot into enemies</td></tr>
+        <tr><td><strong>Platform top:</strong> a solid tile caps the ladder; you stop under it</td><td>Cheap and common</td><td>You must JUMP the last bit — level design must allow it</td></tr>
+    </table>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The starter's levels use the third answer mostly — capped
+            ladders. Why is the CHEAPEST solution often the most
+            honest one? What does the player learn about your game's
+            rules from a capped ladder vs. a magic pop-off?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.4:sc1:q1" data-block="socratic" data-question="The starter's levels use the third answer mostly — capped ladders. Why is the CHEAPEST solution often the most honest one? What does the player learn about your game's rules from a capped ladder vs. a magic pop-off?" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — implement stop-at-top.</strong> In the climb
+    branch, when W is held and your ground raycast (you already own
+    it from <a href="6.2.html">6.2</a> — extend its reach) finds
+    solid ground at your feet while climbing, exit the climb state
+    cleanly:</p>
+    <pre><code>// while climbing, if there is floor under my feet at the top:
+if (Physics2D.Raycast(transform.position, Vector2.down,
+        groundCheckDistance + 0.6f, groundLayer))
+{
+    isOnLadder = false;
+    rb.gravityScale = 2;
+    // snap onto the ledge: tiny translate toward it, or leave
+    // it to physics — play with both, choose one
+}</code></pre>
+
+    <p><strong>Step 2 — the mount prompt.</strong> The middle of a
+    ladder works by walking into it — but the BOTTOM of a tall
+    ladder often sits above the player's reach. Add a one-liner
+    prompt (same UI family as your HUD thinking):
+    when within range of a ladder's base, show "Press W to climb"
+    text for exactly as long as the condition holds. Cheap version:
+    a trigger zone at the base toggling a world-space TextMesh
+    visible/hidden. The rule: prompts die the instant they are
+    obeyed or no longer relevant.</p>
+
+    <p><strong>Step 3 — polish passes (pick two).</strong>
+    <ul>
+        <li><strong>Animation:</strong> add a Climb parameter to the
+            animator; drive it from isOnLadder, and let climbing
+            idle vs. climbing move show different frames</li>
+        <li><strong>Sound:</strong> a soft tick per climb-step (your
+            feet know the ladder's rung count — or just a
+            heartbeat)</li>
+        <li><strong>Ladder edges:</strong> at the bottom of the climb
+            state, restore a tiny gravity moment so you do not
+            hang in the air when the trigger ends</li>
+        <li><strong>Ladders through platforms:</strong> your
+            one-way platform tinker from
+            <a href="7.2.html">7.2</a> lets a climb pass THROUGH
+            the cap — the two features love each other</li>
+    </ul></p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Endgame of ends</h3>
+        <ol>
+            <li>At the top, you exit climb WHILE holding W, grounded
+                on the ledge. But your code above still runs the
+                translate BEFORE the check. What happens on the
+                frame after the exit — one-frame drift INTO the
+                ledge? Fix the order, then explain why one frame of
+                a 60fps game still matters.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.4:bh1:q1" data-block="bug-hunt" data-question="At the top, you exit climb WHILE holding W, grounded on the ledge. But your code above still runs the translate BEFORE the check. What happens on the frame after the exit — one-frame drift INTO the ledge? Fix the order, then explain why one frame of a 60fps game still matters." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The prompt appears when you can reach the ladder
+                BASE, but you jump UP to the trigger from below.
+                Should the prompt appear mid-jump? Why is "prompt
+                when possible" the wrong rule — what IS the right
+                one?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.4:bh1:q2" data-block="bug-hunt" data-question="The prompt appears when you can reach the ladder BASE, but you jump UP to the trigger from below. Should the prompt appear mid-jump? Why is &quot;prompt when possible&quot; the wrong rule — what IS the right one?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Two ladders back-to-back (a ladder shaft). The exit
+                trigger of ladder 1 fires at the seam... does your
+                enter of ladder 2 fire before the exit? Draw the
+                two messages on a timeline; who wins?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.4:bh1:q3" data-block="bug-hunt" data-question="Two ladders back-to-back (a ladder shaft). The exit trigger of ladder 1 fires at the seam... does your enter of ladder 2 fire before the exit? Draw the two messages on a timeline; who wins?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Ladder levels</h3>
+        <ol>
+            <li>Design a "chimney": two ladders 3 tiles apart with
+                enemies patrolling the top. What is the player
+                reading during the climb — and why is climbing a
+                PERFECT vulnerability window (you cannot jump
+                away mid-climb)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.4:tk1:q1" data-block="tinker" data-question="Design a &quot;chimney&quot;: two ladders 3 tiles apart with enemies patrolling the top. What is the player reading during the climb — and why is climbing a PERFECT vulnerability window (you cannot jump away mid-climb)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Make the ladder the SAFE route and the jump route the
+                fast-but-spikey one. Which do testers choose —
+                record it, this is <a href="9.5.html">9.5</a>
+                data in the wild.</li>
+            <li>Commit + push: <code>"7.4a: ladder tops + mount prompt + polish"</code>.</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Explain the top-of-ladder problem and implement stop-at-top with a raycast</li>
+            <li>Build a mount prompt that dies when obeyed</li>
+            <li>Drive climb animation from state you already track</li>
+            <li>Reason about order-of-operations on the exit frame</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a> — the polish reference</li>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the ground raycast you are reusing</li>
+    </ul>
+    <p>Next: <a href="7.5.html">7.5 — Design a Big Cave: Flow &amp; Difficulty</a></p>
+</div><div class="lab-bar" data-lesson="7.4" data-lesson-title="Ladders II: Mounts, Tops &amp; Polish" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="7.4" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="7.3.html"><span class="dir">&#9664; Previous</span><span class="where">7.3 — Ladders I: The Climbing State</span></a><a class="foot-next" href="7.5.html"><span class="dir">Next &#9654;</span><span class="where">7.5 — Design a Big Cave: Flow &amp; Difficulty</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
