@@ -59,76 +59,56 @@
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-label">Read Function-Level Examples</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Examine how an arcade score-tracking system separates its persistent manager from an item collector.
-        Notice two key software patterns: the <strong>Singleton Pattern</strong> (global access + persistence)
-        and the <strong>Trigger Callback</strong>:
+        Notice how each function operates in isolation across completely different game systems.
+        You do not copy a whole script; you learn what each function takes in, what it does, and how to combine them:
     </p>
 
-    <pre><code>using UnityEngine;
-
-// Persistent singleton manager tracking score across scenes
-public class GameScoreKeeper : MonoBehaviour
+    <p><strong>Example 1 — Receiving Overlap Events on an Automatic Grocery Store Door:</strong></p>
+    <pre><code>// Unity calls this method automatically whenever an object enters an 'Is Trigger' zone
+private void OnTriggerEnter2D(Collider2D entrant)
 {
-    // Static reference reachable from any script without GetComponent
-    public static GameScoreKeeper instance;
-
-    [SerializeField] private int crystalScore = 0;
-
-    private void Awake()
-    {
-        // Enforce singleton rule: exactly one instance exists
-        if (instance == null)
-        {
-            instance = this;
-            DontDestroyOnLoad(gameObject); // Survives scene changes
-        }
-        else
-        {
-            Destroy(gameObject); // Prevent duplicate managers
-        }
-    }
-
-    public void AddCrystals(int qty)
-    {
-        crystalScore += qty;
-        Debug.Log("Crystals collected! Current tally: " + crystalScore);
-    }
+    Debug.Log("Motion sensor triggered! Opening automatic doors for: " + entrant.name);
 }</code></pre>
 
-    <p>And here is how a collector script responds to an overlap event:</p>
-
-    <pre><code>using UnityEngine;
-
-// Collector component checking trigger overlaps
-public class CrystalCollector : MonoBehaviour
+    <p><strong>Example 2 — Validating Object Identity with Tags on a Vault Scanner:</strong></p>
+    <pre><code>// Efficiently verifies whether an incoming collider carries a specific tag label
+if (incomingItem.CompareTag("SecurityKeycard"))
 {
-    private void OnTriggerEnter2D(Collider2D hitCollider)
-    {
-        // 1. Identify what entered our trigger zone
-        if (hitCollider.CompareTag("EnergyCrystal"))
-        {
-            // 2. Notify the global manager
-            if (GameScoreKeeper.instance != null)
-            {
-                GameScoreKeeper.instance.AddCrystals(5);
-            }
+    Debug.Log("Access granted to high-security vault.");
+}</code></pre>
 
-            // 3. Remove the picked-up object, NOT this collector!
-            Destroy(hitCollider.gameObject);
-        }
+    <p><strong>Example 3 — Memory Cleanup with Destroy on a Spent Rocket Stage:</strong></p>
+    <pre><code>// Removes the specified GameObject entirely from the scene and frees its memory
+Destroy(spentBoosterStage.gameObject);</code></pre>
+
+    <p><strong>Example 4 — Global Persistence with the Singleton Pattern on a Jukebox Manager:</strong></p>
+    <pre><code>// public static makes 'jukebox' globally accessible from any script in the game
+public static JukeboxManager jukebox;
+
+private void Awake()
+{
+    if (jukebox == null)
+    {
+        jukebox = this;
+        DontDestroyOnLoad(gameObject); // Survives scene changes so music never stops
+    }
+    else
+    {
+        Destroy(gameObject); // Destroy duplicates if returning to the menu
     }
 }</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>In <code>CrystalCollector</code>, what is the type of <code>hitCollider</code>? Why must we write <code>hitCollider.gameObject</code> inside <code>Destroy()</code> instead of passing <code>hitCollider</code> directly?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1a:sc2:q1" data-block="socratic" data-question="In CrystalCollector , what is the type of hitCollider ? Why must we write hitCollider.gameObject inside Destroy() instead of passing hitCollider directly?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>If <code>GameScoreKeeper.instance</code> were a regular variable instead of <code>static</code>, why would <code>CrystalCollector</code> be unable to write <code>GameScoreKeeper.instance</code> directly?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1a:sc2:q2" data-block="socratic" data-question="If GameScoreKeeper.instance were a regular variable instead of static , why would CrystalCollector be unable to write GameScoreKeeper.instance directly?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In the automatic door snippet, what is the type of <code>entrant</code>? Why is it a <code>Collider2D</code> rather than a <code>GameObject</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1a:sc2:q1" data-block="socratic" data-question="In the automatic door snippet, what is the type of entrant ? Why is it a Collider2D rather than a GameObject ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In the rocket booster snippet, what happens if you write <code>Destroy(spentBoosterStage)</code> without <code>.gameObject</code>? (Hint: Does that destroy the whole rocket or just the single collider component?)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1a:sc2:q2" data-block="socratic" data-question="In the rocket booster snippet, what happens if you write Destroy(spentBoosterStage) without .gameObject ? (Hint: Does that destroy the whole rocket or just the single collider component?)" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In the jukebox snippet, how could any script in the entire game tell the jukebox to play a song without needing <code>GetComponent</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1a:sc2:q3" data-block="socratic" data-question="In the jukebox snippet, how could any script in the entire game tell the jukebox to play a song without needing GetComponent ?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -221,4 +201,4 @@ public class CrystalCollector : MonoBehaviour
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Collider2D and MonoBehaviour lifecycle</li>
     </ul>
     <p>Next: <a href="2.2a.html">2.2a — Spikes: Collisions, Health &amp; Death</a></p>
-</div><div class="lab-bar" data-lesson="2.1a" data-lesson-title="Coins: Triggers, Tags &amp; the StatManager" data-count="10" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/10 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.1a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.6a.html"><span class="dir">&#9664; Previous</span><span class="where">1.6a — Animation States: IsWalking, WalkDir, Attack</span></a><a class="foot-next" href="2.2a.html"><span class="dir">Next &#9654;</span><span class="where">2.2a — Spikes: Collisions, Health &amp; Death</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+</div><div class="lab-bar" data-lesson="2.1a" data-lesson-title="Coins: Triggers, Tags &amp; the StatManager" data-count="11" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/11 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.1a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.6a.html"><span class="dir">&#9664; Previous</span><span class="where">1.6a — Animation States: IsWalking, WalkDir, Attack</span></a><a class="foot-next" href="2.2a.html"><span class="dir">Next &#9654;</span><span class="where">2.2a — Spikes: Collisions, Health &amp; Death</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

@@ -54,49 +54,54 @@
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-label">API Documentation &amp; Isolated Patterns</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Examine how an industrial laser cutter uses compound boolean logic and timestamp tracking
-        to prevent hardware overheating:
+        To prevent actions from occurring every single frame (60+ times per second), software engineers rely on
+        <strong>timestamp gating</strong> and <strong>compound boolean logic</strong>. Study these isolated function patterns
+        from disparate computing systems:
     </p>
 
-    <pre><code>using UnityEngine;
-
-// Industrial tool managing pulse intervals via timestamp gating
-public class LaserDrill : MonoBehaviour
+    <h4>Pattern 1: Timestamp Gating (Automated Email Dispatcher)</h4>
+    <p>
+        An email service prevents spamming users by checking if the elapsed real-world time exceeds the allowed throttle interval:
+    </p>
+    <pre><code>// Checks if sufficient time has elapsed since the previous email batch
+bool IsThrottleExpired(float lastSentTime, float throttleCooldown)
 {
-    // Designer knob: delay required between pulses
-    [SerializeField] private float pulseCooldown = 1.5f;
+    // Evaluates to true only if the clock has progressed beyond the cooldown threshold
+    return Time.time &gt;= lastSentTime + throttleCooldown;
+}</code></pre>
 
-    // Internal memory: timestamp of the previous discharge
-    private float lastPulseTime = 0f;
-
-    public void AttemptDischarge(bool sensorTargetAcquired)
+    <h4>Pattern 2: Compound Gating (Industrial Stamping Press Interlock)</h4>
+    <p>
+        A hydraulic safety press requires two independent sensors to report true simultaneously before engaging the motor:
+    </p>
+    <pre><code>// Executes cycle only when both safety criteria are satisfied
+void AttemptPressStroke(bool guardShieldLocked, bool emergencyStopClear)
+{
+    // Compound conditional: both sides must evaluate to true
+    if (guardShieldLocked &amp;&amp; emergencyStopClear)
     {
-        // Compound condition: target is valid AND cooldown duration has elapsed
-        if (sensorTargetAcquired &amp;&amp; Time.time &gt;= lastPulseTime + pulseCooldown)
-        {
-            FirePulse();
-
-            // Reset the timestamp memory to current engine clock
-            lastPulseTime = Time.time;
-        }
-    }
-
-    private void FirePulse()
-    {
-        Debug.Log("Laser pulse discharged at: " + Time.time);
+        EngageHydraulicPiston();
     }
 }</code></pre>
+
+    <h4>Pattern 3: State Memory Reset (Camera Flash Recharge)</h4>
+    <p>
+        Immediately after a high-energy strobe discharges, its memory timestamp is updated to the current engine time:
+    </p>
+    <pre><code>// Records the moment an event occurred to establish a new timing baseline
+lastDischargeTime = Time.time;</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>If <code>lastPulseTime</code> is <code>4.0</code> and <code>pulseCooldown</code> is <code>1.5</code>, what is the earliest <code>Time.time</code> value at which <code>Time.time &gt;= lastPulseTime + pulseCooldown</code> evaluates to true?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc2:q1" data-block="socratic" data-question="If lastPulseTime is 4.0 and pulseCooldown is 1.5 , what is the earliest Time.time value at which Time.time &gt;= lastPulseTime + pulseCooldown evaluates to true?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>In boolean logic, if <code>sensorTargetAcquired</code> is <code>false</code>, does Unity bother evaluating the right-hand side of the <code>&amp;&amp;</code> operator? (This is called <strong>short-circuit evaluation</strong>).<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc2:q2" data-block="socratic" data-question="In boolean logic, if sensorTargetAcquired is false , does Unity bother evaluating the right-hand side of the &amp;&amp; operator? (This is called short-circuit evaluation )." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If <code>lastSentTime</code> was recorded at <code>4.0</code> seconds and <code>throttleCooldown</code> is <code>1.5</code> seconds, what is the earliest <code>Time.time</code> at which <code>IsThrottleExpired</code> returns true?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc2:q1" data-block="socratic" data-question="If lastSentTime was recorded at 4.0 seconds and throttleCooldown is 1.5 seconds, what is the earliest Time.time at which IsThrottleExpired returns true?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In boolean logic, if <code>guardShieldLocked</code> is <code>false</code>, does Unity bother evaluating the right-hand side of the <code>&amp;&amp;</code> operator? (This is known as <strong>short-circuit evaluation</strong>).<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc2:q2" data-block="socratic" data-question="In boolean logic, if guardShieldLocked is false , does Unity bother evaluating the right-hand side of the &amp;&amp; operator? (This is known as short-circuit evaluation )." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you forget to reset your timestamp variable after performing an action?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc2:q3" data-block="socratic" data-question="What happens if you forget to reset your timestamp variable after performing an action?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -175,4 +180,4 @@ public class LaserDrill : MonoBehaviour
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Time APIs and logical operators</li>
     </ul>
     <p>Next: <a href="3.4a.html">3.4a — Turret Damage, Tuning &amp; Playtest</a></p>
-</div><div class="lab-bar" data-lesson="3.3a" data-lesson-title="Fire Rate: Cooldowns &amp; Time" data-count="10" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/10 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.3a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.2a.html"><span class="dir">&#9664; Previous</span><span class="where">3.2a — Projectiles: Instantiate, Fire, Destroy</span></a><a class="foot-next" href="3.4a.html"><span class="dir">Next &#9654;</span><span class="where">3.4a — Turret Damage, Tuning &amp; Playtest</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+</div><div class="lab-bar" data-lesson="3.3a" data-lesson-title="Fire Rate: Cooldowns &amp; Time" data-count="11" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/11 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.3a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.2a.html"><span class="dir">&#9664; Previous</span><span class="where">3.2a — Projectiles: Instantiate, Fire, Destroy</span></a><a class="foot-next" href="3.4a.html"><span class="dir">Next &#9654;</span><span class="where">3.4a — Turret Damage, Tuning &amp; Playtest</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

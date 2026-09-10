@@ -48,61 +48,43 @@
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-label">Read Function-Level Examples</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Examine how an automated security spotlight finds its target, measures Euclidean distance,
-        and triggers an alert when an object enters its detection sphere:
+        Notice how each targeting and distance function works in isolation across completely different systems:
     </p>
 
-    <pre><code>using UnityEngine;
-
-// Automated motion-sensing spotlight
-public class ProximityLight : MonoBehaviour
+    <p><strong>Example 1 — Caching a Tagged Object on a Rescue Helicopter:</strong></p>
+    <pre><code>// Searches the scene hierarchy once during initialization to locate a tagged target
+GameObject beaconObject = GameObject.FindWithTag("EmergencyBeacon");
+if (beaconObject != null)
 {
-    // Designer tuning knob for sensing radius
-    [SerializeField] private float sensorRadius = 8.0f;
+    beaconTransform = beaconObject.transform;
+}</code></pre>
 
-    // Cached reference to the target's transform
-    private Transform targetTransform;
+    <p><strong>Example 2 — Measuring Euclidean Distance on a Museum Laser Tripwire:</strong></p>
+    <pre><code>// Calculates straight-line distance between two 3D points
+float intruderDistance = Vector3.Distance(laserEmitter.position, intruderTransform.position);
+if (intruderDistance &lt;= alertRadius)
+{
+    Debug.Log("Laser beam broken! Intruder distance: " + intruderDistance);
+}</code></pre>
 
-    private void Start()
-    {
-        // Cache the target reference ONCE at startup to avoid expensive per-frame searches
-        GameObject detectedObj = GameObject.FindWithTag("TargetDrone");
-        if (detectedObj != null)
-        {
-            targetTransform = detectedObj.transform;
-        }
-        else
-        {
-            Debug.LogWarning("ProximityLight: No target found with tag 'TargetDrone'!");
-        }
-    }
-
-    private void Update()
-    {
-        // Safety guard: do nothing if no target exists
-        if (targetTransform == null) return;
-
-        // Measure straight-line 3D Euclidean distance
-        float currentDist = Vector3.Distance(transform.position, targetTransform.position);
-
-        // Evaluate proximity threshold
-        if (currentDist &lt;= sensorRadius)
-        {
-            Debug.Log("Motion detected! Target distance: " + currentDist);
-        }
-    }
+    <p><strong>Example 3 — High-Performance Distance with sqrMagnitude:</strong></p>
+    <pre><code>// Avoids the computationally expensive square-root operation (ideal for hundreds of particles)
+float sqrDist = (particleA.position - particleB.position).sqrMagnitude;
+if (sqrDist &lt;= activationRadius * activationRadius)
+{
+    // Proximity triggered without invoking Mathf.Sqrt
 }</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>Why is calling <code>GameObject.FindWithTag()</code> in <code>Start()</code> considered a best practice, while calling it inside <code>Update()</code> causes major game lag?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:sc2:q1" data-block="socratic" data-question="Why is calling GameObject.FindWithTag() in Start() considered a best practice, while calling it inside Update() causes major game lag?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>What does the guard clause <code>if (targetTransform == null) return;</code> do? What error would crash the console if this line were removed and no player existed?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:sc2:q2" data-block="socratic" data-question="What does the guard clause if (targetTransform == null) return; do? What error would crash the console if this line were removed and no player existed?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why is calling <code>GameObject.FindWithTag()</code> once in <code>Start()</code> considered good engineering, while calling it inside <code>Update()</code> causes frame-rate drops?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:sc2:q1" data-block="socratic" data-question="Why is calling GameObject.FindWithTag() once in Start() considered good engineering, while calling it inside Update() causes frame-rate drops?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In Example 2, what would happen if <code>intruderTransform</code> was null when calling <code>Vector3.Distance</code>? What guard clause should always precede distance checks?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:sc2:q2" data-block="socratic" data-question="In Example 2, what would happen if intruderTransform was null when calling Vector3.Distance ? What guard clause should always precede distance checks?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>

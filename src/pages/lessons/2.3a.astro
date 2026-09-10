@@ -85,67 +85,35 @@ const body = `<h1>2.3a — Health Potions &amp; the Max-Health Cap</h1>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-label">Read Function-Level Examples</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Examine how a resource management system caps its inventory so that gathering bonuses
-        never exceed container capacity. Notice how the logic lives inside the manager, not the pickup item:
+        Notice how different mathematical capping techniques operate in isolation across completely different systems:
     </p>
 
-    <pre><code>using UnityEngine;
-
-// Resource manager capping fuel reserves to tank volume
-public class FuelTankManager : MonoBehaviour
+    <p><strong>Example 1 — Selection Guard on a Water Reservoir Dam:</strong></p>
+    <pre><code>// Uses an if statement to enforce an upper ceiling
+if (currentGallons &gt; maxReservoirCapacity)
 {
-    public static FuelTankManager instance;
-
-    [SerializeField] private int currentFuel = 50;
-    [SerializeField] private int maxCapacity = 100;
-
-    public void AddFuel(int amount)
-    {
-        // Add resources
-        currentFuel += amount;
-
-        // Selection ceiling: clamp value so it cannot exceed maximum
-        if (currentFuel &gt; maxCapacity)
-        {
-            currentFuel = maxCapacity;
-        }
-
-        Debug.Log("Fuel tank refueled: " + currentFuel + " / " + maxCapacity);
-    }
+    currentGallons = maxReservoirCapacity;
 }</code></pre>
 
-    <p>And here is how an environmental pickup invokes the manager when collected:</p>
+    <p><strong>Example 2 — Mathematical Ceiling with Mathf.Min on an Electric Scooter Battery:</strong></p>
+    <pre><code>// Mathf.Min returns the smaller value, preventing the battery from charging past 100%
+batteryLevel = Mathf.Min(batteryLevel + chargeAdded, 100f);</code></pre>
 
-    <pre><code>using UnityEngine;
-
-// Consumable item collected via trigger overlap
-public class FuelCanister : MonoBehaviour
-{
-    private void OnTriggerEnter2D(Collider2D hitCollider)
-    {
-        if (hitCollider.CompareTag("Vehicle"))
-        {
-            if (FuelTankManager.instance != null)
-            {
-                FuelTankManager.instance.AddFuel(25);
-            }
-
-            // Consumable vanishes after being used
-            Destroy(gameObject);
-        }
-    }
-}</code></pre>
+    <p><strong>Example 3 — Two-Sided Bounding with Mathf.Clamp on a Spaceship Thruster:</strong></p>
+    <pre><code>// Mathf.Clamp guarantees the output stays between minimum idle (0) and maximum safe power (100)
+thrusterPower = Mathf.Clamp(requestedThrust, 0, 100);</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>If <code>currentFuel</code> is 90 and <code>AddFuel(25)</code> is called, trace the execution: what does <code>currentFuel</code> equal after the addition? What does it equal after the <code>if</code> check?</li>
-            <li>What would happen if <code>FuelCanister</code> checked the fuel level instead of <code>FuelTankManager</code>? Why should the rules of a stat belong to the manager of that stat?</li>
+            <li>If <code>currentGallons</code> is <code>95</code> and <code>20</code> gallons are added, trace Example 1: what is the value before and after the <code>if</code> check?</li>
+            <li>What is the difference between <code>Mathf.Min</code> (one upper bound) and <code>Mathf.Clamp</code> (both lower and upper bounds)?</li>
+            <li>Where should health-capping logic live — on the potion GameObject, or inside <code>StatManager</code>? Why is placing the rule in the central manager better software design?</li>
         </ol>
     </div>
 </div>

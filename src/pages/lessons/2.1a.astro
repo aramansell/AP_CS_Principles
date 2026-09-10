@@ -65,76 +65,56 @@ const body = `<h1>2.1a — Coins: Triggers, Colliders &amp; the StatManager</h1>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-label">Read Function-Level Examples</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Examine how an arcade score-tracking system separates its persistent manager from an item collector.
-        Notice two key software patterns: the <strong>Singleton Pattern</strong> (global access + persistence)
-        and the <strong>Trigger Callback</strong>:
+        Notice how each function operates in isolation across completely different game systems.
+        You do not copy a whole script; you learn what each function takes in, what it does, and how to combine them:
     </p>
 
-    <pre><code>using UnityEngine;
-
-// Persistent singleton manager tracking score across scenes
-public class GameScoreKeeper : MonoBehaviour
+    <p><strong>Example 1 — Receiving Overlap Events on an Automatic Grocery Store Door:</strong></p>
+    <pre><code>// Unity calls this method automatically whenever an object enters an 'Is Trigger' zone
+private void OnTriggerEnter2D(Collider2D entrant)
 {
-    // Static reference reachable from any script without GetComponent
-    public static GameScoreKeeper instance;
-
-    [SerializeField] private int crystalScore = 0;
-
-    private void Awake()
-    {
-        // Enforce singleton rule: exactly one instance exists
-        if (instance == null)
-        {
-            instance = this;
-            DontDestroyOnLoad(gameObject); // Survives scene changes
-        }
-        else
-        {
-            Destroy(gameObject); // Prevent duplicate managers
-        }
-    }
-
-    public void AddCrystals(int qty)
-    {
-        crystalScore += qty;
-        Debug.Log("Crystals collected! Current tally: " + crystalScore);
-    }
+    Debug.Log("Motion sensor triggered! Opening automatic doors for: " + entrant.name);
 }</code></pre>
 
-    <p>And here is how a collector script responds to an overlap event:</p>
-
-    <pre><code>using UnityEngine;
-
-// Collector component checking trigger overlaps
-public class CrystalCollector : MonoBehaviour
+    <p><strong>Example 2 — Validating Object Identity with Tags on a Vault Scanner:</strong></p>
+    <pre><code>// Efficiently verifies whether an incoming collider carries a specific tag label
+if (incomingItem.CompareTag("SecurityKeycard"))
 {
-    private void OnTriggerEnter2D(Collider2D hitCollider)
-    {
-        // 1. Identify what entered our trigger zone
-        if (hitCollider.CompareTag("EnergyCrystal"))
-        {
-            // 2. Notify the global manager
-            if (GameScoreKeeper.instance != null)
-            {
-                GameScoreKeeper.instance.AddCrystals(5);
-            }
+    Debug.Log("Access granted to high-security vault.");
+}</code></pre>
 
-            // 3. Remove the picked-up object, NOT this collector!
-            Destroy(hitCollider.gameObject);
-        }
+    <p><strong>Example 3 — Memory Cleanup with Destroy on a Spent Rocket Stage:</strong></p>
+    <pre><code>// Removes the specified GameObject entirely from the scene and frees its memory
+Destroy(spentBoosterStage.gameObject);</code></pre>
+
+    <p><strong>Example 4 — Global Persistence with the Singleton Pattern on a Jukebox Manager:</strong></p>
+    <pre><code>// public static makes 'jukebox' globally accessible from any script in the game
+public static JukeboxManager jukebox;
+
+private void Awake()
+{
+    if (jukebox == null)
+    {
+        jukebox = this;
+        DontDestroyOnLoad(gameObject); // Survives scene changes so music never stops
+    }
+    else
+    {
+        Destroy(gameObject); // Destroy duplicates if returning to the menu
     }
 }</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>In <code>CrystalCollector</code>, what is the type of <code>hitCollider</code>? Why must we write <code>hitCollider.gameObject</code> inside <code>Destroy()</code> instead of passing <code>hitCollider</code> directly?</li>
-            <li>If <code>GameScoreKeeper.instance</code> were a regular variable instead of <code>static</code>, why would <code>CrystalCollector</code> be unable to write <code>GameScoreKeeper.instance</code> directly?</li>
+            <li>In the automatic door snippet, what is the type of <code>entrant</code>? Why is it a <code>Collider2D</code> rather than a <code>GameObject</code>?</li>
+            <li>In the rocket booster snippet, what happens if you write <code>Destroy(spentBoosterStage)</code> without <code>.gameObject</code>? (Hint: Does that destroy the whole rocket or just the single collider component?)</li>
+            <li>In the jukebox snippet, how could any script in the entire game tell the jukebox to play a song without needing <code>GetComponent</code>?</li>
         </ol>
     </div>
 </div>

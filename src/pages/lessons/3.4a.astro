@@ -40,45 +40,75 @@ const body = `<h1>3.4a — Turret Damage, Tuning &amp; Playtest</h1>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-label">API Documentation &amp; Isolated Patterns</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Examine how an environmental hazard delivers damage upon contact and immediately destroys
-        itself to prevent multi-hit bugs:
+        Connecting collision physics to gameplay consequences requires three distinct programming operations:
+        filtering target identity, invoking external state managers, and cleaning up spent game objects.
+        Study these isolated function patterns from disparate computing systems:
     </p>
 
-    <pre><code>using UnityEngine;
+    <table>
+        <tr><th>API Method</th><th>Signature / Syntax</th><th>Engine Behavior</th></tr>
+        <tr>
+            <td><code>OnTriggerEnter2D</code></td>
+            <td><code>void OnTriggerEnter2D(Collider2D other)</code></td>
+            <td>Executed automatically when a trigger collider overlaps another collider in 2D space.</td>
+        </tr>
+        <tr>
+            <td><code>CompareTag</code></td>
+            <td><code>bool CompareTag(string tag)</code></td>
+            <td>High-performance string tag check on the colliding object to identify its classification.</td>
+        </tr>
+        <tr>
+            <td><code>Destroy</code></td>
+            <td><code>Destroy(Object obj)</code></td>
+            <td>Schedules a GameObject or Component for removal from memory at the end of the active frame.</td>
+        </tr>
+    </table>
 
-// Environmental hazard that inflicts damage upon contact and shatters
-public class FallingIcicle : MonoBehaviour
+    <h4>Pattern 1: Tag Filtering (Airport Luggage Scanner)</h4>
+    <p>
+        An automated security conveyor inspects baggage tags to route hazardous materials to an isolation bay:
+    </p>
+    <pre><code>// Inspects luggage tag metadata before routing
+void InspectLuggage(Collider2D item)
 {
-    // Tuning knob: damage delivered per strike
-    [SerializeField] private int impactDamage = 2;
-
-    private void OnTriggerEnter2D(Collider2D hitEntity)
+    if (item.CompareTag("HazardousCargo"))
     {
-        // 1. Filter: only affect targets with the matching tag
-        if (hitEntity.CompareTag("PlayerTarget"))
-        {
-            // 2. Deliver damage through the central manager
-            if (GameHealthSystem.instance != null)
-            {
-                GameHealthSystem.instance.InflictDamage(impactDamage);
-            }
-
-            // 3. Destroy this projectile immediately so it cannot strike again
-            Destroy(gameObject);
-        }
+        RerouteToContainment();
     }
 }</code></pre>
+
+    <h4>Pattern 2: Global Service Invocation (Power Grid Overload)</h4>
+    <p>
+        An industrial transformer discharges a surge into a central energy grid by invoking a singleton manager:
+    </p>
+    <pre><code>// Modifies a global energy pool via singleton access
+void DischargeToGrid(int wattsToDrain)
+{
+    if (PowerGridManager.instance != null)
+    {
+        // Passing a negative number decrements the central pool
+        PowerGridManager.instance.AdjustPowerSupply(-wattsToDrain);
+    }
+}</code></pre>
+
+    <h4>Pattern 3: Impact Disposal (Firework Rocket Casing)</h4>
+    <p>
+        A spent pyrotechnic shell destroys its own physical casing upon detonation to prevent duplicate impacts:
+    </p>
+    <pre><code>// Removes this GameObject immediately from the active scene hierarchy
+Destroy(gameObject);</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>If you omit <code>Destroy(gameObject);</code> from the impact callback, what happens if the player remains inside the projectile's collider for 10 consecutive frames?</li>
-            <li>Why does <code>FallingIcicle</code> pass positive <code>impactDamage</code> to a method called <code>InflictDamage()</code>, whereas in our project we pass negative <code>-damage</code> to <code>ChangeHealth()</code>? (Hint: Read the method names!).</li>
+            <li>If you omit <code>Destroy(gameObject);</code> from an impact callback, what happens if the moving entity remains inside the target collider for 10 consecutive frames?</li>
+            <li>Notice how <code>DischargeToGrid</code> passes negative <code>-wattsToDrain</code> to <code>AdjustPowerSupply()</code>. What would happen in our game if we mistakenly passed positive <code>damage</code> to <code>ChangeHealth()</code>?</li>
+            <li>Why is checking <code>if (StatManager.manager != null)</code> critical before attempting to invoke <code>ChangeHealth()</code>?</li>
         </ol>
     </div>
 </div>

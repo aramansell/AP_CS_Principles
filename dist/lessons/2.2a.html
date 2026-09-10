@@ -57,75 +57,42 @@
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-label">Read Function-Level Examples</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Examine how a vehicle damage simulation responds to solid barrier impacts and manages
-        a crash-recovery loop. Notice the key differences between <code>Collision2D</code> and <code>Collider2D</code>:
+        Notice how each physical collision and scene-management function works in isolation across completely different systems:
     </p>
 
-    <pre><code>using UnityEngine;
-using UnityEngine.SceneManagement;
-
-// Manages vehicle hull integrity and respawn penalties
-public class VehicleManager : MonoBehaviour
+    <p><strong>Example 1 — Receiving Solid Physical Collisions on a Bowling Ball:</strong></p>
+    <pre><code>// Unity calls this method automatically when two solid (non-trigger) colliders impact
+private void OnCollisionEnter2D(Collision2D impactData)
 {
-    public static VehicleManager instance;
-
-    [SerializeField] private int durability = 100;
-    [SerializeField] private int credits = 50;
-
-    public void ApplyDamage(int hitPoints)
-    {
-        durability -= hitPoints;
-        Debug.Log("Hull integrity: " + durability + "%");
-
-        // Has the vehicle taken fatal damage?
-        if (durability &lt;= 0)
-        {
-            TriggerCrashRespawn();
-        }
-    }
-
-    private void TriggerCrashRespawn()
-    {
-        // Penalty: halve current credits (rounded down)
-        credits = Mathf.FloorToInt(credits / 2f);
-        durability = 100;
-
-        // Reload the home garage scene
-        SceneManager.LoadScene("Garage");
-    }
+    Debug.Log("Solid impact registered against: " + impactData.gameObject.name);
 }</code></pre>
 
-    <p>And here is how the physical collision is received on the vehicle body:</p>
-
-    <pre><code>using UnityEngine;
-
-// Vehicle that physically bumps into solid track boundaries
-public class BumperCar : MonoBehaviour
+    <p><strong>Example 2 — Inspecting Collision Tags on a Hockey Puck:</strong></p>
+    <pre><code>// In Collision2D, the collided entity lives on the .gameObject property
+if (impactData.gameObject.CompareTag("GoalPost"))
 {
-    // Note: Parameter is Collision2D, representing a physical impact
-    private void OnCollisionEnter2D(Collision2D impact)
-    {
-        // Physical collisions store the GameObject on impact.gameObject
-        if (impact.gameObject.CompareTag("HazardBarrier"))
-        {
-            if (VehicleManager.instance != null)
-            {
-                VehicleManager.instance.ApplyDamage(25);
-            }
-        }
-    }
+    Debug.Log("Puck ricocheted off the goal post!");
 }</code></pre>
+
+    <p><strong>Example 3 — Rounding Down Fractions with FloorToInt:</strong></p>
+    <pre><code>// Divides resources and floors to the nearest whole integer (e.g. 5 / 2f = 2.5 -&gt; 2)
+int remainingSlices = Mathf.FloorToInt(totalPizzaSlices / 2f);</code></pre>
+
+    <p><strong>Example 4 — Reloading a Scene on a Mountain Climbing Simulator:</strong></p>
+    <pre><code>// Reloads a level by exact scene name when the climber falls off the ledge
+UnityEngine.SceneManagement.SceneManager.LoadScene("BaseCamp");</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>In <code>BumperCar</code>, why do we write <code>impact.gameObject.CompareTag(...)</code> whereas in <code>OnTriggerEnter2D</code> we wrote <code>other.CompareTag(...)</code>? (Hint: What type is <code>other</code> versus <code>impact</code>?)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:sc2:q1" data-block="socratic" data-question="In BumperCar , why do we write impact.gameObject.CompareTag(...) whereas in OnTriggerEnter2D we wrote other.CompareTag(...) ? (Hint: What type is other versus impact ?)" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>In <code>TriggerCrashRespawn</code>, why is <code>credits / 2f</code> converted with <code>Mathf.FloorToInt()</code> rather than regular integer division?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:sc2:q2" data-block="socratic" data-question="In TriggerCrashRespawn , why is credits / 2f converted with Mathf.FloorToInt() rather than regular integer division?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why does <code>OnCollisionEnter2D</code> require writing <code>impactData.gameObject.CompareTag(...)</code> while <code>OnTriggerEnter2D</code> can call <code>other.CompareTag(...)</code> directly?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:sc2:q1" data-block="socratic" data-question="Why does OnCollisionEnter2D require writing impactData.gameObject.CompareTag(...) while OnTriggerEnter2D can call other.CompareTag(...) directly?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In Example 3, what would happen if a player had 1 coin when they died? What does <code>Mathf.FloorToInt(1 / 2f)</code> evaluate to?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:sc2:q2" data-block="socratic" data-question="In Example 3, what would happen if a player had 1 coin when they died? What does Mathf.FloorToInt(1 / 2f) evaluate to?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why must you type <code>using UnityEngine.SceneManagement;</code> (or use the full namespace path) before calling <code>SceneManager.LoadScene()</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:sc2:q3" data-block="socratic" data-question="Why must you type using UnityEngine.SceneManagement; (or use the full namespace path) before calling SceneManager.LoadScene() ?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -227,4 +194,4 @@ public class BumperCar : MonoBehaviour
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — physics callbacks</li>
     </ul>
     <p>Next: <a href="2.3a.html">2.3a — Health Potions &amp; the Max-Health Cap</a></p>
-</div><div class="lab-bar" data-lesson="2.2a" data-lesson-title="Spikes: Collisions, Health &amp; Death" data-count="10" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/10 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.2a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="2.1a.html"><span class="dir">&#9664; Previous</span><span class="where">2.1a — Coins: Triggers, Tags &amp; the StatManager</span></a><a class="foot-next" href="2.3a.html"><span class="dir">Next &#9654;</span><span class="where">2.3a — Health Potions &amp; the Max-Health Cap</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+</div><div class="lab-bar" data-lesson="2.2a" data-lesson-title="Spikes: Collisions, Health &amp; Death" data-count="11" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/11 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.2a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="2.1a.html"><span class="dir">&#9664; Previous</span><span class="where">2.1a — Coins: Triggers, Tags &amp; the StatManager</span></a><a class="foot-next" href="2.3a.html"><span class="dir">Next &#9654;</span><span class="where">2.3a — Health Potions &amp; the Max-Health Cap</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

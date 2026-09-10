@@ -60,49 +60,54 @@ const body = `<h1>3.3a — Fire Rate: Cooldowns &amp; Time</h1>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-label">API Documentation &amp; Isolated Patterns</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Examine how an industrial laser cutter uses compound boolean logic and timestamp tracking
-        to prevent hardware overheating:
+        To prevent actions from occurring every single frame (60+ times per second), software engineers rely on
+        <strong>timestamp gating</strong> and <strong>compound boolean logic</strong>. Study these isolated function patterns
+        from disparate computing systems:
     </p>
 
-    <pre><code>using UnityEngine;
-
-// Industrial tool managing pulse intervals via timestamp gating
-public class LaserDrill : MonoBehaviour
+    <h4>Pattern 1: Timestamp Gating (Automated Email Dispatcher)</h4>
+    <p>
+        An email service prevents spamming users by checking if the elapsed real-world time exceeds the allowed throttle interval:
+    </p>
+    <pre><code>// Checks if sufficient time has elapsed since the previous email batch
+bool IsThrottleExpired(float lastSentTime, float throttleCooldown)
 {
-    // Designer knob: delay required between pulses
-    [SerializeField] private float pulseCooldown = 1.5f;
+    // Evaluates to true only if the clock has progressed beyond the cooldown threshold
+    return Time.time &gt;= lastSentTime + throttleCooldown;
+}</code></pre>
 
-    // Internal memory: timestamp of the previous discharge
-    private float lastPulseTime = 0f;
-
-    public void AttemptDischarge(bool sensorTargetAcquired)
+    <h4>Pattern 2: Compound Gating (Industrial Stamping Press Interlock)</h4>
+    <p>
+        A hydraulic safety press requires two independent sensors to report true simultaneously before engaging the motor:
+    </p>
+    <pre><code>// Executes cycle only when both safety criteria are satisfied
+void AttemptPressStroke(bool guardShieldLocked, bool emergencyStopClear)
+{
+    // Compound conditional: both sides must evaluate to true
+    if (guardShieldLocked &amp;&amp; emergencyStopClear)
     {
-        // Compound condition: target is valid AND cooldown duration has elapsed
-        if (sensorTargetAcquired &amp;&amp; Time.time &gt;= lastPulseTime + pulseCooldown)
-        {
-            FirePulse();
-
-            // Reset the timestamp memory to current engine clock
-            lastPulseTime = Time.time;
-        }
-    }
-
-    private void FirePulse()
-    {
-        Debug.Log("Laser pulse discharged at: " + Time.time);
+        EngageHydraulicPiston();
     }
 }</code></pre>
+
+    <h4>Pattern 3: State Memory Reset (Camera Flash Recharge)</h4>
+    <p>
+        Immediately after a high-energy strobe discharges, its memory timestamp is updated to the current engine time:
+    </p>
+    <pre><code>// Records the moment an event occurred to establish a new timing baseline
+lastDischargeTime = Time.time;</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>If <code>lastPulseTime</code> is <code>4.0</code> and <code>pulseCooldown</code> is <code>1.5</code>, what is the earliest <code>Time.time</code> value at which <code>Time.time &gt;= lastPulseTime + pulseCooldown</code> evaluates to true?</li>
-            <li>In boolean logic, if <code>sensorTargetAcquired</code> is <code>false</code>, does Unity bother evaluating the right-hand side of the <code>&amp;&amp;</code> operator? (This is called <strong>short-circuit evaluation</strong>).</li>
+            <li>If <code>lastSentTime</code> was recorded at <code>4.0</code> seconds and <code>throttleCooldown</code> is <code>1.5</code> seconds, what is the earliest <code>Time.time</code> at which <code>IsThrottleExpired</code> returns true?</li>
+            <li>In boolean logic, if <code>guardShieldLocked</code> is <code>false</code>, does Unity bother evaluating the right-hand side of the <code>&amp;&amp;</code> operator? (This is known as <strong>short-circuit evaluation</strong>).</li>
+            <li>What happens if you forget to reset your timestamp variable after performing an action?</li>
         </ol>
     </div>
 </div>

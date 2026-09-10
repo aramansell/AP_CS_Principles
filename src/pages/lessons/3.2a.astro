@@ -67,78 +67,44 @@ const body = `<h1>3.2a — Projectiles: Instantiate, Fire, Destroy</h1>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
-<!-- ============================================================ -->
-<div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Analyze the Architecture</span>
+        <span class="activity-label">Read Function-Level Examples</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Examine how a dungeon dart trap coordinates spawning, aiming, and translational ballistics.
-        Notice the two distinct responsibilities: the launcher handles creation, while the projectile
-        handles its own orientation, trajectory, and self-destruction:
+        Notice how each mathematical, rotational, and spawning function works in isolation across completely different game systems:
     </p>
 
-    <pre><code>using UnityEngine;
+    <p><strong>Example 1 — Computing Direction and Unit Length on an Airplane Navigation System:</strong></p>
+    <pre><code>// Vector subtraction (destination - current) gives direction; .normalized scales length to 1.0
+Vector3 headingDirection = (waypointPosition - transform.position).normalized;</code></pre>
 
-// Trap launcher coordinating projectile instantiation
-public class DartTrap : MonoBehaviour
-{
-    [SerializeField] private GameObject dartPrefab;
-    [SerializeField] private Transform trapMuzzle;
+    <p><strong>Example 2 — Converting 2D Direction to Angle on a Weather Vane:</strong></p>
+    <pre><code>// Atan2 calculates the angle in radians from X/Y coordinates; Rad2Deg converts to 0-360 degrees
+float windAngle = Mathf.Atan2(windVector.y, windVector.x) * Mathf.Rad2Deg;</code></pre>
 
-    public void FireDartAt(Vector3 targetCoords)
-    {
-        if (dartPrefab == null || trapMuzzle == null) return;
+    <p><strong>Example 3 — Applying 2D Rotation with Quaternion.AngleAxis:</strong></p>
+    <pre><code>// In 2D games, rotation occurs around the Z axis (Vector3.forward, pointing out of the screen)
+transform.rotation = Quaternion.AngleAxis(windAngle, Vector3.forward);</code></pre>
 
-        // 1. Spawn projectile clone at muzzle
-        GameObject spawnedDart = Instantiate(dartPrefab, trapMuzzle.position, Quaternion.identity);
+    <p><strong>Example 4 — Spawning and Initializing on a Magic Fountain:</strong></p>
+    <pre><code>// 1. Stamp clone into world
+GameObject orb = Instantiate(orbPrefab, fountainNozzle.position, Quaternion.identity);
 
-        // 2. Pass target coordinates to the projectile component
-        Dart dartScript = spawnedDart.GetComponent&lt;Dart&gt;();
-        if (dartScript != null)
-        {
-            dartScript.LaunchToward(targetCoords);
-        }
-    }
-}</code></pre>
+// 2. Access component on the fresh clone and pass setup data
+orb.GetComponent&lt;MagicOrb&gt;().InitializeOrb(targetCoords);</code></pre>
 
-    <p>And here is how the projectile manages its orientation and flight:</p>
-
-    <pre><code>using UnityEngine;
-
-// Ballistic dart that rotates to face target and flies forward
-public class Dart : MonoBehaviour
-{
-    [SerializeField] private float flightSpeed = 10f;
-    [SerializeField] private float autoDestroyTime = 3f;
-
-    public void LaunchToward(Vector3 destination)
-    {
-        // 1. Calculate normalized direction vector toward destination
-        Vector3 flightVector = (destination - transform.position).normalized;
-
-        // 2. Convert vector direction into 2D angle (degrees)
-        float rotationAngle = Mathf.Atan2(flightVector.y, flightVector.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.AngleAxis(rotationAngle, Vector3.forward);
-
-        // 3. Schedule self-destruction so dodged darts do not leak memory
-        Destroy(gameObject, autoDestroyTime);
-    }
-
-    private void Update()
-    {
-        // Fly forward along the rotated local right axis
-        transform.Translate(Vector3.right * flightSpeed * Time.deltaTime);
-    }
-}</code></pre>
+    <p><strong>Example 5 — Timed Cleanup with Destroy on a Floating Soap Bubble:</strong></p>
+    <pre><code>// Schedules this GameObject to be automatically destroyed 4 seconds after appearing
+Destroy(gameObject, 4.0f);</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>Why is <code>transform.rotation</code> calculated using <code>Vector3.forward</code> as the axis of rotation? In 2D math, which axis points toward the camera screen?</li>
-            <li>In <code>Dart.Update()</code>, why does <code>Vector3.right</code> fly toward the target? (Hint: How did <code>LaunchToward</code> rotate the transform?)</li>
+            <li>In Example 1, what happens if you forget <code>.normalized</code>? If the target is 20 units away, how does that affect any math multiplied by that direction?</li>
+            <li>In Example 3, why is <code>Vector3.forward</code> (0, 0, 1) used as the axis of rotation for a 2D sprite?</li>
+            <li>In Example 5, why is scheduling destruction with a timer better than never destroying dodged projectiles?</li>
         </ol>
     </div>
 </div>
