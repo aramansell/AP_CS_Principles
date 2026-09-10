@@ -1,44 +1,52 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>3.3a Fire Rate: Cooldowns &amp; Time — AP CS Principles</title><meta name="description" content="Lesson 3.3a Fire Rate: Cooldowns &amp; Time — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="3.3a Fire Rate: Cooldowns &amp; Time — AP CS Principles"><meta property="og:description" content="Lesson 3.3a Fire Rate: Cooldowns &amp; Time — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="3.2a.html">&#9664; 3.2a</a><span class="lesson-id">3.3a</span><a href="3.4a.html">3.4a &#9654;</a></div><h1>3.3a — Fire Rate: Cooldowns &amp; Time</h1>
 
 <p class="lesson-lead">
-    The turret can shoot — but if "in range" is the only condition, it
-    fires a laser every frame: sixty bullets a second. Today: the
-    cooldown, the pattern behind every rate limit in every game you
-    have ever played.
+    In the previous lab, stepping in range triggered a continuous laser of 60 bullets every second.
+    In software development, rate limiting is a fundamental problem: actions must not happen faster
+    than a designated cadence. Today, you evaluate three different Unity timing functions and build
+    a cooldown timer into <code>TurretController.cs</code>.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">Read the Docs</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p>Read the turret's Update with the cooldown restored:</p>
-    <pre><code>[SerializeField] private float attackCooldown = 2f;
-private float lastAttackTime = 0f;
-...
-if (distanceToPlayer &lt;= maxAttackRange &amp;&amp; Time.time &gt;= lastAttackTime + attackCooldown)
-{
-    AttackPlayer();
-    lastAttackTime = Time.time;
-}</code></pre>
+    <p>
+        How do we make an object "wait" between actions in Unity?
+        Because <code>Update()</code> executes every frame without stopping, we cannot use a blocking
+        sleep function (which would freeze the entire game window!).
+        Instead, game engines offer three common patterns for timing:
+    </p>
 
-    <p>Predict without running: first frame in range — what is
-    lastAttackTime, and does the turret fire instantly or after 2
-    seconds? Then you dodge out and back in within the 2 seconds: does
-    it fire again immediately or make you wait? Why does a
-    <em>private</em> field with no [SerializeField] remember anything
-    at all between frames?</p>
+    <table>
+        <tr><th>Timing Approach</th><th>Mechanism</th><th>How It Works</th></tr>
+        <tr>
+            <td><strong>1. <code>Time.time</code> Timestamp</strong></td>
+            <td><code>if (Time.time &gt;= lastTime + cooldown)</code></td>
+            <td>Records the absolute game time when an action occurred. Checks if the clock has advanced enough since the timestamp.</td>
+        </tr>
+        <tr>
+            <td><strong>2. Countdown Variable</strong></td>
+            <td><code>timer -= Time.deltaTime;</code></td>
+            <td>Decrements a float variable each frame. Fires when the counter reaches zero, then resets.</td>
+        </tr>
+        <tr>
+            <td><strong>3. Coroutines</strong></td>
+            <td><code>yield return new WaitForSeconds(cooldown);</code></td>
+            <td>Pauses a method execution asynchronously and resumes after a specified number of seconds without blocking the engine.</td>
+        </tr>
+    </table>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            Update runs fresh sixty times a second, but lastAttackTime
-            persists. Where does the value live between runs, and what
-            would happen to the cooldown if fields reset with every
-            frame like local variables do?
-        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc1:q1" data-block="socratic" data-question="Update runs fresh sixty times a second, but lastAttackTime persists. Where does the value live between runs, and what would happen to the cooldown if fields reset with every frame like local variables do?" placeholder="write your answer, then keep going"></textarea></label>
+        <h3>Socratic: Evaluating Timing Approaches</h3>
+        <ol>
+            <li>Why is the <code>Time.time</code> timestamp method particularly clean for single, independent actions like firing a shot or checking player damage?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc1:q1" data-block="socratic" data-question="Why is the Time.time timestamp method particularly clean for single, independent actions like firing a shot or checking player damage?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In what scenarios are <strong>Coroutines</strong> significantly more powerful than checking timestamps in <code>Update()</code>? (Hint: Imagine designing a boss attack that charges a laser for 1.5s, fires 5 rapid shots 0.2s apart, and then rests for 3s.)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc1:q2" data-block="socratic" data-question="In what scenarios are Coroutines significantly more powerful than checking timestamps in Update() ? (Hint: Imagine designing a boss attack that charges a laser for 1.5s, fires 5 rapid shots 0.2s apart, and then rests for 3s.)" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you use a local variable inside <code>Update()</code> for a timer instead of a class field? Why must timers live as member variables of the class?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:sc1:q3" data-block="socratic" data-question="What happens if you use a local variable inside Update() for a timer instead of a class field? Why must timers live as member variables of the class?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
     </div>
 </div>
 
@@ -49,51 +57,45 @@ if (distanceToPlayer &lt;= maxAttackRange &amp;&amp; Time.time &gt;= lastAttackT
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — see the laser.</strong> Temporarily change the
-    condition to distance only:</p>
-    <pre><code>if (distanceToPlayer &lt;= maxAttackRange)
-{
-    AttackPlayer();
-    lastAttackTime = Time.time;
-}</code></pre>
+    <p><strong>Step 1 — Declare Cooldown Variables.</strong> Open <code>TurretController.cs</code>.
+    Add these fields near the top of the class:</p>
+    <pre><code>    [SerializeField] private float attackCooldown = 2f;
+    private float lastAttackTime = 0f;</code></pre>
 
-    <p>Press Play and step in range. That wall of projectiles is a
-    frame-rate gun: one bullet per frame. Frame-rate-dependent behavior
-    is the same bug as movement without deltaTime — the machine's
-    speed becomes the game's rules. Restore the full condition and
-    note that <code>&amp;&amp;</code> means BOTH must be true: a
-    <strong>compound conditional</strong>, your first real one.</p>
+    <p>Notice the roles:</p>
+    <ul>
+        <li><code>attackCooldown</code> has <code>[SerializeField]</code>: it is a designer tuning knob (wait 2 seconds between shots).</li>
+        <li><code>lastAttackTime</code> is private and hidden: it is internal memory tracking when the turret last shot.</li>
+    </ul>
 
-    <p><strong>Step 2 — read the timer out loud.</strong>
-    <code>Time.time</code> is seconds since the scene started: 0.0,
-    1.6, 61.25... The condition asks "have at least 2 seconds passed
-    since lastAttackTime?" — a countdown written as arithmetic. Change
-    the <code>2f</code> to <code>5f</code> in the Inspector mid-game:
-    the turret visibly slows. You have tuned a timer with the same
-    workflow as tuning a speed.</p>
+    <p><strong>Step 2 — Implement the Compound Condition.</strong> In <code>Update()</code>,
+    combine the distance check and the cooldown check using the logical AND operator (<code>&amp;&amp;</code>):</p>
+    <pre><code>    private void Update()
+    {
+        if (playerTransform == null) return;
 
-    <p><strong>Step 3 — the cooldown is a state.</strong> The turret
-    now has two behaviors — SHOOTING and WAITING — and a field that
-    remembers which. That is the seed of every state machine; in
-    <a href="4.5a.html">4.5a</a> the enemy grows the same seed into
-    patrol/chase/attack.</p>
+        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+
+        // Both conditions must be true: player in range AND cooldown has passed
+        if (distanceToPlayer &lt;= maxAttackRange &amp;&amp; Time.time &gt;= lastAttackTime + attackCooldown)
+        {
+            AttackPlayer();
+            lastAttackTime = Time.time; // Reset the timestamp
+        }
+    }</code></pre>
+
+    <p>
+        Save and return to Unity. Press Play and walk inside the turret's attack radius.
+        Instead of a solid wall of bullets, the turret now fires a single projectile, waits exactly 2 seconds,
+        and then fires again!
+    </p>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: Timer surgery</h3>
+        <h3>Bug Hunt: Timer Faults</h3>
         <ol>
-            <li>Delete the <code>lastAttackTime = Time.time;</code> line.
-                Why did the laser come back, even though the condition
-                still exists?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q1" data-block="bug-hunt" data-question="Delete the lastAttackTime = Time.time; line. Why did the laser come back, even though the condition still exists?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Start lastAttackTime at −1000 instead of 0. What changes
-                in the first minute — and why does the choice of
-                starting value matter?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q2" data-block="bug-hunt" data-question="Start lastAttackTime at −1000 instead of 0. What changes in the first minute — and why does the choice of starting value matter?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Swap the condition to <code>&lt;=</code> on the time
-                check (Time.time &lt;= last + cooldown). Is the turret
-                faster, slower, or identical — and by how much per
-                shot?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q3" data-block="bug-hunt" data-question="Swap the condition to &lt;= on the time check (Time.time &lt;= last + cooldown). Is the turret faster, slower, or identical — and by how much per shot?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Set attackCooldown to 0.01. What did you build — and
-                why is this WORSE than the Step 1 laser if the player
-                has an old laptop?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q4" data-block="bug-hunt" data-question="Set attackCooldown to 0.01. What did you build — and why is this WORSE than the Step 1 laser if the player has an old laptop?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you comment out the line <code>lastAttackTime = Time.time;</code>? Why does the turret revert back to firing 60 bullets per second?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q1" data-block="bug-hunt" data-question="What happens if you comment out the line lastAttackTime = Time.time; ? Why does the turret revert back to firing 60 bullets per second?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In the Inspector for Turret, change <code>Attack Cooldown</code> to <code>0.5</code>. Test it in play mode. How does the threat level change?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q2" data-block="bug-hunt" data-question="In the Inspector for Turret, change Attack Cooldown to 0.5 . Test it in play mode. How does the threat level change?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you initialize <code>private float lastAttackTime = 100f;</code> in code? When the game starts, how many seconds must you wait before the turret can take its very first shot?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:bh1:q3" data-block="bug-hunt" data-question="What happens if you initialize private float lastAttackTime = 100f; in code? When the game starts, how many seconds must you wait before the turret can take its very first shot?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -106,29 +108,33 @@ if (distanceToPlayer &lt;= maxAttackRange &amp;&amp; Time.time &gt;= lastAttackT
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Rate design</h3>
+        <h3>Tinker: Testing the Countdown Timer Alternative</h3>
         <ol>
-            <li>Tune attackCooldown by playtest against a partner: what
-                cooldown makes dodging a decision instead of a
-                reflex?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:tk1:q1" data-block="tinker" data-question="Tune attackCooldown by playtest against a partner: what cooldown makes dodging a decision instead of a reflex?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>The enemy's damage has the same cooldown pattern
-                (damageCooldown = 1.0 in EnemyController.cs — find it).
-                Why should touching-damage ALSO have a cooldown, and
-                what would standing inside a spike feel like without
-                one?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:tk1:q2" data-block="tinker" data-question="The enemy's damage has the same cooldown pattern (damageCooldown = 1.0 in EnemyController.cs — find it). Why should touching-damage ALSO have a cooldown, and what would standing inside a spike feel like without one?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Hard: burst fire — three shots 0.1s apart, then the
-                full cooldown. What would you need: one timer, or a
-                counter as well? Sketch the fields you would add.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:tk1:q3" data-block="tinker" data-question="Hard: burst fire — three shots 0.1s apart, then the full cooldown. What would you need: one timer, or a counter as well? Sketch the fields you would add." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In <code>TurretController.cs</code>, try implementing the second approach:
+            <pre><code>private float timer = 0f;
+
+private void Update()
+{
+    timer -= Time.deltaTime;
+    if (distanceToPlayer &lt;= maxAttackRange &amp;&amp; timer &lt;= 0f)
+    {
+        AttackPlayer();
+        timer = attackCooldown;
+    }
+}</code></pre>
+            Does the turret behave identically in play mode? Compare both code snippets: which one feels more natural to your personal mental model of time?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:tk1:q1" data-block="tinker" data-question="In TurretController.cs , try implementing the second approach: private float timer = 0f; private void Update() { timer -= Time.deltaTime; if (distanceToPlayer &lt;= maxAttackRange &amp;&amp; timer &lt;= 0f) { AttackPlayer(); timer = attackCooldown; } } Does the turret behave identically in play mode? Compare both code snippets: which one feels more natural to your personal mental model of time?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>How could you use this exact same cooldown pattern to prevent the player from taking damage from spikes 60 times a second if they stand on them?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3a:tk1:q2" data-block="tinker" data-question="How could you use this exact same cooldown pattern to prevent the player from taking damage from spikes 60 times a second if they stand on them?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Write the cooldown pattern from memory: Time.time, last time, compound if, update-after</li>
-            <li>Explain why the turret fired a laser and how a field fixes it</li>
-            <li>Tune a cooldown live in the Inspector</li>
-            <li>Connect the cooldown to "state" — the turret remembers</li>
+            <li>Compare three timing patterns in Unity (<code>Time.time</code>, countdown timers, Coroutines)</li>
+            <li>Construct a compound boolean conditional using <code>&amp;&amp;</code></li>
+            <li>Explain why the timestamp reset line (<code>lastAttackTime = Time.time</code>) is mandatory</li>
+            <li>Tune a cooldown knob in the Inspector to balance game difficulty</li>
+            <li>Commit your fire rate cooldown system to GitHub</li>
         </ul>
     </div>
 </div>
@@ -138,8 +144,8 @@ if (distanceToPlayer &lt;= maxAttackRange &amp;&amp; Time.time &gt;= lastAttackT
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — cooldowns and the fire path</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Time.time, Time.deltaTime</li>
+        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — cooldowns and attack logic in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Time APIs and logical operators</li>
     </ul>
     <p>Next: <a href="3.4a.html">3.4a — Turret Damage, Tuning &amp; Playtest</a></p>
 </div><div class="lab-bar" data-lesson="3.3a" data-lesson-title="Fire Rate: Cooldowns &amp; Time" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.3a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.2a.html"><span class="dir">&#9664; Previous</span><span class="where">3.2a — Projectiles: Instantiate, Fire, Destroy</span></a><a class="foot-next" href="3.4a.html"><span class="dir">Next &#9654;</span><span class="where">3.4a — Turret Damage, Tuning &amp; Playtest</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

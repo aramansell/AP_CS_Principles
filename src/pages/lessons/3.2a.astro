@@ -1,60 +1,67 @@
 ---
 // Lesson 3.2a — Projectiles: Instantiate, Fire, Destroy
-// The turret's AttackPlayer + Projectile.Initialize + Projectile.Update.
+// Problem breakdown: Spawning, aiming, moving, and cleaning up projectiles.
+// Reading Unity functions (Instantiate vs Destroy, Translate vs Rigidbody velocity).
+// Building Projectile.cs from scratch and writing AttackPlayer in TurretController.cs.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>3.2a — Projectiles: Instantiate, Fire, Destroy</h1>
 
 <p class="lesson-lead">
-    Today the turret actually shoots. A bullet is born, flies, dies — a
-    whole life in a few frames, built from the prefab factory you
-    learned in <a href="2.4a.html">2.4a</a> plus one new idea: pointing
-    a vector at a target.
+    Your turret knows when you are near; now it needs teeth. Spawning and firing a projectile
+    looks complex, but it breaks down into four smaller sub-problems:
+    <strong>spawn a prefab → point it at the player → move it through space → destroy it when done</strong>.
+    Today, you read Unity's projectile functions and build <code>Projectile.cs</code> from scratch.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">Read the Docs</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p>Read the fire path in TurretController.cs:</p>
-    <pre><code>private void AttackPlayer()
-{
-    Quaternion rotation = Quaternion.LookRotation(Vector3.forward, playerController.transform.position - projectileSpawnPoint.position);
+    <p>
+        Firing a projectile requires coordinating several distinct Unity functions.
+        Read how the engine handles each step:
+    </p>
 
-    GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, rotation);
-    proj.GetComponent&lt;Projectile&gt;().Initialize(playerController.transform.position);
-}</code></pre>
-
-    <p>And the flight half of Projectile.cs:</p>
-    <pre><code>public void Initialize(Vector3 targetPos)
-{
-    Vector3 direction = (targetPos - transform.position).normalized;
-    float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-    transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
-}
-
-private void Update()
-{
-    transform.Translate(Vector3.right * speed * Time.deltaTime);
-}</code></pre>
-
-    <p>Predict the flight: the projectile does NOT steer toward you
-    after you dodge. It aims at where you <em>were</em> when it fired
-    and flies straight forever (or 5 seconds — find the line that
-    kills it). Where is the "forever" stopped, and what would the game
-    look like without it?</p>
+    <table>
+        <tr><th>Sub-Problem</th><th>Unity Function</th><th>Documentation &amp; Purpose</th></tr>
+        <tr>
+            <td><strong>1. Spawning</strong></td>
+            <td><code>Instantiate(prefab, pos, rot)</code></td>
+            <td>Creates a brand-new clone of a prefab at runtime and places it into the scene hierarchy.</td>
+        </tr>
+        <tr>
+            <td><strong>2. Aiming</strong></td>
+            <td><code>(target - origin).normalized</code></td>
+            <td>Vector subtraction produces a vector pointing toward the target. <code>.normalized</code> reduces its length to 1.</td>
+        </tr>
+        <tr>
+            <td><strong>3. Moving</strong></td>
+            <td><code>transform.Translate</code> or <code>Rigidbody2D</code></td>
+            <td>Moves the bullet every frame along its forward direction.</td>
+        </tr>
+        <tr>
+            <td><strong>4. Cleanup</strong></td>
+            <td><code>Destroy(gameObject, delay)</code></td>
+            <td>Destroys the projectile after a time delay (seconds) to prevent off-screen bullets from clogging memory.</td>
+        </tr>
+    </table>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            Why does Initialize take the target position instead of
-            steering toward the player every frame? What would the
-            projectile be if it <em>did</em> chase you — and which
-            enemy in this game already behaves that way?
-        </p>
+        <h3>Socratic: Evaluating Multiple Ways to Move Projectiles</h3>
+        <p>Compare these two ways to move a projectile across the screen:</p>
+        <ul>
+            <li><strong>Method 1 (Translate):</strong> <code>transform.Translate(Vector3.right * speed * Time.deltaTime);</code></li>
+            <li><strong>Method 2 (Physics Velocity):</strong> <code>GetComponent&lt;Rigidbody2D&gt;().linearVelocity = direction * speed;</code></li>
+        </ul>
+        <ol>
+            <li>If you want bullets that bounce off stone walls like in a pinball or billiards game, which method (Method 1 or Method 2) is significantly easier, and why?</li>
+            <li>If your projectiles are laser beams, energy arrows, or magic missiles that fly straight through obstacles, why is Method 1 clean and lightweight?</li>
+            <li>Why is <code>Destroy(gameObject, 5f)</code> called an essential <strong>garbage collection</strong> pattern? What would happen to your game's framerate if a player dodged 1,000 bullets and they all kept flying into deep space forever?</li>
+        </ol>
     </div>
 </div>
 
@@ -65,48 +72,79 @@ private void Update()
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — the plumbing.</strong> Select the Turret
-    instance. The Inspector shows two empty slots the code needs:
-    <strong>Projectile Prefab</strong> and <strong>Projectile Spawn
-    Point</strong>. Drag the Turret_Projectile prefab into the first.
-    For the second, the turret prefab has a child Transform near its
-    muzzle — drag that into the slot. The script now knows what to
-    stamp and where from. This wiring — code declares slots, the
-    Inspector fills them — is how every designer-configurable behavior
-    in Unity works.</p>
+    <p><strong>Step 1 — Build Projectile.cs from scratch.</strong> In <code>Assets/Scripts/</code>, create a new C# script named <code>Projectile.cs</code>:</p>
+    <pre><code>using UnityEngine;
 
-    <p><strong>Step 2 — the aim, unpacked.</strong> Read Initialize
-    again in three moves: (1) <code>target - spawn</code> is the
-    vector that points at you; (2) <code>.normalized</code> keeps the
-    direction but throws away the length — remember the diagonal in
-    <a href="1.5a.html">1.5a</a>? (3) Atan2 turns the direction into an
-    angle, and the rotation points the projectile's "right" at you.
-    Then Update flies it along its own right, forever-ish. The math
-    is one old friend (vectors) plus one new one (rotation).</p>
+public class Projectile : MonoBehaviour
+{
+    [SerializeField] private float speed = 6f;
+    [SerializeField] private float lifetime = 4f;
 
-    <p><strong>Step 3 — walk the life cycle.</strong> Press Play and
-    step in range. One projectile: <strong>Instantiate</strong> (born
-    at the spawn point) → <strong>Initialize</strong> (aims) →
-    <strong>Update</strong> (flies) → then it dies twice over: hit the
-    player and OnTriggerEnter2D in Projectile.cs destroys it (and
-    ChangeHealth(-damage) — the hurt from <a href="2.2a.html">2.2a</a>,
-    reused), or miss and <code>Destroy(gameObject, lifetime)</code>
-    kills it after 5 seconds. Every bullet needs a death; the turret's
-    is pre-installed on both paths.</p>
+    public void Initialize(Vector3 targetPosition)
+    {
+        // 1. Calculate direction toward the target
+        Vector3 direction = (targetPosition - transform.position).normalized;
+
+        // 2. Rotate the sprite so its right side faces the target
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+
+        // 3. Schedule automatic cleanup after lifetime seconds
+        Destroy(gameObject, lifetime);
+    }
+
+    private void Update()
+    {
+        // Fly forward along its rotated local right vector
+        transform.Translate(Vector3.right * speed * Time.deltaTime);
+    }
+}</code></pre>
+
+    <p>In <code>Assets/Prefabs/</code>, select the <code>Turret_Projectile</code> prefab and attach your new <code>Projectile.cs</code> script to it.</p>
+
+    <p><strong>Step 2 — Add AttackPlayer to TurretController.cs.</strong> Open <code>TurretController.cs</code>.
+    Declare slots for the projectile prefab and spawn point, then write <code>AttackPlayer()</code>:</p>
+    <pre><code>    [SerializeField] private GameObject projectilePrefab;
+    [SerializeField] private Transform projectileSpawnPoint;
+
+    private void AttackPlayer()
+    {
+        if (projectilePrefab == null || projectileSpawnPoint == null) return;
+
+        // Spawn projectile at muzzle position with no initial rotation
+        GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, Quaternion.identity);
+
+        // Aim and fire at player's current position
+        proj.GetComponent&lt;Projectile&gt;().Initialize(playerTransform.position);
+    }</code></pre>
+
+    <p><strong>Step 3 — Wire the Inspector slots.</strong></p>
+    <ol>
+        <li>Select the <strong>Turret</strong> in the Overworld scene.</li>
+        <li>Drag <code>Assets/Prefabs/Turret_Projectile</code> into the <strong>Projectile Prefab</strong> slot.</li>
+        <li>In the Hierarchy, expand the Turret GameObject to find its child <strong>projectileSpawnPoint</strong>, and drag it into the <strong>Projectile Spawn Point</strong> slot.</li>
+    </ol>
+
+    <p>
+        In <code>TurretController.Update()</code>, call <code>AttackPlayer();</code> inside your range check:
+    </p>
+    <pre><code>        if (distanceToPlayer &lt;= maxAttackRange)
+        {
+            AttackPlayer();
+        }</code></pre>
+
+    <p>
+        Save and press Play. Walk near the turret.
+        A projectile spawns from the muzzle, aims at your position, and shoots across the screen!
+        (Notice that it fires 60 bullets every second — in lesson 3.3a we fix the cooldown!)
+    </p>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The misfire catalog</h3>
+        <h3>Bug Hunt: Projectile Errors</h3>
         <ol>
-            <li>Empty the Projectile Prefab slot and press Play. What
-                is the error, and which line caused it?</li>
-            <li>Swap the spawn point to a child at the turret's FEET.
-                What visually changes and what does that say about
-                who chose the muzzle?</li>
-            <li>In Projectile.Update change Vector3.right to
-                Vector3.up. Where do bullets go now — and what is
-                "right" relative to, anyway?</li>
-            <li>Set lifetime to 999. Why do dodge-strafing duels
-                suddenly lag? Where do old bullets actually go?</li>
+            <li>What happens if you leave the <strong>Projectile Prefab</strong> slot unassigned in the Inspector? What error does Unity throw when you step in range?</li>
+            <li>In <code>Projectile.cs</code>, what happens if you change <code>Vector3.right</code> to <code>Vector3.up</code> in <code>Update()</code>? Which direction do bullets fly relative to their aim?</li>
+            <li>In <code>Projectile.cs</code>, comment out the <code>Destroy(gameObject, lifetime)</code> line. Fire several bullets and watch the Hierarchy in play mode. Do the spawned instances ever leave the scene?</li>
         </ol>
     </div>
 </div>
@@ -119,27 +157,21 @@ private void Update()
     </div>
 
     <div class="tinker">
-        <h3>Tinker: The bullet designer</h3>
+        <h3>Tinker: Bullet Tuning</h3>
         <ol>
-            <li>Open the Turret_Projectile prefab and tune its speed
-                and damage like a designer. What speed makes dodging
-                feel possible rather than lucky?</li>
-            <li>Make the projectile bigger and slower — a "cannonball"
-                variant. What changed about the GAME feel, with zero
-                lines of code?</li>
-            <li>Hard: a bullet that splits into three after 0.5
-                seconds. Which script would instantiate — and what
-                would Initialize take as target?</li>
+            <li>In the <code>Turret_Projectile</code> prefab, tune <code>speed</code> between <code>3</code> (slow dodgeable dodgeball) and <code>15</code> (bullet-hell sniper). How does projectile speed alter the player's emotional reaction to the turret?</li>
+            <li>Why does <code>Initialize</code> calculate the direction once, instead of continuously updating direction in <code>Update()</code>? What kind of weapon would you get if <code>direction</code> re-aimed toward the player every frame?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Wire prefab + spawn point slots in the Inspector and say why that pattern exists</li>
-            <li>Trace the aim: direction → normalize → Atan2 → rotation → translate along right</li>
-            <li>Explain both of the projectile's deaths (hit + lifetime) and why both are needed</li>
-            <li>Tune a projectile variant with code untouched</li>
+            <li>Break down projectile firing into instantiation, aiming, translation, and destruction</li>
+            <li>Explain the role of <code>Instantiate()</code> in stamping runtime prefab clones</li>
+            <li>Explain why vectors are normalized before calculating angle and movement</li>
+            <li>Create <code>Projectile.cs</code> and wire the turret's projectile spawn slots</li>
+            <li>Commit your projectile system to GitHub</li>
         </ul>
     </div>
 </div>
@@ -149,8 +181,8 @@ private void Update()
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — the full fire path, annotated</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Instantiate, Quaternion, Atan2</li>
+        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — projectile lifecycle and aiming in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Instantiate, Destroy, and Math functions</li>
     </ul>
     <p>Next: <a href="3.3a.html">3.3a — Fire Rate: Cooldowns &amp; Time</a></p>
 </div>`;

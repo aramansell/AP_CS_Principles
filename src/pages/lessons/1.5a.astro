@@ -1,46 +1,63 @@
 ---
 // Lesson 1.5a — Movement II: Speed, deltaTime & Tuning
-// The Inspector as tuning surface, serialized-vs-code precedence, feel.
+// Evaluating multiple ways to move in Unity (Translate vs MovePosition vs Velocity vs AddForce),
+// understanding Time.deltaTime for frame independence, and live tuning in the Inspector.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>1.5a — Movement II: Speed, deltaTime &amp; Tuning</h1>
 
 <p class="lesson-lead">
-    The movement works; today you make it <em>feel</em> right. That means
-    understanding where speed actually lives — the code, or the Inspector
-    — and why deltaTime is the difference between a game and a slideshow.
+    Movement works, but does it <em>feel</em> right? In game development, feel is
+    the intersection of physics, math, and tuning. Today you compare the different functions
+    Unity provides for moving objects, learn why <code>Time.deltaTime</code> is critical
+    for fair gameplay, and tune your character's speed knobs live.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">Read the Docs</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p>Read the top of PlayerController.cs again:</p>
-    <pre><code>[SerializeField] private float xSpeed = 5.0f;
-[SerializeField] private float ySpeed = 5.0f;</code></pre>
+    <p>
+        In Unity, there is rarely just one way to solve a problem. Depending on your game's
+        design, different movement functions offer different advantages. Read this comparison
+        of four common Unity movement techniques:
+    </p>
 
-    <p>Predict: you press Play, change xSpeed in the Inspector to 12,
-    stop, and open the file. What number is in the code now? Then you
-    close Play, set it to 12 <em>in edit mode</em>, and open the file
-    again — what is in the code now, and what is in the Inspector?</p>
-
-    <p>The two answers are different, and the difference is the whole
-    point of [SerializeField]: the code holds a <strong>default</strong>;
-    the scene/prefab holds an <strong>override</strong> that beats the
-    default. The Inspector is data saved in your scene file, not in your
-    .cs file.</p>
+    <table>
+        <tr><th>Movement Technique</th><th>How It Works</th><th>Best Used For</th></tr>
+        <tr>
+            <td><code>transform.Translate(vector)</code></td>
+            <td>Directly offsets the object's coordinates. Bypasses the physics simulation during movement.</td>
+            <td>Simple top-down games, moving UI, linear projectiles, bullets without gravity.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.MovePosition(position)</code></td>
+            <td>Sweeps the physics body to the target position, stopping cleanly against solid colliders.</td>
+            <td>Kinematic characters, moving platforms, top-down games that must never clip into walls.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.linearVelocity = vector</code></td>
+            <td>Assigns a direct velocity vector to the physics body. Unity's physics engine handles movement.</td>
+            <td>Snappy platformers, arcade physics, carrying momentum across surfaces.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.AddForce(vector)</code></td>
+            <td>Applies a physical push or impulse to the object, factoring in mass, drag, and inertia.</td>
+            <td>Jumping, thrusters, ice physics, knockback from explosions or enemy hits.</td>
+        </tr>
+    </table>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            Your fork of the starter has xSpeed = 5 in the code. If your
-            friend clones your repo and opens the Overworld, do they see
-            your Inspector override or the code default — and why does
-            git never see the Inspector value at all?
-        </p>
+        <h3>Socratic: Choosing the Right Tool for the Job</h3>
+        <ol>
+            <li>What happens if a high-speed character uses <code>transform.Translate</code> to move through a thin wall? (Hint: If the character jumps 2 units in one frame, what happens to the 0.5-unit wall in between?)</li>
+            <li>In what scenarios would you choose <code>Rigidbody2D.MovePosition</code> over <code>transform.Translate</code>?</li>
+            <li>Why would a game about a spaceship drifting in space prefer <code>AddForce</code> over <code>Translate</code>?</li>
+            <li>For our top-down overworld, why is starting with <code>transform.Translate</code> clean and simple for learning?</li>
+        </ol>
     </div>
 </div>
 
@@ -48,42 +65,40 @@ const body = `<h1>1.5a — Movement II: Speed, deltaTime &amp; Tuning</h1>
 <div class="activity basic-app">
     <div class="activity-header">
         <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-time">~20 min</span>
     </div>
 
-    <p><strong>Feel pass, one value at a time.</strong> Designers do not
-    guess good numbers, they tune them — one variable, one playtest,
-    repeat:</p>
+    <p><strong>Code defaults vs. Inspector overrides.</strong> Look at the top of <code>PlayerController.cs</code>:</p>
+    <pre><code>[SerializeField] private float xSpeed = 5.0f;
+[SerializeField] private float ySpeed = 5.0f;</code></pre>
+
+    <p>
+        When you write <code>= 5.0f</code> in code, you are setting a <strong>fallback default</strong>.
+        However, because these fields have <code>[SerializeField]</code>, Unity stores the actual value
+        inside the scene file (<code>Overworld.unity</code>). If you change the value in the Inspector,
+        the Inspector override wins every time!
+    </p>
+
+    <p><strong>The live-tuning workflow:</strong></p>
     <ol>
-        <li>Set xSpeed to 3. Walk across the Overworld. Too slow? Probably.</li>
-        <li>Try 5, then 8. Fill in a mini-table as you go: speed / how it feels / one adjective.</li>
-        <li>Pick the winner in edit mode, so it saves. Do the same for ySpeed — should it match xSpeed, or is the overworld nicer slightly slower on the vertical? Decide, do not default.</li>
+        <li>Press Play in Unity. Walk around the overworld.</li>
+        <li>While the game is running, select the Player in the Hierarchy. In the Inspector, change <code>xSpeed</code> to <code>3</code>. Walk around. Too sluggish?</li>
+        <li>Change <code>xSpeed</code> to <code>12</code>. Notice how responsive and rapid it feels.</li>
+        <li>Test several numbers until you find the speed that feels right for exploration (try between 4 and 7).</li>
+        <li><strong>Remember your favorite number, exit Play mode</strong>, and set that value in edit mode so it saves permanently!</li>
     </ol>
 
-    <div class="callout info">
-        <strong>Why the Inspector and not the code?</strong> Because the
-        point of a tuning knob is turning it while the game runs. If you
-        had to stop, edit code, wait for compile, and re-press play for
-        every number, you would tune three values a day. This way you
-        tune thirty.
+    <div class="callout trap">
+        <strong>Remember the play-mode rule:</strong> Any value you change while the Play button is blue
+        resets when you stop the game. Use play mode to <em>find</em> your number, then enter it in edit mode to <em>keep</em> it.
     </div>
 
-    <p><strong>Now break deltaTime on purpose.</strong> In
-    PlayerController.Update, temporarily delete
-    <code>* Time.deltaTime</code> from the xVector line. Play on this
-    machine; then run the same build on a different machine if you can.</p>
-
     <div class="bug-hunt">
-        <h3>Bug Hunt: The frame-rate bug</h3>
+        <h3>Bug Hunt: The deltaTime Abstraction</h3>
         <ol>
-            <li>With deltaTime removed, about how many times per second
-                does Update run on this machine? (Your PlayerLogger from
-                1.3a can count it.)</li>
-            <li>If Update ran 240 times a second on a friend's gaming
-                monitor, how much faster would the player be — and what
-                does that do to "fair" in a game?</li>
-            <li>Put deltaTime back. Where does the per-frame speed get
-                divided down to per-second, exactly?</li>
+            <li>Temporarily delete <code>* Time.deltaTime</code> from <code>xVector</code> in <code>Update()</code>. Run the game. What happens when you tap D?</li>
+            <li>If a game runs at 60 frames per second on your laptop and 240 frames per second on a high-end desktop, how many times farther would the player move on the faster machine without <code>Time.deltaTime</code>?</li>
+            <li>Why is <code>Time.deltaTime</code> considered an essential <strong>abstraction</strong> for multi-platform game development?</li>
         </ol>
     </div>
 </div>
@@ -96,29 +111,21 @@ const body = `<h1>1.5a — Movement II: Speed, deltaTime &amp; Tuning</h1>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Diagonal, again, for real</h3>
+        <h3>Tinker: Asymmetric Movement &amp; Feel</h3>
         <ol>
-            <li>Set xSpeed and ySpeed to 8 and walk in a circle. Now hold
-                A + W together: is the diagonal faster than the straight
-                lines? Time it across the screen both ways.</li>
-            <li>The fix is normalization — dividing the vector by its
-                length so the diagonal matches. The starter does not do
-                it for the player. Where WILL you meet normalization
-                this semester — which NPC moves toward you at a constant
-                speed no matter the angle?</li>
-            <li>Change the code default of xSpeed to your tuned winner
-                number and commit. Which file did you actually change —
-                and does the Inspector override still beat it?</li>
+            <li>In the Inspector, set <code>ySpeed</code> to <code>3.5</code> while leaving <code>xSpeed</code> at <code>5.0</code>. Walk around. In top-down 2D games, why do many classic RPGs make vertical movement slightly slower than horizontal movement?</li>
+            <li>Press W and D together to move diagonally. If horizontal speed is 5 and vertical speed is 5, Pythagorean theorem says diagonal speed is \(\\approx 7.07\\). How could you use vector normalization (<code>vector.normalized</code>) to keep speed constant in all directions?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain Inspector override vs code default and where each is stored</li>
-            <li>Tune a speed value in play mode, then persist it in edit mode</li>
-            <li>Explain what Time.deltaTime does and demonstrate the bug without it</li>
-            <li>Say what normalization is for, even though you have not written it yet</li>
+            <li>Compare four ways to move an object in Unity (<code>Translate</code>, <code>MovePosition</code>, <code>linearVelocity</code>, <code>AddForce</code>)</li>
+            <li>Explain what scenarios require physics sweep functions instead of direct translation</li>
+            <li>Explain the relationship between code defaults and serialized Inspector overrides</li>
+            <li>Explain how <code>Time.deltaTime</code> produces identical real-world speed across differing framerates</li>
+            <li>Save your tuned speeds and commit your changes</li>
         </ul>
     </div>
 </div>
@@ -128,8 +135,8 @@ const body = `<h1>1.5a — Movement II: Speed, deltaTime &amp; Tuning</h1>
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — input, vectors, deltaTime in depth</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the API tables</li>
+        <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — speed, vectors, and physics functions</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Rigidbody2D and Transform APIs</li>
     </ul>
     <p>Next: <a href="1.6a.html">1.6a — Animation States</a></p>
 </div>`;

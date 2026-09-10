@@ -1,54 +1,89 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>3.4a Turret Damage, Tuning &amp; Playtest — AP CS Principles</title><meta name="description" content="Lesson 3.4a Turret Damage, Tuning &amp; Playtest — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="3.4a Turret Damage, Tuning &amp; Playtest — AP CS Principles"><meta property="og:description" content="Lesson 3.4a Turret Damage, Tuning &amp; Playtest — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="3.3a.html">&#9664; 3.3a</a><span class="lesson-id">3.4a</span><a href="4.1a.html">4.1a &#9654;</a></div><h1>3.4a — Turret Damage, Tuning &amp; Playtest</h1>
 
 <p class="lesson-lead">
-    The turret works. Working is not the same as fun. Today you turn
-    "it shoots" into "I want to try again" — with the tuning process
-    designers actually use, and the playtest that proves it.
+    Your turret detects you, aims, and shoots on a timer. But currently, bullets fly harmlessly
+    through your body. Today, you complete the loop by connecting projectile impacts to your
+    health system, establish the four tuning knobs of enemy difficulty, and run a rigorous partner playtest.
 </p>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">Comparative Thinking</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>
+        Notice how our earlier lessons directly solve today's challenge:
+    </p>
+    <ul>
+        <li><strong>How is a projectile hitting the player similar to a spike?</strong> Both reduce the player's life by invoking <code>StatManager.manager.ChangeHealth(-damage)</code>.</li>
+        <li><strong>How is a projectile similar to a coin?</strong> Both use trigger colliders (<code>Is Trigger = true</code>) and call <code>Destroy(gameObject)</code> upon contact.</li>
+    </ul>
+
+    <div class="socratic">
+        <h3>Socratic: Where Does the Hit Detection Belong?</h3>
+        <ol>
+            <li>Should <code>OnTriggerEnter2D</code> check for hits inside <code>PlayerController.cs</code> or inside <code>Projectile.cs</code>? Why is placing the collision handler on the projectile better when your game introduces arrows, magic blasts, and boss lasers later?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4a:sc1:q1" data-block="socratic" data-question="Should OnTriggerEnter2D check for hits inside PlayerController.cs or inside Projectile.cs ? Why is placing the collision handler on the projectile better when your game introduces arrows, magic blasts, and boss lasers later?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if the projectile accidentally damages other enemies or the turret that spawned it? How does <code>other.CompareTag("Player")</code> ensure safety?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4a:sc1:q2" data-block="socratic" data-question="What happens if the projectile accidentally damages other enemies or the turret that spawned it? How does other.CompareTag(&quot;Player&quot;) ensure safety?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
         <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~20 min</span>
+        <span class="activity-time">~25 min</span>
     </div>
 
-    <p>The turret's difficulty lives in exactly four numbers, and you
-    own all of them now:</p>
+    <p><strong>Step 1 — Add Damage to Projectile.cs.</strong> Open <code>Assets/Scripts/Projectile.cs</code>.
+    Add a damage variable and an <code>OnTriggerEnter2D</code> method:</p>
+    <pre><code>    [SerializeField] private int damage = 1;
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        // Only damage the player
+        if (other.CompareTag("Player"))
+        {
+            if (StatManager.manager != null)
+            {
+                StatManager.manager.ChangeHealth(-damage);
+            }
+
+            // Destroy the bullet on impact
+            Destroy(gameObject);
+        }
+    }</code></pre>
+
+    <p>
+        Save and test in Unity. Walk into a bullet: your health drops from 3 to 2, the bullet vanishes,
+        and taking 3 hits triggers the death loop and resets to Start!
+    </p>
+
+    <p><strong>Step 2 — The Difficulty Matrix.</strong>
+    Game difficulty is not arbitrary; it is an equation controlled by four numbers you own:</p>
     <table>
-        <tr><th>Knob (lives on)</th><th>Default</th><th>Turns into</th></tr>
-        <tr><td>maxAttackRange (turret)</td><td>7</td><td>How much of the room is dangerous</td></tr>
-        <tr><td>attackCooldown (turret)</td><td>2s</td><td>How much time between chances to dodge</td></tr>
-        <tr><td>speed (projectile prefab)</td><td>10</td><td>How much reaction time you get</td></tr>
-        <tr><td>damage (projectile prefab)</td><td>1</td><td>How much a mistake costs</td></tr>
+        <tr><th>Knob (Component)</th><th>Default</th><th>Player Experience</th></tr>
+        <tr><td><code>maxAttackRange</code> (Turret)</td><td>7</td><td>How much of the map is a danger zone</td></tr>
+        <tr><td><code>attackCooldown</code> (Turret)</td><td>2s</td><td>How much time the player gets between dodges</td></tr>
+        <tr><td><code>speed</code> (Projectile)</td><td>6</td><td>How much human reaction time is required</td></tr>
+        <tr><td><code>damage</code> (Projectile)</td><td>1</td><td>How punishing each mistake is (out of 3 health)</td></tr>
     </table>
 
-    <p><strong>Step 1 — the tuning matrix.</strong> Try three turret
-    personalities in one scene (three turrets, different knobs): a
-    SNIPER (long range, slow shots, fast bullets), a SPRAYER (short
-    range, fast shots), and a FLAK (medium range, slow big bullets,
-    damage 2). Write the four numbers for each before you test — tune
-    with a hypothesis, not a vibe.</p>
-
-    <p><strong>Step 2 — difficulty curves.</strong> Place the three so
-    the player meets SPRAYER first, FLAK second, SNIPER last. That
-    ramp — easy threat, medium threat, precision threat — is a
-    difficulty curve built from copies of one prefab. You will reuse
-    this exact idea at scale in <a href="7.5a.html">7.5a</a>, when the
-    whole cave is a curve.</p>
+    <p><strong>Step 3 — Build Three Turret Personalities.</strong>
+    Duplicate the Turret in your Overworld scene (Ctrl+D) to create three distinct challenges:</p>
+    <ul>
+        <li><strong>The Sniper:</strong> Huge range (<code>12</code>), long cooldown (<code>3.5s</code>), fast bullet (<code>14</code>), high damage (<code>2</code>).</li>
+        <li><strong>The Sentry:</strong> Short range (<code>4</code>), rapid cooldown (<code>0.8s</code>), slow bullet (<code>4</code>), low damage (<code>1</code>).</li>
+        <li><strong>The Mortar:</strong> Medium range (<code>7</code>), balanced cooldown (<code>2s</code>), huge slow projectile (<code>3</code>), fatal damage (<code>3</code>).</li>
+    </ul>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The unfair-feeling fight</h3>
+        <h3>Bug Hunt: The Unfair Encounter</h3>
         <ol>
-            <li>Build a turret the player CANNOT dodge: range 12,
-                cooldown 0.2, speed 20. Play it. What is the difference
-                between HARD and IMPOSSIBLE, in one sentence each?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4a:bh1:q1" data-block="bug-hunt" data-question="Build a turret the player CANNOT dodge: range 12, cooldown 0.2, speed 20. Play it. What is the difference between HARD and IMPOSSIBLE, in one sentence each?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Now make one that LOOKS scary but is dodgeable
-                (range 10, cooldown 1, speed 6). Which numbers make
-                fear — and which make failure?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4a:bh1:q2" data-block="bug-hunt" data-question="Now make one that LOOKS scary but is dodgeable (range 10, cooldown 1, speed 6). Which numbers make fear — and which make failure?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Set projectile damage to 3 with default everything else.
-                What does one hit do to the whole game's health
-                economy (remember: max 3)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4a:bh1:q3" data-block="bug-hunt" data-question="Set projectile damage to 3 with default everything else. What does one hit do to the whole game's health economy (remember: max 3)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if a turret has <code>speed = 25</code> and <code>attackCooldown = 0.2s</code>? What is the technical difference between an encounter that is "hard" and one that is "statistically impossible"?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4a:bh1:q1" data-block="bug-hunt" data-question="What happens if a turret has speed = 25 and attackCooldown = 0.2s ? What is the technical difference between an encounter that is &quot;hard&quot; and one that is &quot;statistically impossible&quot;?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If you place a Sniper turret directly at the scene entrance where the player spawns, why does that violate player trust?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4a:bh1:q2" data-block="bug-hunt" data-question="If you place a Sniper turret directly at the scene entrance where the player spawns, why does that violate player trust?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -57,43 +92,35 @@
 <div class="activity basic-app">
     <div class="activity-header">
         <span class="activity-label">Playtest</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-time">~20 min</span>
     </div>
 
     <p>
-        Swap seats (<a href="2.4a.html">2.4a</a> rules: tester plays and
-        talks, designer watches silently). Watch for the three tells:
+        Swap seats with a partner and run a silent playtest (<a href="2.4a.html">2.4a</a> rules).
+        Observe their run through your Overworld without speaking:
     </p>
     <ul>
-        <li><strong>Never approached</strong> — the radius reads as a
-            wall. Shrink range or telegraph it.</li>
-        <li><strong>Tanked on purpose</strong> — bullets cost less than
-            the detour. Raise damage or place coins on the safe path.</li>
-        <li><strong>Died the same way twice</strong> — the failure is
-            unclear. Slower bullets, louder fire moment.</li>
+        <li>Did they notice the turret before it fired, or was the first hit a surprise?</li>
+        <li>Did they try to dodge bullets, or did they simply sprint through damage?</li>
+        <li>Which of your three turret personalities felt the most satisfying to evade?</li>
     </ul>
 
     <div class="tinker">
-        <h3>Tinker: Close the loop</h3>
+        <h3>Tinker: Close the Loop</h3>
         <ol>
-            <li>Write your top-3 fixes from your partner's run, then
-                apply exactly one. Re-run the partner. Did the tell
-                change? One variable at a time is how you learn WHICH
-                change mattered.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4a:tk1:q1" data-block="tinker" data-question="Write your top-3 fixes from your partner's run, then apply exactly one. Re-run the partner. Did the tell change? One variable at a time is how you learn WHICH change mattered." placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Where in YOUR overworld should the first turret go —
-                before or after the potion? Defend it in two
-                sentences using health economy, not taste.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4a:tk1:q2" data-block="tinker" data-question="Where in YOUR overworld should the first turret go — before or after the potion? Defend it in two sentences using health economy, not taste." placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Commit + push: <code>"3.4a: turret personalities + tuning matrix"</code>.</li>
+            <li>From your partner's feedback, pick <strong>one single knob</strong> to adjust (e.g. decrease projectile speed from 14 to 11). Retest. Did the play experience immediately improve?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4a:tk1:q1" data-block="tinker" data-question="From your partner's feedback, pick one single knob to adjust (e.g. decrease projectile speed from 14 to 11). Retest. Did the play experience immediately improve?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Commit and push your work: <code>"3.4a: turret damage, personalities &amp; playtest"</code>.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Name the four difficulty knobs and what each controls in play</li>
-            <li>Design three distinct turret personalities from one prefab</li>
-            <li>Explain hard vs impossible vs scary, with numbers</li>
-            <li>Run a silent playtest, pick the top fix, apply exactly one</li>
+            <li>Implement <code>OnTriggerEnter2D</code> on projectiles to deliver damage to the player</li>
+            <li>Explain how projectile collision reuses the damage and pickup patterns from Unit 2</li>
+            <li>Identify the four parameters that define turret encounter difficulty</li>
+            <li>Tune multiple turret archetypes using serialized Inspector overrides</li>
+            <li>Conduct a partner playtest and make an evidence-based design revision</li>
         </ul>
     </div>
 </div>
@@ -103,8 +130,8 @@
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — the complete annotated turret</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the five patterns</li>
+        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — complete turret system architecture</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — triggers, tags, and math</li>
     </ul>
     <p>Next: <a href="4.1a.html">4.1a — The Enemy: Waypoint Patrols</a> — Unit 4 begins.</p>
 </div><div class="lab-bar" data-lesson="3.4a" data-lesson-title="Turret Damage, Tuning &amp; Playtest" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.4a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.3a.html"><span class="dir">&#9664; Previous</span><span class="where">3.3a — Fire Rate: Cooldowns &amp; Time</span></a><a class="foot-next" href="4.1a.html"><span class="dir">Next &#9654;</span><span class="where">4.1a — The Enemy: Waypoint Patrols</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

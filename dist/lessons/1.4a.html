@@ -1,48 +1,39 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>1.4a Movement I: Input, Direction, Vector — AP CS Principles</title><meta name="description" content="Lesson 1.4a Movement I: Input, Direction, Vector — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="1.4a Movement I: Input, Direction, Vector — AP CS Principles"><meta property="og:description" content="Lesson 1.4a Movement I: Input, Direction, Vector — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="1.3a.html">&#9664; 1.3a</a><span class="lesson-id">1.4a</span><a href="1.5a.html">1.5a &#9654;</a></div><h1>1.4a — Movement I: Input, Direction, Vector</h1>
 
 <p class="lesson-lead">
-    Movement is the first real algorithm you build, and it hides the whole
-    AP model inside it: <strong>input → processing → output</strong>.
-    Today you write the three lines that every game in this course is
-    built on.
+    In video games, movement looks natural and effortless. In computer science,
+    it is an algorithm built by breaking a complex behavior into three smaller problems:
+    <strong>read player input → calculate a motion vector → translate position</strong>.
+    Today, you read Unity's input functions and write the foundational movement code from scratch.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">Read the Docs</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Before you type anything, read the shipped
-        <code>PlayerController.cs</code> (Assets/Scripts) and find these
-        lines in <code>Update()</code>:
+        Before writing code, computer scientists read the documentation for the tools
+        already provided by the engine. Unity gives us several different ways to detect
+        when a player touches the keyboard or controller. Look at these three functions:
     </p>
-    <pre><code>xDirection = Input.GetAxis("Horizontal"); // A/D or Left/Right Arrows
-yDirection = Input.GetAxis("Vertical");   // W/S or Up/Down Arrows
 
-xVector = new Vector2(xDirection * xSpeed * Time.deltaTime, 0);
-
-transform.Translate(xVector);</code></pre>
-
-    <p>
-        Predict, in writing, before you run it: if
-        <code>xSpeed</code> is <code>5</code>, how far does the player
-        move in one second of holding D? (Careful — the answer is not 5
-        pixels.) What does <code>Input.GetAxis("Horizontal")</code>
-        return the instant you are not pressing anything?
-    </p>
+    <table>
+        <tr><th>Unity Function</th><th>Return Type</th><th>Behavior</th></tr>
+        <tr><td><code>Input.GetAxis("Horizontal")</code></td><td><code>float</code> (-1.0 to 1.0)</td><td>Smooth ramp: gradually accelerates toward -1 or +1, then coasts back to 0.</td></tr>
+        <tr><td><code>Input.GetAxisRaw("Horizontal")</code></td><td><code>float</code> (-1, 0, or 1)</td><td>Instant snap: returns exactly -1, 0, or 1 immediately with no smoothing filter.</td></tr>
+        <tr><td><code>Input.GetKey(KeyCode.D)</code></td><td><code>bool</code> (true or false)</td><td>Binary state: true while the physical key 'D' is held down; false otherwise.</td></tr>
+    </table>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            <code>Input.GetAxis("Horizontal")</code> returns 0, or a smooth
-            ramp toward +1 (D) / -1 (A). Why is a smooth ramp better for
-            movement than <code>Input.GetKeyDown</code>, which is just
-            yes/no? What would the game feel like if it snapped between 0
-            and 1?
-        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:sc1:q1" data-block="socratic" data-question="Input.GetAxis(&quot;Horizontal&quot;) returns 0, or a smooth ramp toward +1 (D) / -1 (A). Why is a smooth ramp better for movement than Input.GetKeyDown , which is just yes/no? What would the game feel like if it snapped between 0 and 1?" placeholder="write your answer, then keep going"></textarea></label>
+        <h3>Socratic: Evaluating Multiple Ways to Solve a Problem</h3>
+        <ol>
+            <li>If you are building a driving game or a character with heavy momentum, which function (<code>GetAxis</code> or <code>GetAxisRaw</code>) gives the better feel, and why?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:sc1:q1" data-block="socratic" data-question="If you are building a driving game or a character with heavy momentum, which function ( GetAxis or GetAxisRaw ) gives the better feel, and why?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If you are building a precision grid-based puzzle game or a fast arcade game where you must stop on a dime, why might <code>GetAxisRaw</code> be superior to <code>GetAxis</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:sc1:q2" data-block="socratic" data-question="If you are building a precision grid-based puzzle game or a fast arcade game where you must stop on a dime, why might GetAxisRaw be superior to GetAxis ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if a player wants to play with Arrow Keys or a USB game controller instead of WASD? Why is querying a virtual axis like <code>"Horizontal"</code> more flexible than hardcoding <code>KeyCode.D</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:sc1:q3" data-block="socratic" data-question="What happens if a player wants to play with Arrow Keys or a USB game controller instead of WASD? Why is querying a virtual axis like &quot;Horizontal&quot; more flexible than hardcoding KeyCode.D ?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
     </div>
 </div>
 
@@ -54,69 +45,59 @@ transform.Translate(xVector);</code></pre>
     </div>
 
     <p>
-        <strong>Rebuild it yourself.</strong> Open
-        <code>PlayerController.cs</code> and comment out (or delete) every
-        line of <code>Update()</code>. Now bring movement back, one piece
-        at a time, in this exact order — run the game after each step:
+        <strong>Build movement from scratch.</strong> Open <code>Assets/Scripts/PlayerController.cs</code>.
+        Notice that right now it only contains an Animator reference in <code>Start()</code>.
+        Let's construct movement step-by-step by solving our three smaller sub-problems.
     </p>
 
-    <p><strong>Step 1 — the variables.</strong> You need somewhere for
-    input to live. These already exist at the top of the file — find them
-    and explain to your neighbor what <code>[SerializeField]</code> is
-    doing there (check the Inspector while the game is not running):
+    <p><strong>Sub-problem 1 — Declare variables for settings and input state.</strong>
+    Add these fields at the top of the <code>PlayerController</code> class:
     </p>
     <pre><code>[SerializeField] private float xSpeed = 5.0f;
 [SerializeField] private float ySpeed = 5.0f;
 
 private float xDirection;
-private float yDirection;</code></pre>
+private float yDirection;
+
+private Vector2 xVector;
+private Vector2 yVector;</code></pre>
+
+    <p><strong>Sub-problem 2 — Read player intent in Update.</strong>
+    Create the <code>Update()</code> method. Each frame, capture the player's horizontal and vertical inputs:
+    </p>
+    <pre><code>private void Update()
+{
+    // 1. Get User Input
+    xDirection = Input.GetAxis("Horizontal"); // A/D or Left/Right Arrows
+    yDirection = Input.GetAxis("Vertical");   // W/S or Up/Down Arrows
+}</code></pre>
+    <p>
+        Save and run the game. Does the player move yet? No! Input is merely data sitting in memory.
+        Nothing in the scene changes until data is turned into an action.
+    </p>
+
+    <p><strong>Sub-problem 3 — Turn intent into motion vectors and apply them.</strong>
+    Multiply direction by speed and frame duration (<code>Time.deltaTime</code>), then translate the player's Transform:
+    </p>
+    <pre><code>    // 2. Calculate Movement Vectors
+    xVector = new Vector2(xDirection * xSpeed * Time.deltaTime, 0);
+    yVector = new Vector2(0, yDirection * ySpeed * Time.deltaTime);
+
+    // 3. Apply Movement
+    transform.Translate(xVector);
+    transform.Translate(yVector);</code></pre>
 
     <p>
-        <strong>Step 2 — read the input.</strong> Grab the player's intent:
+        Save the script and return to Unity. Press Play. Press WASD or the arrow keys.
+        Your character now moves smoothly through the world!
     </p>
-    <pre><code>xDirection = Input.GetAxis("Horizontal");
-yDirection = Input.GetAxis("Vertical");</code></pre>
-    <p>
-        Run it. The player still does not move — but the game is already
-        <em>reading</em> the player. Nothing happens with data until you
-        use it: input is not behavior.
-    </p>
-
-    <p><strong>Step 3 — combine into a vector.</strong> Direction alone
-    is free; speed alone is nothing. Their product, scaled by how long
-    this frame lasted, is <em>motion</em>:
-    </p>
-    <pre><code>xVector = new Vector2(xDirection * xSpeed * Time.deltaTime, 0);
-yVector = new Vector2(0, yDirection * ySpeed * Time.deltaTime);</code></pre>
-
-    <p><strong>Step 4 — move.</strong></p>
-    <pre><code>transform.Translate(xVector);
-transform.Translate(yVector);</code></pre>
-
-    <div class="callout info">
-        <strong>Why Time.deltaTime?</strong> Update runs once per frame —
-        60 times a second on this laptop, 240 on a gaming monitor, maybe
-        25 on a friend's potato. Without deltaTime, the player would move
-        <em>xSpeed per frame</em>: fast on good machines, slow on bad
-        ones. Multiplying by the frame time makes it
-        <strong>xSpeed per second, on every machine</strong>. Same input,
-        same output, any hardware — that is the abstraction doing its job.
-    </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: Break the movement on purpose</h3>
-        <p>Make each bug, run it, describe what you see, then fix it:</p>
+        <h3>Bug Hunt: Testing Assumptions</h3>
         <ol>
-            <li>Change <code>xSpeed</code> to <code>0</code> in the
-                Inspector. Which direction still works, and why doesn't
-                changing the Inspector break the script?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q1" data-block="bug-hunt" data-question="Change xSpeed to 0 in the Inspector. Which direction still works, and why doesn't changing the Inspector break the script?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Delete just <code>* Time.deltaTime</code> from the
-                xVector line. The player now moves about how many times
-                faster at 60 fps?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q2" data-block="bug-hunt" data-question="Delete just * Time.deltaTime from the xVector line. The player now moves about how many times faster at 60 fps?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Swap the arguments: <code>new Vector2(0, xDirection * xSpeed * Time.deltaTime)</code>.
-                What did you break and what still works?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q3" data-block="bug-hunt" data-question="Swap the arguments: new Vector2(0, xDirection * xSpeed * Time.deltaTime) . What did you break and what still works?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Type <code>Transform.Translate</code> (capital T). What
-                does the error mean?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q4" data-block="bug-hunt" data-question="Type Transform.Translate (capital T). What does the error mean?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you delete <code>* Time.deltaTime</code> from the <code>xVector</code> calculation? Why does the player suddenly blast off at supersonic speed?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q1" data-block="bug-hunt" data-question="What happens if you delete * Time.deltaTime from the xVector calculation? Why does the player suddenly blast off at supersonic speed?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In the Inspector for Player, change <code>xSpeed</code> to <code>0</code>. What happens when you press A and D versus W and S?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q2" data-block="bug-hunt" data-question="In the Inspector for Player, change xSpeed to 0 . What happens when you press A and D versus W and S?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you accidentally swap the vectors and write <code>transform.Translate(yVector)</code> for horizontal movement?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:bh1:q3" data-block="bug-hunt" data-question="What happens if you accidentally swap the vectors and write transform.Translate(yVector) for horizontal movement?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -129,30 +110,21 @@ transform.Translate(yVector);</code></pre>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Make it yours</h3>
+        <h3>Tinker: Comparing Input Functions Live</h3>
         <ol>
-            <li>Give the player a different top speed horizontally than
-                vertically (try 8 and 4). What games actually do this,
-                and why would a designer want it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:tk1:q1" data-block="tinker" data-question="Give the player a different top speed horizontally than vertically (try 8 and 4). What games actually do this, and why would a designer want it?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Set <code>xSpeed</code> to <code>-5</code> in the
-                Inspector and play. Describe what happens and why the
-                <em>animation</em> still faces the right way.</li>
-            <li>Press A and W at the same time. The player moves
-                diagonally — is it faster than pure-right? (Measure:
-                walk across the screen both ways and count seconds.)
-                Games fix this with normalization — file that away for
-                the turret unit.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:tk1:q2" data-block="tinker" data-question="Press A and W at the same time. The player moves diagonally — is it faster than pure-right? (Measure: walk across the screen both ways and count seconds.) Games fix this with normalization — file that away for the turret unit." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In <code>PlayerController.cs</code>, replace <code>Input.GetAxis("Horizontal")</code> with <code>Input.GetAxisRaw("Horizontal")</code>. Run the game. How does stopping feel compared to before?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:tk1:q1" data-block="tinker" data-question="In PlayerController.cs , replace Input.GetAxis(&quot;Horizontal&quot;) with Input.GetAxisRaw(&quot;Horizontal&quot;) . Run the game. How does stopping feel compared to before?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Press W and D simultaneously to move diagonally. Does moving diagonally feel slightly faster than moving straight in one cardinal direction? (Hint: In 2D math, what is the length of a hypotenuse with sides 1 and 1?)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4a:tk1:q2" data-block="tinker" data-question="Press W and D simultaneously to move diagonally. Does moving diagonally feel slightly faster than moving straight in one cardinal direction? (Hint: In 2D math, what is the length of a hypotenuse with sides 1 and 1?)" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Draw the pipeline: input → direction → × speed → × deltaTime → vector → Translate</li>
-            <li>Say what <code>Input.GetAxis</code> returns for A, D, and nothing (−1, +1, 0)</li>
-            <li>Explain <code>Time.deltaTime</code> to someone who has never coded</li>
-            <li>Explain why the Inspector can override <code>xSpeed</code> without touching the code</li>
-            <li>Break and fix a movement bug on purpose in under a minute</li>
+            <li>State the three sub-problems of character movement (input → vector calculation → translation)</li>
+            <li>Explain the difference between <code>Input.GetAxis</code>, <code>Input.GetAxisRaw</code>, and <code>Input.GetKey</code></li>
+            <li>Explain why multiplying by <code>Time.deltaTime</code> is necessary</li>
+            <li>Locate and tune <code>xSpeed</code> and <code>ySpeed</code> in the Unity Inspector</li>
+            <li>Commit your new movement code to your GitHub fork</li>
         </ul>
     </div>
 </div>
@@ -162,8 +134,8 @@ transform.Translate(yVector);</code></pre>
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — input, vectors, deltaTime in depth</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the API tables</li>
+        <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — input, vectors, and translation in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — input and vector functions</li>
     </ul>
     <p>Coming up next: <a href="1.5a.html">1.5a — Movement II: Speed, deltaTime &amp; Tuning</a></p>
-</div><div class="lab-bar" data-lesson="1.4a" data-lesson-title="Movement I: Input, Direction, Vector" data-count="7" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/7 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="1.4a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.3a.html"><span class="dir">&#9664; Previous</span><span class="where">1.3a — Your First Script: Variables &amp; Update</span></a><a class="foot-next" href="1.5a.html"><span class="dir">Next &#9654;</span><span class="where">1.5a — Movement II: Speed, deltaTime &amp; Tuning</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+</div><div class="lab-bar" data-lesson="1.4a" data-lesson-title="Movement I: Input, Direction, Vector" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="1.4a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.3a.html"><span class="dir">&#9664; Previous</span><span class="where">1.3a — Your First Script: Variables &amp; Update</span></a><a class="foot-next" href="1.5a.html"><span class="dir">Next &#9654;</span><span class="where">1.5a — Movement II: Speed, deltaTime &amp; Tuning</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

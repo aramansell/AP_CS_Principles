@@ -1,49 +1,46 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>3.1a The Turret: Distance &amp; the Detection Radius — AP CS Principles</title><meta name="description" content="Lesson 3.1a The Turret: Distance &amp; the Detection Radius — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="3.1a The Turret: Distance &amp; the Detection Radius — AP CS Principles"><meta property="og:description" content="Lesson 3.1a The Turret: Distance &amp; the Detection Radius — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="2.4a.html">&#9664; 2.4a</a><span class="lesson-id">3.1a</span><a href="3.2a.html">3.2a &#9654;</a></div><h1>3.1a — The Turret: Distance &amp; the Detection Radius</h1>
 
 <p class="lesson-lead">
-    The turret is your first adversary that <em>decides</em>. Its whole
-    brain, today, is one number: how far away are you? One if-statement
-    separates "asleep" from "shooting." Every boss you build later starts
-    from this exact idea.
+    Until now, the world has been passive: coins wait to be collected and spikes wait to be bumped.
+    The Turret is your first adversary that <em>decides</em>. Before it can shoot, it must be aware.
+    Today, you break enemy awareness into smaller sub-problems, read Unity's spatial functions,
+    and build <code>TurretController.cs</code> from scratch.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">Read the Docs</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p>Read TurretController.cs — the turret's awareness, in full:</p>
-    <pre><code>[SerializeField] private float maxAttackRange = 7f;
-...
-private void Update()
-{
-    float distanceToPlayer = Vector3.Distance(transform.position, playerController.transform.position);
-
-    if (distanceToPlayer &lt;= maxAttackRange)
-    {
-        // (today: just watch the boundary; the shooting comes in 3.2a)
-    }
-}</code></pre>
-
     <p>
-        Predict before running: you creep toward the turret. At what
-        distance does it "see" you — exactly 7, or 6.99, or 7.01? What
-        happens when you stand exactly on the boundary and jitter one
-        pixel in and out? Write your prediction; the Debug.Log in the
-        lab will settle it.
+        Building artificial intelligence starts with breaking down awareness into smaller questions:
     </p>
+    <ol>
+        <li><em>Who is my target and where are they?</em> (Target acquisition)</li>
+        <li><em>How far away is the target right now?</em> (Distance measurement)</li>
+        <li><em>Is the target inside my danger zone?</em> (Selection condition)</li>
+    </ol>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            Vector3.Distance is a function someone else wrote — square
-            roots inside, probably. You call it without ever seeing the
-            math. What is that hiding called on the AP exam, and what
-            would your movement code from 1.4a look like if you had to
-            write Translate from raw matrix math every time?
-        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:sc1:q1" data-block="socratic" data-question="Vector3.Distance is a function someone else wrote — square roots inside, probably. You call it without ever seeing the math. What is that hiding called on the AP exam, and what would your movement code from 1.4a look like if you had to write Translate from raw matrix math every time?" placeholder="write your answer, then keep going"></textarea></label>
+        <h3>Socratic: Comparing Targeting &amp; Distance Functions</h3>
+        <p><strong>Sub-problem 1: Locating the Target.</strong> Compare these two Unity techniques:</p>
+        <table>
+            <tr><th>Approach</th><th>Example</th><th>Pros &amp; Cons</th></tr>
+            <tr><td><code>GameObject.FindWithTag</code></td><td><code>GameObject.FindWithTag("Player")</code></td><td>Searches the entire scene by tag. Very flexible, but scanning all scene objects is slow if called repeatedly in <code>Update()</code>.</td></tr>
+            <tr><td><code>[SerializeField]</code> reference</td><td><code>[SerializeField] private Transform playerTransform;</code></td><td>Directly linked in the Inspector. Zero search time, but requires manual wiring and fails if targets spawn dynamically at runtime.</td></tr>
+        </table>
+        <p><strong>Sub-problem 2: Measuring Distance.</strong> Compare these two math approaches:</p>
+        <table>
+            <tr><th>Function</th><th>Example</th><th>Performance Note</th></tr>
+            <tr><td><code>Vector3.Distance</code></td><td><code>Vector3.Distance(posA, posB)</code></td><td>Calculates the exact Euclidean distance ((\sqrt{Delta x^2 + Delta y^2})). Clean and readable.</td></tr>
+            <tr><td><code>sqrMagnitude</code></td><td><code>(posB - posA).sqrMagnitude &lt;= range * range</code></td><td>Compares squared distances. Skips the square root operation entirely, saving massive CPU power when hundreds of enemies search at once!</td></tr>
+        </table>
+        <ol>
+            <li>If you use <code>GameObject.FindWithTag</code>, why should it be called once in <code>Start()</code> and stored in a variable (cached), rather than called 60 times a second in <code>Update()</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:sc1:q1" data-block="socratic" data-question="If you use GameObject.FindWithTag , why should it be called once in Start() and stored in a variable (cached), rather than called 60 times a second in Update() ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In what scenarios would you choose <code>Vector3.Distance</code>, and in what scenarios is <code>sqrMagnitude</code> preferred?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:sc1:q2" data-block="socratic" data-question="In what scenarios would you choose Vector3.Distance , and in what scenarios is sqrMagnitude preferred?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
     </div>
 </div>
 
@@ -54,45 +51,66 @@ private void Update()
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — place a turret and read its knob.</strong> Drag
-    the Turret prefab into the Overworld, select it, and find
-    <strong>Max Attack Range</strong> in the Inspector: 7. The turret's
-    brain is a serialized float, exactly like your xSpeed. Everything
-    about its difficulty lives in tunable numbers.</p>
+    <p><strong>Step 1 — Create TurretController.cs.</strong>
+    In <code>Assets/Scripts/</code>, create a new C# script named <code>TurretController.cs</code>:</p>
+    <pre><code>using UnityEngine;
 
-    <p><strong>Step 2 — see the number live.</strong> Add this to the
-    turret's Update for today (delete it after — it is a measurement,
-    not a feature):</p>
-    <pre><code>Debug.Log(distanceToPlayer);</code></pre>
+public class TurretController : MonoBehaviour
+{
+    [SerializeField] private float maxAttackRange = 7f;
 
-    <p>
-        Walk toward the turret and watch the Console. Stop at the moment
-        the number crosses 7.0 — did anything visible change? (Not yet:
-        the shooting fires nothing today. You are watching the
-        <em>condition</em>, in the raw.)
-    </p>
+    private Transform playerTransform;
 
-    <p><strong>Step 3 — the boundary experiment.</strong> Stand at the
-    edge: the condition is <code>&lt;=</code>, so 7.0 counts. Now
-    change it to <code>&lt;</code> and stand exactly at 7.0 (use the
-    Inspector readout of the player's transform to get surgical). What
-    does &lt;= vs &lt; change about the game? One pixel of fairness —
-    the same trap the AP exam tests with list indexes.</p>
+    private void Start()
+    {
+        // Cache the player reference once at startup
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null)
+        {
+            playerTransform = playerObj.transform;
+        }
+        else
+        {
+            Debug.LogError("TurretController: No GameObject with tag 'Player' found in scene!");
+        }
+    }
+
+    private void Update()
+    {
+        if (playerTransform == null) return;
+
+        // Calculate distance to player
+        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+
+        // Check if player is inside attack range
+        if (distanceToPlayer &lt;= maxAttackRange)
+        {
+            Debug.Log("Player in range! Distance: " + distanceToPlayer);
+        }
+    }
+}</code></pre>
+
+    <p><strong>Step 2 — Attach to the Turret in Unity.</strong></p>
+    <ol>
+        <li>Open the <strong>Overworld</strong> scene and select the <strong>Turret</strong> GameObject.</li>
+        <li>Click <strong>Add Component</strong> and choose <strong>Turret Controller</strong>.</li>
+        <li>Notice the <strong>Max Attack Range</strong> field in the Inspector defaults to <code>7</code>.</li>
+    </ol>
+
+    <p><strong>Step 3 — Test the boundary live.</strong>
+    Press Play. Walk your player toward the turret while watching the Console:</p>
+    <ul>
+        <li>At distance <code>7.1</code>: The Console is quiet.</li>
+        <li>At distance <code>6.9</code>: The Console repeatedly logs <code>Player in range!</code>.</li>
+        <li>Walk away past 7: The messages stop.</li>
+    </ul>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The blind turret</h3>
+        <h3>Bug Hunt: Testing Range Conditions</h3>
         <ol>
-            <li>Set maxAttackRange to 0.5 and stand away. Why does
-                "shrinking the radius" produce the same behavior as
-                deleting the turret — and what is the design lesson?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:bh1:q1" data-block="bug-hunt" data-question="Set maxAttackRange to 0.5 and stand away. Why does &quot;shrinking the radius&quot; produce the same behavior as deleting the turret — and what is the design lesson?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Move the player out of the scene (delete the Player
-                GameObject from the Hierarchy) and press Play. What
-                does the Console say, and which line of Start() wrote
-                that message?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:bh1:q2" data-block="bug-hunt" data-question="Move the player out of the scene (delete the Player GameObject from the Hierarchy) and press Play. What does the Console say, and which line of Start() wrote that message?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Comment out the Distance call and hardcode
-                <code>float distanceToPlayer = 3f;</code>. What did
-                you just build — a turret that always shoots, or one
-                that never does?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:bh1:q3" data-block="bug-hunt" data-question="Comment out the Distance call and hardcode float distanceToPlayer = 3f; . What did you just build — a turret that always shoots, or one that never does?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you temporarily change the Player's tag to <code>Untagged</code> and press Play? What error message appears in the Console, and why?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:bh1:q1" data-block="bug-hunt" data-question="What happens if you temporarily change the Player's tag to Untagged and press Play? What error message appears in the Console, and why?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In <code>TurretController.cs</code>, what is the difference between <code>&lt;= maxAttackRange</code> and <code>&lt; maxAttackRange</code>? At what exact distance value would the behavior differ?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:bh1:q2" data-block="bug-hunt" data-question="In TurretController.cs , what is the difference between &lt;= maxAttackRange and &lt; maxAttackRange ? At what exact distance value would the behavior differ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In the Inspector, change <code>Max Attack Range</code> to <code>2</code>. Walk around the turret. How does changing this single knob transform the turret from a sniper into a close-quarters sentry?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:bh1:q3" data-block="bug-hunt" data-question="In the Inspector, change Max Attack Range to 2 . Walk around the turret. How does changing this single knob transform the turret from a sniper into a close-quarters sentry?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -105,28 +123,27 @@ private void Update()
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Design the aggro</h3>
+        <h3>Tinker: Visualizing the Aggro Zone</h3>
         <ol>
-            <li>Tune maxAttackRange by playtesting: what feels right —
-                5? 9? 12? Where does "scary" become "unfair"? Write your
-                winner and one sentence why.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:tk1:q1" data-block="tinker" data-question="Tune maxAttackRange by playtesting: what feels right — 5? 9? 12? Where does &quot;scary&quot; become &quot;unfair&quot;? Write your winner and one sentence why." placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Design: should the turret keep its detection radius a
-                secret from the player, or telegraph it? How would a
-                designer SHOW a 7-unit radius without printing numbers?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:tk1:q2" data-block="tinker" data-question="Design: should the turret keep its detection radius a secret from the player, or telegraph it? How would a designer SHOW a 7-unit radius without printing numbers?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Hard: could you build a turret that only sees you in
-                one direction (a cone)? What other function would you
-                need besides distance? Sketch the idea; you will
-                actually build it in the boss unit.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:tk1:q3" data-block="tinker" data-question="Hard: could you build a turret that only sees you in one direction (a cone)? What other function would you need besides distance? Sketch the idea; you will actually build it in the boss unit." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Add this Unity built-in function to the bottom of <code>TurretController.cs</code>:
+            <pre><code>private void OnDrawGizmosSelected()
+{
+    Gizmos.color = Color.red;
+    Gizmos.DrawWireSphere(transform.position, maxAttackRange);
+}</code></pre>
+            Select the Turret in the Scene view. What does Unity draw, and why is this tool invaluable for game designers?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:tk1:q1" data-block="tinker" data-question="Add this Unity built-in function to the bottom of TurretController.cs : private void OnDrawGizmosSelected() { Gizmos.color = Color.red; Gizmos.DrawWireSphere(transform.position, maxAttackRange); } Select the Turret in the Scene view. What does Unity draw, and why is this tool invaluable for game designers?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Tune <code>maxAttackRange</code>: What radius feels challenging without being frustrating? Write down your preferred number and explain your reasoning.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1a:tk1:q2" data-block="tinker" data-question="Tune maxAttackRange : What radius feels challenging without being frustrating? Write down your preferred number and explain your reasoning." placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain what Vector3.Distance returns and use it in a condition</li>
-            <li>Predict the &lt;= boundary case and verify it live</li>
-            <li>Explain why the turret finds the player by tag in Start, not Update</li>
-            <li>Tune maxAttackRange like a designer, with evidence</li>
+            <li>Break down autonomous entity awareness into target acquisition and distance testing</li>
+            <li>Explain why caching references in <code>Start()</code> is superior to calling <code>FindWithTag</code> in <code>Update()</code></li>
+            <li>Use <code>Vector3.Distance</code> inside an <code>if</code> condition</li>
+            <li>Create <code>TurretController.cs</code> and attach it to a scene GameObject</li>
+            <li>Commit your detection radius code to GitHub</li>
         </ul>
     </div>
 </div>
@@ -136,8 +153,8 @@ private void Update()
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — distance, radius, projectile lifecycle</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Vector3.Distance and friends</li>
+        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — distance, targeting, and projectile lifecycle</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Vector3.Distance and Transform APIs</li>
     </ul>
     <p>Next: <a href="3.2a.html">3.2a — Projectiles: Instantiate, Fire, Destroy</a></p>
 </div><div class="lab-bar" data-lesson="3.1a" data-lesson-title="The Turret: Distance &amp; the Detection Radius" data-count="7" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/7 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.1a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="2.4a.html"><span class="dir">&#9664; Previous</span><span class="where">2.4a — Prefabs, Spawning &amp; Playtesting</span></a><a class="foot-next" href="3.2a.html"><span class="dir">Next &#9654;</span><span class="where">3.2a — Projectiles: Instantiate, Fire, Destroy</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

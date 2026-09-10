@@ -1,19 +1,85 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>2.2a Spikes: Collisions, Health &amp; Death — AP CS Principles</title><meta name="description" content="Lesson 2.2a Spikes: Collisions, Health &amp; Death — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="2.2a Spikes: Collisions, Health &amp; Death — AP CS Principles"><meta property="og:description" content="Lesson 2.2a Spikes: Collisions, Health &amp; Death — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="2.1a.html">&#9664; 2.1a</a><span class="lesson-id">2.2a</span><a href="2.3a.html">2.3a &#9654;</a></div><h1>2.2a — Spikes: Collisions, Health &amp; Death</h1>
 
 <p class="lesson-lead">
-    Coins were a ghost passing through a wall; spikes are a wall. Same
-    meeting, different physics — and today you also meet the death
-    loop: the most consequential six lines in the starter project.
+    In lesson 2.1a you built coins that you pass through. Today you build spikes
+    that you bump into. By asking two simple questions — <strong>how is this similar to the coin,
+    and how is it different?</strong> — you unlock the second half of Unity's 2D physics engine:
+    solid collisions, health tracking, and the death loop.
 </p>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">Comparative Thinking</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Computer scientists do not reinvent the wheel for every new feature. Whenever you encounter
+        a new game mechanic, compare it to a problem you have already solved.
+        Compare the Coin you built yesterday with the Spike you are building today:
+    </p>
+
+    <table>
+        <tr><th>Feature</th><th>Coin Pickup (Lesson 2.1a)</th><th>Hazardous Spike (Today)</th></tr>
+        <tr><td><strong>Physics Type</strong></td><td><strong>Trigger</strong> (<code>Is Trigger = true</code>). Intangible; player walks through.</td><td><strong>Solid Collision</strong> (<code>Is Trigger = false</code>). Physical wall; player bumps and stops.</td></tr>
+        <tr><td><strong>Unity Message</strong></td><td><code>OnTriggerEnter2D(Collider2D other)</code></td><td><code>OnCollisionEnter2D(Collision2D collision)</code></td></tr>
+        <tr><td><strong>Parameter Received</strong></td><td><code>Collider2D other</code> (just the component touched).</td><td><code>Collision2D collision</code> (holds contact points, relative velocity, and collider).</td></tr>
+        <tr><td><strong>Tag Check</strong></td><td><code>other.CompareTag("Coin")</code></td><td><code>collision.gameObject.CompareTag("Spikes")</code></td></tr>
+        <tr><td><strong>Stat Affected</strong></td><td>Increases wealth: <code>ChangeCoins(+1)</code></td><td>Decreases health: <code>ChangeHealth(-1)</code></td></tr>
+        <tr><td><strong>Object Lifecycle</strong></td><td>Consumed on touch: <code>Destroy(other.gameObject)</code></td><td>Persists forever: remains dangerous in the world.</td></tr>
+    </table>
+
+    <div class="socratic">
+        <h3>Socratic: Similarities &amp; Differences</h3>
+        <ol>
+            <li><strong>How is the spike similar to the coin?</strong> Name at least two things both mechanics share in their logic flow.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:sc1:q1" data-block="socratic" data-question="How is the spike similar to the coin? Name at least two things both mechanics share in their logic flow." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li><strong>How is the spike different from the coin?</strong> Why would a game feel completely broken if spikes had <code>Is Trigger = true</code> and destroyed themselves on touch like coins?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:sc1:q2" data-block="socratic" data-question="How is the spike different from the coin? Why would a game feel completely broken if spikes had Is Trigger = true and destroyed themselves on touch like coins?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In <code>OnCollisionEnter2D</code>, why do we write <code>collision.gameObject.CompareTag("Spikes")</code> instead of <code>collision.CompareTag(...)</code>? (Look closely at the parameter type: is <code>Collision2D</code> a GameObject, a Collider, or a data container?)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:sc1:q3" data-block="socratic" data-question="In OnCollisionEnter2D , why do we write collision.gameObject.CompareTag(&quot;Spikes&quot;) instead of collision.CompareTag(...) ? (Look closely at the parameter type: is Collision2D a GameObject, a Collider, or a data container?)" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~20 min</span>
     </div>
 
-    <p>Read the spike half of PlayerController.cs:</p>
+    <p><strong>Step 1 — Verify the Spike Collider.</strong> In <code>Assets/Prefabs/Spikes</code>:</p>
+    <ol>
+        <li>Verify it has a <strong>BoxCollider2D</strong>.</li>
+        <li>Ensure <strong>Is Trigger is unchecked</strong> (spikes are solid obstacles!).</li>
+        <li>Ensure its Tag is set to <strong>Spikes</strong>.</li>
+    </ol>
+
+    <p><strong>Step 2 — Add Health and Death to StatManager.cs.</strong>
+    Open <code>Assets/Scripts/StatManager.cs</code> and expand it with health tracking:</p>
+    <pre><code>    [SerializeField] private int health = 3;
+
+    public void ChangeHealth(int amount)
+    {
+        health += amount;
+        Debug.Log("Health Changed! New Health: " + health);
+
+        if (health &lt;= 0)
+        {
+            Debug.Log("Player Died!");
+            HandleDeath();
+        }
+    }
+
+    private void HandleDeath()
+    {
+        // Halve coins rounded down as a death penalty
+        coins = Mathf.FloorToInt(coins / 2f);
+        health = 3;
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Start");
+    }</code></pre>
+
+    <p><strong>Step 3 — Add OnCollisionEnter2D to PlayerController.cs.</strong>
+    Open <code>PlayerController.cs</code> and add the collision handler right below <code>OnTriggerEnter2D</code>:</p>
     <pre><code>private void OnCollisionEnter2D(Collision2D collision)
 {
     if (collision.gameObject.CompareTag("Spikes"))
@@ -25,91 +91,18 @@
     }
 }</code></pre>
 
-    <p>Notice what changed vs yesterday: a different method
-    (<strong>OnCollisionEnter2D</strong>, not OnTriggerEnter2D), a
-    different parameter type (<strong>Collision2D</strong>, not
-    Collider2D), and — this is the part to predict — the coin vanishes
-    when you touch it, but the spikes do NOT destroy you. You slide off
-    them. What is different about the Spikes prefab's collider that
-    makes Unity call a collision instead of a trigger?</p>
-
-    <p>Then find the answer in the Inspector: select the Spikes prefab
-    and look at its BoxCollider2D — <strong>Is Trigger</strong> is
-    unchecked. Same component, one checkbox, two different events.</p>
-
-    <div class="callout warn">
-        <strong>The rule, once and forever:</strong> a trigger lets
-        things pass through (coins, pickups, ladders — "touching means
-        something"); a solid collider stops things (spikes, walls,
-        floors — "bumping means something"). If your handler never
-        fires, check which checkbox the collider has before touching a
-        single line of code.
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~20 min</span>
-    </div>
-
-    <p><strong>Step 1 — rebuild the damage.</strong> Comment out the
-    spike branch and retype it: collide → tag → ChangeHealth(-1). Run:
-    watch the Console count 3 → 2 as you bump spikes. Then die on
-    purpose.</p>
-
-    <p><strong>Step 2 — read the death loop.</strong> In
-    StatManager.cs:</p>
-    <pre><code>public void ChangeHealth(int amount)
-{
-    health += amount;
-    Debug.Log("Health Changed! New Health: " + health);
-
-    if (health &lt;= 0)
-    {
-        Debug.Log("Player Died!");
-        HandleDeath();
-    }
-}
-
-private void HandleDeath()
-{
-    // Halve coins rounded down
-    coins = Mathf.FloorToInt(coins / 2f);
-    health = 3;
-    UnityEngine.SceneManagement.SceneManager.LoadScene("Start");
-}</code></pre>
-
     <p>
-        Trace the consequence chain out loud: spike → ChangeHealth(-1)
-        → health 0 → HandleDeath → coins cut in half (rounded down),
-        health restored, scene reset. Death has a <strong>cost</strong>
-        — half your coins. That is game design: not a game-over screen,
-        a tax.
+        Save your files and hit Play in Unity. Walk into a spike!
+        Your player physically stops against the spike, and the Console logs <code>Health Changed! New Health: 2</code>.
+        Hit it three times: health hits 0, your coins are halved, and the Start scene loads!
     </p>
 
-    <p><strong>Step 3 — where does health live?</strong> Select the
-    StatManager object in the Hierarchy and watch the Inspector while
-    you spike yourself: health ticks 3 → 2 → 1 in the Inspector —
-    <em>live</em>, in play mode. The number you see is the number
-    ChangeHealth mutates.</p>
-
     <div class="bug-hunt">
-        <h3>Bug Hunt: Hurt yourself on purpose</h3>
+        <h3>Bug Hunt: Collision vs. Trigger Bugs</h3>
         <ol>
-            <li>What happens when you land on two spike tiles at once?
-                One −1 or several? Why does the answer depend on how
-                the tiles are built?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:bh1:q1" data-block="bug-hunt" data-question="What happens when you land on two spike tiles at once? One −1 or several? Why does the answer depend on how the tiles are built?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Change the spikes' collider to Is Trigger. What breaks
-                — and which method would you have to switch to in
-                order to fix it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:bh1:q2" data-block="bug-hunt" data-question="Change the spikes' collider to Is Trigger. What breaks — and which method would you have to switch to in order to fix it?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Set starting health to 1 in the StatManager's
-                Inspector. How fast is death now — and is 1 too
-                punishing for the Overworld? Argue one sentence.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:bh1:q3" data-block="bug-hunt" data-question="Set starting health to 1 in the StatManager's Inspector. How fast is death now — and is 1 too punishing for the Overworld? Argue one sentence." placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>In HandleDeath, comment out the LoadScene line. What
-                happens at zero health instead — and what did the
-                scene reset actually protect you from?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:bh1:q4" data-block="bug-hunt" data-question="In HandleDeath, comment out the LoadScene line. What happens at zero health instead — and what did the scene reset actually protect you from?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If you accidentally check <strong>Is Trigger</strong> on the Spikes prefab, what happens when the player touches them? Does <code>OnCollisionEnter2D</code> ever fire?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:bh1:q1" data-block="bug-hunt" data-question="If you accidentally check Is Trigger on the Spikes prefab, what happens when the player touches them? Does OnCollisionEnter2D ever fire?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you delete <code>if (health &lt;= 0)</code> from <code>ChangeHealth</code>? What would health do if you kept bumping spikes indefinitely?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:bh1:q2" data-block="bug-hunt" data-question="What happens if you delete if (health &lt;= 0) from ChangeHealth ? What would health do if you kept bumping spikes indefinitely?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why does <code>HandleDeath()</code> use <code>Mathf.FloorToInt(coins / 2f)</code> instead of regular integer division? What would happen if a player had 1 coin when they died?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:bh1:q3" data-block="bug-hunt" data-question="Why does HandleDeath() use Mathf.FloorToInt(coins / 2f) instead of regular integer division? What would happen if a player had 1 coin when they died?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -122,28 +115,21 @@ private void HandleDeath()
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Design the damage</h3>
+        <h3>Tinker: Exploring Collision Data</h3>
         <ol>
-            <li>Spikes cost 1 heart. Design a trap that costs 2 — what
-                changes in code, what changes in the scene, and where
-                would a new tag go?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:tk1:q1" data-block="tinker" data-question="Spikes cost 1 heart. Design a trap that costs 2 — what changes in code, what changes in the scene, and where would a new tag go?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Death halves your coins. Why "rounded down" — what
-                would 1 coin halve into, and what does
-                FloorToInt(0.5) actually produce?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:tk1:q2" data-block="tinker" data-question="Death halves your coins. Why &quot;rounded down&quot; — what would 1 coin halve into, and what does FloorToInt(0.5) actually produce?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Hard mode: a spike tile that only hurts if you touch
-                the TOP of it. Could a single if-statement inside
-                OnCollisionEnter2D do it? (Hint: <code>collision</code>
-                knows more than the tag — explore what it carries.)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:tk1:q3" data-block="tinker" data-question="Hard mode: a spike tile that only hurts if you touch the TOP of it. Could a single if-statement inside OnCollisionEnter2D do it? (Hint: collision knows more than the tag — explore what it carries.)" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In <code>OnCollisionEnter2D</code>, add <code>Debug.Log("Impact velocity: " + collision.relativeVelocity);</code>. Bump into a spike at different angles. What information does <code>Collision2D</code> give you that <code>Collider2D</code> could not?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:tk1:q1" data-block="tinker" data-question="In OnCollisionEnter2D , add Debug.Log(&quot;Impact velocity: &quot; + collision.relativeVelocity); . Bump into a spike at different angles. What information does Collision2D give you that Collider2D could not?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>How could a game use <code>collision.relativeVelocity.magnitude</code> to create fall damage (only take damage if moving faster than 10 units/sec)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.2a:tk1:q2" data-block="tinker" data-question="How could a game use collision.relativeVelocity.magnitude to create fall damage (only take damage if moving faster than 10 units/sec)?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Say when Unity calls OnTriggerEnter2D vs OnCollisionEnter2D — and why</li>
-            <li>Walk through the death loop line by line: health, coins, scene</li>
-            <li>Explain why death is a coin tax instead of a game-over</li>
-            <li>Check a collider's Is Trigger box before blaming the code</li>
+            <li>Articulate how spikes are similar to coins and how they are different</li>
+            <li>Explain the difference between <code>OnTriggerEnter2D</code> and <code>OnCollisionEnter2D</code></li>
+            <li>Explain why spikes use solid colliders (<code>Is Trigger = false</code>)</li>
+            <li>Trace the execution of <code>ChangeHealth(-1)</code> through death and scene reload</li>
+            <li>Commit your working spike hazard system to GitHub</li>
         </ul>
     </div>
 </div>
@@ -153,8 +139,9 @@ private void HandleDeath()
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the full reference with the trap table</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — comprehensive guide to Unity 2D collision events</li>
         <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the StatManager in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — physics callbacks</li>
     </ul>
     <p>Next: <a href="2.3a.html">2.3a — Health Potions &amp; the Max-Health Cap</a></p>
-</div><div class="lab-bar" data-lesson="2.2a" data-lesson-title="Spikes: Collisions, Health &amp; Death" data-count="7" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/7 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.2a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="2.1a.html"><span class="dir">&#9664; Previous</span><span class="where">2.1a — Coins: Triggers, Tags &amp; the StatManager</span></a><a class="foot-next" href="2.3a.html"><span class="dir">Next &#9654;</span><span class="where">2.3a — Health Potions &amp; the Max-Health Cap</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+</div><div class="lab-bar" data-lesson="2.2a" data-lesson-title="Spikes: Collisions, Health &amp; Death" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.2a" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="2.1a.html"><span class="dir">&#9664; Previous</span><span class="where">2.1a — Coins: Triggers, Tags &amp; the StatManager</span></a><a class="foot-next" href="2.3a.html"><span class="dir">Next &#9654;</span><span class="where">2.3a — Health Potions &amp; the Max-Health Cap</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
