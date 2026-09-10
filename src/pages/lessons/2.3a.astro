@@ -136,18 +136,27 @@ thrusterPower = Mathf.Clamp(requestedThrust, 0, 100);</code></pre>
 
     <div class="callout">
         <strong>Architectural Specification for <code>StatManager.cs</code>:</strong>
-        <ol>
-            <li><strong>Max Health Knob:</strong> Declare <code>[SerializeField] private int maxHealth = 3;</code>.</li>
-            <li><strong>Health Ceiling Guard:</strong> Inside <code>ChangeHealth(int amount)</code>, after modifying <code>health</code>, implement a ceiling check (using an <code>if</code> conditional, <code>Mathf.Min</code>, or <code>Mathf.Clamp</code>) to guarantee that <code>health</code> can never exceed <code>maxHealth</code>.</li>
-        </ol>
+        <p><strong>Enforce the Max Health Ceiling:</strong></p>
+        <ul>
+            <li>What variable represents the maximum health a player can hold? How do you expose it as a tuning knob in the Inspector?</li>
+            <li>Where should the rule live that prevents health from exceeding maximum capacity? Should it be on every potion, or centralized inside <code>StatManager</code>?</li>
+            <li>Inside your health modification method, after adjusting health, how can you guarantee the value never exceeds maximum capacity?</li>
+            <li>What conditional check or mathematical bounding function (such as <code>Mathf.Min</code> or <code>Mathf.Clamp</code>) can you use to enforce this ceiling?</li>
+        </ul>
     </div>
 
     <div class="callout">
         <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
-        <ol>
-            <li><strong>Handle Potion Trigger:</strong> Inside your existing <code>OnTriggerEnter2D(Collider2D other)</code> method, add an additional branch to check <code>other.CompareTag("Potion")</code>.</li>
-            <li><strong>Heal &amp; Destroy:</strong> If matched, check <code>StatManager.manager != null</code>, call <code>StatManager.manager.ChangeHealth(1);</code>, and destroy the collected potion object (<code>Destroy(other.gameObject);</code>).</li>
-        </ol>
+        <p><strong>Handle Potion Trigger:</strong></p>
+        <ul>
+            <li>What function does this belong in?</li>
+            <li>Should this be a trigger or a collider?</li>
+            <li>How do you check if the object is a Potion?</li>
+            <li>How do you check to see if the <code>StatManager</code> exists before communicating with it?</li>
+            <li>What function on the manager do you call to change health?</li>
+            <li>Should you be able to go above <code>maxHealth</code>? How would you prevent this from happening, and what do you need to check?</li>
+            <li>How do you destroy the potion? Is the potion <code>other.gameObject</code> or is it <code>gameObject</code>? (Hint: this script is attached to <code>gameObject</code>; we collided with <code>other</code>).</li>
+        </ul>
     </div>
 
     <p>
@@ -176,9 +185,7 @@ thrusterPower = Mathf.Clamp(requestedThrust, 0, 100);</code></pre>
     <div class="tinker">
         <h3>Tinker: Testing Mathf.Clamp</h3>
         <ol>
-            <li>In <code>StatManager.cs</code>, replace the <code>if (health &gt; maxHealth)</code> block with:
-            <pre><code>health = Mathf.Clamp(health + amount, 0, maxHealth);</code></pre>
-            Test taking damage on spikes and healing with potions. Does this one function replace multiple if statements?</li>
+            <li>In <code>StatManager.cs</code>, try rewriting your ceiling check using <code>Mathf.Clamp</code> to bound health between <code>0</code> (death) and <code>maxHealth</code> in a single line. Test taking damage on spikes and healing with potions. Does this one function replace multiple <code>if</code> statements?</li>
             <li>Game Design Question: Should a player at full health be allowed to consume a potion and waste it, or should the potion stay on the ground until needed? How would you implement that check in <code>PlayerController.cs</code>?</li>
         </ol>
     </div>

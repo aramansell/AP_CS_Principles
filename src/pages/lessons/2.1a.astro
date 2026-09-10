@@ -135,24 +135,29 @@ private void Awake()
 
     <div class="callout">
         <strong>Architectural Specification for <code>StatManager.cs</code>:</strong>
-        <ol>
-            <li><strong>File &amp; Class Name:</strong> In <code>Assets/Scripts/</code>, create a new script named <code>StatManager.cs</code>.</li>
-            <li><strong>Global Singleton Pointer:</strong> Declare a <code>public static StatManager manager;</code> field.</li>
-            <li><strong>State Variable:</strong> Declare a <code>[SerializeField] private int coins = 0;</code> field.</li>
-            <li><strong>Awake Lifecycle:</strong> In <code>Awake()</code>, check if <code>manager == null</code>. If so, assign <code>manager = this;</code> and call <code>DontDestroyOnLoad(gameObject);</code>. If <code>manager</code> already exists, call <code>Destroy(gameObject);</code>.</li>
-            <li><strong>Public Mutation Method:</strong> Write a <code>public void ChangeCoins(int amount)</code> method. Inside, add <code>amount</code> to <code>coins</code> and log the new total using <code>Debug.Log</code>.</li>
-            <li><strong>Hierarchy Setup:</strong> In the Overworld scene, create an empty GameObject named <code>StatManager</code> and attach your new <code>StatManager</code> component to it.</li>
-        </ol>
+        <p><strong>Singleton Architecture &amp; State:</strong></p>
+        <ul>
+            <li>Where in <code>Assets/Scripts/</code> should you create this script, and what must the class name match?</li>
+            <li>How do you make this manager globally accessible to any script without needing <code>GetComponent</code>? What static variable do you need to declare?</li>
+            <li>What variable tracks the total coins collected? How do you make it visible in the Inspector for debugging while keeping it private?</li>
+            <li>Which early lifecycle hook runs before <code>Start()</code> to establish singletons?</li>
+            <li>What check ensures only one instance of <code>StatManager</code> exists across scenes? What function prevents this GameObject from being destroyed when loading new scenes? What should happen to duplicate managers?</li>
+            <li>What public method should other scripts call to modify the coin count? How does it adjust the coin total and log the result?</li>
+            <li>Where in the Unity scene hierarchy should this component be attached so it exists when the game begins?</li>
+        </ul>
     </div>
 
     <div class="callout">
         <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
-        <ol>
-            <li><strong>Trigger Callback:</strong> Below <code>Update()</code>, declare <code>private void OnTriggerEnter2D(Collider2D other)</code>.</li>
-            <li><strong>Tag Verification:</strong> Check if <code>other.CompareTag("Coin")</code> is true.</li>
-            <li><strong>State Update:</strong> If it matches, check that <code>StatManager.manager != null</code> and call <code>StatManager.manager.ChangeCoins(1);</code>.</li>
-            <li><strong>Object Cleanup:</strong> Call <code>Destroy(other.gameObject);</code> so the collected coin vanishes from the scene.</li>
-        </ol>
+        <p><strong>Handle Coin Trigger:</strong></p>
+        <ul>
+            <li>What function does this belong in?</li>
+            <li>Should a coin pickup be a trigger or a solid collider?</li>
+            <li>How do you check if the object collided with is a Coin?</li>
+            <li>Before modifying stats, what safety check prevents errors if the manager is missing?</li>
+            <li>What function on <code>StatManager</code> adds to the coin total?</li>
+            <li>How do you destroy the collected coin? Is the coin <code>other.gameObject</code> or is it <code>gameObject</code>? (Hint: this script is attached to <code>gameObject</code>; we collided with <code>other</code>).</li>
+        </ul>
     </div>
 
     <p>

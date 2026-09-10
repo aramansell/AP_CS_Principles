@@ -123,39 +123,47 @@ if (Mathf.Abs(steerX) &gt;= Mathf.Abs(steerY))
 
     <div class="callout">
         <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
-        <ol>
-            <li>
-                <strong>Component References:</strong>
-                In <code>PlayerController.cs</code>, declare private fields for <code>Animator anim</code> and <code>SpriteRenderer sprite</code>.
-                In <code>Start()</code>, initialize both using <code>GetComponentInChildren&lt;Animator&gt;()</code> and <code>GetComponentInChildren&lt;SpriteRenderer&gt;()</code>.
-            </li>
-            <li>
-                <strong>Create <code>UpdateAnimation()</code> Method:</strong>
-                Declare a private helper method named <code>UpdateAnimation()</code>.
-            </li>
-            <li>
-                <strong>Sub-Problem 1 (Evaluate Walking State):</strong>
-                Calculate a boolean <code>isMoving</code> that is true if either <code>xDirection != 0</code> or <code>yDirection != 0</code>.
-                Call <code>anim.SetBool("IsWalking", isMoving);</code>.
-            </li>
-            <li>
-                <strong>Sub-Problem 2 (Evaluate Direction &amp; Flip):</strong>
-                If <code>isMoving</code> is true:
+        <p><strong>Component References:</strong></p>
+        <ul>
+            <li>What components control visual sprite display and animation playback on the player?</li>
+            <li>If those components live on child GameObjects, what method finds components located in children?</li>
+            <li>In which lifecycle method should you cache these component references so you only look them up once?</li>
+        </ul>
+
+        <p><strong>Dedicated Animation Method:</strong></p>
+        <ul>
+            <li>Should animation state logic clutter your movement calculations, or be organized in a dedicated helper function?</li>
+            <li>Where must this helper method be called each frame to keep visuals in sync with input?</li>
+        </ul>
+
+        <p><strong>Sub-Problem 1 (Evaluate Walking State):</strong></p>
+        <ul>
+            <li>How can you determine if the player is currently moving in any direction? What condition checks if either horizontal or vertical input is non-zero?</li>
+            <li>What Animator method updates a boolean parameter? What is the exact name of the boolean parameter in the Animator Controller?</li>
+        </ul>
+
+        <p><strong>Sub-Problem 2 (Evaluate Direction &amp; Flip):</strong></p>
+        <ul>
+            <li>When moving diagonally, how do you decide whether the sprite should play the sideways or vertical animation? How does <code>Mathf.Abs()</code> help compare horizontal vs vertical magnitude?</li>
+            <li>If horizontal movement dominates:
                 <ul>
-                    <li>Use <code>Mathf.Abs()</code> to compare <code>xDirection</code> and <code>yDirection</code>.</li>
-                    <li>If horizontal movement is greater than or equal to vertical movement: set integer parameter <code>"WalkDir"</code> to <code>1</code>, and set <code>sprite.flipX = xDirection &gt; 0;</code> (or adjust based on your sprite's default texture facing).</li>
-                    <li>Otherwise (vertical dominates): if <code>yDirection &gt; 0</code>, set <code>"WalkDir"</code> to <code>0</code> (up) and <code>sprite.flipX = true;</code>; if <code>yDirection &lt; 0</code>, set <code>"WalkDir"</code> to <code>2</code> (down) and <code>sprite.flipX = false;</code>.</li>
+                    <li>What integer value corresponds to the side-walking state in the Animator Controller?</li>
+                    <li>How do you determine whether <code>sprite.flipX</code> should be true or false based on movement direction?</li>
                 </ul>
             </li>
-            <li>
-                <strong>Sub-Problem 3 (Attack Trigger):</strong>
-                Check if the left mouse button was clicked using <code>Input.GetMouseButtonDown(0)</code>. If clicked, call <code>anim.SetTrigger("Attack");</code>.
+            <li>If vertical movement dominates:
+                <ul>
+                    <li>What integer value corresponds to walking up? What integer corresponds to walking down?</li>
+                    <li>Do you need to set <code>sprite.flipX</code> when moving vertically?</li>
+                </ul>
             </li>
-            <li>
-                <strong>Call from Update:</strong>
-                Call <code>UpdateAnimation();</code> at the very bottom of your <code>Update()</code> loop.
-            </li>
-        </ol>
+        </ul>
+
+        <p><strong>Sub-Problem 3 (Attack Trigger):</strong></p>
+        <ul>
+            <li>What function detects when the player clicks the left mouse button (mouse button index 0)?</li>
+            <li>What Animator method fires a one-shot trigger parameter? What is the trigger parameter's name?</li>
+        </ul>
     </div>
 
     <p>

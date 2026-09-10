@@ -111,36 +111,48 @@ Destroy(gameObject, 4.0f);</code></pre>
 
     <div class="callout">
         <strong>Architectural Specification for <code>Projectile.cs</code>:</strong>
-        <ol>
-            <li><strong>File &amp; Class Name:</strong> In <code>Assets/Scripts/</code>, create a new script named <code>Projectile.cs</code>.</li>
-            <li><strong>Designer Knobs:</strong> Declare serialized float fields for <code>speed</code> (default <code>6f</code>) and <code>lifetime</code> (default <code>4f</code>).</li>
-            <li><strong>Initialization Method:</strong> Write a <code>public void Initialize(Vector3 targetPosition)</code> method:
-                <ul>
-                    <li>Calculate the direction from current position to target: <code>(targetPosition - transform.position).normalized</code>.</li>
-                    <li>Compute rotation angle using <code>Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg</code>.</li>
-                    <li>Set <code>transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);</code>.</li>
-                    <li>Call <code>Destroy(gameObject, lifetime);</code> to schedule automatic memory cleanup.</li>
-                </ul>
-            </li>
-            <li><strong>Per-Frame Flight in Update:</strong> In <code>Update()</code>, translate the projectile forward along its local right axis using <code>transform.Translate(Vector3.right * speed * Time.deltaTime);</code>.</li>
-            <li><strong>Prefab Attachment:</strong> Select <code>Assets/Prefabs/Turret_Projectile</code> and attach your new <code>Projectile</code> component to it.</li>
-        </ol>
+        <p><strong>Variables &amp; Tuning Knobs:</strong></p>
+        <ul>
+            <li>Where in <code>Assets/Scripts/</code> should you create this script, and what must the class name match?</li>
+            <li>What serialized float knobs should designers be able to adjust in the Inspector for bullet speed and maximum time-to-live? What defaults make sense?</li>
+        </ul>
+
+        <p><strong>Aiming &amp; Initialization:</strong></p>
+        <ul>
+            <li>When a projectile is spawned, it needs to know where the target was standing. What public method signature can receive that target coordinate?</li>
+            <li>How do you calculate a direction vector from where the bullet spawned to where the target is? Why must this vector be normalized?</li>
+            <li>What trigonometric function calculates the angle in radians from X and Y components? How do you convert radians into degrees?</li>
+            <li>Which 3D axis represents the pivot axis for 2D rotation? What Quaternion method builds a rotation from an angle and an axis?</li>
+            <li>How do you tell Unity to automatically clean up this bullet after its lifetime expires, even if it never hits a target?</li>
+        </ul>
+
+        <p><strong>Per-Frame Flight in Update:</strong></p>
+        <ul>
+            <li>Since the projectile was rotated to face the target upon spawn, which local direction represents "forward" in Unity 2D sprite geometry?</li>
+            <li>What function moves the transform each frame? How do you ensure flight speed is frame-rate independent?</li>
+            <li>Which prefab in <code>Assets/Prefabs/</code> needs this script attached?</li>
+        </ul>
     </div>
 
     <div class="callout">
         <strong>Architectural Specification for <code>TurretController.cs</code>:</strong>
-        <ol>
-            <li><strong>Inspector Slots:</strong> Add serialized private fields for <code>GameObject projectilePrefab;</code> and <code>Transform projectileSpawnPoint;</code>.</li>
-            <li><strong>Attack Method:</strong> Write a private method <code>AttackPlayer()</code>:
-                <ul>
-                    <li>Guard against null references for <code>projectilePrefab</code> or <code>projectileSpawnPoint</code>.</li>
-                    <li>Instantiate the projectile at <code>projectileSpawnPoint.position</code> with <code>Quaternion.identity</code>.</li>
-                    <li>Retrieve the <code>Projectile</code> component from the instantiated object and call its <code>Initialize()</code> method, passing <code>playerTransform.position</code>.</li>
-                </ul>
-            </li>
-            <li><strong>Call from Update:</strong> Inside your existing range check (when distance is less than or equal to <code>maxAttackRange</code>), call <code>AttackPlayer();</code>.</li>
-            <li><strong>Wire Slots in Inspector:</strong> Select the Turret in the Overworld scene. Drag the <code>Turret_Projectile</code> prefab into the projectile slot, and drag the child <code>projectileSpawnPoint</code> into the spawn point slot.</li>
-        </ol>
+        <p><strong>Inspector Slots:</strong></p>
+        <ul>
+            <li>What serialized fields are needed so designers can drag in the projectile prefab and assign the physical spawn nozzle?</li>
+        </ul>
+
+        <p><strong>Attack Method:</strong></p>
+        <ul>
+            <li>In your firing function, what guard check ensures the prefab and spawn point slots are not left unassigned?</li>
+            <li>What method stamps a new clone of the projectile prefab into the scene? Where should it be placed, and what rotation should it start with?</li>
+            <li>How do you grab the <code>Projectile</code> script on that newly created clone? What method do you call on it to aim it at the player's position?</li>
+        </ul>
+
+        <p><strong>Triggering the Attack:</strong></p>
+        <ul>
+            <li>Inside your range check in <code>Update()</code>, where should this attack method be invoked?</li>
+            <li>What slots need to be connected in the Turret's Inspector before testing in Play mode?</li>
+        </ul>
     </div>
 
     <p>

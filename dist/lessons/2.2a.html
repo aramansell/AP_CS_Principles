@@ -113,32 +113,34 @@ UnityEngine.SceneManagement.SceneManager.LoadScene("BaseCamp");</code></pre>
 
     <div class="callout">
         <strong>Architectural Specification for <code>StatManager.cs</code>:</strong>
-        <ol>
-            <li><strong>Health State:</strong> Declare <code>[SerializeField] private int health = 3;</code>.</li>
-            <li><strong>Public Health Modifier:</strong> Write <code>public void ChangeHealth(int amount)</code>:
-                <ul>
-                    <li>Add <code>amount</code> to <code>health</code>.</li>
-                    <li>Print a log with the updated health total.</li>
-                    <li>If <code>health &lt;= 0</code>, print <code>"Player Died!"</code> and call <code>HandleDeath();</code>.</li>
-                </ul>
-            </li>
-            <li><strong>Private Death Handler:</strong> Write <code>private void HandleDeath()</code>:
-                <ul>
-                    <li>Deduct a death penalty: halve <code>coins</code> rounded down using <code>Mathf.FloorToInt(coins / 2f)</code>.</li>
-                    <li>Reset <code>health</code> back to <code>3</code>.</li>
-                    <li>Reload the starting scene using <code>UnityEngine.SceneManagement.SceneManager.LoadScene("Start");</code>.</li>
-                </ul>
-            </li>
-        </ol>
+        <p><strong>Health State &amp; Damage:</strong></p>
+        <ul>
+            <li>What variable tracks the player's remaining health points? How do you expose it in the Inspector so designers can configure starting health?</li>
+            <li>What method signature allows external objects to modify the player's health with positive or negative values?</li>
+            <li>Inside your health modification method, how do you adjust health and log the new total?</li>
+            <li>What condition checks if the player has run out of health? What handler function should it invoke when health reaches 0 or below?</li>
+        </ul>
+
+        <p><strong>Death Handler:</strong></p>
+        <ul>
+            <li>When the player dies, what penalty is applied to their coins? Why should you use <code>Mathf.FloorToInt()</code> instead of standard integer division?</li>
+            <li>What value should health be restored to before reloading?</li>
+            <li>What engine namespace and method reloads the <code>"Start"</code> scene to reset the encounter?</li>
+        </ul>
     </div>
 
     <div class="callout">
         <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
-        <ol>
-            <li><strong>Physical Collision Callback:</strong> Below <code>OnTriggerEnter2D</code>, declare <code>private void OnCollisionEnter2D(Collision2D collision)</code>.</li>
-            <li><strong>Tag Check:</strong> Check if <code>collision.gameObject.CompareTag("Spikes")</code> is true.</li>
-            <li><strong>Damage Delivery:</strong> If matched, check that <code>StatManager.manager != null</code> and call <code>StatManager.manager.ChangeHealth(-1);</code>.</li>
-        </ol>
+        <p><strong>Handle Spike Collision:</strong></p>
+        <ul>
+            <li>What function does this belong in?</li>
+            <li>Should spikes be a trigger or a physical collider? (Hint: Does the player pass through spikes or physically stop against them?)</li>
+            <li>How do you check if the collided object has the tag <code>"Spikes"</code>?</li>
+            <li>Notice the callback parameter is a <code>Collision2D</code>, not a <code>Collider2D</code>. How do you access the GameObject from a <code>Collision2D</code> parameter?</li>
+            <li>How do you check to see if the <code>StatManager</code> exists before communicating with it?</li>
+            <li>What function on the manager do you call to change health, and should you pass a positive or negative number to inflict damage?</li>
+            <li>Do you destroy the spikes after colliding? Why or why not?</li>
+        </ul>
     </div>
 
     <p>
