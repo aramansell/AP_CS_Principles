@@ -280,7 +280,7 @@ export const SEQUENCE: SequenceEntry[] = [
   // ---------------- PHASE 5: Create PT & the Exam (Unit 11) ----------------
   { d: '2027-04-13', kind: 'cpt', group: 'CPT', phase: 5, ced: ['CRD-2'],
     title: 'Create PT Launch: Pick Your Program', lessons: ['11.1a'],
-    note: '30% of your AP score, 9 hours of in-class time, due Apr 30. Start planning today.' },
+    note: 'Section II: 30% of your AP score (shared with the written responses), 9 hours of in-class time, due Apr 30. Start planning today.' },
   { d: '2027-04-15', kind: 'cpt', group: 'CPT', phase: 5, ced: ['AAP-1'],
     title: 'Create PT: Build Day 1', lessons: ['11.1b'] },
   { d: '2027-04-19', kind: 'cpt', group: 'CPT', phase: 5, ced: ['AAP-2'],

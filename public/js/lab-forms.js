@@ -6,8 +6,14 @@
  * - Student name is shared across lessons (apcsp-lab-student).
  * - "Download answers" writes a self-describing JSON file the teacher
  *   collects via a Canvas file-upload assignment and reads in SpeedGrader.
- *   See /teachers/canvas.html. (Autoscored grading is a roadmap item on
- *   that page, not a shipped script.)
+ *   See /teachers/canvas.html.
+ *
+ * The MCQ clinic sets (11.4a/b/c) ride this same pipeline: mc-quiz.js keeps
+ * a hidden .lab-answer textarea per question in sync with the radios, so
+ * multiple-choice letters are restored, counted, and downloaded here like
+ * any other answer. Objective grading of those sets lives in mc-quiz.js and
+ * the key at /data/mcq-keys.json — not in this file, which stays
+ * answer-agnostic.
  */
 (function () {
   'use strict';

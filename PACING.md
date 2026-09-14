@@ -67,7 +67,7 @@ Exam: **Friday, May 14, 2027**, 8:00 AM (Session 1). Create PT due **Friday, Apr
 | 2027-04-01 (Thu) | Lesson | 10.2 | Turn Logic: Selection + Iteration | AAP-2 |
 | 2027-04-07 (Wed) | Jam | 10.2 | Card Jam: Build + Playtest | CRD-2 |
 | 2027-04-09 (Fri) | Jam | 10.2 | Card Jam: Showcase | CRD-2 |
-| 2027-04-13 (Tue) | Create PT | CPT | Create PT Launch: Pick Your Program — 30% of your AP score, 9 hours of in-class time, due Apr 30. Start planning today. | CRD-2 |
+| 2027-04-13 (Tue) | Create PT | CPT | Create PT Launch: Pick Your Program — Section II: 30% of your AP score (shared with the written responses), 9 hours of in-class time, due Apr 30. Start planning today. | CRD-2 |
 | 2027-04-15 (Thu) | Create PT | CPT | Create PT: Build Day 1 | AAP-1 |
 | 2027-04-19 (Mon) | Create PT | CPT | Create PT: Build Day 2 | AAP-2 |
 | 2027-04-21 (Wed) | Create PT | CPT | Create PT: Build Day 3 | AAP-3 |
