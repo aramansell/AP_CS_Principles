@@ -1,0 +1,159 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>6.1a Gravity &amp; Jump: AddForce Impulse — AP CS Principles</title><meta name="description" content="Lesson 6.1 Gravity &amp; Jump: AddForce Impulse — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="6.1a Gravity &amp; Jump: AddForce Impulse — AP CS Principles"><meta property="og:description" content="Lesson 6.1 Gravity &amp; Jump: AddForce Impulse — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="5.3.html">&#9664; 5.3</a><span class="lesson-id">6.1</span><a href="6.2.html">6.2 &#9654;</a></div><h1>6.1 — Gravity &amp; Jump: AddForce Impulse</h1>
+
+<p class="lesson-lead">
+    You are in the cave now (<a href="5.3.html">5.3</a>), and caves
+    have holes, ledges, and reasons to leave the ground. Today you give
+    your character a jump — one line of physics — and then spend the
+    rest of the hour tuning what that line <em>feels</em> like.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Predict First</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>Read the jump branch inside PlayerController.Update — the part
+    that only exists because isPlatformer is true:</p>
+    <pre><code>[SerializeField] private float jumpForce = 10f;
+private Rigidbody2D rb;
+
+...
+
+if (isPlatformer)
+{
+    if (Input.GetKeyDown(KeyCode.Space))
+    {
+        rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+    }
+}</code></pre>
+
+    <p>
+        Predict before running: AddForce with mode Impulse applies an
+        INSTANT kick, not a steady push — like a flick, not a hand.
+        So why does the player keep RISING after the flick ends? What
+        field from <a href="5.3.html">5.3</a> pulls them back down,
+        and what number controls how floaty the arc is?
+    </p>
+    <p>
+        Second prediction: you hold Space down for two whole seconds.
+        One jump or several? Why does GetKeyDown (not GetKey) decide
+        this — and what would rocket boots feel like with GetKey?
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            Every jump you have ever felt was three numbers arguing:
+            jumpForce up, gravityScale down, mass resisting. Which
+            two of those live on the player in the Inspector right
+            now — and which one would you tune FIRST to make the jump
+            feel heavy rather than floaty?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.1:sc1:q1" data-block="socratic" data-question="Every jump you have ever felt was three numbers arguing: jumpForce up, gravityScale down, mass resisting. Which two of those live on the player in the Inspector right now — and which one would you tune FIRST to make the jump feel heavy rather than floaty?" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p><strong>Step 1 — the flick.</strong> In the Platformer scene,
+    press Play and tap Space. If the jump already works, do NOT move
+    on: you are going to rebuild it anyway. Comment out the AddForce
+    line, tap Space (nothing — you are a top-down ghost in a
+    platformer body), and retype it. That gap — "nothing" then
+    "flight" — is the whole lesson. AddForce says: apply this force
+    NOW, physics takes over. Impulse means the "now" is one frame,
+    not a dribble.</p>
+
+    <p><strong>Step 2 — the tuning triangle.</strong> Three knobs, one
+    jump. Change ONE at a time and write one sentence of feel:
+    <table>
+        <tr><th>Knob</th><th>Try</th><th>Feel sentence</th></tr>
+        <tr><td>jumpForce</td><td>10 → 15 → 5</td><td>"how high" — arcade vs. ant</td></tr>
+        <tr><td>rb.gravityScale</td><td>2 → 4 → 1</td><td>"how heavy" — moon vs. balloon</td></tr>
+        <tr><td>rb.mass</td><td>1 → 5 → 0.5</td><td>how much the SAME force moves you</td></tr>
+    </table>
+    Note the trap: raising mass makes you fall faster AND jump lower.
+    The starter keeps mass at 1 and tunes the other two — that is the
+    convention most platformers use: keep one knob boring so the other
+    two mean something.</p>
+
+    <p><strong>Step 3 — read the arc.</strong> Jump next to a wall and
+    trace the shape your character draws. It is a parabola: the flick
+    gives upward velocity, gravity subtracts from it every frame
+    (that is literally what gravityScale does — a multiplier on the
+    engine's 9.81 m/s²). Halfway up, velocity passes through zero —
+    that hang time at the apex is the floatiest moment in the game,
+    and 6.3 will weaponize it.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The broken jump</h3>
+        <ol>
+            <li>Delete the <code>ForceMode2D.Impulse</code> argument
+                (keep the force). Tap Space. Describe the difference
+                — and explain it using "one frame vs. dribble."<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.1:bh1:q1" data-block="bug-hunt" data-question="Delete the ForceMode2D.Impulse argument (keep the force). Tap Space. Describe the difference — and explain it using &quot;one frame vs. dribble.&quot;" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Swap Vector2.up for Vector2.down. What did you build
+                instead of a jump — and what kind of game mechanic
+                IS that (a stomp!)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.1:bh1:q2" data-block="bug-hunt" data-question="Swap Vector2.up for Vector2.down. What did you build instead of a jump — and what kind of game mechanic IS that (a stomp!)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set gravityScale to 0 in the Platformer scene (the
+                branch in Start sets it for you — fight it). What
+                happens after ONE jump, and why does "no gravity" and
+                "no jump" end in the same place?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.1:bh1:q3" data-block="bug-hunt" data-question="Set gravityScale to 0 in the Platformer scene (the branch in Start sets it for you — fight it). What happens after ONE jump, and why does &quot;no gravity&quot; and &quot;no jump&quot; end in the same place?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Change GetKeyDown to GetKey and hold Space. Count the
+                jumps per second — and why will
+                <a href="6.2.html">6.2</a> make this bug impossible
+                rather than merely annoying?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.1:bh1:q4" data-block="bug-hunt" data-question="Change GetKeyDown to GetKey and hold Space. Count the jumps per second — and why will 6.2 make this bug impossible rather than merely annoying?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Jump design</h3>
+        <ol>
+            <li>Tune a "sticky" jump: gravityScale 4, jumpForce 14.
+                Then a "floaty" one: 1.5 and 8. Which fits a cave
+                full of spikes — and why do most action games choose
+                sticky?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.1:tk1:q1" data-block="tinker" data-question="Tune a &quot;sticky&quot; jump: gravityScale 4, jumpForce 14. Then a &quot;floaty&quot; one: 1.5 and 8. Which fits a cave full of spikes — and why do most action games choose sticky?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Variable jump height (the classic): release Space
+                early to jump LOW. What would you cut off mid-flight
+                — hint: the rb's velocity.y? Why is that fairer than
+                it sounds?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.1:tk1:q2" data-block="tinker" data-question="Variable jump height (the classic): release Space early to jump LOW. What would you cut off mid-flight — hint: the rb's velocity.y? Why is that fairer than it sounds?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Hard: jump on a MOVING platform. What does AddForce
+                do to the platform's velocity — and why do real games
+                parent the rider instead?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.1:tk1:q3" data-block="tinker" data-question="Hard: jump on a MOVING platform. What does AddForce do to the platform's velocity — and why do real games parent the rider instead?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Explain Impulse vs. continuous force in feel-words</li>
+            <li>Tune jumpForce / gravityScale / mass and say what each changes</li>
+            <li>Explain the parabola: flick up, gravity subtracts, apex, fall</li>
+            <li>Explain GetKeyDown vs GetKey for one-shot actions</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the jump feel guide</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — AddForce, ForceMode2D</li>
+    </ul>
+    <p>Next: <a href="6.2.html">6.2 — Ground Checks: No Infinite Jumps</a></p>
+</div><div class="lab-bar" data-lesson="6.1" data-lesson-title="Gravity &amp; Jump: AddForce Impulse" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="6.1" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="5.3.html"><span class="dir">&#9664; Previous</span><span class="where">5.3 — Into the Cave: Scene Loading &amp; Mode Switch</span></a><a class="foot-next" href="6.2.html"><span class="dir">Next &#9654;</span><span class="where">6.2 — Ground Checks: No Infinite Jumps</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

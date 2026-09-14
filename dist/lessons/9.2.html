@@ -1,0 +1,158 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>9.2a Hex, RGB &amp; Data Abstraction — AP CS Principles</title><meta name="description" content="Lesson 9.2 Hex, RGB &amp; Data Abstraction — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="9.2a Hex, RGB &amp; Data Abstraction — AP CS Principles"><meta property="og:description" content="Lesson 9.2 Hex, RGB &amp; Data Abstraction — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="9.1.html">&#9664; 9.1</a><span class="lesson-id">9.2</span><a href="9.3.html">9.3 &#9654;</a></div><h1>9.2 — Hex, RGB &amp; Data Abstraction</h1>
+
+<p class="lesson-lead">
+    You have clicked colors in Unity a hundred times. Behind that
+    picker is the exact place where binary becomes USEFUL: colors are
+    bytes, written in hex, and the hex is just binary with better
+    handwriting. Today you read the Inspector's secret language.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p><strong>Hex = binary in groups of 4.</strong> One hex digit
+    (0–9, A–F) covers exactly 4 bits: 0000=0 … 1111=F. A byte is
+    therefore exactly TWO hex digits. Nobody reads
+    1111111111111111 when FF FF says the same thing out loud.</p>
+    <table>
+        <tr><th>Dec</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td><td>15</td></tr>
+        <tr><th>Hex</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>A</td><td>B</td><td>C</td><td>D</td><td>E</td><td>F</td></tr>
+        <tr><th>Bin</th><td>0000</td><td>0001</td><td>0010</td><td>0011</td><td>0100</td><td>0101</td><td>0110</td><td>0111</td><td>1000</td><td>1001</td><td>1010</td><td>1011</td><td>1100</td><td>1101</td><td>1110</td><td>1111</td></tr>
+    </table>
+
+    <p><strong>A color is four bytes.</strong> Unity's
+    <code>Color32</code> is R, G, B, A — one byte each, 0–255, so a
+    color is literally a hex number like <code>FF6600FF</code>
+    (full red, strong orange-green mix, no blue, full alpha). When
+    you type <code>new Color32(255, 102, 0, 255)</code> you are
+    writing <code>FF6600FF</code> in decimal cosplay:</p>
+    <pre><code>// The site you are reading right now is themed blue:
+// #6cb2ff → R=6c=108, G=b2=178, B=ff=255  → (108, 178, 255)</code></pre>
+    <p>That IS your theme color, decoded by hand. The # in CSS means
+    "hex follows," and web colors are 6 hex digits because web alpha
+    is separate.</p>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            The exam loves this: "how many colors can RGB represent?"
+            Work it — 256 per channel, three channels — and say WHY
+            the answer is 256³ (that is <a href="9.1.html">9.1</a>'s
+            bits-to-range law, cubed). Then: why is 4 bits per
+            channel (like old consoles) only 4096 colors — what did
+            8-bit color BUY?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.2:sc1:q1" data-block="socratic" data-question="The exam loves this: &quot;how many colors can RGB represent?&quot; Work it — 256 per channel, three channels — and say WHY the answer is 256³ (that is 9.1 's bits-to-range law, cubed). Then: why is 4 bits per channel (like old consoles) only 4096 colors — what did 8-bit color BUY?" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p><strong>Step 1 — decode your game's palette.</strong> Pick
+    three colors from your sprites/UI (use the eyedropper in the
+    Sprite Editor or any color picker). For each, write the hex AND
+    the decimal triple. Your cave should have a palette story — dark
+    rock (low RGB values), bright coin (high R and G) — and now you
+    can QUOTE it.</p>
+
+    <p><strong>Step 2 — program a palette.</strong> Colors as data —
+    the abstraction, in code:</p>
+    <pre><code>public static class Palette
+{
+    //              name        hex        Color32
+    public static readonly Color32 CAVE_ROCK = new Color32(0x4a, 0x4a, 0x55, 0xff);
+    public static readonly Color32 COIN_GOLD = new Color32(0xff, 0xc4, 0x3d, 0xff);
+    public static readonly Color32 DANGER    = new Color32(0xff, 0x33, 0x33, 0xff);
+}
+
+// your 8.3 hit flash, upgraded:
+sr.color = new Color32(0xff, 0xff, 0xff, 0xff); // white for 0.1s
+// phase 3 boss tint:
+sr.color = Palette.DANGER;</code></pre>
+    <p>Why a palette class beats per-object color picking: change ONE
+    line, the whole game's mood shifts. That is
+    <strong>abstraction</strong> — the exam's word, in your repo.</p>
+
+    <p><strong>Step 3 — the alpha byte.</strong> The fourth byte is
+    transparency. <code>0xff</code> = solid; <code>0x80</code> =
+    half-visible (your hit flash could EASE from 0x80 to 0xff).
+    Change your shockwave prefab's sprite alpha to 0x80 and note the
+    readability change: transparent threats read as "avoidable" —
+    alpha is communication, not decoration.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Byte bugs</h3>
+        <ol>
+            <li>new Color32(300, 0, 0, 255) — what happens to the
+                300? (Bytes CLAMP or wrap — which one, and why is
+                silent clamping a design risk?)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.2:bh1:q1" data-block="bug-hunt" data-question="new Color32(300, 0, 0, 255) — what happens to the 300? (Bytes CLAMP or wrap — which one, and why is silent clamping a design risk?)" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>0x1F vs 0xF1 — a transposed hex pair. What color
+                difference did that make? Why is hex the FASTEST
+                way to catch a digit-swap bug in colors?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.2:bh1:q2" data-block="bug-hunt" data-question="0x1F vs 0xF1 — a transposed hex pair. What color difference did that make? Why is hex the FASTEST way to catch a digit-swap bug in colors?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Compute: how many bytes in a 1080p frame of RGBA
+                data? (1920×1080×4 — do it on paper. Then ask: why
+                does your GPU do this 60 times a second? That
+                arithmetic explains why <a href="9.7.html">9.7</a>
+                needs a graphics pipeline.)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.2:bh1:q3" data-block="bug-hunt" data-question="Compute: how many bytes in a 1080p frame of RGBA data? (1920×1080×4 — do it on paper. Then ask: why does your GPU do this 60 times a second? That arithmetic explains why 9.7 needs a graphics pipeline.)" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The exam's classic: a 16-bit color system splits
+                5/6/5. Why does GREEN get the extra bit — and why
+                do human eyes barely notice (look at your palette:
+                which channel did you lean on?)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.2:bh1:q4" data-block="bug-hunt" data-question="The exam's classic: a 16-bit color system splits 5/6/5. Why does GREEN get the extra bit — and why do human eyes barely notice (look at your palette: which channel did you lean on?)" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Palette design</h3>
+        <ol>
+            <li>Design a DANGER palette shift for your boss phases:
+                phase 1 neutral, phase 2 warm, phase 3 red-shifted.
+                Write the three hex codes BEFORE you look at them —
+                then check the feel.</li>
+            <li>AP practice: "A game represents a color as 3 bits —
+                one per channel. How many colors?" Answer AND
+                reason — then tell your neighbor why old-school
+                games looked "chunky."<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.2:tk1:q1" data-block="tinker" data-question="AP practice: &quot;A game represents a color as 3 bits — one per channel. How many colors?&quot; Answer AND reason — then tell your neighbor why old-school games looked &quot;chunky.&quot;" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Hard: your own Color32 parser — read a string like
+                "FF6600" with int.Parse(s, NumberStyles.HexNumber).
+                Which two lines of code does this save in a
+                data-driven palette file?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.2:tk1:q2" data-block="tinker" data-question="Hard: your own Color32 parser — read a string like &quot;FF6600&quot; with int.Parse(s, NumberStyles.HexNumber). Which two lines of code does this save in a data-driven palette file?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Convert hex ↔ binary ↔ decimal for bytes, fast</li>
+            <li>Explain a color as four bytes and decode #RRGGBB by hand</li>
+            <li>Build a palette class as a data abstraction</li>
+            <li>Do the 256³ color-count argument from bits</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-09/binary-and-hex.html">Binary &amp; Hex</a> — hex tables and practice</li>
+        <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — where this unit goes</li>
+    </ul>
+    <p>Next: <a href="9.3.html">9.3 — Compression: Lossy vs Lossless</a></p>
+</div><div class="lab-bar" data-lesson="9.2" data-lesson-title="Hex, RGB &amp; Data Abstraction" data-count="7" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/7 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="9.2" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="9.1.html"><span class="dir">&#9664; Previous</span><span class="where">9.1 — Binary: How Numbers Live in Memory</span></a><a class="foot-next" href="9.3.html"><span class="dir">Next &#9654;</span><span class="where">9.3 — Compression: Lossy vs Lossless</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

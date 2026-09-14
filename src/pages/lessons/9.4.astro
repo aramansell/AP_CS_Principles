@@ -1,0 +1,178 @@
+---
+// Lesson 9.4 — Your Scene Is Data: Metadata & Files
+// expand-app: YAML scenes, .meta files, serialization as concept.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>9.4 — Your Scene Is Data: Metadata &amp; Files</h1>
+
+<p class="lesson-lead">
+    Every Unity scene you have saved is a text file. So is every
+    Inspector value you have dragged, every [SerializeField] you have
+    written. Today you open the black box: your game is data all the
+    way down, and reading that data changes how you think about both
+    Unity AND the exam's "data abstraction" questions.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p><strong>Step 1 — see the scene.</strong> In your project
+    folder, find Assets/Scenes/Platformer.unity. Open it in a TEXT
+    editor (TextEdit, VS Code — not Unity). It is YAML, a
+    human-readable key: value format:</p>
+    <pre><code>--- !u!1 &amp;123456789
+GameObject:
+  m_ObjectHideFlags: 0
+  m_Name: Turret
+  m_TagString: Untagged
+  m_Component:
+  - component: {fileID: 22400000}
+--- !u!212 &amp;987654321
+SpriteRenderer:
+  m_Sprite: {fileID: 21300000, guid: a1b2c3..., type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}</code></pre>
+    <p>Find YOUR turret by name in the text. Its maxAttackRange, its
+    attackCooldown — the numbers you tuned in the Inspector all
+    semester — are stored right here, as text, in a file. The
+    Inspector was never magic; it is a YAML editor with better
+    styling.</p>
+
+    <p><strong>Step 2 — the .meta files.</strong> Every asset has an
+    assetname.png.meta. Open one: a <code>guid</code> (a globally
+    unique ID), import settings, dimensions. THIS is how a scene
+    references a sprite without a file path — by guid, not by name.
+    Delete a .meta and its asset loses every Inspector connection
+    it ever had (the classic "everything went pink" disaster).</p>
+
+    <p><strong>Step 3 — serialization is the exam word.</strong>
+    [SerializeField] private float speed — Unity SERIALIZIZES the
+    field: converts the C# object's state into text/YAML for
+    storage, and back on load. That is literally what the exam means
+    by serialization in Unit 9's data-in-transit questions:</p>
+    <pre><code>your code (memory)  --serialize-->  the .unity file (disk)
+the file (disk)     --deserialize--> your fields at runtime</code></pre>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            Prefabs (<a href="2.4.html">2.4</a>) are YAML too.
+            Explain "prefab as data abstraction": what does a
+            prefab FILE hide, and what does its guid GUARANTEE that
+            a file path cannot (hint: rename a sprite and count
+            what breaks — then rename a file that is referenced by
+            guid and count again)?
+        </p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p><strong>Step 1 — break a scene with a text edit.</strong>
+    (Copy the file first!) In the .unity text, find your turret's
+    maxAttackRange line and change 7 to 20. Close Unity first (it
+    caches), reopen, press Play. The change is THERE — you edited
+    the game without ever opening the Inspector. Same power as the
+    palette edit from <a href="9.2.html">9.2</a>, one level
+    deeper.</p>
+
+    <p><strong>Step 2 — diff a playtest edit.</strong> Make a copy
+    of Platformer.unity, then in Unity move three objects. Save.
+    Diff the two files (VS Code's compare, or just search for the
+    changed numbers). Each moved object = a few changed
+    <code>m_LocalPosition</code> values. Your whole semester of
+    design edits is THIS readable.</p>
+
+    <p><strong>Step 3 — a save system, previewed.</strong> Your game
+    keeps coins in a scene-local StatManager singleton — a reload
+    forgets (which is the arcade design you defended in
+    <a href="8.5.html">8.5</a>). But now you KNOW how saves work:
+    serialize the fields you care about (coins, hasAxe, maxJumps)
+    to a text file (JSON is YAML's cousin), deserialize on boot.
+    That is PlayerPrefs or a JSON file — and it is the Create PT's
+    "data" requirement, live in your own game.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Text-edit disasters</h3>
+        <ol>
+            <li>Break one YAML indentation (delete two spaces
+                before a key). What does Unity say when the scene
+                loads? Why do data formats care about STRUCTURE,
+                not just content?</li>
+            <li>Change the turret's sprite guid to a random guid
+                you typed. What goes pink — and why did a guid
+                (not a name) break it (what did you learn about
+                guids in Step 2)?</li>
+            <li>Rename a sprite's FILE but not the .meta. Open
+                Unity. Nothing broke — explain why the .meta is
+                the actual identity and the filename is a
+                costume.</li>
+            <li>You edited the scene text while Unity was OPEN.
+                What happened to your edit — and why is "close
+                before edit" not just superstition (what does
+                Unity hold in memory and write back)?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Data everywhere</h3>
+        <ol>
+            <li>AP practice: "Which of the following is a benefit of
+                storing data in a documented text format rather
+                than a binary format?" — write TWO answers (human
+                readability; diff/version history) with your scene
+                diff as evidence.</li>
+            <li>Your playtest tables (<a href="7.7.html">7.7</a>)
+                are CSV — is CSV a serialization format? What does
+                it serialize, what does it leave out (types!) —
+                and why is "typeless" both its charm and its
+                danger?</li>
+            <li>Hard: JSON-write your player's run summary
+                (coins, deaths, time) with
+                <code>JsonUtility.ToJson</code>. One line. What
+                does the string look like — and why does it look
+                EXACTLY like the YAML you read today?</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Open a scene/prefab as text and find a specific object's data</li>
+            <li>Explain [SerializeField] as serialization both directions</li>
+            <li>Explain guid references and why renames do not break them</li>
+            <li>Sketch a save system as serialize → file → deserialize</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — metadata and files in depth</li>
+        <li><a href="../docs/unit-10/lists-arrays.html">Lists &amp; Arrays</a> — the data structure Unit 10 jams</li>
+    </ul>
+    <p>Next: <a href="9.5.html">9.5 — Datasets: Insights from Playtest Data</a></p>
+</div>`;
+---
+<Lesson id="9.4" title="9.4a Your Scene Is Data: Metadata &amp; Files — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

@@ -10,7 +10,7 @@ export default defineConfig({
   base: '/AP_CS_Principles',
   build: {
     // 'preserve' keeps lesson URLs flat and predictable:
-    //   lessons/1.4a.astro        -> /lessons/1.4a.html
+    //   lessons/1.4a.astro        -> /lessons/1.4.html
     //   docs/unit-01/index.astro  -> /docs/unit-01/index.html
     //   pace.astro                -> /pace.html
     format: 'preserve',

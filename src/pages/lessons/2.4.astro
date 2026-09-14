@@ -1,0 +1,178 @@
+---
+// Lesson 2.4 — Prefabs, Spawning & Playtesting
+// Prefab vs instance, spawning in play mode, and the playtest ritual.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>2.4 — Prefabs, Spawning &amp; Playtesting</h1>
+
+<p class="lesson-lead">
+    You have a working coin, spike, and potion — singular. Games need
+    dozens of each. Prefabs are the factory: build once, stamp many,
+    change the master and every copy updates. Then, the professional
+    ritual that runs the rest of your year: playtesting.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        <strong>Step 1 — read the blue bars.</strong> Drag three coins
+        and two potions into the Overworld scene from Assets/Prefabs.
+        In the Hierarchy each has a <strong>blue cube icon</strong>:
+        that marks a <strong>prefab instance</strong> — a stamped copy
+        of a master. Select one and the Inspector shows the master's
+        fields plus <em>overrides</em> (the position).
+    </p>
+
+    <p>
+        <strong>Step 2 — change the master.</strong> Open the Coin
+        prefab itself (double-click it, or Open Prefab). Change
+        something visible — rotate its sprite, scale it 1.5×. Save and
+        return to the scene: <strong>every coin in the scene updated.</strong>
+        That is the whole deal — one edit, all copies. Now change one
+        instance's scale in the scene: the Inspector shows the field in
+        bold as an override. Master edits still propagate everywhere
+        you did not override.
+    </p>
+
+    <div class="callout trap">
+        <strong>Deleting a prefab's master file while copies live in
+        scenes = missing-script chaos.</strong> The prefab IS the
+        object's definition; the scene stores "a copy of that file,
+        at this position." Treat master files like production code.
+    </div>
+
+    <p>
+    <p>
+        <strong>Step 3 — Read the Spawning API.</strong> In games, many objects are not pre-placed
+        in the scene by hand; they are stamped dynamically into existence at runtime. Unity provides
+        the <code>Instantiate()</code> function to create instances of prefabs from code:
+    </p>
+
+    <table>
+        <tr><th>Function Signature</th><th>Return Type</th><th>Description &amp; Behavior</th></tr>
+        <tr>
+            <td><code>Instantiate(original, position, rotation)</code></td>
+            <td><code>Object</code> (or <code>GameObject</code>)</td>
+            <td>Clones the specified prefab asset or GameObject at the given 3D coordinates with the given orientation.</td>
+        </tr>
+        <tr>
+            <td><code>Quaternion.identity</code></td>
+            <td><code>Quaternion</code></td>
+            <td>Represents "no rotation" — the object aligns perfectly with the world coordinate axes.</td>
+        </tr>
+    </table>
+
+    <p>Look at an isolated snippet showing how a party popper stamps a confetti prefab into the world:</p>
+
+    <pre><code>// Clones a prefab template into the live scene at the given position without any rotation
+if (Input.GetKeyDown(KeyCode.Space))
+{
+    Instantiate(confettiPrefab, nozzleTransform.position, Quaternion.identity);
+}</code></pre>
+
+    <div class="callout">
+        <strong>Architectural Challenge — Build an <code>ItemSpawner.cs</code>:</strong>
+        <p><strong>Spawning Prefabs on Demand:</strong></p>
+        <ul>
+            <li>Where should you create this testing script, and what GameObject should it be attached to?</li>
+            <li>How do you expose a slot in the Inspector so designers can drag in any prefab (Coin, Potion, etc.)? What data type holds a reference to a prefab GameObject?</li>
+            <li>Inside <code>Update()</code>, what function checks if the player pressed a specific test key (such as <code>KeyCode.P</code>)?</li>
+            <li>What engine method clones and spawns a new instance of an object into the scene?</li>
+            <li>What three arguments does <code>Instantiate()</code> require? (Which template to clone, where in world space to place it, and what rotation to give it?)</li>
+            <li>What constant value represents zero rotation?</li>
+        </ul>
+    </div>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Factory faults</h3>
+        <ol>
+            <li>Drag a plain coin sprite into the spawner slot instead
+                of the prefab. What happens at spawn — and what IS the
+                difference between an asset and a scene object?</li>
+            <li>Spawn a potion instead. Does the tag still work? What
+                does that prove about where identity lives?</li>
+            <li>Delete the Coin prefab from Assets/Prefabs while
+                three copies sit in the scene. What does Unity show
+                you — and why is this the trap the callout warned
+                about?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Playtest</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        From today until June, this is the loop that makes every unit
+        real: <strong>swap seats, play someone else's build, write
+        what happened, fix the top three.</strong> Print the playtest
+        sheet from Canvas (or copy its table into your journal):
+    </p>
+    <table>
+        <tr><th>Column</th><th>What you write</th></tr>
+        <tr><td>What happened</td><td>Facts only: "died 4 times in the spike hall"</td></tr>
+        <tr><td>How it felt</td><td>One adjective per row: cheap, tense, confusing, satisfying</td></tr>
+        <tr><td>The fix I would try</td><td>One concrete change: "move potion before the narrow hall"</td></tr>
+    </table>
+
+    <p>
+        The rules that make playtests honest: the tester plays and
+        <strong>talks out loud but does not explain yet</strong>; the
+        designer watches <strong>silently</strong> and takes notes; no
+        defending, no arguing, no "you're holding it wrong." Then swap.
+        Note that you will run this exact sheet on real data in
+        <a href="9.5.html">9.5</a>, where the whole class's sheets
+        become a dataset you will analyze — you are generating a
+        dataset right now. Every jam this year ends with this ritual;
+        the AP exam calls evaluating and refining (CRD-2) the same
+        skills you are practicing by swapping seats.
+    </p>
+
+    <div class="tinker">
+        <h3>Tinker: Your build, under review</h3>
+        <ol>
+            <li>Watch a partner play your Overworld for 3 minutes.
+                Where did they hesitate, and what did they miss without
+                being told?</li>
+            <li>Pick your top-3 fixes and fix exactly one today. Why is
+                fixing one at a time the discipline, not slowness?
+                (Hint: what would you learn if you changed three
+                things at once?)</li>
+            <li>Commit + push: <code>"2.4a: prefab factory + first playtest"</code>.</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Explain prefab master vs instance, and show an override in bold in the Inspector</li>
+            <li>Edit a master and see every instance update</li>
+            <li>Instantiate a prefab from code and explain why play-mode spawns vanish</li>
+            <li>Run a silent playtest and turn notes into exactly one fix</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the pickup family and prefab patterns</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Instantiate, Destroy, prefabs</li>
+    </ul>
+    <p>Next: <a href="3.1.html">3.1 — The Turret: Distance &amp; the Detection Radius</a> — Unit 3 begins.</p>
+</div>`;
+---
+<Lesson id="2.4" title="2.4a Prefabs, Spawning &amp; Playtesting — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

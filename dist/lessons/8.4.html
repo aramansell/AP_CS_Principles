@@ -1,0 +1,182 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>8.4a Boss Attacks: Patterns &amp; Phases — AP CS Principles</title><meta name="description" content="Lesson 8.4 Boss Attacks: Patterns &amp; Phases — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="8.4a Boss Attacks: Patterns &amp; Phases — AP CS Principles"><meta property="og:description" content="Lesson 8.4 Boss Attacks: Patterns &amp; Phases — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="8.3.html">&#9664; 8.3</a><span class="lesson-id">8.4</span><a href="8.5.html">8.5 &#9654;</a></div><h1>8.4 — Boss Attacks: Patterns &amp; Phases</h1>
+
+<p class="lesson-lead">
+    The boss can be hurt (<a href="8.3.html">8.3</a>) but does not
+    fight back. Today you give it the two attacks your spec promised
+    — a shockwave the player jumps and a charge the player sidesteps
+    — both TELEGRAPHED, and both reading their numbers from a phase
+    table so Phase 3 is a one-line change, not a rewrite.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p><strong>Attack 1 — the shockwave (you have the parts).</strong>
+    It is a slow projectile fired along the ground: reuse
+    <a href="3.2.html">3.2</a>'s Projectile skeleton — a trigger
+    collider moving by Translate — but flat and wide:</p>
+    <pre><code>public class Shockwave : MonoBehaviour
+{
+    [SerializeField] private float speed = 3f;
+    [SerializeField] private int damage = 1;
+    [SerializeField] private float lifetime = 4f;
+
+    private Vector2 direction;
+
+    public void Initialize(Vector2 dir)
+    {
+        direction = dir.normalized;
+    }
+
+    private void Start()
+    {
+        Destroy(gameObject, lifetime);
+    }
+
+    private void Update()
+    {
+        transform.Translate(direction * speed * Time.deltaTime);
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            if (StatManager.manager != null)
+                StatManager.manager.ChangeHealth(-damage);
+            Destroy(gameObject);
+        }
+    }
+}</code></pre>
+    <p>Why speed 3 (the turret's bullet is 10): a shockwave is a
+    RHYTHM — slow enough to jump over ON PURPOSE. The wave is one
+    tile tall; your jump clears two. That is the counterplay
+    sentence from <a href="8.1.html">8.1</a> made real.</p>
+
+    <p><strong>Attack 2 — the charge.</strong> The boss's own body:
+    telegraph 0.6s (it rears back — scale or color flash), then
+    dashes horizontally at speed 8 for 0.8s, then recovers 1.5s
+    (vulnerable — your reward window). BossManager grows a tiny
+    attack scheduler in the starter's voice:</p>
+    <pre><code>[SerializeField] private GameObject shockwavePrefab;
+[SerializeField] private Transform shockwaveSpawn;
+[SerializeField] private float attackInterval = 3f;
+private float lastAttackTime;
+private int currentPhase = 1;
+
+private void Update()
+{
+    if (Time.time &gt;= lastAttackTime + attackInterval &amp;&amp; currentPhase &gt; 1)
+    {
+        lastAttackTime = Time.time;
+        FireShockwave();
+        // charge is a coroutine or a state — studio choice
+    }
+}
+
+private void FireShockwave()
+{
+    Vector2 dir = (playerTransform.position - transform.position).x &gt; 0
+        ? Vector2.right : Vector2.left;          // toward the player
+    GameObject wave = Instantiate(shockwavePrefab,
+        shockwaveSpawn.position, Quaternion.identity);
+    wave.GetComponent&lt;Shockwave&gt;().Initialize(dir);
+}</code></pre>
+    <p>Read the ternary — one line picks a direction by comparing x
+    positions. Same pursuit math as the chase
+    (<a href="4.3.html">4.3</a>), flattened to one axis.</p>
+
+    <p><strong>The phase table.</strong> Attack numbers belong to
+    PHASES, not to one set of serialized fields. Pattern: a small
+    private table and one reader —</p>
+    <pre><code>// phase: 1    2    3
+// cooldown: 5s   3s   1.8s
+// charge speed:  6    8    10
+
+private void EnterPhase(int phase)
+{
+    currentPhase = phase;
+    switch (phase)
+    {
+        case 2: attackInterval = 3f; chargeSpeed = 8f; break;
+        case 3: attackInterval = 1.8f; chargeSpeed = 10f; break;
+    }
+}</code></pre>
+    <p>Now Phase 3 is DIFFERENT because numbers changed, and the
+    player SEES the difference without a tutorial. That is the whole
+    trick of difficulty in fighting games.</p>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: The unreadable boss</h3>
+        <ol>
+            <li>Set attackInterval to 0.5 in Phase 3. What happens
+                to the jump rhythm — and what does "the player's
+                counterplay must fit inside the attack interval"
+                mean numerically for your wave speed?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.4:bh1:q1" data-block="bug-hunt" data-question="Set attackInterval to 0.5 in Phase 3. What happens to the jump rhythm — and what does &quot;the player's counterplay must fit inside the attack interval&quot; mean numerically for your wave speed?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>A shockwave spawns INSIDE the boss's collider and
+                immediately touches the boss. Why does nothing
+                happen (what tag does the boss carry vs the
+                player)? Now spawn it inside the PLAYER by
+                accident — what happens instead, and how does the
+                <a href="3.2.html">3.2</a> spawn-offset fix
+                translate?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.4:bh1:q2" data-block="bug-hunt" data-question="A shockwave spawns INSIDE the boss's collider and immediately touches the boss. Why does nothing happen (what tag does the boss carry vs the player)? Now spawn it inside the PLAYER by accident — what happens instead, and how does the 3.2 spawn-offset fix translate?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The charge goes through walls (a physics-layer
+                accident). What should stop a charge — and is a
+                wall-stop a BUG or a FEATURE (the classic
+                "stunned boss" gift)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.4:bh1:q3" data-block="bug-hunt" data-question="The charge goes through walls (a physics-layer accident). What should stop a charge — and is a wall-stop a BUG or a FEATURE (the classic &quot;stunned boss&quot; gift)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Phase 3 activates while a shockwave is mid-flight.
+                Does the OLD wave speed up retroactively? Why do
+                instances keep their birth numbers — and when is
+                that a problem (imagine a 20-second lifetime
+                wave)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.4:bh1:q4" data-block="bug-hunt" data-question="Phase 3 activates while a shockwave is mid-flight. Does the OLD wave speed up retroactively? Why do instances keep their birth numbers — and when is that a problem (imagine a 20-second lifetime wave)?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="tinker">
+        <h3>Tinker: Attack rhythm</h3>
+        <ol>
+            <li>Play your own boss (spec says you must be able to
+                beat it). Time the fight. If you cannot win, the
+                boss is overtuned — a boss the designer cannot
+                beat is not hard, it is broken.</li>
+            <li>Add a third attack ONLY as a spec sentence first
+                ("arena hazard spikes rise on a timer"). Do not
+                code it — why does a written attack cost nothing
+                and a coded one cost a day?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.4:tk1:q1" data-block="tinker" data-question="Add a third attack ONLY as a spec sentence first (&quot;arena hazard spikes rise on a timer&quot;). Do not code it — why does a written attack cost nothing and a coded one cost a day?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Commit + push: <code>"8.4a: shockwave + charge + phase table"</code>.</li>
+        </ol>
+    </div>
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Build a telegraphed shockwave reusing the projectile pattern</li>
+            <li>Drive attack choice and pacing from a phase table</li>
+            <li>Explain counterplay arithmetic: wave height vs. jump height</li>
+            <li>Tune Phase 3 until you can beat your own boss</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-08/index.html">Unit 8: Boss Fight</a> — attack patterns and telegraphs</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the boss is the machine with the most states</li>
+    </ul>
+    <p>Next: <a href="8.5.html">8.5 — Win, Lose &amp; the Death Loop</a></p>
+</div><div class="lab-bar" data-lesson="8.4" data-lesson-title="Boss Attacks: Patterns &amp; Phases" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="8.4" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="8.3.html"><span class="dir">&#9664; Previous</span><span class="where">8.3 — Player Attack: Fight Back</span></a><a class="foot-next" href="8.5.html"><span class="dir">Next &#9654;</span><span class="where">8.5 — Win, Lose &amp; the Death Loop</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

@@ -38,10 +38,16 @@ const ok = (msg) => console.log('  ok: ' + msg);
 const curriculum = fs.readFileSync(root, 'utf8');
 const lessonsSrc = fs.readFileSync(lessonsData, 'utf8');
 
-const lessonIds = [...lessonsSrc.matchAll(/\s'([0-9]+\.[0-9]+[a-z])':/g)].map((m) => m[1]);
+const lessonIds = [...lessonsSrc.matchAll(/\s'([0-9]+\.[0-9]+(?:[a-z])?)':/g)].map((m) => m[1]);
 if (lessonIds.length === 0) fail('no lesson ids found in lessons.ts');
 
-const seqIds = [...curriculum.matchAll(/'([0-9]+\.[0-9]+[a-z])'/g)].map((m) => m[1]);
+const lessonArrays = [...curriculum.matchAll(/lessons:\s*\[([^\]]*)\]/g)].map(m => m[1]);
+const seqIds = [];
+for (const arr of lessonArrays) {
+  for (const m of arr.matchAll(/'([^']+)'/g)) {
+    seqIds.push(m[1]);
+  }
+}
 const uniqueSeqIds = [...new Set(seqIds)];
 
 // ---------- 1. every sequence lesson has a page & vice versa
