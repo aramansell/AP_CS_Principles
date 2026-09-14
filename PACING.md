@@ -1,6 +1,6 @@
 # AP CS Principles Pacing, 2026-27 (IBW, B days)
 
-Exam: **Friday, May 14, 2027**, 8:00 AM (Session 1). Create PT due **2027-04-30, 11:59 PM ET** (AP Digital Portfolio). Source of truth: src/data/curriculum.ts. Regenerated automatically by `npm run build` (src/integrations/pacing-md.ts).
+Exam: **Friday, May 14, 2027**, 8:00 AM (Session 1). Create PT due **Friday, April 30, 2027, 11:59 PM ET** (AP Digital Portfolio). Source of truth: src/data/curriculum.ts. Regenerated automatically by `npm run build` (src/integrations/pacing-md.ts).
 
 | Date | Type | Group | Title | CED |
 |---|---|---|---|---|

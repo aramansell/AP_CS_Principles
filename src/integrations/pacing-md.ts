@@ -23,7 +23,7 @@ export function writePacingMd(opts: { site: string; base: string }): AstroIntegr
           '# AP CS Principles Pacing, 2026-27 (IBW, B days)',
           '',
           `Exam: **${longDate(EXAM_DATE)}**, ${EXAM_TIME}. ` +
-            `Create PT due **${CPT_DEADLINE}, 11:59 PM ET** (AP Digital Portfolio). ` +
+            `Create PT due **${longDate(CPT_DEADLINE)}, 11:59 PM ET** (AP Digital Portfolio). ` +
             'Source of truth: src/data/curriculum.ts. ' +
             'Regenerated automatically by `npm run build` (src/integrations/pacing-md.ts).',
           '',

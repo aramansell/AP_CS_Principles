@@ -8,8 +8,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const [id, ...rest] = process.argv.slice(2);
-if (!id || !/^\d+\.\d+[a-z]$/.test(id)) {
-  console.error('Usage: npm run new-lesson -- <id> [title]   e.g. npm run new-lesson -- 9.11a "New Topic"');
+if (!id || !/^\d+\.\d+[a-z]?$/.test(id)) {
+  console.error('Usage: npm run new-lesson -- <id> [title]   e.g. npm run new-lesson -- 5.11 "New Topic"');
+  console.error('  Units 1-9 use flat ids (5.11); jam/PT units use a letter suffix (10.1g).');
   process.exit(1);
 }
 

@@ -14,7 +14,7 @@ woven through every week.
 
 ## Files you write
 
-One file per lesson: `src/pages/lessons/<ID>.astro` (e.g. `src/pages/lessons/4.2a.astro`).
+One file per lesson: `src/pages/lessons/<ID>.astro` (e.g. `src/pages/lessons/4.2.astro`).
 Write ONLY the files you were assigned. Do not create, edit, or delete any
 other file. Do not run builds (the orchestrator builds).
 
@@ -100,12 +100,12 @@ NEVER link anywhere else. Never use absolute URLs except https://github.com/ and
 
 ## The real starter code — READ THESE before writing build lessons
 
-- `cs-curriculum-main/Assets/Scripts/PlayerController.cs` — BAREBONES STARTER: only plays the walking animation in `Start()` (`anim.SetBool("IsWalking", true)`). The player does NOT move, cannot collect coins, cannot take damage, and has no physics/interaction handlers. Students build movement from scratch in Unit 1 (1.4a/1.5a), hook up directional animation parameters in 1.6a, and add collision/trigger responses in Unit 2.
-- `cs-curriculum-main/Assets/Scripts/StatManager.cs` — NOT IN STARTER: Built from scratch in Unit 2 (2.1a) as a persistent singleton (`public static StatManager manager`, `Awake()`, `DontDestroyOnLoad`). Stores `health` and `coins`, exposes `ChangeCoins(int amount)` and `ChangeHealth(int amount)`, and handles the death reset loop (`HandleDeath()`).
-- `cs-curriculum-main/Assets/Scripts/TurretController.cs` — NOT IN STARTER: Built from scratch in Unit 3 (3.1-3.3a). Finds the player by tag, measures `Vector3.Distance`, uses the `Time.time >= lastAttackTime + attackCooldown` cooldown pattern, and calls `Instantiate(projectilePrefab, ...)`.
-- `cs-curriculum-main/Assets/Scripts/Projectile.cs` — NOT IN STARTER: Built from scratch in Unit 3 (3.2a, 3.4a). Implements movement toward target direction (`transform.Translate` / `velocity`), lifetime cleanup with `Destroy()`, and damage delivery via `OnTriggerEnter2D` calling `StatManager.manager.ChangeHealth(-1)`.
-- `cs-curriculum-main/Assets/Scripts/EnemyController.cs` — NOT IN STARTER: Built from scratch in Unit 4 (4.1-4.5a). Handles waypoint patrolling, top-down chase logic, contact damage with cooldown, and the full state machine.
-- `cs-curriculum-main/Assets/Scripts/Lever.cs` — NOT IN STARTER: Built in Unit 5 (5.2a). Sprite toggling and UnityEvent wiring to open the cave door.
+- `cs-curriculum-main/Assets/Scripts/PlayerController.cs` — BAREBONES STARTER: only plays the walking animation in `Start()` (`anim.SetBool("IsWalking", true)`). The player does NOT move, cannot collect coins, cannot take damage, and has no physics/interaction handlers. Students build movement from scratch in Unit 1 (1.4/1.5), hook up directional animation parameters in 1.6, and add collision/trigger responses in Unit 2.
+- `cs-curriculum-main/Assets/Scripts/StatManager.cs` — IN STARTER AS AN EMPTY STUB: a bare `MonoBehaviour` with no fields and no methods. It stays empty through Unit 2 — stats live on `PlayerController` (2.1 names both the stub and the three options for where a number can live) — and students fill it in during the Unit 5 refactor (5.3): `public static StatManager manager`, `Awake()`, `DontDestroyOnLoad`, a duplicate guard, holding `health` and `coins` (plus the axe inventory flag), exposed through the same signed-amount methods the player used to own. The method names are the student's choice — do not hardcode them in lessons.
+- `cs-curriculum-main/Assets/Scripts/TurretController.cs` — NOT IN STARTER: Built from scratch in Unit 3 (3.1-3.3). Finds the player by tag, measures `Vector3.Distance`, uses the `Time.time >= lastAttackTime + attackCooldown` cooldown pattern, and calls `Instantiate(projectilePrefab, ...)`.
+- `cs-curriculum-main/Assets/Scripts/Projectile.cs` — NOT IN STARTER: Built from scratch in Unit 3 (3.2, 3.4). Implements movement toward target direction (`transform.Translate` / `linearVelocity`), lifetime cleanup with `Destroy()`, and damage delivery via `OnTriggerEnter2D` calling `StatManager.manager.ChangeHealth(-1)`.
+- `cs-curriculum-main/Assets/Scripts/EnemyController.cs` — NOT IN STARTER: Built from scratch in Unit 4 (4.1-4.5). Handles waypoint patrolling, top-down chase logic, contact damage with cooldown, and the full state machine.
+- `cs-curriculum-main/Assets/Scripts/Lever.cs` — NOT IN STARTER: Built in Unit 5 (5.2). Sprite toggling and UnityEvent wiring to open the cave door.
 - `cs-curriculum-main/Assets/Scripts/Package Scripts/` — RETAINED UTILITIES: `CameraController.cs` (smooth camera follow), `SceneSwitch.cs` (scene transition trigger), and `TopDown_EnemyAnimator.cs` (enemy sprite animation helper).
 - Scenes: `Assets/_Scenes` = Start, Overworld, Platformer. Prefabs in `Assets/Prefabs`: Coin, Spikes, Player, Turret, Turret_Projectile, MobileEnemy, AxeItem, Switch. (Turret and MobileEnemy prefabs are cleaned of missing component references so they start clean). Artwork: Top_Down (WallsTileSet, TP Grass) and Platformer (CavesTileSet, CaveEntranceTileSet) + PlayerAnimator (Axe/Shovel variants).
 - `Card-Game-Template-main/Assets/Scripts/GameManager.cs` — singleton gm; List<Card_data> player_deck/ai_deck; List<Card> hands/discard piles; Deal() shuffles then instantiates blank_card for each hand; **Shuffle(List<Card_data>) and Shuffle(List<Card>) are EMPTY — students fill them**; AI_Turn() EMPTY. Card.cs binds a Card_data (ScriptableObject: card_name, description, health, cost, damage, sprite) to TMP texts + Image. DraggableUI.cs handles drag.
@@ -158,7 +158,7 @@ Unit 7 — Levels & Ladders (Dec):
 - 7.3 Ladders I: ladder zone trigger → climbing state: gravityScale 0, move freely on Y (reuse Input.GetAxis("Vertical")), keep x input; the isPlatformer if chain grows.
 - 7.4 Ladders II: mount/dismount (enter from top/bottom), jump off ladder, top-of-ladder platform; polish.
 - 7.5 Design a big cave: flow (teach→test→reward), difficulty ramp, landmarks, secrets, softlocks to avoid; DESIGN ON PAPER FIRST (CRD-2 planning); spec sheet.
-- 7.6a/7.7a Studios: build days; 7.7 adds cross-playtest with playtest sheet + iterate.
+- 7.6/7.7 Studios: build days; 7.7 adds cross-playtest with playtest sheet + iterate.
 
 Unit 8 — Boss Fight (Jan, 6 lessons then the Jan 21 final):
 - 8.1 Boss design: spec-first (CRD-2): name, health, phases, attacks, win/lose on one page; review what makes the starter bosses fun; approve specs in pairs. NO CODE TODAY.

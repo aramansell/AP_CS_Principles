@@ -76,7 +76,7 @@ npm run dev        # local dev server
 npm run build      # dist/ + PACING.md + sitemap.xml + Pagefind index
 npm run verify     # integrity checks (run after build)
 npm run preview    # serve the built site locally
-npm run new-lesson -- 9.11a   # scaffold a lesson page
+npm run new-lesson -- 5.11    # scaffold a lesson page
 ```
 
 ## Deploying to GitHub Pages
