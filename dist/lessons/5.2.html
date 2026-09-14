@@ -32,9 +32,23 @@ onLeverOn.Invoke();</code></pre>
 
     <p>
         Now open the Overworld scene, select the <strong>Switch</strong> object, and look at its
-        Inspector. You will see the two UnityEvent fields, both currently <em>empty</em>. The
-        lever is shouting into a room with nobody in it. Wiring those up is Step 2 below — and
-        it involves no code at all.
+        Inspector under <strong>On Lever On</strong>. This is the part that should surprise you:
+        <strong>somebody has already wired it up.</strong> Three listeners are waiting there.
+        Before you read on, expand each one and find out what it targets.
+    </p>
+    <p>
+        Two of them are tilemaps called <code>Collision Door Removed</code> and
+        <code>No Collision Door Removed</code>. Find them in the Hierarchy, then look at them in
+        the scene. Together they <em>are</em> the door: one object for the wall you can feel, one
+        for the wall you can see, and the lever switches both off at once. <strong>The door
+        mechanism already works.</strong> Everything missing from it is the part you are about to
+        write — a way for the player to reach the lever at all.
+    </p>
+    <p>
+        The third listener points at the scene's <code>Canvas</code>, which nothing uses yet, and
+        nothing explains why the lever turns it off. That is your first piece of genuine legacy
+        code: wiring somebody else left behind, with no note attached. Deciding what to do about
+        it is part of the job.
     </p>
 
     <div class="socratic">
@@ -102,16 +116,25 @@ onLeverOn.Invoke();</code></pre>
     </div>
 
     <p>
-        <strong>Step 2 — wire the door, with no code at all.</strong> There is no door object in
-        this scene yet, so build one: a new sprite (or a wall segment) placed over the cave
-        mouth. Now select the <strong>Switch</strong> and find <strong>On Lever On</strong> in
-        the Inspector. Click the plus to add a listener, drag your door into the slot, and choose
-        what to call — <code>GameObject → SetActive(false)</code> is the simplest honest door.
+        <strong>Step 2 — spend the wiring you inherited, then extend it.</strong> Do not add
+        anything yet. Press Play, walk to the lever, and press E. The wall vanishes — a door
+        somebody else built, opened by the interaction you just wrote.
     </p>
     <p>
-        Press Play, walk to the lever, press E. The door obeys. You just changed the game's rules
-        from the Inspector, with zero lines of code.
+        Now change it. That is the real skill here: reading wiring you did not write and making it
+        yours. Add a fourth listener that does something of your own choosing — reveal a message,
+        swap a sprite, disable a hazard. All of it from the Inspector, with zero lines of code.
     </p>
+
+    <div class="callout trap">
+        <strong>That third listener is a broken reference waiting to happen.</strong> It points at
+        the Overworld's <code>Canvas</code>, which nothing in this scene uses yet. In
+        <a href="5.3.html">5.3</a> you will put your HUD in the <code>Start</code> scene — and the
+        moment you move or rebuild that Canvas, this listener loses its target and the slot will
+        read <em>Missing</em> in the Inspector. Unity will not warn you until you run the game and
+        something quietly fails to happen. Decide now whether to delete the listener or repoint
+        it, and write down your reason.
+    </div>
 
     <p>
         <strong>Step 3 — the design question.</strong> The door should only open for someone
@@ -143,7 +166,7 @@ onLeverOn.Invoke();</code></pre>
     <div class="tinker">
         <h3>Tinker: Event design</h3>
         <ol>
-            <li>Wire the lever to two listeners at once: open the door <em>and</em> play a sound or a second animation. Does the lever need to know there are two? Why is "whoever wants to know, listens" the direction that scales?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:tk1:q1" data-block="tinker" data-question="Wire the lever to two listeners at once: open the door and play a sound or a second animation. Does the lever need to know there are two? Why is &quot;whoever wants to know, listens&quot; the direction that scales?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The lever already drives three listeners at once and does not know it. Add a fourth of your own. Why is "whoever wants to know, listens" the direction that scales, and what would the lever have needed to know if it had been written the obvious way?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:tk1:q1" data-block="tinker" data-question="The lever already drives three listeners at once and does not know it. Add a fourth of your own. Why is &quot;whoever wants to know, listens&quot; the direction that scales, and what would the lever have needed to know if it had been written the obvious way?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Make a false wall that opens a secret passage instead of the cave. How much code did that cost you — and what does that number tell you about the value of the event pattern?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:tk1:q2" data-block="tinker" data-question="Make a false wall that opens a secret passage instead of the cave. How much code did that cost you — and what does that number tell you about the value of the event pattern?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Make the lever refuse to work unless the player holds the axe. Which script gains a conditional — and can you do it with <em>zero</em> changes to <code>Lever.cs</code>? (Hint: think about who is allowed to be a listener.)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:tk1:q3" data-block="tinker" data-question="Make the lever refuse to work unless the player holds the axe. Which script gains a conditional — and can you do it with zero changes to Lever.cs ? (Hint: think about who is allowed to be a listener.)" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>The lever is shouting into an empty room until someone subscribes. What happens if you wire a listener, then delete the object it points at? What does Unity show you in the Inspector?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:tk1:q4" data-block="tinker" data-question="The lever is shouting into an empty room until someone subscribes. What happens if you wire a listener, then delete the object it points at? What does Unity show you in the Inspector?" placeholder="write your answer, then keep going"></textarea></label></li>

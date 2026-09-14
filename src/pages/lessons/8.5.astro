@@ -1,10 +1,12 @@
 ---
 // Lesson 8.5 — Win, Lose & the Death Loop
 // CORRECTED: there is no boss door in the project; the student builds it.
-// Player death is the student's OWN rule from 2.2, and Start contains no
-// Player - so loading it by name leaves the player with no character.
-// The StatManager singleton built in 5.3 means health now SURVIVES a scene
-// reload, so a naive respawn loop kills the player forever.
+// Player death is the student's OWN rule from 2.2. All THREE scenes contain a
+// Player, so loading Start does NOT strand the player - but Start has no Canvas.
+// Two real traps: (1) the StatManager singleton built in 5.3 means health
+// SURVIVES a scene reload, so a naive respawn loop kills the player forever;
+// (2) SceneSwitch.cs repositions the player using STATIC fields, so a scene
+// loaded by the student's own code can still be repositioned by stale state.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>8.5 — Win, Lose &amp; the Death Loop</h1>
@@ -35,9 +37,10 @@ const body = `<h1>8.5 — Win, Lose &amp; the Death Loop</h1>
         exit anywhere in it. What it <em>does</em> have is machinery you have already used once:
         <code>Assets/Prefabs/Switch.prefab</code> carries a working <code>Lever.cs</code> with a
         trigger collider and two UnityEvents — <code>onLeverOn</code> and
-        <code>onLeverOff</code> — that ship <strong>empty</strong>, with nothing listening. In
-        <a href="5.2.html">5.2</a> you learned what that pattern is for. Today you point it at a
-        new cause.
+        <code>onLeverOff</code> — that are <strong>empty on the prefab</strong>. (The one already
+        sitting in your Overworld was wired up for you — you read that wiring in
+        <a href="5.2.html">5.2</a>. A <em>fresh</em> instance you drag in will be silent until you
+        give it a listener.) Today you point that machinery at a new cause.
     </p>
 
     <table>
@@ -63,21 +66,23 @@ const body = `<h1>8.5 — Win, Lose &amp; the Death Loop</h1>
     </table>
 
     <div class="callout trap">
-        <strong>Check which scene you are loading into. One of your three has no Player in it.</strong>
-        <code>Start</code> is scene index 0, it is where the game begins, and it holds the
-        StatManager object, a Ground-tagged Quad and the collision tilemaps. It contains
-        <strong>no Player</strong>. If your win or loss path loads <code>Start</code> by name,
-        the scene that arrives has no character in it: the camera has nothing to follow, nothing
-        responds to input, and the game appears to have frozen rather than ended. Open Build
-        Settings and confirm this for yourself before you write any scene-loading line.
+        <strong>Scene loading is not stateless — and this project proves it.</strong>
+        Open <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code> and read how it decides
+        where to drop the player when a new scene arrives. Notice the word <code>static</code> on
+        its variables: they survive the scene change, and it repositions the player based on
+        <em>which scene it believes you came from</em>. That works perfectly when you walk through
+        a cave entrance, because the entrance just set those variables a frame earlier. But when
+        <em>your own code</em> loads a scene — a death loop, a win screen — nothing updated them,
+        and SceneSwitch will still act on whatever it last remembered. Before you write a single
+        scene-loading line, work out what that means for your death loop, and then test it.
     </div>
 
     <div class="socratic">
         <h3>Socratic: Two Endings, Two Paths</h3>
         <ol>
             <li>Write your win and your loss as two separate sentences. Which of the three approaches above does each of them need — and do they need to be the same approach?</li>
-            <li>Which scenes in your Build Settings actually contain a Player? If you load a scene without one, name the three things that stop working.</li>
-            <li>The <code>Switch.prefab</code>'s UnityEvents ship empty. What does "empty" mean for the machine — is the lever broken, or is it waiting for a decision you have not made?</li>
+            <li>All three of your scenes contain a Player, so no scene can strand you. But only one of them contains your HUD. What does the player see if your death loop sends them somewhere else — and does that change which death rule you chose in <a href="2.2.html">2.2</a>?</li>
+            <li>The lever's UnityEvents are empty on the prefab but already wired on the instance sitting in your Overworld. What does that tell you about where a behaviour lives? If you drag in a fresh Switch for your boss door, which of the two do you inherit?</li>
             <li>If the boss's death path disabled the barrier directly instead of firing an event, what would the boss's script have to know about your level — and why is that a bad thing to know?</li>
             <li>Your win happens in a scene; your player's coins live in a singleton. What does the player keep when they win, and is that what you want? Name one thing you would deliberately reset and one you would deliberately keep.</li>
             <li>Should the player be able to win while dead, or die while winning? Say which one your game resolves in favour of and why that is a decision rather than an accident.</li>
@@ -327,7 +332,7 @@ const body = `<h1>8.5 — Win, Lose &amp; the Death Loop</h1>
             <li>Explain what your win path does, and name the object you had to build because it did not exist</li>
             <li>Explain why the boss comes back at full health after a wipe, and whether that is your design or an accident</li>
             <li>Explain what your death rule does <em>now</em> that stats live in a singleton — and where the health reset lives</li>
-            <li>State which of your three scenes has no Player in it, and why loading it is a trap</li>
+            <li>Explain what <code>SceneSwitch</code>'s <code>static</code> variables do to a scene that your own code loads</li>
             <li>Quote your death-audit time from a stopwatch, and defend the fix you chose</li>
             <li>Commit and push</li>
         </ul>
