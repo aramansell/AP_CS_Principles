@@ -4,12 +4,13 @@
  * into a fillable lab form.
  *
  * Every question paragraph / list item gets a textarea with a stable,
- * deterministic id (`1.1c:tk1:q2` = lesson 1.1c, first tinker block,
+ * deterministic id (`1.1:tk1:q2` = lesson 1.1, first tinker block,
  * second question). The question text rides along in a data attribute so
- * the downloaded JSON is self-describing for the teacher, and the grader
- * can match answers against src/data/answerKeys.ts by id.
+ * the downloaded JSON is self-describing for the teacher; an autoscored
+ * grader that matches answers against src/data/answerKeys.ts by id is a
+ * roadmap item, not yet shipped (see /teachers/canvas.html).
  *
- * Design split: Discovery Labs produce .java files (students submit those
+ * Design split: the build labs produce .cs scripts (students submit those
  * as code); these boxes capture the predict/explain/reflect answers that
  * surround the code. See docs on /teachers/canvas.html.
  */
@@ -66,7 +67,7 @@ function escapeAttr(s: string): string {
 /**
  * Should this text get an answer box?
  * Yes when it asks a question; no when it is a bare instruction that ends
- * with a period or a colon ("Create RemoveExperiment.java:").
+ * with a period or a colon ("Open PlayerController.cs:").
  */
 function isQuestion(text: string): boolean {
   if (!text || text.length < 12) return false;

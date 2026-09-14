@@ -5,8 +5,9 @@
  *   the stable question id (apcsp-lab-answers).
  * - Student name is shared across lessons (apcsp-lab-student).
  * - "Download answers" writes a self-describing JSON file the teacher
- *   collects via a Canvas file-upload assignment and grades with
- *   scripts/grade-submissions.mjs. See /teachers/canvas.html.
+ *   collects via a Canvas file-upload assignment and reads in SpeedGrader.
+ *   See /teachers/canvas.html. (Autoscored grading is a roadmap item on
+ *   that page, not a shipped script.)
  */
 (function () {
   'use strict';
