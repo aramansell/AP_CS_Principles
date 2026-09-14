@@ -1,9 +1,11 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>1.6a Animation States: IsWalking, WalkDir, Attack — AP CS Principles</title><meta name="description" content="Lesson 1.6 Animation States: IsWalking, WalkDir, Attack — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="1.6a Animation States: IsWalking, WalkDir, Attack — AP CS Principles"><meta property="og:description" content="Lesson 1.6 Animation States: IsWalking, WalkDir, Attack — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="1.5.html">&#9664; 1.5</a><span class="lesson-id">1.6</span><a href="2.1.html">2.1 &#9654;</a></div><h1>1.6 — Animation States: IsWalking, WalkDir, Attack</h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>1.6 Animation States: IsWalking, WalkDir, Attack — AP CS Principles</title><meta name="description" content="Lesson 1.6 Animation States: IsWalking, WalkDir, Attack — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="1.6 Animation States: IsWalking, WalkDir, Attack — AP CS Principles"><meta property="og:description" content="Lesson 1.6 Animation States: IsWalking, WalkDir, Attack — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="1.5.html">&#9664; 1.5</a><span class="lesson-id">1.6</span><a href="2.1.html">2.1 &#9654;</a></div><h1>1.6 — Animation States: IsWalking, WalkDir, Attack</h1>
 
 <p class="lesson-lead">
-    Your player moves through space, but it does not <em>look</em> alive yet. Today, you connect code
-    to Unity's Animator state machine: reading parameters, driving directional clips, flipping sprites,
-    and understanding why code sets state while the engine plays frames.
+    Your character moves through space, but it does not <em>look</em> alive yet — it plays
+    the same idle animation no matter which way you walk. Today you connect your code to
+    Unity's Animator state machine: reading its parameters, driving directional clips,
+    flipping the sprite, and understanding why your code sets <em>state</em> while the
+    engine plays <em>frames</em>.
 </p>
 
 <!-- ============================================================ -->
@@ -15,45 +17,52 @@
 
     <p>
         In professional game engines, scripts rarely swap individual sprite images directly.
-        Instead, the visual engine uses an <strong>Animator Controller</strong> — a visual finite state machine.
-        Your C# script communicates with the Animator by setting <strong>parameters</strong>:
+        Instead the visual engine uses an <strong>Animator Controller</strong> — a visual
+        finite state machine. Your C# script communicates with it by setting
+        <strong>parameters</strong>, and the controller decides which clip to play:
     </p>
 
     <table>
-        <tr><th>Engine API</th><th>Signature / Type</th><th>Description &amp; Behavior</th></tr>
+        <tr><th>Unity API</th><th>Signature</th><th>Behaviour</th></tr>
         <tr>
             <td><code>animator.SetBool()</code></td>
             <td><code>void SetBool(string name, bool value)</code></td>
-            <td>Sets a boolean condition parameter on the Animator Controller. Used for persistent continuous states (e.g. idle vs walking).</td>
+            <td>Sets a boolean parameter. For <em>persistent, continuous</em> states such as idle versus walking.</td>
         </tr>
         <tr>
             <td><code>animator.SetInteger()</code></td>
             <td><code>void SetInteger(string name, int value)</code></td>
-            <td>Sets an integer parameter. Used for discrete multi-state selection (e.g. direction: 0 = up, 1 = side, 2 = down).</td>
+            <td>Sets an integer parameter. For <em>discrete multi-state</em> selection such as a direction (0, 1, 2).</td>
         </tr>
         <tr>
             <td><code>animator.SetTrigger()</code></td>
             <td><code>void SetTrigger(string name)</code></td>
-            <td>Fires a momentary trigger parameter that resets automatically once consumed by a transition. Used for one-shot actions like attacks or jumps.</td>
+            <td>Fires a momentary trigger that resets itself once a transition consumes it. For <em>one-shot</em> actions such as attacks or jumps.</td>
         </tr>
         <tr>
             <td><code>spriteRenderer.flipX</code></td>
             <td><code>bool</code> (read/write)</td>
-            <td>Horizontally mirrors the sprite texture across its vertical axis. Allows a single sideways walk animation to serve for both left and right.</td>
+            <td>Mirrors the sprite horizontally. Lets one sideways walk animation serve both left and right.</td>
         </tr>
         <tr>
             <td><code>Mathf.Abs()</code></td>
             <td><code>float Mathf.Abs(float f)</code></td>
-            <td>Returns the absolute value of a number (stripping negative signs). Essential for comparing speed magnitudes regardless of direction.</td>
+            <td>Returns a number's absolute value, stripping the sign. For comparing magnitudes regardless of direction.</td>
+        </tr>
+        <tr>
+            <td><code>GetComponentInChildren&lt;T&gt;()</code></td>
+            <td><code>T GetComponentInChildren&lt;T&gt;()</code></td>
+            <td>Finds a component on this GameObject <em>or any of its children</em>. You need this one — remember where the Sprite Renderer and Animator turned out to live.</td>
         </tr>
     </table>
 
     <div class="socratic">
         <h3>Socratic: Separation of Concerns</h3>
         <ol>
-            <li>Why does the C# script set abstract parameters like <code>"IsWalking"</code> or <code>"WalkDir"</code> instead of telling the engine "play frame 4 of the walk sprite sheet"?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc1:q1" data-block="socratic" data-question="Why does the C# script set abstract parameters like &quot;IsWalking&quot; or &quot;WalkDir&quot; instead of telling the engine &quot;play frame 4 of the walk sprite sheet&quot;?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>What would happen to your code if an artist decided to replace a 4-frame walk animation with an 8-frame walk animation? If your code only sets parameters, does any C# have to change?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc1:q2" data-block="socratic" data-question="What would happen to your code if an artist decided to replace a 4-frame walk animation with an 8-frame walk animation? If your code only sets parameters, does any C# have to change?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>What is the technical difference between setting a boolean with <code>SetBool</code> versus firing an action with <code>SetTrigger</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc1:q3" data-block="socratic" data-question="What is the technical difference between setting a boolean with SetBool versus firing an action with SetTrigger ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why does your script set abstract parameters like <code>"IsWalking"</code> instead of telling the engine "play frame 4 of the walk sprite sheet"?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc1:q1" data-block="socratic" data-question="Why does your script set abstract parameters like &quot;IsWalking&quot; instead of telling the engine &quot;play frame 4 of the walk sprite sheet&quot;?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If an artist replaced a 4-frame walk animation with an 8-frame one, how much C# would have to change? What does your answer say about the value of this split?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc1:q2" data-block="socratic" data-question="If an artist replaced a 4-frame walk animation with an 8-frame one, how much C# would have to change? What does your answer say about the value of this split?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What is the technical difference between setting a boolean with <code>SetBool</code> and firing an action with <code>SetTrigger</code>? Which one resets itself, and why does that matter for an attack?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc1:q3" data-block="socratic" data-question="What is the technical difference between setting a boolean with SetBool and firing an action with SetTrigger ? Which one resets itself, and why does that matter for an attack?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The Animator and the Sprite Renderer are on the child object, but your script is on the parent. Why does <code>GetComponent&lt;Animator&gt;()</code> return nothing, and what does <code>GetComponentInChildren&lt;Animator&gt;()</code> do differently?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc1:q4" data-block="socratic" data-question="The Animator and the Sprite Renderer are on the child object, but your script is on the parent. Why does GetComponent&lt;Animator&gt;() return nothing, and what does GetComponentInChildren&lt;Animator&gt;() do differently?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -66,40 +75,42 @@
     </div>
 
     <p>
-        Notice how each visual function and parameter type works in isolation across completely different characters:
+        Notice how each function and parameter type behaves in isolation, across completely
+        different characters:
     </p>
 
-    <p><strong>Example 1 — Setting a Boolean State on a Scuba Diver:</strong></p>
-    <pre><code>// Drives a continuous state transition (e.g. idle on boat vs swimming underwater)
+    <p><strong>Example 1 — Setting a boolean state on a scuba diver:</strong></p>
+    <pre><code>// Drives a continuous state change (idle on the boat vs swimming underwater)
 animator.SetBool("IsSwimming", waterDepth &gt; 0f);</code></pre>
 
-    <p><strong>Example 2 — Setting an Integer Discrete State on a Warrior:</strong></p>
-    <pre><code>// Selects an equipment stance: 0 = Unarmed, 1 = Sword/Shield, 2 = Greatsword
+    <p><strong>Example 2 — Selecting a discrete state on a warrior:</strong></p>
+    <pre><code>// Chooses an equipment stance: 0 = unarmed, 1 = sword and shield, 2 = greatsword
 animator.SetInteger("WeaponStance", 2);</code></pre>
 
-    <p><strong>Example 3 — Firing a One-Shot Action Trigger on a Wizard:</strong></p>
-    <pre><code>// Fires a momentary action clip that plays once and returns to the default state
+    <p><strong>Example 3 — Firing a one-shot action on a wizard:</strong></p>
+    <pre><code>// Fires a momentary clip that plays once and returns to the default state
 if (Input.GetKeyDown(KeyCode.Space))
 {
     animator.SetTrigger("CastSpell");
 }</code></pre>
 
-    <p><strong>Example 4 — Flipping a 2D Sprite on a Flying Falcon:</strong></p>
-    <pre><code>// Horizontally mirrors the sprite texture based on whether flight velocity is negative
+    <p><strong>Example 4 — Flipping a sprite on a flying falcon:</strong></p>
+    <pre><code>// Mirrors the sprite based on whether horizontal velocity is negative
 spriteRenderer.flipX = horizontalVelocity &lt; 0f;</code></pre>
 
-    <p><strong>Example 5 — Stripping Negative Signs with Absolute Value:</strong></p>
-    <pre><code>// Mathf.Abs turns -4.5 into +4.5, making it easy to compare magnitudes regardless of sign
+    <p><strong>Example 5 — Stripping signs with absolute value:</strong></p>
+    <pre><code>// Mathf.Abs turns -4.5 into +4.5, making magnitudes comparable regardless of direction
 if (Mathf.Abs(steerX) &gt;= Mathf.Abs(steerY))
 {
-    // Horizontal magnitude is stronger than vertical
+    // horizontal magnitude is at least as strong as vertical
 }</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>If <code>steerX</code> is <code>-0.8</code> and <code>steerY</code> is <code>0.3</code>, what does <code>Mathf.Abs(steerX) &gt;= Mathf.Abs(steerY)</code> evaluate to?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc2:q1" data-block="socratic" data-question="If steerX is -0.8 and steerY is 0.3 , what does Mathf.Abs(steerX) &gt;= Mathf.Abs(steerY) evaluate to?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Why is <code>SetTrigger</code> preferred over <code>SetBool</code> for an attack swing or spell cast?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc2:q2" data-block="socratic" data-question="Why is SetTrigger preferred over SetBool for an attack swing or spell cast?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If <code>steerX</code> is <code>-0.8</code> and <code>steerY</code> is <code>0.3</code>, what does <code>Mathf.Abs(steerX) &gt;= Mathf.Abs(steerY)</code> evaluate to — and what would the player see as a result?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc2:q1" data-block="socratic" data-question="If steerX is -0.8 and steerY is 0.3 , what does Mathf.Abs(steerX) &gt;= Mathf.Abs(steerY) evaluate to — and what would the player see as a result?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In Example 1, <code>waterDepth &gt; 0f</code> is itself a boolean expression. What value gets passed to <code>SetBool</code> when <code>waterDepth</code> is exactly <code>0</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc2:q2" data-block="socratic" data-question="In Example 1, waterDepth &gt; 0f is itself a boolean expression. What value gets passed to SetBool when waterDepth is exactly 0 ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Example 4 compares velocity to zero. If the falcon is flying straight up, what is <code>horizontalVelocity</code>, and what happens to <code>flipX</code>? Is that what you want?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:sc2:q3" data-block="socratic" data-question="Example 4 compares velocity to zero. If the falcon is flying straight up, what is horizontalVelocity , and what happens to flipX ? Is that what you want?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -112,71 +123,68 @@ if (Mathf.Abs(steerX) &gt;= Mathf.Abs(steerY))
     </div>
 
     <p>
-        <strong>Step 1 — Read the Animator Controller in Unity.</strong>
-        Select the Player in the Overworld scene, then open <strong>Window → Animation → Animator</strong>.
+        <strong>Step 1 — read the Animator Controller in Unity.</strong> In the Overworld
+        scene, select the child <strong>Sprite</strong> object under Player — remember from
+        <a href="1.2.html">1.2</a> that is where the Animator lives, not on the Player root.
+        Then open <strong>Window → Animation → Animator</strong>.
     </p>
     <ol>
-        <li>Click the <strong>Parameters</strong> tab in the top-left of the Animator window. Notice the three parameters already configured: <code>IsWalking</code> (Bool), <code>WalkDir</code> (Int), and <code>Attack</code> (Trigger).</li>
-        <li>Click the transition arrow pointing from the side-walking state to the idle state. In the Inspector, read its condition: <code>IsWalking == false</code>.</li>
-        <li>Click the arrows between up, side, and down: notice they evaluate <code>WalkDir equals 0</code> (up), <code>1</code> (side), and <code>2</code> (down).</li>
+        <li>Click the <strong>Parameters</strong> tab in the top-left of the Animator window. Three parameters are already configured: <code>IsWalking</code> (Bool), <code>WalkDir</code> (Int), and <code>Attack</code> (Trigger). Someone built this state machine for you — your job is to drive it.</li>
+        <li>Click the arrow from <code>Walk_Horiz</code> to <code>Idle_Horiz</code>. In the Inspector, read its condition: <code>IsWalking</code> is false.</li>
+        <li>Click the arrows between the up, side, and down states. Notice they compare <code>WalkDir</code> to <code>0</code>, <code>1</code>, and <code>2</code>. Write down which number means which direction — you will need these exact values in your code.</li>
+        <li>Now click the arrow into any of the <code>Shovel_Swing</code> states. What two conditions must <em>both</em> be true before the attack animation plays?</li>
     </ol>
 
     <div class="callout">
-        <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
-        <p><strong>Component References:</strong></p>
+        <strong>Architectural specification for the animation half of <code>PlayerController.cs</code>:</strong>
+        <p><strong>Component references:</strong></p>
         <ul>
-            <li>What components control visual sprite display and animation playback on the player?</li>
-            <li>If those components live on child GameObjects, what method finds components located in children?</li>
-            <li>In which lifecycle method should you cache these component references so you only look them up once?</li>
+            <li>Which two components drive what you see — the picture itself, and the animation playback?</li>
+            <li>Both live on a child object. Which method finds components in children rather than on the root?</li>
+            <li>Which lifecycle method should cache those references so you look them up once instead of sixty times a second? What happens if you look them up in <code>Update()</code> instead?</li>
         </ul>
 
-        <p><strong>Dedicated Animation Method:</strong></p>
+        <p><strong>A dedicated animation method:</strong></p>
         <ul>
-            <li>Should animation state logic clutter your movement calculations, or be organized in a dedicated helper function?</li>
-            <li>Where must this helper method be called each frame to keep visuals in sync with input?</li>
+            <li>Should animation logic be tangled into your movement calculation, or organised into its own helper method? Argue for your choice.</li>
+            <li>Where must that helper be called, so the visuals stay in sync with the input every frame?</li>
         </ul>
 
-        <p><strong>Sub-Problem 1 (Evaluate Walking State):</strong></p>
+        <p><strong>Sub-problem 1 — evaluate the walking state:</strong></p>
         <ul>
-            <li>How can you determine if the player is currently moving in any direction? What condition checks if either horizontal or vertical input is non-zero?</li>
-            <li>What Animator method updates a boolean parameter? What is the exact name of the boolean parameter in the Animator Controller?</li>
+            <li>How do you decide the character is moving in <em>any</em> direction? What condition checks whether either input is non-zero?</li>
+            <li>Which Animator method updates a boolean parameter, and what is the exact, correctly-capitalised name of the boolean in this controller?</li>
         </ul>
 
-        <p><strong>Sub-Problem 2 (Evaluate Direction &amp; Flip):</strong></p>
+        <p><strong>Sub-problem 2 — evaluate direction and flip:</strong></p>
         <ul>
-            <li>When moving diagonally, how do you decide whether the sprite should play the sideways or vertical animation? How does <code>Mathf.Abs()</code> help compare horizontal vs vertical magnitude?</li>
-            <li>If horizontal movement dominates:
-                <ul>
-                    <li>What integer value corresponds to the side-walking state in the Animator Controller?</li>
-                    <li>How do you determine whether <code>sprite.flipX</code> should be true or false based on movement direction?</li>
-                </ul>
-            </li>
-            <li>If vertical movement dominates:
-                <ul>
-                    <li>What integer value corresponds to walking up? What integer corresponds to walking down?</li>
-                    <li>Do you need to set <code>sprite.flipX</code> when moving vertically?</li>
-                </ul>
-            </li>
+            <li>When moving diagonally, how do you decide whether the sideways or the vertical animation should play? How does <code>Mathf.Abs()</code> settle that argument?</li>
+            <li>If horizontal movement dominates: which integer means "sideways"? How do you decide whether <code>flipX</code> should be true or false from the direction of travel?</li>
+            <li>If vertical movement dominates: which integer means up, and which means down? Do you need to touch <code>flipX</code> at all when moving vertically — and if not, why not?</li>
         </ul>
 
-        <p><strong>Sub-Problem 3 (Attack Trigger):</strong></p>
+        <p><strong>Sub-problem 3 — the attack trigger:</strong></p>
         <ul>
-            <li>What function detects when the player clicks the left mouse button (mouse button index 0)?</li>
-            <li>What Animator method fires a one-shot trigger parameter? What is the trigger parameter's name?</li>
+            <li>Which input function detects that the left mouse button (button index 0) was pressed <em>this frame</em>? Why is that different from asking whether it is currently held?</li>
+            <li>Which Animator method fires a one-shot trigger, and what is the trigger parameter called?</li>
         </ul>
     </div>
 
     <p>
-        Save <code>PlayerController.cs</code> and return to Unity. Press Play.
-        Walk in all four directions. Your character should now smoothly transition between idle, walking sideways, walking up, and walking down, with proper left/right sprite flipping!
+        Save <code>PlayerController.cs</code> and return to Unity. Press Play and walk in all
+        four directions. Your character should now blend between idle, walking sideways,
+        walking up, and walking down, with the sprite flipping as it changes direction. Click
+        to swing.
     </p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Diagnosing Animation Faults</h3>
         <ol>
-            <li>What happens if you misspell <code>"IsWalking"</code> as <code>"isWalking"</code> (lowercase i) in your C# code? What does the Unity Console report?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:bh1:q1" data-block="bug-hunt" data-question="What happens if you misspell &quot;IsWalking&quot; as &quot;isWalking&quot; (lowercase i) in your C# code? What does the Unity Console report?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Temporarily comment out the line setting <code>sprite.flipX</code>. Which direction can your player never face?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:bh1:q2" data-block="bug-hunt" data-question="Temporarily comment out the line setting sprite.flipX . Which direction can your player never face?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>What happens if you click the mouse rapidly? Does the attack animation trigger cleanly and return to walking/idle?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:bh1:q3" data-block="bug-hunt" data-question="What happens if you click the mouse rapidly? Does the attack animation trigger cleanly and return to walking/idle?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Misspell <code>"IsWalking"</code> as <code>"isWalking"</code> (lowercase i). What does the Unity Console report? Why is a misspelled parameter a loud error rather than a silent failure, and why is that a kindness?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:bh1:q1" data-block="bug-hunt" data-question="Misspell &quot;IsWalking&quot; as &quot;isWalking&quot; (lowercase i). What does the Unity Console report? Why is a misspelled parameter a loud error rather than a silent failure, and why is that a kindness?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Which way is your character facing before you press any key at all? Select the Sprite object and look at <code>Flip X</code> on its Sprite Renderer. Does your idle animation point the way you expected?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:bh1:q2" data-block="bug-hunt" data-question="Which way is your character facing before you press any key at all? Select the Sprite object and look at Flip X on its Sprite Renderer. Does your idle animation point the way you expected?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Comment out the line that sets <code>flipX</code>. Which direction can your character never face while walking sideways?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:bh1:q3" data-block="bug-hunt" data-question="Comment out the line that sets flipX . Which direction can your character never face while walking sideways?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set <code>WalkDir</code> to a value the controller never checks — say <code>7</code>. What happens to the animation, and what does that teach you about a state machine with no matching transition?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:bh1:q4" data-block="bug-hunt" data-question="Set WalkDir to a value the controller never checks — say 7 . What happens to the animation, and what does that teach you about a state machine with no matching transition?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Click the mouse rapidly. Does the attack animation trigger cleanly, and does it return to walking or idling afterwards?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:bh1:q5" data-block="bug-hunt" data-question="Click the mouse rapidly. Does the attack animation trigger cleanly, and does it return to walking or idling afterwards?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -189,21 +197,24 @@ if (Mathf.Abs(steerX) &gt;= Mathf.Abs(steerY))
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Exploring State Transitions</h3>
+        <h3>Tinker: Exploring state transitions</h3>
         <ol>
-            <li>Open the Animator window while the game is running in Play mode. Walk around. Notice the blue progress bar on each animation state indicating playback time, and observe the transitions highlighting in real time!<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:tk1:q1" data-block="tinker" data-question="Open the Animator window while the game is running in Play mode. Walk around. Notice the blue progress bar on each animation state indicating playback time, and observe the transitions highlighting in real time!" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>The player prefab includes animation clips for holding tools/weapons (e.g. shovel, axe). In the Animator window, find where the alternate weapon states are located. What conditions govern their transitions?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:tk1:q2" data-block="tinker" data-question="The player prefab includes animation clips for holding tools/weapons (e.g. shovel, axe). In the Animator window, find where the alternate weapon states are located. What conditions govern their transitions?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Keep the Animator window open while the game runs in Play mode. Walk around. Watch the blue progress bar slide across each state and the transition arrows light up in real time. Which state is active when you stand still?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:tk1:q1" data-block="tinker" data-question="Keep the Animator window open while the game runs in Play mode. Walk around. Watch the blue progress bar slide across each state and the transition arrows light up in real time. Which state is active when you stand still?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Your Player is wired to <code>Player_Shovel.controller</code> — that is why the attack is a shovel swing. Now go find <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/Player_Axe.controller</code> and open it. It is a complete, working controller with axe swings instead of shovel swings, and it is not assigned to anything. What single property on the Animator component would you change to make your character swing an axe? (You will do exactly this in Unit 5.)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:tk1:q2" data-block="tinker" data-question="Your Player is wired to Player_Shovel.controller — that is why the attack is a shovel swing. Now go find Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/Player_Axe.controller and open it. It is a complete, working controller with axe swings instead of shovel swings, and it is not assigned to anything. What single property on the Animator component would you change to make your character swin" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Add a fourth parameter of your own to the controller and wire a transition to it. What is the minimum you need — a parameter, a state, and what else?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.6:tk1:q3" data-block="tinker" data-question="Add a fourth parameter of your own to the controller and wire a transition to it. What is the minimum you need — a parameter, a state, and what else?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Open the Animator Controller window and inspect states, arrows, and parameter conditions</li>
+            <li>Open the Animator window and inspect states, arrows, and parameter conditions</li>
             <li>Explain the distinct purposes of <code>SetBool</code>, <code>SetInteger</code>, and <code>SetTrigger</code></li>
-            <li>Explain the software architecture split: code sets state parameters, the Animator Controller plays visual clips</li>
-            <li>Use <code>Mathf.Abs()</code> to resolve dominant directional input</li>
-            <li>Commit your working animation controller integration to GitHub</li>
+            <li>Explain the architecture split: your code sets state parameters, the Animator Controller plays the clips</li>
+            <li>Say which <code>WalkDir</code> integer means up, sideways, and down</li>
+            <li>Use <code>Mathf.Abs()</code> to resolve which directional input dominates</li>
+            <li>Find a component on a child object with <code>GetComponentInChildren</code></li>
+            <li>Commit your working animation integration to GitHub</li>
         </ul>
     </div>
 </div>
@@ -214,8 +225,8 @@ if (Mathf.Abs(steerX) &gt;= Mathf.Abs(steerY))
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — animation states section</li>
-        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — state machine design patterns</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — designing your own state machine, which is exactly what Unit 4 is</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Animator API tables</li>
     </ul>
-    <p>Next: <a href="2.1.html">2.1 — Coins: Triggers, Tags &amp; the StatManager</a> — Unit 2 begins.</p>
-</div><div class="lab-bar" data-lesson="1.6" data-lesson-title="Animation States: IsWalking, WalkDir, Attack" data-count="10" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/10 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="1.6" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.5.html"><span class="dir">&#9664; Previous</span><span class="where">1.5 — Movement II: Speed, deltaTime &amp; Tuning</span></a><a class="foot-next" href="2.1.html"><span class="dir">Next &#9654;</span><span class="where">2.1 — Coins: Triggers, Tags &amp; the StatManager</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+    <p>Next: <a href="2.1.html">2.1 — Coins: Triggers, Tags &amp; Your First Stat</a> — Unit 2 begins, and your character finally interacts with the world.</p>
+</div><div class="lab-bar" data-lesson="1.6" data-lesson-title="Animation States: IsWalking, WalkDir, Attack" data-count="15" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/15 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="1.6" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.5.html"><span class="dir">&#9664; Previous</span><span class="where">1.5 — Movement II: Speed, deltaTime &amp; Tuning</span></a><a class="foot-next" href="2.1.html"><span class="dir">Next &#9654;</span><span class="where">2.1 — Coins: Triggers, Tags &amp; Your First Stat</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

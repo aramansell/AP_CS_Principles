@@ -31,31 +31,31 @@ export const LESSONS: Record<string, LessonMeta> = {
   '1.6': { title: "Animation States: IsWalking, WalkDir, Attack", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '1.6' },
 
   // Unit 2 — Stats & Pickups
-  '2.1': { title: "Coins: Triggers, Tags & the StatManager", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.1' },
-  '2.2': { title: "Spikes: Collisions, Health & Death", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.2' },
-  '2.3': { title: "Health Potions & the Max-Health Cap", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.3' },
+  '2.1': { title: "Coins: Triggers, Tags & Your First Stat", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.1' },
+  '2.2': { title: "Spikes: Physics, Damage & Death", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.2' },
+  '2.3': { title: "Healing Pickups & the Max-Health Cap", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.3' },
   '2.4': { title: "Prefabs, Spawning & Playtesting", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.4' },
 
   // Unit 3 — The Turret
   '3.1': { title: "The Turret: Distance & the Detection Radius", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '3.1' },
   '3.2': { title: "Projectiles: Instantiate, Fire, Destroy", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '3.2' },
   '3.3': { title: "Fire Rate: Cooldowns & Time", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '3.3' },
-  '3.4': { title: "Turret Damage, Tuning & Playtest", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '3.4' },
+  '3.4': { title: "Projectile Damage, Tuning & Playtest", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '3.4' },
 
   // Unit 4 — The Enemy
-  '4.1': { title: "The Enemy: Waypoint Patrols", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.1' },
-  '4.2': { title: "Patrol Polish: Bounds, Flips & Animations", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.2' },
+  '4.1': { title: "The Enemy: Patrol", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.1' },
+  '4.2': { title: "Enemy Animation: A Different State Machine", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.2' },
   '4.3': { title: "Chase: The Aggro Radius", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.3' },
-  '4.4': { title: "Attack: Close-Range Danger", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.4' },
-  '4.5': { title: "The Full State Machine: Back to Patrol", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.5' },
+  '4.4': { title: "Attack: Close-Range Contact Damage", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.4' },
+  '4.5': { title: "The Full State Machine: Patrol, Chase, Attack", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.5' },
 
   // Unit 5 — The Axe & The Cave
   '5.1': { title: "The Axe: Item Pickups & Inventory Bools", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.1' },
-  '5.2': { title: "The Door: Breaking In with Events", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.2' },
-  '5.3': { title: "Into the Cave: Scene Loading & Mode Switch", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.3' },
+  '5.2': { title: "The Door: Opening It with Events", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.2' },
+  '5.3': { title: "Into the Cave: Scenes, Persistence & The Refactor", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.3' },
 
   // Unit 6 — Jumping
-  '6.1': { title: "Gravity & Jump: AddForce Impulse", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.1' },
+  '6.1': { title: "Gravity & Jump: The First Flick", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.1' },
   '6.2': { title: "Ground Checks: No Infinite Jumps", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.2' },
   '6.3': { title: "Jump Feel: Fall Speed & Coyote Time", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.3' },
   '6.4': { title: "Boots: Double Jump", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.4' },
@@ -72,7 +72,7 @@ export const LESSONS: Record<string, LessonMeta> = {
 
   // Unit 8 — Boss Fight
   '8.1': { title: "Boss Design: Spec It First", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.1' },
-  '8.2': { title: "Boss Body, Health Bar & Phases", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.2' },
+  '8.2': { title: "Boss Body, Health & Phases", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.2' },
   '8.3': { title: "Player Attack: Fight Back", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.3' },
   '8.4': { title: "Boss Attacks: Patterns & Phases", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.4' },
   '8.5': { title: "Win, Lose & the Death Loop", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.5' },

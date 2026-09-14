@@ -1,120 +1,222 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>5.3a Into the Cave: Scene Loading &amp; Mode Switch — AP CS Principles</title><meta name="description" content="Lesson 5.3 Into the Cave: Scene Loading &amp; Mode Switch — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="5.3a Into the Cave: Scene Loading &amp; Mode Switch — AP CS Principles"><meta property="og:description" content="Lesson 5.3 Into the Cave: Scene Loading &amp; Mode Switch — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="5.2.html">&#9664; 5.2</a><span class="lesson-id">5.3</span><a href="6.1.html">6.1 &#9654;</a></div><h1>5.3 — Into the Cave: Scene Loading &amp; Mode Switch</h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>5.3 Into the Cave: Scenes, Persistence &amp; The Refactor — AP CS Principles</title><meta name="description" content="Lesson 5.3 Into the Cave: Scenes, Persistence &amp; The Refactor — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="5.3 Into the Cave: Scenes, Persistence &amp; The Refactor — AP CS Principles"><meta property="og:description" content="Lesson 5.3 Into the Cave: Scenes, Persistence &amp; The Refactor — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="5.2.html">&#9664; 5.2</a><span class="lesson-id">5.3</span><a href="6.1.html">6.1 &#9654;</a></div><h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor</h1>
 
 <p class="lesson-lead">
-    You break the door, you walk in — and the game you are playing
-    quietly becomes a different game. Today: how ONE player script
-    runs as a top-down character on the surface and a platformer
-    underground, decided by nothing but the scene's own name.
+    You break the door, you walk in — and everything you have built breaks with it. Your coins
+    are gone. Your health is back to full. Your axe has vanished. Nothing is wrong with your
+    code: you have just left one scene and entered another, and nothing you stored was ever
+    built to survive that. Today you fix it properly, and in doing so you meet the most
+    important refactor of the year.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">The Problem: Walk Into the Cave</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p>Read the branch in PlayerController.Start:</p>
-    <pre><code>private bool isPlatformer;
-
-private void Start()
-{
-    string sceneName = SceneManager.GetActiveScene().name;
-    if (sceneName == "Platformer" || sceneName == "Start")
-    {
-        isPlatformer = true;
-        rb.gravityScale = 0;
-    }
-}</code></pre>
-
     <p>
-        Wait — read it again, slowly. "Platformer" and "Start" set
-        isPlatformer = <strong>true</strong>... and then set gravity to
-        <strong>0</strong>? That reads backwards — until you learn the
-        starter's naming: the "Start" scene IS the top-down overworld
-        (that is where you respawned in
-        <a href="2.2.html">2.2</a>), and "Platformer" is the cave
-        scene. Top-down means NO gravity — a top-down character who
-        falls is a broken top-down character. The bool's name is the
-        confession: isPlatformer means "we are in a scene where the
-        movement style is top-down-or-platformer, not pure physics."
-        Trace which scene you are IN before you judge any branch.
+        Collect a few coins. Take some damage. Pick up the axe. Now walk into one of the cave
+        mouths marked on the overworld map.
     </p>
 
+    <div class="tinker">
+        <h3>Tinker: Everything you own, gone</h3>
+        <ol>
+            <li>What happened the moment you touched the cave entrance? Which scene are you standing in now — check the Hierarchy, not your memory.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk1:q1" data-block="tinker" data-question="What happened the moment you touched the cave entrance? Which scene are you standing in now — check the Hierarchy, not your memory." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Look at your coins, your health and your axe. What are they now? Write down each one's value before and after.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk1:q2" data-block="tinker" data-question="Look at your coins, your health and your axe. What are they now? Write down each one's value before and after." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Go back through the cave's exit. Are your coins restored, or are they still reset? What does that tell you about where the numbers were living?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk1:q3" data-block="tinker" data-question="Go back through the cave's exit. Are your coins restored, or are they still reset? What does that tell you about where the numbers were living?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>You have been tripping these cave entrances since <a href="2.1.html">2.1</a>, when you gave the Player a collider. What code has been running every time — and why did it start working only then?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk1:q4" data-block="tinker" data-question="You have been tripping these cave entrances since 2.1 , when you gave the Player a collider. What code has been running every time — and why did it start working only then?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Open <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code> and read it. Which method loads the scene, and what does it deliberately <em>restore</em> about the player when you arrive?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk1:q5" data-block="tinker" data-question="Open Assets/Scripts/Package Scripts/SceneSwitch.cs and read it. Which method loads the scene, and what does it deliberately restore about the player when you arrive?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+
+    <div class="callout trap">
+        <strong>This is not a bug — it is the correct behaviour of a scene load.</strong>
+        When Unity loads a scene, it destroys everything in the old one and builds the new one
+        from its file. Every GameObject, every field, every number you were holding on
+        <code>PlayerController</code>: gone, and replaced by whatever the new scene's copy of the
+        Player starts with. Your stats were never lost. They were <em>replaced</em>.
+        <br><br>
+        <code>SceneSwitch.cs</code> already knows this — that is why it carefully saves and
+        restores the player's position, facing and animation controller. It is handling the
+        things that <em>should</em> reset. Nobody wrote the code for the things that should not.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: What Actually Survives?</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
     <p>
-        Predict: the player walks into the cave door area. What must
-        happen to the WHOLE world to put you in a platformer — same
-        scene with a camera pan, or a brand-new scene load? Where did
-        you last see SceneManager.LoadScene, and who called it?
+        First, learn the world you are actually in. This project has three scenes and they are
+        already wired to each other:
+    </p>
+
+    <table>
+        <tr><th>Scene</th><th>Load index</th><th>What it is</th><th>What is in it</th></tr>
+        <tr>
+            <td><code>Start</code></td>
+            <td>0</td>
+            <td><strong>Where the game begins</strong></td>
+            <td>A StatManager object, ground, cave-entrance tilemaps, the exit to the overworld. <strong>No Player, and no Canvas.</strong></td>
+        </tr>
+        <tr>
+            <td><code>Overworld</code></td>
+            <td>1</td>
+            <td>The top-down hub you have been building in all year</td>
+            <td>The Player, your coins, enemies, turrets, the lever — and entrances to both caves. Also an unused Canvas and EventSystem.</td>
+        </tr>
+        <tr>
+            <td><code>Platformer</code></td>
+            <td>2</td>
+            <td>The second cave</td>
+            <td>Its own tilemaps and a Player, plus an exit back to the overworld.</td>
+        </tr>
+    </table>
+
+    <p>
+        So the topology is: the game starts in <strong>Start</strong>, its exit takes you to the
+        <strong>Overworld</strong>, and two cave mouths lead to <strong>Start</strong> again and
+        to the <strong>Platformer</strong> cave. You have been walking this map since 2.1 without
+        knowing it.
     </p>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            One component behaving differently per scene is the
-            <strong>instance</strong> idea: every scene gets its own
-            Player object, each with the same script but different
-            rules. What is saved between scenes (StatManager!) and
-            what is born fresh — and why do coins survive the door
-            but position cannot?
-        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q1" data-block="socratic" data-question="One component behaving differently per scene is the instance idea: every scene gets its own Player object, each with the same script but different rules. What is saved between scenes (StatManager!) and what is born fresh — and why do coins survive the door but position cannot?" placeholder="write your answer, then keep going"></textarea></label>
+        <h3>Socratic: Three ways to make a number survive</h3>
+        <p>All three are real Unity techniques. Compare what each one costs you:</p>
+        <table>
+            <tr><th>Approach</th><th>How it works</th><th>What it costs</th></tr>
+            <tr>
+                <td><strong>A <code>static</code> field</strong></td>
+                <td>The field belongs to the <em>class</em>, not to any object, so destroying the objects does not touch it.</td>
+                <td>No lifecycle at all — you cannot reset it cleanly, and in the editor it survives between Play sessions, which makes testing lie to you. Nothing owns it.</td>
+            </tr>
+            <tr>
+                <td><strong>A persistent singleton object</strong></td>
+                <td>One object in the scene registers itself as <em>the</em> instance and asks Unity not to destroy it when scenes change.</td>
+                <td>You must handle the case where a scene loads a <em>second</em> copy of it, and you must decide who is allowed to read it.</td>
+            </tr>
+            <tr>
+                <td><strong>A ScriptableObject asset</strong></td>
+                <td>The data lives in a project asset rather than in a scene, so no scene load can ever touch it.</td>
+                <td>A new concept, and one more asset to manage. It survives scene loads <em>and</em> Play sessions, which is either the point or a nuisance depending on what you want.</td>
+            </tr>
+        </table>
+        <ol>
+            <li>Your stats should reset when you start a new game, and survive a scene change. Which of the three can express both of those, and which one cannot express the first?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q1" data-block="socratic" data-question="Your stats should reset when you start a new game, and survive a scene change. Which of the three can express both of those, and which one cannot express the first?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The <code>Start</code> scene already contains a StatManager object. If you return to <code>Start</code> later, what will be there — and what happens if nothing stops it from registering itself a second time?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q2" data-block="socratic" data-question="The Start scene already contains a StatManager object. If you return to Start later, what will be there — and what happens if nothing stops it from registering itself a second time?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why can position <em>not</em> be handled this way? What is different about position that makes <code>SceneSwitch.cs</code> handle it instead?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q3" data-block="socratic" data-question="Why can position not be handled this way? What is different about position that makes SceneSwitch.cs handle it instead?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>A player's coins are a fact about <em>this run</em>. A high score is a fact about <em>all runs</em>. Which storage would you use for each, and why is the answer different?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q4" data-block="socratic" data-question="A player's coins are a fact about this run . A high score is a fact about all runs . Which storage would you use for each, and why is the answer different?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Build Lab: The Refactor</span>
+        <span class="activity-time">~30 min</span>
     </div>
 
-    <p><strong>Step 1 — open the cave.</strong> The starter ships a
-    Platformer scene (Assets/Scenes — check it exists; if your fork
-    names it differently, use YOUR name and update the string in
-    Start). Wire the cave door's lever event
-    (<a href="5.2.html">5.2</a>) or a new trigger to:</p>
-    <pre><code>SceneManager.LoadScene("Platformer");</code></pre>
     <p>
-        Run it. The whole world is swapped in one frame. The Console
-        from the overworld is gone, the enemies are gone, the coins
-        are gone — everything except what a DontDestroyOnLoad
-        singleton carries. Walk around: the same PlayerController
+        <code>StatManager.cs</code> has been sitting empty in <code>Assets/Scripts</code> since
+        Unit 2, doing nothing. You were told then that you would have a real reason to fill it in
+        later, and that the reason would come from a scene change rather than from tidiness.
+        This is that reason. <strong>Open it and fill it in.</strong>
     </p>
 
-    <p><strong>Step 2 — feel the mode.</strong> In the cave scene, try
-    WASD: vertical input does something DIFFERENT now — or nothing,
-    depending on how the branch is built. Read Update's
-    isPlatformer branch: which input does the platformer branch
-    ignore, and what does top-down use instead of AddForce for
-    movement? Your movement table from <a href="1.4.html">1.4</a>
-    gets a second column today.</p>
+    <div class="callout">
+        <strong>Architectural specification: <code>StatManager.cs</code>.</strong>
 
-    <p><strong>Step 3 — the physics flip.</strong> Top-down:
-    gravityScale 0, vertical ySpeed translation. Platformer
-    physics: gravity ON, and jump via AddForce Impulse. Same script,
-    opposite physics. Change gravityScale in the Inspector while in
-    the cave — watch your character fall like a stone (2) or float
-    like a moon astronaut (0.05). THAT is the number you will tune in
-    <a href="6.1.html">6.1</a>.</p>
+        <p><strong>Being the one and only:</strong></p>
+        <ul>
+            <li>How does a script let other scripts reach a single shared instance without searching the scene? What kind of field makes a value belong to the class rather than to an object?</li>
+            <li>Which lifecycle method runs <em>before</em> everything else on scene load, and is therefore the right place to establish a singleton?</li>
+            <li>What call tells Unity to keep this object alive when a new scene loads?</li>
+            <li>When you return to a scene that contains its own copy of this object, you get a second one. What must happen to the newcomer, and how do you detect it?</li>
+            <li>What happens on the very first scene load, when there is no instance yet? Describe the two branches your setup code needs.</li>
+        </ul>
+
+        <p><strong>Holding the stats:</strong></p>
+        <ul>
+            <li>Move across everything you were storing on the player: the coin count, current and maximum health, and the inventory flag. What type is each one, and which should be Inspector-visible?</li>
+            <li>What public methods replace the ones you had on <code>PlayerController</code>? Keep the same shape — a signed amount for health — so your existing callers need the smallest possible change.</li>
+            <li>Where does the max-health rule you built in <a href="2.3.html">2.3</a> now live? It should move with the field it protects.</li>
+        </ul>
+
+        <p><strong>Updating the callers — the part people forget:</strong></p>
+        <ul>
+            <li>Every place that used to read or write those fields on the player must now go through the manager. Search your own code for each one. How many files do you touch?</li>
+            <li>What guard do the callers need, in case the manager does not exist yet when they run? When could that actually happen?</li>
+            <li>Where in the scene hierarchy must the manager live, and <em>why that scene specifically</em>? Look back at the load index in the table above.</li>
+        </ul>
+    </div>
+
+    <div class="callout info">
+        <strong>This is a refactor, not a rewrite.</strong> Nothing about what your game
+        <em>does</em> should change. Coins still collect, spikes still hurt, the axe still swaps
+        your animation. What changes is <em>where the numbers live</em>. That is the entire
+        difference, and it is worth naming: you are not adding a feature, you are moving a
+        responsibility. It is the same muscle as 5.1's weapon swap, one level up.
+    </div>
+
+    <p>
+        Test it the only way that matters: collect coins, take damage, grab the axe, then walk
+        into a cave. Come back. Everything should still be there. If it is, you have just solved
+        a problem that professional developers solve on every project they ever ship.
+    </p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: The HUD, and Where the Game Begins</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        You have been reading your stats in the Console all year. That was the right tool while
+        you were building, but a player cannot see a Console. Now that the numbers live in one
+        place that survives everything, they can be displayed properly.
+    </p>
+    <p>
+        There is a design decision hiding in this: <strong>which scene should the game actually
+        begin in?</strong> You have been pressing Play with the Overworld open all year. But the
+        <code>Start</code> scene is load index 0 — it is the scene the game loads first when it
+        is built and run for real.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: the HUD.</strong>
+        <ul>
+            <li>Which scene must the Canvas live in, given that the game begins there? Does a Canvas survive a scene load on its own?</li>
+            <li>Look at the Overworld's Hierarchy — there is a Canvas, a text object and an EventSystem sitting unused. You may move them into <code>Start</code> or build fresh ones. Which is less work, and which teaches you more?</li>
+            <li>Which UI component displays a line of text, and which one makes it visible on screen?</li>
+            <li>How does the HUD get the values it displays? Should it read them every frame, or only when they change — and what does your answer cost?</li>
+            <li>Which script should own the reference to the text component: the HUD itself, or the StatManager?</li>
+        </ul>
+    </div>
+
+    <p>
+        When it works, set your Build Settings so the game launches into <code>Start</code>, press
+        Play <em>from that scene</em>, and walk your whole loop: out of the cave, into the
+        overworld, collect, take damage, come back. The HUD should never once disagree with
+        reality.
+    </p>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The wrong-world player</h3>
+        <h3>Bug Hunt: Persistence Faults</h3>
         <ol>
-            <li>Rename the Platformer scene to "Cave" in the Project
-                window but do NOT update the string in Start.
-                Describe every symptom, then find it — how long did
-                the silent-string hunt take this time?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:bh1:q1" data-block="bug-hunt" data-question="Rename the Platformer scene to &quot;Cave&quot; in the Project window but do NOT update the string in Start. Describe every symptom, then find it — how long did the silent-string hunt take this time?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Load the Platformer scene directly (File → Play from
-                that scene) without breaking the door. Does the game
-                work — and why is that both a feature and a
-                bug?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:bh1:q2" data-block="bug-hunt" data-question="Load the Platformer scene directly (File → Play from that scene) without breaking the door. Does the game work — and why is that both a feature and a bug?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>In the cave, the E-key lever scan runs. Place a lever
-                in the cave and press E. Is the interaction system
-                overworld-only — should it be?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:bh1:q3" data-block="bug-hunt" data-question="In the cave, the E-key lever scan runs. Place a lever in the cave and press E. Is the interaction system overworld-only — should it be?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>The overworld keeps gravityScale 0 in Start. Delete
-                that line and press Play in the overworld. Where did
-                the player go — and why did "falls forever" look
-                like "nothing happened"?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:bh1:q4" data-block="bug-hunt" data-question="The overworld keeps gravityScale 0 in Start. Delete that line and press Play in the overworld. Where did the player go — and why did &quot;falls forever&quot; look like &quot;nothing happened&quot;?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Walk from <code>Start</code> to the Overworld and back to <code>Start</code>. How many StatManager objects exist now? If you forgot the duplicate guard, what happens to your stats on the second one?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:bh1:q1" data-block="bug-hunt" data-question="Walk from Start to the Overworld and back to Start . How many StatManager objects exist now? If you forgot the duplicate guard, what happens to your stats on the second one?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Remove the "do not destroy" call. Everything looks fine until you change scenes. What exactly resets, and why did the bug hide until then?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:bh1:q2" data-block="bug-hunt" data-question="Remove the &quot;do not destroy&quot; call. Everything looks fine until you change scenes. What exactly resets, and why did the bug hide until then?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Delete the manager's GameObject from <code>Start</code> but keep the script. What does the first caller that reaches for it do — and is the error loud or silent?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:bh1:q3" data-block="bug-hunt" data-question="Delete the manager's GameObject from Start but keep the script. What does the first caller that reaches for it do — and is the error loud or silent?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Put the StatManager object in the <em>Overworld</em> instead of <code>Start</code>. Press Play from <code>Start</code>. What happens, and what does that tell you about load order?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:bh1:q4" data-block="bug-hunt" data-question="Put the StatManager object in the Overworld instead of Start . Press Play from Start . What happens, and what does that tell you about load order?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Give the manager a <code>static</code> coin field <em>as well as</em> an instance field, and update only one of them. Which one does your HUD read, and why is having both a design smell?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:bh1:q5" data-block="bug-hunt" data-question="Give the manager a static coin field as well as an instance field, and update only one of them. Which one does your HUD read, and why is having both a design smell?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Rename the <code>Platformer</code> scene but leave the string in <code>SceneSwitch.cs</code> alone. Describe every symptom, then find it. How long did the silent-string hunt take?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:bh1:q6" data-block="bug-hunt" data-question="Rename the Platformer scene but leave the string in SceneSwitch.cs alone. Describe every symptom, then find it. How long did the silent-string hunt take?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -127,27 +229,27 @@ private void Start()
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Mode design</h3>
+        <h3>Tinker: Persistence design</h3>
         <ol>
-            <li>Coins carry across the door (singleton) but your
-                position does not. Design the respawn contract: if
-                you die in the cave, where do you wake — and what
-                does LoadScene("Start") from
-                <a href="2.2.html">2.2</a> already give you?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk1:q1" data-block="tinker" data-question="Coins carry across the door (singleton) but your position does not. Design the respawn contract: if you die in the cave, where do you wake — and what does LoadScene(&quot;Start&quot;) from 2.2 already give you?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Add a second cave scene ("Cave2") and a door deeper
-                in. What strings must match now — and would a
-                scene-name LIST be better than an if?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk1:q2" data-block="tinker" data-question="Add a second cave scene (&quot;Cave2&quot;) and a door deeper in. What strings must match now — and would a scene-name LIST be better than an if?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Commit + push: <code>"5.3a: door opens, mode switches, physics flips"</code>.</li>
+            <li>Design the respawn contract now that you control it: if you die in the cave, where do you wake up, and what do you keep? Write it as a rule a player could understand in one sentence.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk2:q1" data-block="tinker" data-question="Design the respawn contract now that you control it: if you die in the cave, where do you wake up, and what do you keep? Write it as a rule a player could understand in one sentence." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Add a persistent <em>high score</em> that outlives a play session. Which of the three storage approaches needs to change, and why can the singleton no longer do the job alone?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk2:q2" data-block="tinker" data-question="Add a persistent high score that outlives a play session. Which of the three storage approaches needs to change, and why can the singleton no longer do the job alone?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The manager currently holds coins, health and inventory. At what point does it hold too much? Sketch how you would split it if it grew to ten values, and name the principle you are applying.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk2:q3" data-block="tinker" data-question="The manager currently holds coins, health and inventory. At what point does it hold too much? Sketch how you would split it if it grew to ten values, and name the principle you are applying." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Read your own commit history from 5.1 to now. Which commit made the biggest change to the <em>shape</em> of the code rather than its behaviour? That is the mark of a refactor.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:tk2:q4" data-block="tinker" data-question="Read your own commit history from 5.1 to now. Which commit made the biggest change to the shape of the code rather than its behaviour? That is the mark of a refactor." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Commit and push: <code>"5.3: stats persist across scenes + HUD"</code>.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain the scene-name branch and the (confusing) isPlatformer/gravityScale pairing</li>
-            <li>Load a scene from code and from an event</li>
-            <li>Explain what survives a scene change (singletons) and what does not</li>
-            <li>Tune gravityScale and describe what it changes about the genre</li>
+            <li>Explain why a scene load destroys your stats, and why that is correct behaviour rather than a bug</li>
+            <li>Name all three scenes, their load indices, and how they are wired together</li>
+            <li>Compare static fields, a persistent singleton and a ScriptableObject, and defend your choice</li>
+            <li>Build a singleton with a setup hook, a persistence call and a duplicate guard</li>
+            <li>Explain why the duplicate guard is genuinely necessary in <em>this</em> project</li>
+            <li>Describe what a refactor is, and name what changed and what did not</li>
+            <li>Put the HUD in the scene where the game begins, and say why there</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -158,7 +260,7 @@ private void Start()
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — the scene-switch reference</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — SceneManager, gravityScale</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — SceneManager and object lifetime</li>
     </ul>
-    <p>Next: <a href="6.1.html">6.1 — Jump: Gravity &amp; Impulse</a> — Unit 6 begins.</p>
-</div><div class="lab-bar" data-lesson="5.3" data-lesson-title="Into the Cave: Scene Loading &amp; Mode Switch" data-count="7" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/7 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="5.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="5.2.html"><span class="dir">&#9664; Previous</span><span class="where">5.2 — The Door: Breaking In with Events</span></a><a class="foot-next" href="6.1.html"><span class="dir">Next &#9654;</span><span class="where">6.1 — Gravity &amp; Jump: AddForce Impulse</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+    <p>Next: <a href="6.1.html">6.1 — Gravity &amp; Jump</a> — Unit 6 begins, and now that you have one object holding all your state, it is finally safe to add physics that could kill you.</p>
+</div><div class="lab-bar" data-lesson="5.3" data-lesson-title="Into the Cave: Scenes, Persistence &amp; The Refactor" data-count="19" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/19 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="5.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="5.2.html"><span class="dir">&#9664; Previous</span><span class="where">5.2 — The Door: Opening It with Events</span></a><a class="foot-next" href="6.1.html"><span class="dir">Next &#9654;</span><span class="where">6.1 — Gravity &amp; Jump: The First Flick</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

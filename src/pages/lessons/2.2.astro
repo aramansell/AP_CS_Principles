@@ -1,104 +1,116 @@
 ---
-// Lesson 2.2 — Spikes: Collisions, Health & Death
-// Comparative analysis: How spikes are similar to and different from coins.
-// OnCollisionEnter2D vs OnTriggerEnter2D, solid colliders, health tracking and death loop in StatManager.
+// Lesson 2.2 — Spikes: Physics, Damage & Death
+// The pivotal architectural lesson. The student discovers that the movement
+// they wrote in 1.4 ignores the physics world entirely, and must choose a
+// movement method that respects it - then builds health, damage and death on
+// top of that choice.
+// Health lives on PlayerController. StatManager stays empty until Unit 5.
+// NOTE: there is no Spikes instance in any scene, and the Spikes prefab has no
+// collider - both must be created by the student. Spikes.prefab IS tagged.
 import Lesson from '../../layouts/LessonLayout.astro';
 
-const body = `<h1>2.2 — Spikes: Collisions, Health &amp; Death</h1>
+const body = `<h1>2.2 — Spikes: Physics, Damage &amp; Death</h1>
 
 <p class="lesson-lead">
-    In lesson 2.1 you built coins that you pass through. Today you build spikes
-    that you bump into. By asking two simple questions — <strong>how is this similar to the coin,
-    and how is it different?</strong> — you unlock the second half of Unity's 2D physics engine:
-    solid collisions, health tracking, and the death loop.
+    You built a coin you can walk through. Now build a spike you <em>cannot</em>. That sounds
+    like a small change — one checkbox — and it is going to break your game, because it will
+    reveal something you have been carrying since <a href="1.4.html">1.4</a>:
+    <strong>your character is a ghost.</strong> Today you fix that properly, and then build
+    health, damage and death on top of the fix.
 </p>
 
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Comparative Thinking</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-label">The Problem: Walk Into a Spike</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
     <p>
-        Computer scientists do not reinvent the wheel for every new feature. Whenever you encounter
-        a new game mechanic, compare it to a problem you have already solved.
-        Compare the Coin you built yesterday with the Spike you are building today:
+        <strong>Step 1.</strong> The Overworld scene has <strong>no spikes placed at all</strong>.
+        Drag two or three <code>Assets/Prefabs/Spikes</code> instances into the scene and put
+        them somewhere you will walk.
     </p>
+    <p>
+        <strong>Step 2.</strong> Open the Spikes prefab and give it a collider, the same way you
+        gave the coin one in <a href="2.1.html">2.1</a>. This one is <em>not</em> a trigger —
+        spikes are solid, so leave <strong>Is Trigger unchecked</strong>. Its tag is already
+        <code>Spikes</code>.
+    </p>
+    <p><strong>Step 3.</strong> Press Play and walk into your spike.</p>
 
-    <table>
-        <tr><th>Feature</th><th>Coin Pickup (Lesson 2.1a)</th><th>Hazardous Spike (Today)</th></tr>
-        <tr><td><strong>Physics Type</strong></td><td><strong>Trigger</strong> (<code>Is Trigger = true</code>). Intangible; player walks through.</td><td><strong>Solid Collision</strong> (<code>Is Trigger = false</code>). Physical wall; player bumps and stops.</td></tr>
-        <tr><td><strong>Unity Message</strong></td><td><code>OnTriggerEnter2D(Collider2D other)</code></td><td><code>OnCollisionEnter2D(Collision2D collision)</code></td></tr>
-        <tr><td><strong>Parameter Received</strong></td><td><code>Collider2D other</code> (just the component touched).</td><td><code>Collision2D collision</code> (holds contact points, relative velocity, and collider).</td></tr>
-        <tr><td><strong>Tag Check</strong></td><td><code>other.CompareTag("Coin")</code></td><td><code>collision.gameObject.CompareTag("Spikes")</code></td></tr>
-        <tr><td><strong>Stat Affected</strong></td><td>Increases wealth: <code>ChangeCoins(+1)</code></td><td>Decreases health: <code>ChangeHealth(-1)</code></td></tr>
-        <tr><td><strong>Object Lifecycle</strong></td><td>Consumed on touch: <code>Destroy(other.gameObject)</code></td><td>Persists forever: remains dangerous in the world.</td></tr>
-    </table>
-
-    <div class="socratic">
-        <h3>Socratic: Similarities &amp; Differences</h3>
+    <div class="tinker">
+        <h3>Tinker: The Ghost</h3>
         <ol>
-            <li><strong>How is the spike similar to the coin?</strong> Name at least two things both mechanics share in their logic flow.</li>
-            <li><strong>How is the spike different from the coin?</strong> Why would a game feel completely broken if spikes had <code>Is Trigger = true</code> and destroyed themselves on touch like coins?</li>
-            <li>In <code>OnCollisionEnter2D</code>, why do we write <code>collision.gameObject.CompareTag("Spikes")</code> instead of <code>collision.CompareTag(...)</code>? (Look closely at the parameter type: is <code>Collision2D</code> a GameObject, a Collider, or a data container?)</li>
+            <li>You gave the spike a solid collider. Walk into it. Did you stop, or pass straight through? Describe exactly what happened.</li>
+            <li>Now walk into a wall. You gave the Player a Collider2D <em>and</em> a Rigidbody2D in 2.1 — so why does the wall still not stop you?</li>
+            <li>Open the documentation for <code>Transform.Translate</code>. Find the sentence that says whether the physics engine is consulted, and quote it precisely.</li>
+            <li>The spike, the wall and the coin all have colliders now. What single thing in the Player's movement code stands between your character and the physics world?</li>
+            <li>Predict: if you keep <code>transform.Translate</code> and make the spike solid, what will your player be able to do to <em>every wall in the game</em>?</li>
         </ol>
+    </div>
+
+    <div class="callout trap">
+        <strong>This is the most important bug in the unit — do not patch around it.</strong>
+        Your character is a ghost that the physics engine knows about but is never asked to move.
+        <code>transform.Translate</code> edits coordinates directly; it never consults physics, so
+        it will happily place you inside a wall. Every collision feature from here to the end of
+        the year — spikes, walls, doors, enemies, the boss — depends on the decision you are
+        about to make in the next block. Make it deliberately, and be ready to defend it.
     </div>
 </div>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
+        <span class="activity-label">Read the Docs: Choose Your Movement Method</span>
         <span class="activity-time">~20 min</span>
     </div>
 
-    <p><strong>Step 1 — Verify the Spike Collider.</strong> In <code>Assets/Prefabs/Spikes</code>:</p>
-    <ol>
-        <li>Verify it has a <strong>BoxCollider2D</strong>.</li>
-        <li>Ensure <strong>Is Trigger is unchecked</strong> (spikes are solid obstacles!).</li>
-        <li>Ensure its Tag is set to <strong>Spikes</strong>.</li>
-    </ol>
-
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Read Function-Level Examples</span>
-        <span class="activity-time">~15 min</span>
-    </div>
-
     <p>
-        Notice how each physical collision and scene-management function works in isolation across completely different systems:
+        You read this table in <a href="1.5.html">1.5</a> as a <em>prediction</em>. Now it is a
+        decision you have to live with for the rest of the year, so read the last two columns
+        very carefully:
     </p>
 
-    <p><strong>Example 1 — Receiving Solid Physical Collisions on a Bowling Ball:</strong></p>
-    <pre><code>// Unity calls this method automatically when two solid (non-trigger) colliders impact
-private void OnCollisionEnter2D(Collision2D collision)
-{
-    Debug.Log("Solid impact registered against: " + collision.gameObject.name);
-}</code></pre>
-
-    <p><strong>Example 2 — Inspecting Collision Tags on a Hockey Puck:</strong></p>
-    <pre><code>// In Collision2D, the collided entity lives on the .gameObject property
-if (collision.gameObject.CompareTag("GoalPost"))
-{
-    Debug.Log("Puck ricocheted off the goal post!");
-}</code></pre>
-
-    <p><strong>Example 3 — Rounding Down Fractions with FloorToInt:</strong></p>
-    <pre><code>// Divides resources and floors to the nearest whole integer (e.g. 5 / 2f = 2.5 -&gt; 2)
-int remainingSlices = Mathf.FloorToInt(totalPizzaSlices / 2f);</code></pre>
-
-    <p><strong>Example 4 — Reloading a Scene on a Mountain Climbing Simulator:</strong></p>
-    <pre><code>// Reloads a level by exact scene name when the climber falls off the ledge
-UnityEngine.SceneManagement.SceneManager.LoadScene("BaseCamp");</code></pre>
+    <table>
+        <tr><th>Technique</th><th>How it works</th><th>Stops at walls?</th><th>What it requires</th></tr>
+        <tr>
+            <td><code>transform.Translate(vector)</code></td>
+            <td>Offsets coordinates directly. Never consults physics.</td>
+            <td><strong>No</strong></td>
+            <td>Nothing. This is what you have now.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.MovePosition(position)</code></td>
+            <td>Sweeps the body to a target position, testing the path as it goes.</td>
+            <td>Yes</td>
+            <td>A Rigidbody2D, usually Body Type <strong>Kinematic</strong>. Ignores forces.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.linearVelocity = vector</code></td>
+            <td>Assigns velocity; the physics engine performs the motion.</td>
+            <td>Yes</td>
+            <td>A Rigidbody2D, Body Type <strong>Dynamic</strong>. Carries momentum.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.AddForce(vector)</code></td>
+            <td>Applies a physical push, factoring in mass, drag and inertia.</td>
+            <td>Yes</td>
+            <td>A Dynamic Rigidbody2D with a mass you will have to tune.</td>
+        </tr>
+    </table>
 
     <div class="socratic">
-        <h3>Predict Before Building</h3>
+        <h3>Choose, Then Justify</h3>
         <ol>
-            <li>Why does <code>OnCollisionEnter2D</code> require writing <code>collision.gameObject.CompareTag(...)</code> while <code>OnTriggerEnter2D</code> can call <code>other.CompareTag(...)</code> directly?</li>
-            <li>In Example 3, what would happen if a player had 1 coin when they died? What does <code>Mathf.FloorToInt(1 / 2f)</code> evaluate to?</li>
-            <li>Why must you type <code>using UnityEngine.SceneManagement;</code> (or use the full namespace path) before calling <code>SceneManager.LoadScene()</code>?</li>
+            <li>Your character is a ghost. Which row fixes that with the smallest change to the code you have already written?</li>
+            <li>This game is about exploring a world and being shot at by turrets. Do you want your movement to carry momentum? Which row gives you momentum whether you want it or not?</li>
+            <li>The "what it requires" column is the real decision. Which cost can you live with all year, and which one would you regret in Unit 6 when you add jumping?</li>
+            <li>Rows 2, 3 and 4 all need Rigidbody2D settings beyond the default. Name the settings you must change — and what goes wrong if you forget each one. (You already changed one of them in 2.1.)</li>
+            <li><code>MovePosition</code> wants a Kinematic body, and a Kinematic body ignores forces. If you choose it, how will a turret ever knock your player backwards?</li>
+            <li>Your <code>EnemyController</code>, <code>TurretController</code> and <code>Projectile</code> are all still empty shells. Would an enemy or a bullet need a <em>different</em> row from the player? Argue a position.</li>
+            <li>What evidence from your own build would make your justification convincing to another student — a measurement, a screenshot, a before-and-after?</li>
         </ol>
     </div>
 </div>
@@ -106,61 +118,163 @@ UnityEngine.SceneManagement.SceneManager.LoadScene("BaseCamp");</code></pre>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: Your Turn</span>
-        <span class="activity-time">~25 min</span>
-    </div>
-
-    <p><strong>Step 1 — Configure the Spikes Prefab.</strong> Open <code>Assets/Prefabs/Spikes</code>:</p>
-    <ol>
-        <li>Verify it has a <strong>BoxCollider2D</strong> (or PolygonCollider2D).</li>
-        <li>Ensure <strong>Is Trigger</strong> is <strong>unchecked</strong>. (Spikes are physical obstacles that stop movement).</li>
-        <li>Ensure its Tag is set to <strong>Spikes</strong>. (Create the tag if needed).</li>
-    </ol>
-
-    <div class="callout">
-        <strong>Architectural Specification for <code>StatManager.cs</code>:</strong>
-        <p><strong>Health State &amp; Damage:</strong></p>
-        <ul>
-            <li>What variable tracks the player's remaining health points? How do you expose it in the Inspector so designers can configure starting health?</li>
-            <li>What method signature allows external objects to modify the player's health with positive or negative values?</li>
-            <li>Inside your health modification method, how do you adjust health and log the new total?</li>
-            <li>What condition checks if the player has run out of health? What handler function should it invoke when health reaches 0 or below?</li>
-        </ul>
-
-        <p><strong>Death Handler:</strong></p>
-        <ul>
-            <li>When the player dies, what penalty is applied to their coins? Why should you use <code>Mathf.FloorToInt()</code> instead of standard integer division?</li>
-            <li>What value should health be restored to before reloading?</li>
-            <li>What engine namespace and method reloads the <code>"Start"</code> scene to reset the encounter?</li>
-        </ul>
-    </div>
-
-    <div class="callout">
-        <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
-        <p><strong>Handle Spike Collision:</strong></p>
-        <ul>
-            <li>What function does this belong in?</li>
-            <li>Should spikes be a trigger or a physical collider? (Hint: Does the player pass through spikes or physically stop against them?)</li>
-            <li>How do you check if the collided object has the tag <code>"Spikes"</code>?</li>
-            <li>Notice the callback parameter is a <code>Collision2D</code>, not a <code>Collider2D</code>. How do you access the GameObject from a <code>Collision2D</code> parameter?</li>
-            <li>How do you check to see if the <code>StatManager</code> exists before communicating with it?</li>
-            <li>What function on the manager do you call to change health, and should you pass a positive or negative number to inflict damage?</li>
-            <li>Do you destroy the spikes after colliding? Why or why not?</li>
-        </ul>
+        <span class="activity-label">Build Lab: Make the Switch and Prove It</span>
+        <span class="activity-time">~20 min</span>
     </div>
 
     <p>
-        Save your files and hit Play in Unity. Walk into a spike!
-        Your player should physically stop against the spike, and the Console will log <code>Health Changed! New Health: 2</code>.
-        Hit it three times: health drops to 0, your coins are halved, and the Start scene loads!
+        Rewrite the movement inside <code>PlayerController.Update()</code> to use the method you
+        chose, and set the Rigidbody2D up to match. Then <strong>prove it</strong>:
+    </p>
+    <ul>
+        <li>Walk into a wall — do you stop?</li>
+        <li>Walk into a spike — do you stop?</li>
+        <li>Set your speed absurdly high and run at a thin wall — do you pass through it?</li>
+    </ul>
+
+    <div class="callout trap">
+        <strong>Kinematic and Dynamic are not interchangeable.</strong> <code>MovePosition</code>
+        expects a Kinematic body. Assigning <code>linearVelocity</code> on a Kinematic body does
+        <em>nothing at all</em> — silently, with no error. If your character ignores your input
+        completely after this change, check Body Type before you check anything else.
+    </div>
+
+    <div class="callout info">
+        <strong>One API gotcha you will meet in every tutorial you read.</strong> This project
+        runs Unity 6, where the Rigidbody2D velocity property is called
+        <code>linearVelocity</code>. Almost every tutorial, forum answer and video you will find
+        online was written for Unity 5 or 2022 and calls it <code>velocity</code> instead. If a
+        snippet you find does not compile, check the Unity version it was written for before you
+        assume you typed it wrong — reading the date on a source is part of reading the source.
+    </div>
+
+    <div class="socratic">
+        <h3>Justify Your Choice — this is your written decision record</h3>
+        <ol>
+            <li>Which movement method did you choose? Name the exact API call you now use.</li>
+            <li>What did you have to change in the Rigidbody2D Inspector to make it work, and what broke when you got one of those settings wrong?</li>
+            <li>What evidence from your build proves the choice works? Say what you ran into, and what happened.</li>
+            <li>Name one thing your chosen method makes <em>harder</em>, which you are accepting for now. Every choice costs something — a choice with no stated cost is not yet a decision.</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: How Should a Spike Hurt You?</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        A spike is solid, so it stops you. But "stopping you" and "hurting you" are two separate
+        decisions. Here are the three honest ways to build a hazard:
     </p>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: Collision vs. Trigger Bugs</h3>
+    <table>
+        <tr><th>Approach</th><th>What the player feels</th><th>What fires</th><th>The risk</th></tr>
+        <tr>
+            <td><strong>Solid spike + <code>OnCollisionEnter2D</code></strong></td>
+            <td>You stop against it. Damage once per touch.</td>
+            <td><code>OnCollisionEnter2D(Collision2D collision)</code></td>
+            <td>You can get wedged against the spike, and sliding along it may not register at all.</td>
+        </tr>
+        <tr>
+            <td><strong>Trigger spike + <code>OnTriggerEnter2D</code></strong></td>
+            <td>You walk through it. Damage once per entry.</td>
+            <td><code>OnTriggerEnter2D(Collider2D other)</code></td>
+            <td>Standing inside the spike deals no further damage — usually wrong for a hazard.</td>
+        </tr>
+        <tr>
+            <td><strong>Trigger spike + <code>OnTriggerStay2D</code> with a cooldown</strong></td>
+            <td>Repeated damage while you stand in it.</td>
+            <td><code>OnTriggerStay2D(Collider2D other)</code></td>
+            <td>It fires every frame. Without a cooldown you lose all your health instantly.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>The parameter types are different, and it matters.</strong>
+        <code>OnTrigger*</code> hands you a <code>Collider2D</code>, which has <code>.gameObject</code>
+        and <code>.CompareTag</code> directly. <code>OnCollision*</code> hands you a
+        <code>Collision2D</code>, which is a data container carrying contact points,
+        <code>relativeVelocity</code>, and <code>.gameObject</code>. That is why one lets you
+        write <code>other.CompareTag(...)</code> and the other makes you write
+        <code>collision.gameObject.CompareTag(...)</code>.
+    </div>
+
+    <div class="socratic">
+        <h3>Picking a Hazard Model</h3>
         <ol>
-            <li>If you accidentally check <strong>Is Trigger</strong> on the Spikes prefab, what happens when the player touches them? Does <code>OnCollisionEnter2D</code> ever fire?</li>
-            <li>What happens if you delete <code>if (health &lt;= 0)</code> from <code>ChangeHealth</code>? What would health do if you kept bumping spikes indefinitely?</li>
-            <li>Why does <code>HandleDeath()</code> use <code>Mathf.FloorToInt(coins / 2f)</code> instead of regular integer division? What would happen if a player had 1 coin when they died?</li>
+            <li>Which of the three matches the game you are building? Which would you pick for a game where spikes are a puzzle to be solved rather than a hazard to be avoided?</li>
+            <li>In the third row, what happens on the very first frame the player stands in the spike if you forget the cooldown? How many times per second does <code>OnTriggerStay2D</code> run?</li>
+            <li>For which of the three can you write <code>other.CompareTag("Spikes")</code> directly, and what must you write for the others?</li>
+            <li>Should a spike be destroyed when it damages you, the way a coin is destroyed when collected? What kind of object is a spike, and what does that tell you about using <code>Destroy</code> here?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Health, Damage &amp; Death</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: health.</strong>
+        <ul>
+            <li>Following the decision you made in <a href="2.1.html">2.1</a>, where does health live, and what field holds it? What type, what starting value, and how is it exposed as a tuning knob?</li>
+            <li>What method changes health by a <em>signed</em> amount? Why one method taking a positive or negative argument, rather than separate <code>Heal</code> and <code>Damage</code> methods? (Think about who will call it later.)</li>
+            <li>Which callback holds the spike check, and how do you identify the spike from inside it?</li>
+            <li>After subtracting health, what do you print so a player can watch the number change with no UI at all?</li>
+            <li>What condition means "the player is dead", and what should happen at that exact moment?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Death has more than one defensible design. Choose one, and defend it.</strong>
+        <ul>
+            <li><strong>(a) Reload the current scene</strong> — <code>SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex)</code>. Everything resets, including the coin count.</li>
+            <li><strong>(b) Reload a scene by name</strong> — before you pick this, read Build Settings and answer two questions: which scene is index 0, and <em>does that scene contain a Player?</em></li>
+            <li><strong>(c) Do not reload at all</strong> — reset health and move the player back to a starting position, keeping the coins.</li>
+        </ul>
+    </div>
+
+    <div class="socratic">
+        <h3>The Death Decision</h3>
+        <ol>
+            <li>Which death design did you choose, and what does the player keep and lose under it?</li>
+            <li>Option (b) loads this project's scene 0. What is in that scene, and what would the player actually see after dying? Test it before you answer.</li>
+            <li>If you chose (a), what happens to the coin count — and is "you lose your coins when you die" a fair rule, or just an accident of where the number happens to live?</li>
+            <li>If you added a coin penalty using <code>coins / 2</code>, what does a player with exactly 1 coin lose? Is that fair? Read the docs for <code>Mathf.FloorToInt</code>.</li>
+            <li>Whatever resets when you die, write down exactly what <em>survives</em>. You will need this fact in Unit 5.</li>
+        </ol>
+    </div>
+
+    <p>
+        Save and press Play. Walk into a spike. Your player should stop against it, and the
+        Console should report your health dropping. Hit it until health reaches zero and watch
+        what your death design actually does.
+    </p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Physics and Boundary Faults</h3>
+        <ol>
+            <li>Set the spike's collider back to <strong>Is Trigger</strong> but keep your collision callback. Does anything fire? What does the Console show — or fail to show?</li>
+            <li>Delete the <code>if (health &lt;= 0)</code> check and stand in a spike. What does the health number do? What does that prove about the difference between a <em>rule</em> and a <em>value</em>?</li>
+            <li>If you used the <code>OnTriggerStay2D</code> model, remove the cooldown and describe the first half-second of contact.</li>
+            <li>Set your speed very high and run at a wall. Do you stop, or end up on the other side? What does the wall's thickness have to do with it? (This failure has a name — look up "tunnelling".)</li>
+            <li>Die on purpose and watch the Console. Which values reset, and which survived? Compare that against what you wrote down earlier — were you right?</li>
+            <li>Set Body Type to Kinematic and try to move with <code>linearVelocity</code>. What happens, and why is a silent no-op the hardest kind of bug?</li>
         </ol>
     </div>
 </div>
@@ -169,25 +283,29 @@ UnityEngine.SceneManagement.SceneManager.LoadScene("BaseCamp");</code></pre>
 <div class="activity basic-app">
     <div class="activity-header">
         <span class="activity-label">Tinker</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
     <div class="tinker">
         <h3>Tinker: Exploring Collision Data</h3>
         <ol>
-            <li>In <code>OnCollisionEnter2D</code>, add <code>Debug.Log("Impact velocity: " + collision.relativeVelocity);</code>. Bump into a spike at different angles. What information does <code>Collision2D</code> give you that <code>Collider2D</code> could not?</li>
-            <li>How could a game use <code>collision.relativeVelocity.magnitude</code> to create fall damage (only take damage if moving faster than 10 units/sec)?</li>
+            <li>If you used collisions, add <code>Debug.Log("Impact: " + collision.relativeVelocity);</code> and bump a spike from two different angles. What does a <code>Collision2D</code> know that a <code>Collider2D</code> cannot tell you?</li>
+            <li>Using <code>relativeVelocity.magnitude</code>, how would you make damage happen only above a speed threshold? What would you name that number, and what is the feature usually called in games?</li>
+            <li>Which movement method would you now recommend for the <em>enemy</em> in Unit 4? Does your answer have to match the player's? Why or why not?</li>
+            <li>Move your spike onto a slope or a corner and walk into it repeatedly. Does the damage fire once, or several times? What does that tell you about your choice of callback?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Articulate how spikes are similar to coins and how they are different</li>
-            <li>Explain the difference between <code>OnTriggerEnter2D</code> and <code>OnCollisionEnter2D</code></li>
-            <li>Explain why spikes use solid colliders (<code>Is Trigger = false</code>)</li>
-            <li>Trace the execution of <code>ChangeHealth(-1)</code> through death and scene reload</li>
-            <li>Commit your working spike hazard system to GitHub</li>
+            <li>Explain why <code>transform.Translate</code> ignores colliders, and quote the documentation saying so</li>
+            <li>Compare the four movement methods and name what each one requires in the Rigidbody2D</li>
+            <li>Defend your chosen movement method in writing, with evidence from your build</li>
+            <li>Compare the three ways a spike can hurt the player, and say which you chose</li>
+            <li>Explain <code>OnCollisionEnter2D</code> versus <code>OnTriggerEnter2D</code> versus <code>OnTriggerStay2D</code> by their parameter types</li>
+            <li>State exactly what resets and what survives when your player dies</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -197,13 +315,13 @@ UnityEngine.SceneManagement.SceneManager.LoadScene("BaseCamp");</code></pre>
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — comprehensive guide to Unity 2D collision events</li>
-        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the StatManager in depth</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — physics callbacks</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the complete reference for this physics family, used all year</li>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — colliders, health and death in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Rigidbody2D and physics callbacks</li>
     </ul>
-    <p>Next: <a href="2.3.html">2.3 — Health Potions &amp; the Max-Health Cap</a></p>
+    <p>Next: <a href="2.3.html">2.3 — Healing Pickups &amp; the Max-Health Cap</a>, where a value with a ceiling needs a rule, not just arithmetic.</p>
 </div>`;
 ---
-<Lesson id="2.2" title="2.2a Spikes: Collisions, Health &amp; Death — AP CS Principles" root=".." css="../style.css">
+<Lesson id="2.2" title="2.2 Spikes: Physics, Damage &amp; Death — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

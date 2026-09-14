@@ -1,18 +1,29 @@
 ---
 // Lesson 1.4 — Movement I: Input, Direction, Vector
-// Core build lab: breaking down movement into input -> vector -> translate.
-// Reading Unity input functions (GetAxis vs GetAxisRaw vs GetKey),
+// Core build lab: breaking movement into input -> vector -> translate.
+// Reading Unity's input functions (GetAxis vs GetAxisRaw vs GetKey),
 // comparing use cases, and building movement from scratch in PlayerController.cs.
+// The Player has no Rigidbody2D and no Collider2D, so this is pure Transform
+// movement — and the player will walk straight through walls. That is surfaced
+// deliberately as the discovery that sets up 1.5 and Unit 2.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>1.4 — Movement I: Input, Direction, Vector</h1>
 
 <p class="lesson-lead">
-    In video games, movement looks natural and effortless. In computer science,
-    it is an algorithm built by breaking a complex behavior into three smaller problems:
-    <strong>read player input → calculate a motion vector → translate position</strong>.
-    Today, you read Unity's input functions and write the foundational movement code from scratch.
+    In video games, movement looks natural and effortless. In computer science it is an
+    algorithm, built by breaking one complex behaviour into three smaller problems:
+    <strong>read the player's input → calculate a motion vector → translate the position</strong>.
+    Today you read Unity's input functions and write the foundational movement code for
+    this entire game from scratch.
 </p>
+
+<div class="callout info">
+    <strong>Where you are starting from.</strong> Open <code>Assets/Scripts/PlayerController.cs</code>.
+    It is an empty shell — a class with two blank methods. Your character has a Transform
+    and nothing else: no physics body, no collider. Everything your character does from here
+    on, you write. That is the whole design of this course.
+</div>
 
 <!-- ============================================================ -->
 <div class="activity discovery">
@@ -22,24 +33,49 @@ const body = `<h1>1.4 — Movement I: Input, Direction, Vector</h1>
     </div>
 
     <p>
-        Before writing code, computer scientists read the documentation for the tools
-        already provided by the engine. Unity gives us several different ways to detect
-        when a player touches the keyboard or controller. Look at these three functions:
+        Before writing code, computer scientists read the documentation for the tools the
+        engine already provides. Unity gives us several different ways to detect when a
+        player touches the keyboard. Compare them:
     </p>
 
     <table>
-        <tr><th>Unity Function</th><th>Return Type</th><th>Behavior</th></tr>
-        <tr><td><code>Input.GetAxis("Horizontal")</code></td><td><code>float</code> (-1.0 to 1.0)</td><td>Smooth ramp: gradually accelerates toward -1 or +1, then coasts back to 0.</td></tr>
-        <tr><td><code>Input.GetAxisRaw("Horizontal")</code></td><td><code>float</code> (-1, 0, or 1)</td><td>Instant snap: returns exactly -1, 0, or 1 immediately with no smoothing filter.</td></tr>
-        <tr><td><code>Input.GetKey(KeyCode.D)</code></td><td><code>bool</code> (true or false)</td><td>Binary state: true while the physical key 'D' is held down; false otherwise.</td></tr>
+        <tr><th>Unity API</th><th>Returns</th><th>Behaviour</th></tr>
+        <tr>
+            <td><code>Input.GetAxis("Horizontal")</code></td>
+            <td><code>float</code> (−1.0 to 1.0)</td>
+            <td><strong>Smooth ramp.</strong> Gradually accelerates toward −1 or +1, then coasts back to 0 when you let go.</td>
+        </tr>
+        <tr>
+            <td><code>Input.GetAxisRaw("Horizontal")</code></td>
+            <td><code>float</code> (−1, 0, or 1)</td>
+            <td><strong>Instant snap.</strong> Returns exactly −1, 0 or 1 the moment a key changes, with no smoothing filter.</td>
+        </tr>
+        <tr>
+            <td><code>Input.GetKey(KeyCode.D)</code></td>
+            <td><code>bool</code></td>
+            <td><strong>Binary state.</strong> True while the physical D key is held down; false otherwise.</td>
+        </tr>
+        <tr>
+            <td><code>transform.Translate(vector)</code></td>
+            <td><code>void</code></td>
+            <td><strong>Offsets the position by a vector.</strong> A <em>relative</em> step: "move this far from wherever I am right now."</td>
+        </tr>
     </table>
+
+    <p>
+        Notice that <code>"Horizontal"</code> and <code>"Vertical"</code> are quoted strings,
+        not key names. They are <strong>virtual axes</strong>, defined in
+        Edit → Project Settings → Input Manager. Open that window and read what each axis
+        is actually bound to — you may be surprised how much is already wired up for you.
+    </p>
 
     <div class="socratic">
         <h3>Socratic: Evaluating Multiple Ways to Solve a Problem</h3>
         <ol>
-            <li>If you are building a driving game or a character with heavy momentum, which function (<code>GetAxis</code> or <code>GetAxisRaw</code>) gives the better feel, and why?</li>
-            <li>If you are building a precision grid-based puzzle game or a fast arcade game where you must stop on a dime, why might <code>GetAxisRaw</code> be superior to <code>GetAxis</code>?</li>
-            <li>What happens if a player wants to play with Arrow Keys or a USB game controller instead of WASD? Why is querying a virtual axis like <code>"Horizontal"</code> more flexible than hardcoding <code>KeyCode.D</code>?</li>
+            <li>If you were building a driving game, or a character with heavy momentum, which would give the better feel — <code>GetAxis</code> or <code>GetAxisRaw</code>? Why?</li>
+            <li>If you were building a precision grid-based puzzle game, or a fast arcade game where you must stop on a dime, why might <code>GetAxisRaw</code> be the better choice?</li>
+            <li>What happens if a player wants to use the arrow keys, or a USB game controller, instead of WASD? Why is asking for the virtual axis <code>"Horizontal"</code> more flexible than hardcoding <code>KeyCode.D</code>?</li>
+            <li>You will use one of these today. Which one, and what does your choice cost you?</li>
         </ol>
     </div>
 </div>
@@ -52,28 +88,30 @@ const body = `<h1>1.4 — Movement I: Input, Direction, Vector</h1>
     </div>
 
     <p>
-        Do not look for a complete movement script to copy. In real software engineering, you read
-        how individual functions operate in isolation, understand their inputs and outputs, and assemble
-        them into your own custom architecture. Look at these isolated snippets from three completely different machines:
+        Do not look for a complete movement script to copy. In real software engineering you
+        read how individual functions behave <em>in isolation</em>, understand their inputs
+        and outputs, and then assemble them into your own architecture. Here are three
+        isolated snippets, each from a completely different machine:
     </p>
 
-    <p><strong>Example 1 — Polling an Axis on a Warehouse Forklift:</strong></p>
-    <pre><code>// Reads virtual axis data (-1.0 to +1.0) based on player keys or joystick tilt
+    <p><strong>Example 1 — Polling an axis on a warehouse forklift:</strong></p>
+    <pre><code>// Reads virtual axis data (-1.0 to +1.0) from the driver's keys or joystick tilt
 float steeringIntent = Input.GetAxis("Horizontal");</code></pre>
 
-    <p><strong>Example 2 — Constructing a 2D Vector for a Freight Elevator:</strong></p>
-    <pre><code>// Constructs a Vector2 representing 0 horizontal motion and frame-scaled vertical displacement
+    <p><strong>Example 2 — Constructing a vector for a freight elevator:</strong></p>
+    <pre><code>// A 2D vector with no horizontal motion, and a frame-scaled vertical displacement
 Vector2 verticalStep = new Vector2(0, liftSpeed * Time.deltaTime);</code></pre>
 
-    <p><strong>Example 3 — Translating Space on an Airport Conveyor Belt:</strong></p>
-    <pre><code>// Directly displaces the Transform's coordinates by the provided vector
+    <p><strong>Example 3 — Translating space on an airport conveyor belt:</strong></p>
+    <pre><code>// Directly offsets the Transform's coordinates by the supplied vector
 transform.Translate(beltDisplacementVector);</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>If <code>steeringIntent</code> is <code>-1.0</code> (player pressing A) and <code>liftSpeed</code> is <code>4.0</code>, how many units does <code>liftSpeed * Time.deltaTime</code> travel across 1 second of accumulated frames?</li>
-            <li>In the elevator example, why is X set to <code>0</code>? What would happen if X also had a non-zero value?</li>
+            <li>In Example 2, why is the first value <code>0</code>? What would happen to the elevator if it also had a non-zero horizontal value?</li>
+            <li>If <code>liftSpeed</code> is <code>4.0</code>, how far does the elevator travel over one second of accumulated frames? What does <code>Time.deltaTime</code> have to do with your answer?</li>
+            <li>Example 3 gives <code>Translate</code> a vector called a <em>displacement</em>. Displacement from what, exactly — and how is that different from a position?</li>
         </ol>
     </div>
 </div>
@@ -86,53 +124,65 @@ transform.Translate(beltDisplacementVector);</code></pre>
     </div>
 
     <p>
-        <strong>Your Engineering Mission: Build 2D Movement in <code>PlayerController.cs</code>.</strong>
-        Open <code>Assets/Scripts/PlayerController.cs</code>. You will construct a full two-axis movement pipeline
-        from scratch by solving three modular sub-problems.
+        <strong>Your engineering mission: build two-axis movement in
+        <code>PlayerController.cs</code>.</strong> You will construct the whole pipeline
+        yourself by solving three modular sub-problems. Work in <code>Assets/Scripts/PlayerController.cs</code>
+        — the class is already there, and already attached to the Player prefab.
     </p>
 
     <div class="callout">
-        <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
-        <p><strong>Variables &amp; Tuning Knobs:</strong></p>
+        <strong>Architectural specification for <code>PlayerController.cs</code>:</strong>
+        <p><strong>Variables &amp; tuning knobs:</strong></p>
         <ul>
-            <li>How do you expose horizontal and vertical speed knobs to the Inspector while keeping the variables encapsulated? What data type should speed be?</li>
-            <li>What variables do you need to store raw directional input from the keyboard?</li>
-            <li>What 2D data type holds the calculated displacement vectors before moving?</li>
+            <li>How do you expose a speed knob to the Inspector while keeping the field private? What data type should a speed be, and why does the <code>f</code> suffix matter in C#?</li>
+            <li>Do horizontal and vertical movement want <em>separate</em> speed knobs, or one shared speed? There is no single right answer — decide, and be ready to justify it.</li>
+            <li>What variables will hold the raw directional input you read from the keyboard?</li>
+            <li>What data type should hold a calculated displacement before you apply it — <code>Vector2</code> or <code>Vector3</code>? Investigate what <code>transform.Translate</code> accepts, and whether a <code>Vector2</code> can be handed to it.</li>
         </ul>
 
-        <p><strong>Sub-Problem 1 (Read Input):</strong></p>
+        <p><strong>Sub-problem 1 — read the input:</strong></p>
         <ul>
-            <li>Which Unity lifecycle method runs continuously every frame to capture player input?</li>
-            <li>What function queries Unity's virtual axes for left/right and up/down movement? What are the exact names of those virtual axes in the Project Settings?</li>
-            <li>Where do you store those decimal values (which range from -1.0 to +1.0)?</li>
+            <li>Which lifecycle method runs continuously, every frame, so it can capture input as it happens?</li>
+            <li>What are the <em>exact</em> names of Unity's two default movement axes? (You read them in the Input Manager — spelling counts, because a misspelled axis name throws an error rather than failing quietly.)</li>
+            <li>Where do you store those decimal values, which range from −1.0 to +1.0?</li>
         </ul>
 
-        <p><strong>Sub-Problem 2 (Construct Vectors):</strong></p>
+        <p><strong>Sub-problem 2 — construct the vectors:</strong></p>
         <ul>
             <li>How do you instantiate a 2-dimensional vector in C#?</li>
-            <li>Why must you multiply directional input by speed and <code>Time.deltaTime</code>? (What would happen on a high-refresh-rate monitor if you omitted <code>Time.deltaTime</code>?)</li>
-            <li>For horizontal movement, which axis receives the calculated displacement and which axis remains 0? What about for vertical movement?</li>
+            <li>Why multiply the directional input by a speed <em>and</em> by <code>Time.deltaTime</code>? Think about what happens on a 240 Hz monitor versus a 60 Hz one if you leave <code>Time.deltaTime</code> out.</li>
+            <li>For horizontal movement, which vector component receives the calculated displacement, and which stays <code>0</code>? What about vertical movement? Sketch both vectors on paper before you type them.</li>
         </ul>
 
-        <p><strong>Sub-Problem 3 (Apply Translation):</strong></p>
+        <p><strong>Sub-problem 3 — apply the translation:</strong></p>
         <ul>
-            <li>What built-in Transform method directly offsets a GameObject's position in world space?</li>
-            <li>Which vectors do you pass to apply horizontal and vertical movement?</li>
+            <li>Which built-in Transform method offsets a GameObject's position in world space?</li>
+            <li>You have two displacement vectors — one horizontal, one vertical. Do you pass them in one call or two, and what would the difference be?</li>
         </ul>
     </div>
 
     <p>
-        Save your script and return to the Unity Editor. Press Play and press WASD or the arrow keys.
-        Your character should now glide smoothly in all four directions!
+        Save your script, return to Unity, press Play, and press WASD or the arrow keys.
+        Your character should now glide in all four directions.
     </p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Testing Assumptions</h3>
         <ol>
-            <li>What happens if you delete <code>* Time.deltaTime</code> from your vector calculation? Why does the player suddenly blast off into deep space on the first keypress?</li>
-            <li>In the Inspector for Player, change <code>xSpeed</code> to <code>0</code>. What happens when you press A and D versus W and S?</li>
-            <li>What happens if you accidentally swap the vectors and pass <code>yVector</code> when moving horizontally?</li>
+            <li>Delete <code>* Time.deltaTime</code> from your vector calculation. What happens when you tap a direction key? Why does the character cross the entire map in a single frame?</li>
+            <li>In the Inspector for the Player, set your horizontal speed knob to <code>0</code>. What happens when you press A and D, versus W and S?</li>
+            <li>Swap your two vectors — pass the vertical one where the horizontal belongs, and vice versa. Describe exactly what the character does now, and explain why.</li>
+            <li><strong>Now the interesting one.</strong> Walk your character straight into a wall and keep going. What happens? Look back at the component list from <a href="1.2.html">1.2</a> — what does the Player <em>not</em> have that would be needed to stop it?</li>
         </ol>
+    </div>
+
+    <div class="callout trap">
+        <strong>Keep that last answer.</strong> Walking through walls is not a mistake in your
+        code — <code>transform.Translate</code> moves your character by editing coordinates
+        directly, so it never asks the physics engine anything. It will happily put you inside
+        a wall, because nothing ever told it not to. Whether that matters depends entirely on
+        the game you are making. In the next lesson you will compare every way Unity offers to
+        move an object, and decide which one this game actually needs.
     </div>
 </div>
 
@@ -144,21 +194,23 @@ transform.Translate(beltDisplacementVector);</code></pre>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Comparing Input Functions Live</h3>
+        <h3>Tinker: Comparing input functions live</h3>
         <ol>
-            <li>In <code>PlayerController.cs</code>, replace <code>Input.GetAxis("Horizontal")</code> with <code>Input.GetAxisRaw("Horizontal")</code>. Run the game. How does stopping feel compared to before?</li>
-            <li>Press W and D simultaneously to move diagonally. Does moving diagonally feel slightly faster than moving straight in one cardinal direction? (Hint: In 2D math, what is the length of a hypotenuse with sides 1 and 1?)</li>
+            <li>Replace <code>Input.GetAxis("Horizontal")</code> with <code>Input.GetAxisRaw("Horizontal")</code>. Run the game. How does <em>stopping</em> feel compared to before? Which one suits this game?</li>
+            <li>Press W and D together to move diagonally. Does diagonal movement feel faster than moving in a straight line? (Hint: in 2D maths, what is the length of the hypotenuse of a right triangle with sides 1 and 1? What length do you actually want?)</li>
+            <li>Set your two speed knobs to different values and move around. In top-down 2D games, why might a designer deliberately make vertical movement slightly slower than horizontal?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>State the three sub-problems of character movement (input → vector calculation → translation)</li>
+            <li>State the three sub-problems of character movement: input → vector → translation</li>
             <li>Explain the difference between <code>Input.GetAxis</code>, <code>Input.GetAxisRaw</code>, and <code>Input.GetKey</code></li>
             <li>Explain why multiplying by <code>Time.deltaTime</code> is necessary</li>
-            <li>Locate and tune <code>xSpeed</code> and <code>ySpeed</code> in the Unity Inspector</li>
-            <li>Commit your new movement code to your GitHub fork</li>
+            <li>Find and tune your speed knobs in the Inspector while the game runs</li>
+            <li>Explain why your character can walk through a wall right now</li>
+            <li>Commit and push your new movement code to your GitHub fork</li>
         </ul>
     </div>
 </div>
@@ -171,9 +223,9 @@ transform.Translate(beltDisplacementVector);</code></pre>
         <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — input, vectors, and translation in depth</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — input and vector functions</li>
     </ul>
-    <p>Coming up next: <a href="1.5.html">1.5 — Movement II: Speed, deltaTime &amp; Tuning</a></p>
+    <p>Next: <a href="1.5.html">1.5 — Movement II: Speed, deltaTime &amp; Tuning</a>, where you compare all four ways to move an object and pick the one this game needs.</p>
 </div>`;
 ---
-<Lesson id="1.4" title="1.4a Movement I: Input, Direction, Vector — AP CS Principles" root=".." css="../style.css">
+<Lesson id="1.4" title="1.4 Movement I: Input, Direction, Vector — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

@@ -1,108 +1,97 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>3.4a Turret Damage, Tuning &amp; Playtest — AP CS Principles</title><meta name="description" content="Lesson 3.4 Turret Damage, Tuning &amp; Playtest — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="3.4a Turret Damage, Tuning &amp; Playtest — AP CS Principles"><meta property="og:description" content="Lesson 3.4 Turret Damage, Tuning &amp; Playtest — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="3.3.html">&#9664; 3.3</a><span class="lesson-id">3.4</span><a href="4.1.html">4.1 &#9654;</a></div><h1>3.4 — Turret Damage, Tuning &amp; Playtest</h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>3.4 Projectile Damage, Tuning &amp; Playtest — AP CS Principles</title><meta name="description" content="Lesson 3.4 Projectile Damage, Tuning &amp; Playtest — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="3.4 Projectile Damage, Tuning &amp; Playtest — AP CS Principles"><meta property="og:description" content="Lesson 3.4 Projectile Damage, Tuning &amp; Playtest — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="3.3.html">&#9664; 3.3</a><span class="lesson-id">3.4</span><a href="4.1.html">4.1 &#9654;</a></div><h1>3.4 — Projectile Damage, Tuning &amp; Playtest</h1>
 
 <p class="lesson-lead">
-    Your turret detects you, aims, and shoots on a timer. But currently, bullets fly harmlessly
-    through your body. Today, you complete the loop by connecting projectile impacts to your
-    health system, establish the four tuning knobs of enemy difficulty, and run a rigorous partner playtest.
+    Your turret sees you, aims, and fires on a timer. And every bullet passes cleanly through
+    your body, because the projectile is still just a picture. Today you close the loop —
+    collision, damage, cleanup — and then you take control of the numbers that decide whether
+    the encounter is tense or unfair.
 </p>
 
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Comparative Thinking</span>
-        <span class="activity-time">~10 min</span>
-    </div>
-
-    <p>
-        Notice how our earlier lessons directly solve today's challenge:
-    </p>
-    <ul>
-        <li><strong>How is a projectile hitting the player similar to a spike?</strong> Both reduce the player's life by invoking <code>StatManager.manager.ChangeHealth(-damage)</code>.</li>
-        <li><strong>How is a projectile similar to a coin?</strong> Both use trigger colliders (<code>Is Trigger = true</code>) and call <code>Destroy(gameObject)</code> upon contact.</li>
-    </ul>
-
-    <div class="socratic">
-        <h3>Socratic: Where Does the Hit Detection Belong?</h3>
-        <ol>
-            <li>Should <code>OnTriggerEnter2D</code> check for hits inside <code>PlayerController.cs</code> or inside <code>Projectile.cs</code>? Why is placing the collision handler on the projectile better when your game introduces arrows, magic blasts, and boss lasers later?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q1" data-block="socratic" data-question="Should OnTriggerEnter2D check for hits inside PlayerController.cs or inside Projectile.cs ? Why is placing the collision handler on the projectile better when your game introduces arrows, magic blasts, and boss lasers later?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>What happens if the projectile accidentally damages other enemies or the turret that spawned it? How does <code>other.CompareTag("Player")</code> ensure safety?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q2" data-block="socratic" data-question="What happens if the projectile accidentally damages other enemies or the turret that spawned it? How does other.CompareTag(&quot;Player&quot;) ensure safety?" placeholder="write your answer, then keep going"></textarea></label></li>
-        </ol>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">API Documentation &amp; Isolated Patterns</span>
+        <span class="activity-label">The Problem: A Bullet With No Body</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Connecting collision physics to gameplay consequences requires three distinct programming operations:
-        filtering target identity, invoking external state managers, and cleaning up spent game objects.
-        Study these isolated function patterns from disparate computing systems:
+        <strong>Your goal: being shot should cost you health.</strong> Three things have to be
+        true before it can. Something must give the bullet a <em>shape</em>. Something must
+        notice that the shape met the player. And something must turn "met the player" into a
+        change in a number. Go and find out which of the three is missing.
+    </p>
+
+    <p>
+        Select <code>Assets/Prefabs/Turret_Projectile</code> in the Project window and read its
+        Inspector. Then select the Player and read its Inspector. Write down what each one has,
+        and what the bullet is missing.
+    </p>
+
+    <div class="callout info">
+        <strong>The rule from 2.1 still runs this project.</strong> Overlap messages only fire
+        when the two objects both have a <strong>Collider2D</strong> and at least one of them
+        also has a <strong>Rigidbody2D</strong>. That is why the projectile being "only a
+        Transform and a Sprite Renderer" is fatal rather than cosmetic. It is also why a bullet
+        may not need a body of its own: the Player has carried one since
+        <a href="2.2.html">2.2</a>. Check that reasoning against the rule rather than assuming it.
+    </div>
+
+    <p>
+        Before you add anything, decide <em>what kind</em> of collider a bullet should have.
+        Here are the honest options:
     </p>
 
     <table>
-        <tr><th>API Method</th><th>Signature / Syntax</th><th>Engine Behavior</th></tr>
+        <tr><th>Setup for the bullet</th><th>What the player feels</th><th>What fires</th><th>What it costs</th></tr>
         <tr>
+            <td><strong>Collider with <em>Is Trigger</em> ticked</strong></td>
+            <td>The bullet passes into you and reports the hit without touching your movement.</td>
             <td><code>OnTriggerEnter2D</code></td>
-            <td><code>void OnTriggerEnter2D(Collider2D other)</code></td>
-            <td>Executed automatically when a trigger collider overlaps another collider in 2D space.</td>
+            <td>You must give the bullet a collider and size it by hand — a default collider is sized from the sprite's import bounds, and this prefab is scaled. A pass-through bullet also cannot be blocked by a wall later without more work.</td>
         </tr>
         <tr>
-            <td><code>CompareTag</code></td>
-            <td><code>bool CompareTag(string tag)</code></td>
-            <td>High-performance string tag check on the colliding object to identify its classification.</td>
+            <td><strong>Solid collider (<em>Is Trigger</em> off)</strong></td>
+            <td>The bullet thuds into you. If your player's body is Dynamic, it can shove them.</td>
+            <td><code>OnCollisionEnter2D</code></td>
+            <td>Now the bullet is an obstacle. A fast, thin, solid collider moved by <code>transform</code> is exactly the tunnelling case from <a href="2.2.html">2.2</a>: at high speed it can skip past a thin target in one frame.</td>
         </tr>
         <tr>
-            <td><code>Destroy</code></td>
-            <td><code>Destroy(Object obj)</code></td>
-            <td>Schedules a GameObject or Component for removal from memory at the end of the active frame.</td>
+            <td><strong>Trigger collider + a Rigidbody2D on the bullet</strong></td>
+            <td>Same as the trigger row, but the bullet is now under simulation.</td>
+            <td><code>OnTriggerEnter2D</code> (and a body you can steer)</td>
+            <td>One more component per bullet, and a body that will obey gravity unless you change its Gravity Scale. Buy this only if your bullet needs physics — bouncing, drag, or collision with walls.</td>
         </tr>
     </table>
 
-    <h4>Pattern 1: Tag Filtering (Airport Luggage Scanner)</h4>
     <p>
-        An automated security conveyor inspects baggage tags to route hazardous materials to an isolation bay:
+        The second decision is <em>whose script runs the check</em>. Both answers are defendable:
     </p>
-    <pre><code>// Inspects luggage tag metadata before routing
-void InspectLuggage(Collider2D item)
-{
-    if (item.CompareTag("HazardousCargo"))
-    {
-        RerouteToContainment();
-    }
-}</code></pre>
 
-    <h4>Pattern 2: Global Service Invocation (Power Grid Overload)</h4>
-    <p>
-        An industrial transformer discharges a surge into a central energy grid by invoking a singleton manager:
-    </p>
-    <pre><code>// Modifies a global energy pool via singleton access
-void DischargeToGrid(int wattsToDrain)
-{
-    if (PowerGridManager.instance != null)
-    {
-        // Passing a negative number decrements the central pool
-        PowerGridManager.instance.AdjustPowerSupply(-wattsToDrain);
-    }
-}</code></pre>
-
-    <h4>Pattern 3: Impact Disposal (Firework Rocket Casing)</h4>
-    <p>
-        A spent pyrotechnic shell destroys its own physical casing upon detonation to prevent duplicate impacts:
-    </p>
-    <pre><code>// Removes this GameObject immediately from the active scene hierarchy
-Destroy(gameObject);</code></pre>
+    <table>
+        <tr><th>Where the hit check lives</th><th>What it looks like</th><th>When it wins</th><th>What it costs</th></tr>
+        <tr>
+            <td><strong>On <code>Projectile.cs</code></strong></td>
+            <td>The bullet implements the callback, identifies what it hit, and asks that thing to take damage.</td>
+            <td>Each hazard carries its own behaviour. A bullet that later becomes a fireball changes only its own file, and a hazard you delete takes its damage code with it.</td>
+            <td>Every projectile needs a way to reach the health of whatever it hit.</td>
+        </tr>
+        <tr>
+            <td><strong>On <code>PlayerController.cs</code></strong></td>
+            <td>The player implements the callback and works out what just hit them.</td>
+            <td>One file shows everything in the game that can hurt the player — which is where a shield or invulnerability power-up will eventually live.</td>
+            <td>Every new hazard needs another branch in the player's file, and the player's script grows without limit.</td>
+        </tr>
+    </table>
 
     <div class="socratic">
-        <h3>Predict Before Building</h3>
+        <h3>Socratic: Choosing a Hit Model</h3>
         <ol>
-            <li>If you omit <code>Destroy(gameObject);</code> from an impact callback, what happens if the moving entity remains inside the target collider for 10 consecutive frames?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc2:q1" data-block="socratic" data-question="If you omit Destroy(gameObject); from an impact callback, what happens if the moving entity remains inside the target collider for 10 consecutive frames?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Notice how <code>DischargeToGrid</code> passes negative <code>-wattsToDrain</code> to <code>AdjustPowerSupply()</code>. What would happen in our game if we mistakenly passed positive <code>damage</code> to <code>ChangeHealth()</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc2:q2" data-block="socratic" data-question="Notice how DischargeToGrid passes negative -wattsToDrain to AdjustPowerSupply() . What would happen in our game if we mistakenly passed positive damage to ChangeHealth() ?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Why is checking <code>if (StatManager.manager != null)</code> critical before attempting to invoke <code>ChangeHealth()</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc2:q3" data-block="socratic" data-question="Why is checking if (StatManager.manager != null) critical before attempting to invoke ChangeHealth() ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Which of the two scripts will you put the hit check in, and what does that choice cost you later when the game has arrows, boss lasers and a flamethrower?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q1" data-block="socratic" data-question="Which of the two scripts will you put the hit check in, and what does that choice cost you later when the game has arrows, boss lasers and a flamethrower?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>A bullet that stops the player dead like a brick wall would be miserable to play against. Which of the three bullet setups avoids that, and what is the exact checkbox responsible?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q2" data-block="socratic" data-question="A bullet that stops the player dead like a brick wall would be miserable to play against. Which of the three bullet setups avoids that, and what is the exact checkbox responsible?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The projectile prefab is tagged <code>Enemy</code>, just like the turret and the mobile enemy. Given that, how will a bullet ever know it hit the <em>player</em> — whose tag will you actually test, and on which object?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q3" data-block="socratic" data-question="The projectile prefab is tagged Enemy , just like the turret and the mobile enemy. Given that, how will a bullet ever know it hit the player — whose tag will you actually test, and on which object?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Your player's health method from 2.2 takes a <em>signed</em> amount. What number do you pass to hurt them, and what would happen if you passed the positive value by mistake?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q4" data-block="socratic" data-question="Your player's health method from 2.2 takes a signed amount. What number do you pass to hurt them, and what would happen if you passed the positive value by mistake?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if you never call <code>Destroy</code> on the bullet? Describe the scene after a two-minute firefight and name the two systems that suffer first.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q5" data-block="socratic" data-question="What happens if you never call Destroy on the bullet? Describe the scene after a two-minute firefight and name the two systems that suffer first." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>A bullet in flight is a hazard even after it has left the turret's range. Is that correct behaviour for this game, or should a bullet stop mattering when the turret loses track of you? Argue it.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q6" data-block="socratic" data-question="A bullet in flight is a hazard even after it has left the turret's range. Is that correct behaviour for this game, or should a bullet stop mattering when the turret loses track of you? Argue it." placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -110,57 +99,177 @@ Destroy(gameObject);</code></pre>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: Your Turn</span>
-        <span class="activity-time">~25 min</span>
-    </div>
-
-    <div class="callout">
-        <strong>Architectural Specification for <code>Projectile.cs</code>:</strong>
-        <p><strong>Damage Tuning Knob:</strong></p>
-        <ul>
-            <li>What serialized integer variable should allow designers to configure how punishing each projectile hit is? What default value makes sense?</li>
-        </ul>
-
-        <p><strong>Handle Player Hit:</strong></p>
-        <ul>
-            <li>What function does this belong in?</li>
-            <li>Should a projectile be a trigger or a collider? (Hint: Does a bullet stop the player like a brick wall, or pass into them to register a hit?)</li>
-            <li>How do you check if the collided object is the Player? Why is this check critical? (What would happen if the projectile collided with the turret that spawned it or an environmental obstacle?)</li>
-            <li>How do you check to see if the <code>StatManager</code> exists before communicating with it?</li>
-            <li>What function on the manager do you call to change health? Should you pass a positive or negative number to inflict damage?</li>
-            <li>How do you destroy the projectile? Is the projectile <code>gameObject</code> or is it <code>other.gameObject</code>? (Hint: this script is attached to the projectile; we collided with <code>other</code>).</li>
-        </ul>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Save and test in Unity. Walk into a bullet: your health drops from 3 to 2, the bullet vanishes,
-        and taking 3 hits triggers the death loop and resets to Start!
+        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
+        your bullet. None of these is from a video game.
     </p>
 
-    <p><strong>Step 2 — The Difficulty Matrix.</strong>
-    Game difficulty is not arbitrary; it is an equation controlled by four numbers you own:</p>
-    <table>
-        <tr><th>Knob (Component)</th><th>Default</th><th>Player Experience</th></tr>
-        <tr><td><code>maxAttackRange</code> (Turret)</td><td>7</td><td>How much of the map is a danger zone</td></tr>
-        <tr><td><code>attackCooldown</code> (Turret)</td><td>2s</td><td>How much time the player gets between dodges</td></tr>
-        <tr><td><code>speed</code> (Projectile)</td><td>6</td><td>How much human reaction time is required</td></tr>
-        <tr><td><code>damage</code> (Projectile)</td><td>1</td><td>How punishing each mistake is (out of 3 health)</td></tr>
-    </table>
+    <p><strong>Example 1 — A hotel door that only answers to one credential:</strong></p>
+    <pre><code>// Everything that touches the reader arrives here; only one class of thing matters
+if (other.CompareTag("Player")) { RegisterArrival(); }</code></pre>
 
-    <p><strong>Step 3 — Build Three Turret Personalities.</strong>
-    Duplicate the Turret in your Overworld scene (Ctrl+D) to create three distinct challenges:</p>
-    <ul>
-        <li><strong>The Sniper:</strong> Huge range (<code>12</code>), long cooldown (<code>3.5s</code>), fast bullet (<code>14</code>), high damage (<code>2</code>).</li>
-        <li><strong>The Sentry:</strong> Short range (<code>4</code>), rapid cooldown (<code>0.8s</code>), slow bullet (<code>4</code>), low damage (<code>1</code>).</li>
-        <li><strong>The Mortar:</strong> Medium range (<code>7</code>), balanced cooldown (<code>2s</code>), huge slow projectile (<code>3</code>), fatal damage (<code>3</code>).</li>
-    </ul>
+    <p><strong>Example 2 — A theme-park turnstile deducting ride credit:</strong></p>
+    <pre><code>// One method handles both directions: a negative amount spends, a positive one refunds
+wallet.AdjustCredit(-rideCost);</code></pre>
+
+    <p><strong>Example 3 — A spent firework casing removing itself:</strong></p>
+    <pre><code>// The casing destroys itself so it can never be counted a second time
+Destroy(gameObject);</code></pre>
+
+    <p><strong>Example 4 — A delivery driver reaching the person behind the door:</strong></p>
+    <pre><code>// Find the script on the thing you touched, then hand the problem to it
+TicketHolder holder = other.GetComponent&lt;TicketHolder&gt;();
+if (holder != null) { holder.Charge(2); }</code></pre>
+
+    <p><strong>Example 5 — A paintball vest (comment only):</strong></p>
+    <pre><code>// The vest is a sensor, not a wall. It exists to notice a hit that already
+// happened and report it - it never pushes the player anywhere.</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>Example 1 tests a tag; Example 4 fetches a script. Which one can tell you <em>what kind of thing</em> you hit, and which can tell you what that thing can <em>do</em>? Which do you need for damage?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc2:q1" data-block="socratic" data-question="Example 1 tests a tag; Example 4 fetches a script. Which one can tell you what kind of thing you hit, and which can tell you what that thing can do ? Which do you need for damage?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In Example 4, what happens on the next line if <code>holder</code> is null and you skip the guard? What does that error look like in the Console, and which line does it point at?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc2:q2" data-block="socratic" data-question="In Example 4, what happens on the next line if holder is null and you skip the guard? What does that error look like in the Console, and which line does it point at?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Example 2 passes a negative number to mean "take". Your health method works the same way — so why is one signed method better than separate <code>Heal</code> and <code>Hurt</code> methods, and who will be calling it in Unit 5?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc2:q3" data-block="socratic" data-question="Example 2 passes a negative number to mean &quot;take&quot;. Your health method works the same way — so why is one signed method better than separate Heal and Hurt methods, and who will be calling it in Unit 5?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Example 3 destroys <code>gameObject</code>. In your hit callback, <code>gameObject</code> and <code>other.gameObject</code> are two different objects. Which one is the bullet, and what would you accidentally destroy if you got it backwards?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc2:q4" data-block="socratic" data-question="Example 3 destroys gameObject . In your hit callback, gameObject and other.gameObject are two different objects. Which one is the bullet, and what would you accidentally destroy if you got it backwards?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Example 5 says the vest never pushes the player. Which of the three bullet setups in the docs behaves like the vest, and which behaves like a wall?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc2:q5" data-block="socratic" data-question="Example 5 says the vest never pushes the player. Which of the three bullet setups in the docs behaves like the vest, and which behaves like a wall?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Close the Loop</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        <strong>Step 1 — give the bullet a shape.</strong> Open the
+        <code>Turret_Projectile</code> prefab and add the collider you chose. Size it and check it
+        against the sprite in the Scene view, remembering that the sprite is scaled and may sit on
+        a child object. Set <strong>Is Trigger</strong> deliberately, not by default.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification for <code>Projectile.cs</code>:</strong>
+
+        <p><strong>The damage knob:</strong></p>
+        <ul>
+            <li>What serialized field lets a designer decide how punishing one hit is? What type <em>must</em> it match to work with the health method you wrote in 2.2?</li>
+            <li>What default do you ship, given the player's starting health? Justify the ratio, not just the number.</li>
+        </ul>
+
+        <p><strong>The hit callback:</strong></p>
+        <ul>
+            <li>Which callback method receives the message — and does the name depend on whether you ticked <em>Is Trigger</em>? What is the parameter's type in each case?</li>
+            <li>How do you confirm you hit the player, and why is a tag check the right first filter rather than testing for a script straight away?</li>
+            <li>How do you get from the thing you collided with to the health method on <code>PlayerController</code>? Which <code>GetComponent</code> family call do you need — plain, <code>InParent</code>, or <code>InChildren</code> — and why?</li>
+            <li>What guard check protects you if the object you hit carries no <code>PlayerController</code> at all? What would happen without it?</li>
+        </ul>
+
+        <p><strong>Applying the damage:</strong></p>
+        <ul>
+            <li>Which method do you call, and what sign is the number you pass? Say out loud what a positive value would do instead.</li>
+            <li>What message do you print so you can watch the health change with no UI at all?</li>
+        </ul>
+
+        <p><strong>Cleanup:</strong></p>
+        <ul>
+            <li>Which object gets destroyed — the bullet or the player? What happens to the player's health if you get it wrong?</li>
+            <li>Where in the callback does the destroy line go: before or after the damage? What happens if the bullet survives a frame while still inside the player?</li>
+        </ul>
+    </div>
+
+    <div class="callout trap">
+        <strong>Do not reach for a manager.</strong> There is a <code>StatManager.cs</code> in
+        <code>Assets/Scripts</code>. It is empty, it has no health in it, and it has no method to
+        change anything. Health lives on <code>PlayerController</code>, where you put it in
+        <a href="2.2.html">2.2</a>, and it stays there. You will meet the manager again in 5.3,
+        when a scene change finally gives you a reason to move your stats.
+    </div>
+
+    <p>
+        Save, wire nothing new, and press Play. Stand in front of a turret and let it shoot you.
+        Your health number should fall by exactly your damage knob, the bullet should vanish, and
+        when health reaches zero your death rule from 2.2 should fire. If the Console is silent,
+        check the collider before you check the code.
+    </p>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The Unfair Encounter</h3>
+        <h3>Bug Hunt: Silent Bullets</h3>
         <ol>
-            <li>What happens if a turret has <code>speed = 25</code> and <code>attackCooldown = 0.2s</code>? What is the technical difference between an encounter that is "hard" and one that is "statistically impossible"?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:bh1:q1" data-block="bug-hunt" data-question="What happens if a turret has speed = 25 and attackCooldown = 0.2s ? What is the technical difference between an encounter that is &quot;hard&quot; and one that is &quot;statistically impossible&quot;?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>If you place a Sniper turret directly at the scene entrance where the player spawns, why does that violate player trust?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:bh1:q2" data-block="bug-hunt" data-question="If you place a Sniper turret directly at the scene entrance where the player spawns, why does that violate player trust?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Leave the prefab without a collider and fire at yourself. What does the Console show? Why is "no error at all" harder to debug than a crash?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:bh1:q1" data-block="bug-hunt" data-question="Leave the prefab without a collider and fire at yourself. What does the Console show? Why is &quot;no error at all&quot; harder to debug than a crash?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Now tick <em>Is Trigger</em> on the bullet but keep the callback you wrote for collisions. Does anything fire? Which pair of checkbox and method name must match?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:bh1:q2" data-block="bug-hunt" data-question="Now tick Is Trigger on the bullet but keep the callback you wrote for collisions. Does anything fire? Which pair of checkbox and method name must match?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Comment out the <code>Destroy</code> line and stand in front of a turret for thirty seconds. Count the objects in the Hierarchy in play mode. Which two systems in your game slow down first?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:bh1:q3" data-block="bug-hunt" data-question="Comment out the Destroy line and stand in front of a turret for thirty seconds. Count the objects in the Hierarchy in play mode. Which two systems in your game slow down first?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Remove the null guard before you call the health method, then shoot a wall or another bullet. What error appears, and which line points at it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:bh1:q4" data-block="bug-hunt" data-question="Remove the null guard before you call the health method, then shoot a wall or another bullet. What error appears, and which line points at it?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set your damage knob to match the player's full starting health. What is the encounter now — and why is a one-hit kill a design statement rather than a bug?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:bh1:q5" data-block="bug-hunt" data-question="Set your damage knob to match the player's full starting health. What is the encounter now — and why is a one-hit kill a design statement rather than a bug?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Delete the tag check and let the bullet damage anything it touches. What would go wrong the day the player can shoot back, and why is a whitelist safer than a blacklist here?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:bh1:q6" data-block="bug-hunt" data-question="Delete the tag check and let the bullet damage anything it touches. What would go wrong the day the player can shoot back, and why is a whitelist safer than a blacklist here?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: The Difficulty Knobs</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Difficulty is not a feeling, it is a small set of numbers you now own. There are
+        <strong>no correct values in this project</strong> — only the ones you choose, and the
+        player experience they produce. Fill in the right-hand column with your own numbers as
+        you go.
+    </p>
+
+    <table>
+        <tr><th>Knob (and which script owns it)</th><th>What it controls</th><th>Low value feels like</th><th>High value feels like</th><th>Your value</th></tr>
+        <tr>
+            <td><strong>Detection range</strong> (<code>TurretController</code>)</td>
+            <td>How much of the map is a danger zone.</td>
+            <td>A close-quarters sentry you can walk around.</td>
+            <td>A sniper that owns the open ground.</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><strong>Fire cooldown</strong> (<code>TurretController</code>)</td>
+            <td>The gap the player gets between shots.</td>
+            <td>A bullet hose with no room to dodge.</td>
+            <td>Long, tense waits between single shots.</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><strong>Projectile speed</strong> (<code>Projectile</code>)</td>
+            <td>How much reaction time the player has.</td>
+            <td>Slow enough to walk around.</td>
+            <td>Faster than a human can react.</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><strong>Damage</strong> (<code>Projectile</code>)</td>
+            <td>How punishing one mistake is, out of the player's total health.</td>
+            <td>Chip damage they can ignore.</td>
+            <td>A mistake that ends the run.</td>
+            <td></td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification: build three turret personalities.</strong>
+        The Overworld scene already contains <strong>two</strong> Turret instances — count them in
+        the Hierarchy before you assume anything. If you want a third personality, duplicate one
+        of the existing two (Ctrl+D); that gives you three. Do not duplicate both.
+        <ul>
+            <li>Which of the two existing turrets will keep its current numbers, and where in the scene does it sit?</li>
+            <li>For each personality you build, write down the four values <em>before</em> you type them, and say what player experience you are aiming at in one sentence.</li>
+            <li>Inspector values on an instance override the prefab's values. Where do your personality numbers live — on the prefab, or on the instance in the Overworld? What happens to the other instance if you edit the prefab instead?</li>
+            <li>Does a personality need to be a different <em>prefab</em>, or just a different set of numbers on an instance? What does your answer cost you when you want to reuse a personality in another scene?</li>
+        </ul>
     </div>
 </div>
 
@@ -172,31 +281,37 @@ Destroy(gameObject);</code></pre>
     </div>
 
     <p>
-        Swap seats with a partner and run a silent playtest (<a href="2.4.html">2.4</a> rules).
-        Observe their run through your Overworld without speaking:
+        Swap seats with a partner and run a silent playtest — the <a href="2.4.html">2.4</a>
+        rules: you watch, they play, nobody speaks. Watch for:
     </p>
     <ul>
         <li>Did they notice the turret before it fired, or was the first hit a surprise?</li>
-        <li>Did they try to dodge bullets, or did they simply sprint through damage?</li>
-        <li>Which of your three turret personalities felt the most satisfying to evade?</li>
+        <li>Did they try to dodge the bullets, or just sprint through the damage?</li>
+        <li>Which of your turret personalities was most satisfying to evade — and which one made them stop trying?</li>
+        <li>Did they ever work out what the detection range was, or did it feel random to them?</li>
     </ul>
 
     <div class="tinker">
-        <h3>Tinker: Close the Loop</h3>
+        <h3>Tinker: One Knob at a Time</h3>
         <ol>
-            <li>From your partner's feedback, pick <strong>one single knob</strong> to adjust (e.g. decrease projectile speed from 14 to 11). Retest. Did the play experience immediately improve?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:tk1:q1" data-block="tinker" data-question="From your partner's feedback, pick one single knob to adjust (e.g. decrease projectile speed from 14 to 11). Retest. Did the play experience immediately improve?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Commit and push your work: <code>"3.4a: turret damage, personalities &amp; playtest"</code>.</li>
+            <li>From your partner's feedback, change exactly one number. Retest with the same partner. Did the experience improve, and can you point at the moment it changed?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:tk1:q1" data-block="tinker" data-question="From your partner's feedback, change exactly one number. Retest with the same partner. Did the experience improve, and can you point at the moment it changed?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Change two numbers at once and retest. Why can you no longer say which change did the work? Write the rule down in one sentence.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:tk1:q2" data-block="tinker" data-question="Change two numbers at once and retest. Why can you no longer say which change did the work? Write the rule down in one sentence." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Make a bullet that is slow but huge and deadly, and one that is fast but weak. Which reads as more <em>fair</em> to a player, and what does that tell you about reaction time as a design resource?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:tk1:q3" data-block="tinker" data-question="Make a bullet that is slow but huge and deadly, and one that is fast but weak. Which reads as more fair to a player, and what does that tell you about reaction time as a design resource?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Commit and push: <code>"3.4: projectile damage + difficulty tuning"</code>.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Implement <code>OnTriggerEnter2D</code> on projectiles to deliver damage to the player</li>
-            <li>Explain how projectile collision reuses the damage and pickup patterns from Unit 2</li>
-            <li>Identify the four parameters that define turret encounter difficulty</li>
-            <li>Tune multiple turret archetypes using serialized Inspector overrides</li>
-            <li>Conduct a partner playtest and make an evidence-based design revision</li>
+            <li>Explain what the projectile prefab was missing and why no message ever fired</li>
+            <li>Defend your choice of trigger versus solid, and say which callback name each one requires</li>
+            <li>Explain how a bullet reaches the player's health method, and why the null guard matters</li>
+            <li>Explain why the damage amount is negative, and what a positive value would do</li>
+            <li>Name the four difficulty knobs, where each one lives, and your value for each</li>
+            <li>Say how many turrets the scene shipped with, and how many you added</li>
+            <li>Run a silent playtest and make one evidence-based change</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -206,8 +321,9 @@ Destroy(gameObject);</code></pre>
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — complete turret system architecture</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — triggers, tags, and math</li>
+        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — the complete turret system</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the hit detection reference, reused here</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — triggers, tags and <code>GetComponent</code></li>
     </ul>
-    <p>Next: <a href="4.1.html">4.1 — The Enemy: Waypoint Patrols</a> — Unit 4 begins.</p>
-</div><div class="lab-bar" data-lesson="3.4" data-lesson-title="Turret Damage, Tuning &amp; Playtest" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.4" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.3.html"><span class="dir">&#9664; Previous</span><span class="where">3.3 — Fire Rate: Cooldowns &amp; Time</span></a><a class="foot-next" href="4.1.html"><span class="dir">Next &#9654;</span><span class="where">4.1 — The Enemy: Waypoint Patrols</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+    <p>Next: <a href="4.1.html">4.1 — The Enemy: Patrol</a>, where Unit 4 begins and something starts hunting you.</p>
+</div><div class="lab-bar" data-lesson="3.4" data-lesson-title="Projectile Damage, Tuning &amp; Playtest" data-count="20" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/20 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.4" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.3.html"><span class="dir">&#9664; Previous</span><span class="where">3.3 — Fire Rate: Cooldowns &amp; Time</span></a><a class="foot-next" href="4.1.html"><span class="dir">Next &#9654;</span><span class="where">4.1 — The Enemy: Patrol</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

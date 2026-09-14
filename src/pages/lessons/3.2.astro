@@ -1,17 +1,20 @@
 ---
 // Lesson 3.2 — Projectiles: Instantiate, Fire, Destroy
-// Problem breakdown: Spawning, aiming, moving, and cleaning up projectiles.
-// Reading Unity functions (Instantiate vs Destroy, Translate vs Rigidbody velocity).
-// Building Projectile.cs from scratch and writing AttackPlayer in TurretController.cs.
+// Problem breakdown: spawning, aiming, moving, and cleaning up projectiles.
+// Comparing three ways to move a projectile, and two ways to aim it.
+// GROUND TRUTH: Projectile.cs is an empty stub but IS already attached to
+// Turret_Projectile.prefab. That prefab has NO Rigidbody2D and NO Collider2D,
+// so any physics-based movement option costs the student an added component.
+// Turret.prefab has a child "SpawnPoint" that serves as the muzzle.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>3.2 — Projectiles: Instantiate, Fire, Destroy</h1>
 
 <p class="lesson-lead">
     Your turret knows when you are near; now it needs teeth. Spawning and firing a projectile
-    looks complex, but it breaks down into four smaller sub-problems:
-    <strong>spawn a prefab → point it at the player → move it through space → destroy it when done</strong>.
-    Today, you read Unity's projectile functions and build <code>Projectile.cs</code> from scratch.
+    looks complicated, but it breaks into four smaller problems:
+    <strong>spawn a clone → aim it → move it → clean it up</strong>. Each of those has more than
+    one valid solution, and today you pick yours on purpose.
 </p>
 
 <!-- ============================================================ -->
@@ -21,46 +24,62 @@ const body = `<h1>3.2 — Projectiles: Instantiate, Fire, Destroy</h1>
         <span class="activity-time">~15 min</span>
     </div>
 
-    <p>
-        Firing a projectile requires coordinating several distinct Unity functions.
-        Read how the engine handles each step:
-    </p>
+    <p>Firing a projectile means coordinating four separate engine features:</p>
 
     <table>
-        <tr><th>Sub-Problem</th><th>Unity Function</th><th>Documentation &amp; Purpose</th></tr>
+        <tr><th>Sub-problem</th><th>Unity API</th><th>What it does</th></tr>
         <tr>
             <td><strong>1. Spawning</strong></td>
             <td><code>Instantiate(prefab, pos, rot)</code></td>
-            <td>Creates a brand-new clone of a prefab at runtime and places it into the scene hierarchy.</td>
+            <td>Creates a brand-new clone of a prefab at runtime and drops it into the scene hierarchy.</td>
         </tr>
         <tr>
             <td><strong>2. Aiming</strong></td>
             <td><code>(target - origin).normalized</code></td>
-            <td>Vector subtraction produces a vector pointing toward the target. <code>.normalized</code> reduces its length to 1.</td>
+            <td>Vector subtraction gives a vector pointing at the target; <code>.normalized</code> shrinks its length to exactly 1 so it describes <em>direction only</em>.</td>
         </tr>
         <tr>
             <td><strong>3. Moving</strong></td>
-            <td><code>transform.Translate</code> or <code>Rigidbody2D</code></td>
-            <td>Moves the bullet every frame along its forward direction.</td>
+            <td><code>Transform</code> or <code>Rigidbody2D</code></td>
+            <td>Advances the projectile every frame. Three different ways — see the table below.</td>
         </tr>
         <tr>
             <td><strong>4. Cleanup</strong></td>
             <td><code>Destroy(gameObject, delay)</code></td>
-            <td>Destroys the projectile after a time delay (seconds) to prevent off-screen bullets from clogging memory.</td>
+            <td>Destroys the clone after a time delay, so bullets that miss do not fly forever.</td>
         </tr>
     </table>
 
     <div class="socratic">
-        <h3>Socratic: Evaluating Multiple Ways to Move Projectiles</h3>
-        <p>Compare these two ways to move a projectile across the screen:</p>
-        <ul>
-            <li><strong>Method 1 (Translate):</strong> <code>transform.Translate(Vector3.right * speed * Time.deltaTime);</code></li>
-            <li><strong>Method 2 (Physics Velocity):</strong> <code>GetComponent&lt;Rigidbody2D&gt;().linearVelocity = direction * speed;</code></li>
-        </ul>
+        <h3>Socratic: Choosing How Your Bullet Flies</h3>
+        <p>Three legitimate ways to move a projectile. Read the cost column carefully — two of these require a component the prefab does not have:</p>
+        <table>
+            <tr><th>Approach</th><th>How it works</th><th>What it requires</th><th>Pick it when</th></tr>
+            <tr>
+                <td><strong>Translate by a direction vector</strong></td>
+                <td>Keep the aim direction from spawn and offset the position by <code>direction * speed * Time.deltaTime</code> each frame.</td>
+                <td>Nothing. Works with the prefab as it ships.</td>
+                <td>Straight-flying shots that pass over or through everything.</td>
+            </tr>
+            <tr>
+                <td><strong>Rotate, then move along local forward</strong></td>
+                <td>Point the sprite at the target once, then translate along its own right axis each frame.</td>
+                <td>Nothing extra, but more maths.</td>
+                <td>When the sprite should visibly <em>face</em> the way it travels — arrows, spears, missiles.</td>
+            </tr>
+            <tr>
+                <td><strong>Rigidbody2D velocity</strong></td>
+                <td>Set the body's velocity once and let the physics engine carry it.</td>
+                <td><strong>A Rigidbody2D</strong>, which the projectile does not have yet.</td>
+                <td>Bullets that should bounce off walls, or be stopped by them.</td>
+            </tr>
+        </table>
         <ol>
-            <li>If you want bullets that bounce off stone walls like in a pinball or billiards game, which method (Method 1 or Method 2) is significantly easier, and why?</li>
-            <li>If your projectiles are laser beams, energy arrows, or magic missiles that fly straight through obstacles, why is Method 1 clean and lightweight?</li>
-            <li>Why is <code>Destroy(gameObject, 5f)</code> called an essential <strong>garbage collection</strong> pattern? What would happen to your game's framerate if a player dodged 1,000 bullets and they all kept flying into deep space forever?</li>
+            <li>Open <code>Assets/Prefabs/Turret_Projectile</code> and read its Inspector. Which of the three approaches can you build <em>right now</em>, and which one costs you an added component?</li>
+            <li>If you want bullets that ricochet off cave walls like a pinball, which approach is dramatically easier, and what would the other two require you to build yourself?</li>
+            <li>For a beam or a magic missile that flies straight through scenery, why is the direction-vector approach both simpler <em>and</em> more correct?</li>
+            <li>Why is <code>Destroy(gameObject, delay)</code> essential? What happens to your frame rate if a player dodges a thousand bullets and nothing ever removes them?</li>
+            <li>Your turret's range check runs every frame. If you fire from inside that check, how many bullets per second are you creating — and is that a design decision or an accident?</li>
         </ol>
     </div>
 </div>
@@ -73,38 +92,38 @@ const body = `<h1>3.2 — Projectiles: Instantiate, Fire, Destroy</h1>
     </div>
 
     <p>
-        Notice how each mathematical, rotational, and spawning function works in isolation across completely different game systems:
+        Each snippet in isolation, from a system that is not a video game. Work out what maps onto
+        your projectile.
     </p>
 
-    <p><strong>Example 1 — Computing Direction and Unit Length on an Airplane Navigation System:</strong></p>
-    <pre><code>// Vector subtraction (destination - current) gives direction; .normalized scales length to 1.0
-Vector3 headingDirection = (waypointPosition - transform.position).normalized;</code></pre>
+    <p><strong>Example 1 — Computing a heading on an aircraft navigation system:</strong></p>
+    <pre><code>// (destination - current) gives direction; .normalized scales the length to 1.0
+Vector3 heading = (waypoint.position - transform.position).normalized;</code></pre>
 
-    <p><strong>Example 2 — Converting 2D Direction to Angle on a Weather Vane:</strong></p>
-    <pre><code>// Atan2 calculates the angle in radians from X/Y coordinates; Rad2Deg converts to 0-360 degrees
-float windAngle = Mathf.Atan2(windVector.y, windVector.x) * Mathf.Rad2Deg;</code></pre>
+    <p><strong>Example 2 — Converting a direction to an angle on a weather vane:</strong></p>
+    <pre><code>// Atan2 turns X/Y components into an angle in radians; Rad2Deg converts to degrees
+float windAngle = Mathf.Atan2(wind.y, wind.x) * Mathf.Rad2Deg;</code></pre>
 
-    <p><strong>Example 3 — Applying 2D Rotation with Quaternion.AngleAxis:</strong></p>
-    <pre><code>// In 2D games, rotation occurs around the Z axis (Vector3.forward, pointing out of the screen)
+    <p><strong>Example 3 — Building a 2D rotation from that angle:</strong></p>
+    <pre><code>// In 2D, rotation happens around the Z axis - the one pointing out of the screen
 transform.rotation = Quaternion.AngleAxis(windAngle, Vector3.forward);</code></pre>
 
-    <p><strong>Example 4 — Spawning and Initializing on a Magic Fountain:</strong></p>
-    <pre><code>// 1. Stamp clone into world
-GameObject orb = Instantiate(orbPrefab, fountainNozzle.position, Quaternion.identity);
-
-// 2. Access component on the fresh clone and pass setup data
+    <p><strong>Example 4 — Spawning and initialising on a fountain:</strong></p>
+    <pre><code>// Stamp a clone, then reach into it to hand over the data it needs
+GameObject orb = Instantiate(orbPrefab, nozzle.position, Quaternion.identity);
 orb.GetComponent&lt;MagicOrb&gt;().InitializeOrb(targetCoords);</code></pre>
 
-    <p><strong>Example 5 — Timed Cleanup with Destroy on a Floating Soap Bubble:</strong></p>
-    <pre><code>// Schedules this GameObject to be automatically destroyed 4 seconds after appearing
+    <p><strong>Example 5 — Timed self-cleanup on a soap bubble:</strong></p>
+    <pre><code>// Schedules this object to be destroyed automatically 4 seconds from now
 Destroy(gameObject, 4.0f);</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>In Example 1, what happens if you forget <code>.normalized</code>? If the target is 20 units away, how does that affect any math multiplied by that direction?</li>
-            <li>In Example 3, why is <code>Vector3.forward</code> (0, 0, 1) used as the axis of rotation for a 2D sprite?</li>
-            <li>In Example 5, why is scheduling destruction with a timer better than never destroying dodged projectiles?</li>
+            <li>In Example 1, what happens if you leave off <code>.normalized</code>? If the waypoint is 20 units away and you multiply that vector by a speed, what goes wrong?</li>
+            <li>Why is <code>Vector3.forward</code> — that is, (0, 0, 1) — the axis of rotation for a 2D sprite?</li>
+            <li>In Example 4, why does the fountain reach <em>into the clone</em> to pass data, rather than the clone finding the target on its own? Which approach would you pick for a bullet, and why?</li>
+            <li>Example 4 uses <code>Quaternion.identity</code> for the spawn rotation. Is that the right choice for a bullet that is about to be aimed? What does <code>identity</code> actually mean?</li>
         </ol>
     </div>
 </div>
@@ -116,64 +135,78 @@ Destroy(gameObject, 4.0f);</code></pre>
         <span class="activity-time">~25 min</span>
     </div>
 
+    <p>
+        Open <code>Assets/Prefabs/Turret_Projectile</code>. You will find an empty
+        <code>Projectile</code> component <em>already attached</em> — same pattern as the turret.
+        Your job is to fill it in.
+    </p>
+
     <div class="callout">
-        <strong>Architectural Specification for <code>Projectile.cs</code>:</strong>
-        <p><strong>Variables &amp; Tuning Knobs:</strong></p>
+        <strong>Architectural specification for <code>Projectile.cs</code>:</strong>
+
+        <p><strong>Variables and tuning knobs:</strong></p>
         <ul>
-            <li>Where in <code>Assets/Scripts/</code> should you create this script, and what must the class name match?</li>
-            <li>What serialized float knobs should designers be able to adjust in the Inspector for bullet speed and maximum time-to-live? What defaults make sense?</li>
+            <li>What serialized float knobs should a designer be able to turn? You need at least a speed and a lifetime — are there others your chosen approach implies?</li>
+            <li>What defaults make sense? Think about how big the Overworld is and how far a bullet should reasonably travel before giving up.</li>
+            <li>Your projectile needs to remember its direction (or its target). What type holds that, and where does it get set?</li>
         </ul>
 
-        <p><strong>Aiming &amp; Initialization:</strong></p>
+        <p><strong>Being initialised at spawn:</strong></p>
         <ul>
-            <li>When a projectile is spawned, it needs to know where the target was standing. What public method signature can receive that target coordinate?</li>
-            <li>How do you calculate a direction vector from where the bullet spawned to where the target is? Why must this vector be normalized?</li>
-            <li>What trigonometric function calculates the angle in radians from X and Y components? How do you convert radians into degrees?</li>
-            <li>Which 3D axis represents the pivot axis for 2D rotation? What Quaternion method builds a rotation from an angle and an axis?</li>
-            <li>How do you tell Unity to automatically clean up this bullet after its lifetime expires, even if it never hits a target?</li>
+            <li>When the turret creates a bullet, it needs to tell that bullet where to go. What <em>public</em> method signature receives that information? Why must it be public?</li>
+            <li>How do you compute a direction from the spawn point to the target? Why normalize it?</li>
+            <li>If you chose the rotate-then-move approach: which trigonometric function gives you an angle from X and Y, and how do you convert radians to degrees?</li>
+            <li>If you chose the rotate-then-move approach: which axis does a 2D sprite rotate around, and which method builds a rotation from an angle and an axis?</li>
+            <li>How do you schedule the bullet's own destruction so it cleans up even if it never hits anything?</li>
         </ul>
 
-        <p><strong>Per-Frame Flight in Update:</strong></p>
+        <p><strong>Flight, every frame:</strong></p>
         <ul>
-            <li>Since the projectile was rotated to face the target upon spawn, which local direction represents "forward" in Unity 2D sprite geometry?</li>
-            <li>What function moves the transform each frame? How do you ensure flight speed is frame-rate independent?</li>
-            <li>Which prefab in <code>Assets/Prefabs/</code> needs this script attached?</li>
+            <li>Which method moves the transform each frame, and how do you keep the speed frame-rate independent?</li>
+            <li>If you rotated the sprite, which local direction is "forward" for a 2D sprite? If you did not rotate it, what do you translate by instead?</li>
+            <li>Why does the direction get computed once at spawn rather than recomputed every frame? What weapon would re-aiming every frame actually give you?</li>
         </ul>
     </div>
 
     <div class="callout">
-        <strong>Architectural Specification for <code>TurretController.cs</code>:</strong>
-        <p><strong>Inspector Slots:</strong></p>
+        <strong>Architectural specification for <code>TurretController.cs</code>:</strong>
+
+        <p><strong>Inspector slots:</strong></p>
         <ul>
-            <li>What serialized fields are needed so designers can drag in the projectile prefab and assign the physical spawn nozzle?</li>
+            <li>What serialized fields let a designer hand the turret a projectile to fire and a place to fire it from? (Remember the child object you noted in <a href="3.1.html">3.1</a>.)</li>
+            <li>What type holds a reference to a prefab — the asset, not an instance?</li>
         </ul>
 
-        <p><strong>Attack Method:</strong></p>
+        <p><strong>The firing method:</strong></p>
         <ul>
-            <li>In your firing function, what guard check ensures the prefab and spawn point slots are not left unassigned?</li>
-            <li>What method stamps a new clone of the projectile prefab into the scene? Where should it be placed, and what rotation should it start with?</li>
-            <li>How do you grab the <code>Projectile</code> script on that newly created clone? What method do you call on it to aim it at the player's position?</li>
+            <li>What guard check stops the method when a designer has left a slot empty?</li>
+            <li>Which method stamps a clone into the scene? What position and rotation should it start with?</li>
+            <li>How do you reach the <code>Projectile</code> component on the clone you just made, and what do you call on it?</li>
+            <li>Which object's position do you pass as the target — and should you pass a <em>position</em>, or the player's Transform?</li>
         </ul>
 
-        <p><strong>Triggering the Attack:</strong></p>
+        <p><strong>Triggering it:</strong></p>
         <ul>
-            <li>Inside your range check in <code>Update()</code>, where should this attack method be invoked?</li>
-            <li>What slots need to be connected in the Turret's Inspector before testing in Play mode?</li>
+            <li>Where inside your existing range check does the firing method get called?</li>
+            <li>Which slots must be wired in the Inspector before you test?</li>
         </ul>
     </div>
 
     <p>
-        Save and press Play. Walk near the turret.
-        A projectile spawns from the muzzle, aims at your position, and shoots across the screen!
-        (Notice that it fires 60 bullets every second — in lesson 3.3 we fix the cooldown!)
+        Save, wire the slots, and press Play. Walk into range: a projectile appears at the muzzle
+        and travels. Do not celebrate the fire rate yet — you are currently firing
+        <em>every single frame</em>, because your range check runs every frame. That is exactly
+        the problem the next lesson solves.
     </p>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: Projectile Errors</h3>
+        <h3>Bug Hunt: Projectile Faults</h3>
         <ol>
-            <li>What happens if you leave the <strong>Projectile Prefab</strong> slot unassigned in the Inspector? What error does Unity throw when you step in range?</li>
-            <li>In <code>Projectile.cs</code>, what happens if you change <code>Vector3.right</code> to <code>Vector3.up</code> in <code>Update()</code>? Which direction do bullets fly relative to their aim?</li>
-            <li>In <code>Projectile.cs</code>, comment out the <code>Destroy(gameObject, lifetime)</code> line. Fire several bullets and watch the Hierarchy in play mode. Do the spawned instances ever leave the scene?</li>
+            <li>Leave the projectile prefab slot unassigned and step into range. What error appears, and which line of your code is it pointing at?</li>
+            <li>Comment out the <code>Destroy</code> line, fire for ten seconds, then look at the Hierarchy in play mode. How many objects are there? What will that do to the game over a five-minute session?</li>
+            <li>Remove <code>.normalized</code> from your direction calculation. What happens when the player is far away versus close? Explain the relationship between distance and speed that you just created.</li>
+            <li>Pass the player's <em>Transform</em> into your spawn method instead of their position, and have the bullet read <code>targetTransform.position</code> every frame. What kind of weapon did you accidentally build?</li>
+            <li>If you chose the rotate-then-move approach, translate by <code>Vector3.up</code> instead of the forward direction. Which way do bullets now travel relative to where the sprite points?</li>
         </ol>
     </div>
 </div>
@@ -186,21 +219,24 @@ Destroy(gameObject, 4.0f);</code></pre>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Bullet Tuning</h3>
+        <h3>Tinker: Bullet tuning</h3>
         <ol>
-            <li>In the <code>Turret_Projectile</code> prefab, tune <code>speed</code> between <code>3</code> (slow dodgeable dodgeball) and <code>15</code> (bullet-hell sniper). How does projectile speed alter the player's emotional reaction to the turret?</li>
-            <li>Why does <code>Initialize</code> calculate the direction once, instead of continuously updating direction in <code>Update()</code>? What kind of weapon would you get if <code>direction</code> re-aimed toward the player every frame?</li>
+            <li>Tune your speed knob from something slow and dodgeable to something that feels like a sniper. At what point does the turret stop being a challenge and start being unfair? What else could you change to keep it fair at high speed?</li>
+            <li>Change the lifetime knob so bullets die almost immediately, then so they live far too long. What is the right lifetime for a bullet that should threaten the player but not wander the whole map?</li>
+            <li>Your bullets currently fly through everything — walls included. Is that a problem for this game? What would you have to add to a bullet to make a wall stop it, and which of the three movement approaches from the docs would then be the better choice?</li>
+            <li>Fire one bullet and watch it in the Hierarchy. What is the clone named, and where does it sit in the hierarchy? Does that tell you anything about <code>Instantiate</code> you did not expect?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Break down projectile firing into instantiation, aiming, translation, and destruction</li>
-            <li>Explain the role of <code>Instantiate()</code> in stamping runtime prefab clones</li>
-            <li>Explain why vectors are normalized before calculating angle and movement</li>
-            <li>Create <code>Projectile.cs</code> and wire the turret's projectile spawn slots</li>
-            <li>Commit your projectile system to GitHub</li>
+            <li>Break projectile firing into spawning, aiming, moving and cleanup</li>
+            <li>Explain the role of <code>Instantiate</code> in stamping runtime clones</li>
+            <li>Explain why a direction vector is normalized, and what goes wrong without it</li>
+            <li>Compare the three ways to move a projectile, and state what each one costs</li>
+            <li>Explain why your turret currently fires every frame</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -210,12 +246,12 @@ Destroy(gameObject, 4.0f);</code></pre>
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — projectile lifecycle and aiming in depth</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Instantiate, Destroy, and Math functions</li>
+        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — the projectile lifecycle and aiming in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Instantiate, Destroy and Mathf</li>
     </ul>
-    <p>Next: <a href="3.3.html">3.3 — Fire Rate: Cooldowns &amp; Time</a></p>
+    <p>Next: <a href="3.3.html">3.3 — Fire Rate: Cooldowns &amp; Time</a>, where you fix the bullet hose you just built.</p>
 </div>`;
 ---
-<Lesson id="3.2" title="3.2a Projectiles: Instantiate, Fire, Destroy — AP CS Principles" root=".." css="../style.css">
+<Lesson id="3.2" title="3.2 Projectiles: Instantiate, Fire, Destroy — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

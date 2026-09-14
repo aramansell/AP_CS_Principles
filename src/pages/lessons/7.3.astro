@@ -1,138 +1,272 @@
 ---
 // Lesson 7.3 — Ladders I: The Climbing State
-// isOnLadder + a third movement mode; vertical input while climbing.
+// THERE IS NO LADDER ART IN THIS PROJECT. No sprite, no tile, no prefab, no
+// animation clip. The ladder's LOOK must be assembled by the student from the
+// cave tileset (Assets/Artwork/Platformer/Sliced/CavesTileSet).
+// The Player's controller (Player_Shovel.controller) has exactly Idle / Walk /
+// Shovel_Swing x Up / Horiz / Down. There are NO climb states or climb frames.
+// Gravity: 6.3 introduced `baseGravity` cached in Start and re-assigns
+// rb.gravityScale every frame from vertical velocity - the climb state must
+// win that argument. Movement: the student chose a method in 2.2; the climb
+// must use THAT, not transform.Translate.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>7.3 — Ladders I: The Climbing State</h1>
 
 <p class="lesson-lead">
-    Walk. Jump. Climb. Your player is about to grow a third movement
-    mode — one that turns gravity OFF, reads a new input axis, and
-    exists only because a trigger said so. Ladders are your second
-    full state machine, and you already know every pattern it needs.
+    Go and look for a ladder. Search the project for one — a sprite, a tile, a prefab, an
+    animation clip. You will not find one, because there is no ladder anywhere in this
+    project. You are about to build the first one, and it is two separate inventions: a
+    <em>look</em> you will assemble from the cave tiles you learned to paint in
+    <a href="7.1.html">7.1</a>, and a <em>mechanic</em> — a zone that tells your character it
+    is allowed to ignore gravity. The mechanic is the real work.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">The Problem: Nothing to Climb</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p>The design, before any code — four states of the body:</p>
+    <p>
+        Confirm the situation before you design around it. In the Project window, search
+        <code>ladder</code>, and search <code>climb</code>. Look in
+        <code>Assets/Artwork/Character/Player/</code> and in the cave tileset. Then open the
+        Player's Animator controller and read its states. Here is what you will find, and it
+        matters:
+    </p>
+
     <table>
-        <tr><th>State</th><th>Gravity</th><th>Controls</th><th>Animation</th></tr>
-        <tr><td>Top-down (overworld)</td><td>0</td><td>WASD translate</td><td>WalkDir</td></tr>
-        <tr><td>Grounded (platformer)</td><td>2</td><td>A/D translate, Space jump</td><td>IsWalking + jump</td></tr>
-        <tr><td><strong>Climbing (new)</strong></td><td><strong>0</strong></td><td><strong>W/S translate</strong></td><td><strong>climb/idle-on-ladder</strong></td></tr>
-        <tr><td>Airborne</td><td>2</td><td>(no control — physics)</td><td>jump/fall</td></tr>
+        <tr><th>What you might expect to find</th><th>What is actually there</th></tr>
+        <tr>
+            <td>A ladder sprite or tile</td>
+            <td>Nothing. The cave tileset has rock, wall, vine and floor pieces — no ladder.</td>
+        </tr>
+        <tr>
+            <td>A ladder prefab</td>
+            <td>Nothing. The prefabs are the Player, Coin, Spikes, Axe Item, Switch, Turret, Turret Projectile and Mobile Enemy.</td>
+        </tr>
+        <tr>
+            <td>Climb frames on the character</td>
+            <td>Nothing. The Player's controller holds exactly three motions — Idle, Walk and Shovel_Swing — each in Up, Horizontal and Down variants. There is no climb state, and no climbing poses in any of the character sheets.</td>
+        </tr>
+        <tr>
+            <td>A "Ladder" tag</td>
+            <td>Nothing. The project's tags are Coin, Enemy, Axe, Spikes, Ground and GroundCheck.</td>
+        </tr>
     </table>
 
     <p>
-        Predict: climbing turns gravityScale to 0 — the same number
-        the overworld uses in Start (<a href="5.3.html">5.3</a>).
-        Why does the SAME zero mean two different things there and
-        here? And why must vertical input SLOW the climb (speed 3,
-        not 5)? When do you want a ladder to feel deliberate?
+        So the ladder is yours to invent, and it splits cleanly in two. The <strong>look</strong>
+        is a painting problem, and you have a tileset. The <strong>mechanic</strong> is the part
+        that has never existed in this project: a <em>state</em> your player can be in that is
+        neither walking nor falling, entered only because a trigger said so.
     </p>
 
+    <table>
+        <tr><th>Movement state</th><th>Gravity</th><th>Which input drives it</th><th>What it looks like</th></tr>
+        <tr>
+            <td>Top-down (Overworld, <a href="5.3.html">5.3</a>)</td>
+            <td>None — the world has no down</td>
+            <td>WASD, four directions</td>
+            <td>The Walk states, driven by <code>WalkDir</code></td>
+        </tr>
+        <tr>
+            <td>Grounded (Platformer, <a href="6.1.html">6.1</a>)</td>
+            <td>Tuned with <code>gravityScale</code></td>
+            <td>A/D sideways, Space to jump</td>
+            <td>Idle or Walk, driven by <code>IsWalking</code></td>
+        </tr>
+        <tr>
+            <td><strong>Climbing (new today)</strong></td>
+            <td><strong>None — the ladder owns gravity</strong></td>
+            <td><strong>W/S only; sideways is ignored</strong></td>
+            <td><strong>Whatever you decide — see <a href="7.4.html">7.4</a>. For now, a held pose is honest.</strong></td>
+        </tr>
+        <tr>
+            <td>Airborne (<a href="6.2.html">6.2</a>, <a href="6.3.html">6.3</a>)</td>
+            <td>Tuned, with the fall multiplier</td>
+            <td>Limited — mostly your own momentum</td>
+            <td>Nothing dedicated; the character just moves</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>Why a held pose is an acceptable first ladder.</strong> You cannot animate a climb
+        yet — there are no frames to animate with, and inventing frames is art work, not today's
+        work. A ladder whose character simply holds a standing pose while rising is a complete,
+        shippable mechanic. In <a href="7.4.html">7.4</a> you will read exactly what adding a
+        real climb animation would involve, and you can decide then whether it is worth it.
+        Nothing about today's build depends on it.
+    </div>
+
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The ladder changes state via a TRIGGER enter/exit pair —
-            OnTriggerEnter2D sets isOnLadder, OnTriggerExit2D clears
-            it. Compare that with the lever's remembered toggle
-            (<a href="5.2.html">5.2</a>): why is a zone remembered
-            only while you are IN it, but a lever remembered
-            forever? What does each design assume about the player's
-            intent?
-        </p>
+        <h3>Socratic: What Kind of Thing Is a Ladder?</h3>
+        <ol>
+            <li>The ladder has no art. Which of the two halves of it — look or mechanic — can you build today without drawing anything? Which one is the real engineering?</li>
+            <li>The trigger zone sets a flag on entry and clears it on exit. Compare that with the lever from <a href="5.2.html">5.2</a>, which flips a value and keeps it forever. Why is a ladder remembered only while you are inside it, and a lever remembered permanently? What does each one assume about the player's intent?</li>
+            <li>Climbing turns gravity off. Your character also had gravity set to zero in the Overworld, in <a href="5.3.html">5.3</a>. The same number means two different things in two different scenes. Say what each one means, and why "gravity zero" is not a fact about the world but a fact about the state.</li>
+            <li>Your jump uses an impulse (a flick, not a push), and gravity was tuned in <a href="6.1.html">6.1</a> to make the arc feel right. If the climb sets <code>gravityScale</code> to zero and then restores it, what is the danger of restoring it to a number you typed, rather than to the number you saved in <a href="6.3.html">6.3</a>?</li>
+            <li>Should the ladder be its own kind of object in the scene, or a property of a tile? Argue it. What does a tile <em>not</em> have that a zone needs?</li>
+            <li>Climbing should be slower than walking — a deliberate, vulnerable act. Which number do you set lower, and what does the player feel if you set it to the same value as their walk speed?</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
-    <p><strong>Step 1 — the zone.</strong> Build a ladder: a tall
-    trigger collider (Is Trigger checked!) tagged "Ladder" (make the
-    tag — <a href="2.3.html">2.3</a> ritual) plus whatever ladder
-    art you have in the starter sprites. The collider IS the ladder;
-    the art is a costume.</p>
+    <p>
+        Every one of these is a machine that changes what gravity means for the person inside it.
+        Read each for what it does in isolation, then work out which piece of your ladder it is.
+    </p>
 
-    <p><strong>Step 2 — the state fields.</strong> In
-    PlayerController, same voice as always:</p>
-    <pre><code>[SerializeField] private float climbSpeed = 3f;
-private bool isOnLadder = false;
+    <p><strong>Example 1 — A mine-shaft cage's brake, in a hoist controller:</strong></p>
+    <pre><code>// On the cable the cage is weightless to itself. Off it, it
+// carries its full weight again.
+brakeForce = onCable ? 0f : fullWeight;</code></pre>
 
-private void OnTriggerEnter2D(Collider2D other)
-{
-    if (other.CompareTag("Ladder")) isOnLadder = true;
-}
+    <p><strong>Example 2 — A submarine hatch's interlock, remembering who is inside it:</strong></p>
+    <pre><code>private bool insideHatch;   // written ONLY by the hatch mouth</code></pre>
 
-private void OnTriggerExit2D(Collider2D other)
-{
-    if (other.CompareTag("Ladder")) isOnLadder = false;
-}</code></pre>
+    <p><strong>Example 3 — A fire-escape's direction lock on a stairwell controller:</strong></p>
+    <pre><code>// The same vertical stick that walks a landing climbs a ladder.
+// One input, two meanings, chosen by where you are standing.</code></pre>
 
-    <p><strong>Step 3 — the climb movement.</strong> In Update,
-    INSIDE the isPlatformer branch (ladders are cave-only!), add a
-    climbing lane:</p>
-    <pre><code>if (isOnLadder)
-{
-    rb.gravityScale = 0;                 // the ladder owns gravity
-    float vDirection = Input.GetAxis("Vertical");
-    Vector2 vVector = new Vector2(0, vDirection * climbSpeed * Time.deltaTime);
-    transform.Translate(vVector);
+    <p><strong>Example 4 — A chairlift's load gate (comment only):</strong></p>
+    <pre><code>// The gate reports "loaded" for as long as a skier is in the
+// gate. It never remembers you after you have moved on.</code></pre>
 
-    if (Input.GetKeyDown(KeyCode.Space)) // jump OFF the ladder
-    {
-        isOnLadder = false;  // ...but the exit trigger will not fire!
-        rb.gravityScale = 2;
-        rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-    }
-}
-else
-{
-    rb.gravityScale = 2;                // normal platformer gravity
-    // ... your existing move/jump code runs here
-}</code></pre>
-    <p>Press Play and climb. You are reading the SAME Vertical axis
-    the overworld uses — one input, three meanings, chosen by state.
-    That is your whole movement course in one if.</p>
+    <p><strong>Example 5 — A rock climber's belay device (comment only):</strong></p>
+    <pre><code>// The rope holds the climber, not the wall. Let go of the rope
+// and the wall does nothing at all.</code></pre>
 
-    <p><strong>Step 4 — the exit bug you must meet.</strong> Read the
-    comment in the jump-off code. When you Space off the ladder,
-    you set isOnLadder = false by hand — but if you jumped off but
-    your BODY is still touching the trigger, the NEXT
-    OnTriggerEnter2D does not fire (you never exited!), and… you
-    land and cannot re-climb without stepping out and back in.
-    Fix: keep a one-frame grace or check the trigger each frame.
-    Bugs like this are why trigger state pairs deserve a test
-    ritual.</p>
+    <div class="callout">
+        <strong>Architectural specification: the ladder zone.</strong> Before you build it, answer
+        every one of these in writing. This is the entire design — the code afterwards is
+        transcription.
+        <ul>
+            <li>What <em>shape</em> is the zone, and how tall is it? Should one tall box cover the whole strip, or should you place one box per rung? What does each choice do to the number of enter and exit messages per climb?</li>
+            <li>What does the zone carry that lets your script recognise it? Do you need a new tag, or can you reuse one of the six that exist? If you make a new one, name it exactly.</li>
+            <li>Which two messages does the zone send, and what is the type of the parameter each one hands you?</li>
+            <li>Is the zone a trigger or a solid? What happens to the player if you forget that checkbox — and would you have any error message to tell you?</li>
+            <li>Which single field on the player does the zone write? Name it, and name every place in the project that reads it. A flag read by nobody is decoration.</li>
+            <li>The zone is invisible. What is the player actually looking at when they decide to climb?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the climb state.</strong>
+        <ul>
+            <li>While climbing, which input axis is read, and which directions must be <em>ignored</em>? What happens if you leave sideways input live while on a ladder?</li>
+            <li>What is <code>climbSpeed</code>, what type is it, and how is it exposed as a tuning knob? Why does it want to be slower than your walk speed?</li>
+            <li>Which component's gravity is switched off, and to what value? Where does the number come from when you switch it back on — a literal you type, or a value you cached in <a href="6.3.html">6.3</a>? Justify your answer.</li>
+            <li><a href="6.3.html">6.3</a> already assigns <code>gravityScale</code> every single frame based on your vertical velocity. If your climb branch sets it to zero and 6.3's branch then sets it back, which one wins? Predict, test, and describe the symptom the player would see.</li>
+            <li>Your platformer movement uses the method you chose in <a href="2.2.html">2.2</a> — not <code>transform.Translate</code>. What does your chosen method need in order to move the player straight up a ladder? If you chose <code>MovePosition</code> on a Kinematic body, would your <a href="6.1.html">6.1</a> jump have ever worked? Check which body type you actually have and work from there.</li>
+            <li>What exits the climb state? List every exit you can think of: reaching the top, jumping, dying, leaving the zone. Which of them happen through the trigger, and which need handling by hand?</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Invent the Ladder</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>
+        <strong>Step 1 — paint the look.</strong> Choose a vertical run of tiles from
+        <code>Assets/Artwork/Platformer/Sliced/CavesTileSet/</code> that reads as "climbable" —
+        a vine, a fractured wall face, a column of rough rock. Paint it one tile wide and five or
+        six tiles tall, somewhere with a ledge at the top and open floor at the bottom.
+    </p>
+
+    <p>
+        <strong>Step 2 — decide where the picture lives, and defend it.</strong> This is a real
+        design decision, so read all three options before choosing:
+    </p>
+
+    <table>
+        <tr><th>Where you paint it</th><th>What happens when you climb</th><th>The cost</th></tr>
+        <tr>
+            <td>On <code>No Collision</code>, the picture-only tilemap</td>
+            <td>The player passes cleanly through the strip and rises the whole height. Simplest possible interaction.</td>
+            <td>The ladder is not a solid thing at all — the player can also walk through it sideways at the bottom.</td>
+        </tr>
+        <tr>
+            <td>On a <em>new</em> tilemap child (renderer only, no collider), so the ladder pictures are grouped and can be found later</td>
+            <td>Same as above, but the ladder art is a named object you can select, move and reuse.</td>
+            <td>One more tilemap to keep track of, and you must remember it has no collider.</td>
+        </tr>
+        <tr>
+            <td>On <code>Collision</code>, the solid tilemap, with the zone in front of it</td>
+            <td>The player is stopped by their own ladder and cannot climb it at all.</td>
+            <td>Fatal as described — unless you leave a one-tile channel beside it, which changes the level.</td>
+        </tr>
+    </table>
+
+    <p>
+        <strong>Step 3 — the zone.</strong> Place an empty GameObject at the strip, give it a
+        <strong>Box Collider 2D</strong> with <strong>Is Trigger</strong> ticked, and size it to
+        the strip's height. Give it a <code>Ladder</code> tag — create the tag in
+        <code>Project Settings → Tags and Layers</code>, using the same ritual you used for the
+        potion in <a href="2.3.html">2.3</a>. Name the object something you would want to find in
+        three weeks.
+    </p>
+
+    <p>
+        <strong>Step 4 — the state.</strong> Add your flag and your speed knob to
+        <code>PlayerController</code>, and write the two callbacks the zone sends. This is the
+        smallest script in the unit — four lines of behaviour — and the whole difficulty is in
+        the <em>else</em> branch, which is where you restore gravity. Do that first, before you
+        write any climbing movement, and test it: walk into the zone and confirm the flag flips.
+        Print it with <code>Debug.Log</code> while you test. There is still no UI in this project.
+    </p>
+
+    <p>
+        <strong>Step 5 — the movement.</strong> In <code>Update</code>, inside the branch that
+        only runs in the Platformer scene, add a climbing lane: gravity off, vertical input read,
+        sideways ignored, and the movement done <em>by the method you chose in
+        <a href="2.2.html">2.2</a></em>. Press Play and climb. Then let go and watch what
+        happens — and be honest about whether the result is what you intended.
+    </p>
+
+    <div class="callout trap">
+        <strong>The bug you are about to create, and the two ways out.</strong> Jump off the
+        ladder while your body is still inside the trigger. You clear the flag by hand so you can
+        jump — but you never left the zone, so the zone never sends its exit message. Land, step
+        back on, and nothing happens: the ladder has gone dead precisely where it used to work.
+        There are two standard repairs, and you should pick one and justify it:
+        <ul>
+            <li><strong>A cooldown.</strong> When you leave the ladder deliberately, ignore the zone for a fraction of a second. Simple, and it also stops a jump from instantly re-grabbing the ladder on the way up.</li>
+            <li><strong>Trust only the zone.</strong> Never set the flag by hand; let the zone's exit message be the only thing that clears it, and gate the jump on <code>isOnLadder &amp;&amp; jumpPressed</code> instead. Cleaner in principle, and it makes the jump feel one frame late.</li>
+        </ul>
+        Whichever you choose, write down what the player feels in each case.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: The Sticky Ladder</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The sticky ladder</h3>
+        <h3>Bug Hunt</h3>
         <ol>
-            <li>Forget the <code>else</code> that restores
-                gravityScale to 2. What happens to the FIRST jump
-                after climbing — and why does the symptom appear
-                far from the cause?</li>
-            <li>Set climbSpeed to your xSpeed (5). Climb a ladder
-                next to a wall. Why does "responsive" read as
-                "twitchy" — and what did the slower number
-                buy?</li>
-            <li>Leave gravity at 2 while climbing. What happens at
-                the exact moment you stop pressing W — and why is
-                "sliding down ladders" a REAL GAME FEATURE you
-                just discovered by accident?</li>
-            <li>Your ladder trigger is 1 tile wide; your player is
-                1.2 tiles. Describe the exit/enter flicker at the
-                seam — which two Unity messages are firing per
-                frame?</li>
+            <li>Remove the branch that restores gravity and jump straight after climbing. Which direction do you drift, and how far from the ladder does the symptom appear? Explain why the cause and the symptom are in different places.</li>
+            <li>Leave gravity on while climbing. What happens the instant you stop pressing W? Slide-down is a real feature in some games — should it be in yours? Decide, and say why.</li>
+            <li>Make the zone one tile wide but leave the player wider than that. Describe the flicker at the seam — which two messages are firing, and how many times per second?</li>
+            <li>Set <code>climbSpeed</code> equal to your walk speed and climb a ladder beside a wall. Why does "responsive" read as "twitchy"? What did the slower number buy you?</li>
+            <li>Walk into the zone sideways from the floor and press nothing. Do you hang in the air? Should you? What does your answer say about whether entering the zone should be enough to start climbing?</li>
+            <li>Climb to the top and keep holding W. What happens at the last tile — and what does that tell you about the problem <a href="7.4.html">7.4</a> exists to solve?</li>
         </ol>
     </div>
 </div>
@@ -145,29 +279,25 @@ else
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Climb design</h3>
+        <h3>Tinker: Climb Design</h3>
         <ol>
-            <li>Snap: when you enter a ladder's zone horizontally,
-                your x should LOCK to the ladder's x. What would
-                read that value — other.transform.position.x —
-                and where would you store it?</li>
-            <li>Design a ladder that is a RISK: spikes at the top on
-                one side. What does climbing toward danger do to
-                input speed's meaning?</li>
-            <li>Hard: climb with an ANIMATION variant (the starter
-                animator may have climb frames — check). Which
-                parameter do you add — and which branch sets
-                it?</li>
+            <li>When you enter a ladder's zone from the side, should your horizontal position snap to the ladder's centre? What value would you read to find that centre — the zone's transform, or the player's? Where would you store it?</li>
+            <li>Build a ladder that is a risk: a spike row at the top, visible from the bottom. Does the threat make the climb feel slower? Record how long a partner takes to commit to the climb with and without the spikes visible.</li>
+            <li>Now imagine the climb animation you would want. Look at the Player's controller and list the states it actually has. How many new clips would you need for a climb, and where would the frames come from? (Read <a href="7.4.html">7.4</a> for the honest answer — do not try to draw them today.)</li>
+            <li>Make two ladders of different heights in the same cave. Does the taller one need a different <code>climbSpeed</code>, or is one number right for both? What does your answer say about tuning a value against geometry?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Build a trigger-based ladder zone with its own tag</li>
-            <li>Explain climb as a state: gravity 0, vertical input, else restores</li>
-            <li>Demonstrate and fix the jump-off re-entry bug</li>
-            <li>Explain one input axis serving three meanings via state</li>
+            <li>State that this project ships no ladder art, and say which tileset you assembled the look from</li>
+            <li>Build a trigger zone with its own tag, and explain why it must be a trigger</li>
+            <li>Explain climb as a state: gravity off, vertical input only, and a deliberate restore</li>
+            <li>Say which of the two gravity conflicts — 6.3's per-frame assignment and your climb branch — wins in your build, and how you know</li>
+            <li>Demonstrate the jump-off re-entry bug and defend the repair you chose</li>
+            <li>Explain one input axis serving three meanings, chosen by state</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -179,10 +309,11 @@ else
     <ul>
         <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a> — the ladder reference</li>
         <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — states all the way down</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — triggers, gravityScale and Rigidbody2D bodies</li>
     </ul>
-    <p>Next: <a href="7.4.html">7.4 — Ladders II: Mounts, Tops &amp; Polish</a></p>
+    <p>Next: <a href="7.4.html">7.4 — Ladders II: Mounts, Tops &amp; Polish</a>, where your ladder meets the ceiling.</p>
 </div>`;
 ---
-<Lesson id="7.3" title="7.3a Ladders I: The Climbing State — AP CS Principles" root=".." css="../style.css">
+<Lesson id="7.3" title="7.3 Ladders I: The Climbing State — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

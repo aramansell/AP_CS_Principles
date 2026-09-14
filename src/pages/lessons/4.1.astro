@@ -1,108 +1,233 @@
 ---
-// Lesson 4.1 — The Enemy: Waypoint Patrols
-// EnemyController.PlatformerMove: startPosition, patrolDistance, flip.
+// Lesson 4.1 — The Enemy: Patrol
+// Unit 4 opens. EnemyController.cs is an empty stub and MobileEnemy.prefab has
+// NO Collider2D and NO Rigidbody2D, so the student must give it a body before
+// anything can touch it (and before 4.4's contact damage is even possible).
+// Patrol is presented as a DESIGN CHOICE with three approaches compared:
+// a leash measured from the spawn point, two placed waypoints, and absolute
+// bounds. The Overworld already holds FOUR MobileEnemy instances and exactly
+// ONE Coin - the student is told to count before they place anything.
+// Movement method is never assumed: it is "the method you chose in 2.2".
 import Lesson from '../../layouts/LessonLayout.astro';
 
-const body = `<h1>4.1 — The Enemy: Waypoint Patrols</h1>
+const body = `<h1>4.1 — The Enemy: Patrol</h1>
 
 <p class="lesson-lead">
-    The turret never moves; the enemy hunts. Start with its calmest
-    behavior: a guard walking a beat, back and forth, forever — a loop
-    built from one saved position and one sign flip.
+    The turret never moves. The enemy hunts — and a hunt starts with something calmer: a guard
+    walking a beat, back and forth, forever, with no marker in the scene to walk it against.
+    Today you decide what "back and forth" actually means, give the enemy the body it does not
+    have, and build the calmest half of the machine you will finish in 4.5.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">The Problem: A Guard With No Memory</span>
+        <span class="activity-time">~20 min</span>
     </div>
 
-    <p>Read the patrol half of EnemyController.cs:</p>
-    <pre><code>[SerializeField] private float speed = 2.0f;
-[SerializeField] private float patrolDistance = 3.0f;
-private Vector3 startPosition;
-private int direction = 1;
+    <p>
+        Select <code>Assets/Prefabs/MobileEnemy</code> and read its Inspector. Notice what it has
+        — a Transform, an empty <code>EnemyController</code> component, and a child object —
+        and then notice what it does <em>not</em> have. Compare it against the Player, which has
+        carried a collider and a body since <a href="2.1.html">2.1</a>. Write down the difference
+        before you read on.
+    </p>
 
-private void Start()
-{
-    startPosition = transform.position;
-    ...
-}
+    <p>
+        Now the design question. <strong>An enemy that walks back and forth forever must remember
+        something.</strong> A player who is not pressing keys simply stops; an enemy left alone
+        has to keep going and know when to turn. So: what is the smallest amount of state that
+        produces a beat? Work it out before you look at the options — the answer is smaller than
+        you think.
+    </p>
 
-private void PlatformerMove()
-{
-    transform.Translate(Vector2.right * direction * speed * Time.deltaTime);
+    <p>Here are the three honest ways to define where a beat begins and ends:</p>
 
-    float dist = Vector3.Distance(startPosition, transform.position);
-    if (dist &gt; patrolDistance)
-    {
-        direction *= -1; // Switch direction
-        ...
-    }
-}</code></pre>
+    <table>
+        <tr><th>How the beat is defined</th><th>What the enemy stores</th><th>How the turn happens</th><th>What it costs</th></tr>
+        <tr>
+            <td><strong>A leash from where it spawned</strong></td>
+            <td>The position it started at, plus a patrol distance.</td>
+            <td>Measure how far it has wandered from that anchor; when the distance exceeds the leash, reverse.</td>
+            <td>No scene setup whatsoever, and the beat follows the enemy wherever you drag it. But the beat is always centred on the spawn point and is always a straight line — it cannot follow a corridor around a corner.</td>
+        </tr>
+        <tr>
+            <td><strong>Two placed waypoints</strong></td>
+            <td>Two Transforms — usually two empty child objects.</td>
+            <td>Walk toward the current waypoint; when you are close enough, swap which one is the target.</td>
+            <td>You must create, place and wire the objects, and invent an "arrived" threshold that is small enough to be accurate but not so small the enemy jitters. In exchange, the beat can be any shape at all — corners, long routes, a loop of three or more points.</td>
+        </tr>
+        <tr>
+            <td><strong>Absolute bounds</strong></td>
+            <td>Two numbers: a minimum and a maximum.</td>
+            <td>If the position passes either bound, reverse.</td>
+            <td>The simplest maths of the three, and the most brittle. Those bounds are world coordinates: move the enemy in the scene and its beat stays behind. Drop a copy of the prefab somewhere else and it will turn on the very first frame.</td>
+        </tr>
+    </table>
 
-    <p>Predict before running: the enemy starts at x = 5. Where does
-    it turn around — at x = 8, x = 2, or both? Draw the walk as a line
-    with turn-around points. Then: why does Start save
-    startPosition — what would break if Update saved it instead?</p>
+    <p>
+        Whichever you choose, the enemy is still a picture. Before it can be stopped by a wall —
+        or touch the player at all in <a href="4.4.html">4.4</a> — you have to give it a body.
+        Here is what your options cost:
+    </p>
+
+    <table>
+        <tr><th>Body setup for the enemy</th><th>What the player experiences</th><th>What it requires of your code</th></tr>
+        <tr>
+            <td><strong>No collider, no Rigidbody2D</strong> — what it ships with</td>
+            <td>The enemy walks through walls, through the player, through everything. It is a ghost.</td>
+            <td>Nothing. And that is the problem: no collision messages will ever fire on it, so the contact damage in 4.4 becomes impossible to build.</td>
+        </tr>
+        <tr>
+            <td><strong>Collider + Dynamic Rigidbody2D, Gravity Scale 0</strong></td>
+            <td>The enemy is solid and is stopped by walls — but only if your movement respects physics.</td>
+            <td>You must use a movement method from the <a href="2.2.html">2.2</a> table that consults the physics engine. Gravity Scale must be zero, exactly as you set it on the top-down player.</td>
+        </tr>
+        <tr>
+            <td><strong>Collider + Kinematic Rigidbody2D</strong></td>
+            <td>Solid and completely stable — no gravity, no tumbling, no drift.</td>
+            <td>Kinematic bodies ignore forces and velocity, so you must move it with <code>MovePosition</code> or by transform. Nothing can push it.</td>
+        </tr>
+    </table>
+
+    <div class="callout trap">
+        <strong>The enemy's visible sprite is on a child object.</strong> The MobileEnemy root
+        carries no Sprite Renderer — the art lives on a child called <em>Sprite</em>, offset
+        slightly and scaled up. A default collider added to the <em>root</em> is sized from
+        nothing and will not cover the enemy you can see. This is the same trap as the Coin in
+        <a href="2.1.html">2.1</a>, and it is worth pressing Play and watching a bullet sail
+        through the visible body once, so you never make the mistake twice.
+    </div>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The patrol is a loop with no loop keyword — Translate every
-            frame, flip when far. Where is the "repeat" hiding, and
-            what would the AP exam's REPEAT UNTIL version of this look
-            like?
-        </p>
+        <h3>Socratic: Designing a Beat</h3>
+        <ol>
+            <li>Which of the three beat definitions fits an enemy you will place four or five times across a map and keep nudging while you design the level? What does your choice cost you?</li>
+            <li>The leash approach stores the position the enemy started at. Which lifecycle method must save it, and what would the enemy do if you saved it every frame instead?</li>
+            <li>A single int holding <code>1</code> or <code>-1</code> is the enemy's entire memory of where it is going. Why is that enough — and what extra state would a bool such as <code>isGoingRight</code> force you to keep in sync?</li>
+            <li>Set the enemy's speed high enough that it travels further than the whole leash in one frame. Where does it turn around, and is the beat still the size you asked for? What does that tell you about measuring distance <em>after</em> moving?</li>
+            <li>The enemy has no collider and no body. Which of the two must it have before the physics engine will report <em>anything</em> to it — and which must it have before a wall will stop it?</li>
+            <li>You chose a movement method for the player in <a href="2.2.html">2.2</a>. Must the enemy use the same one? Give one reason to match and one reason the enemy might legitimately differ.</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Step 1 — rebuild the patrol from a blank
-    EnemyController.</strong> Comment out PlatformerMove's body and
-    bring it back in order: remember start (Start) → walk
-    (Translate with direction × speed × deltaTime — the movement
-    pattern from <a href="1.4.html">1.4</a>, wearing a sign) →
-    measure (Distance from start) → flip (direction *= -1). Run after
-    each step; the walk is boring alone, the flip is the behavior.</p>
+    <p>
+        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
+        your enemy. None of these is from a video game.
+    </p>
 
-    <p><strong>Step 2 — the invisible leash.</strong> There are no
-    markers in the scene — no waypoint gizmos, nothing. The enemy
-    patrols <em>relative to where it spawned</em>: move the prefab
-    instance in the scene and the beat moves too. patrolDistance is
-    the leash length, a serialized knob like every other. What is the
-    patrol shape if you set patrolDistance to 0? To 100?</p>
+    <p><strong>Example 1 — A pendulum with only two facts (comment only):</strong></p>
+    <pre><code>// A pendulum needs exactly two things: which way it is swinging, and how
+// far it is allowed to swing before the sign flips.</code></pre>
 
-    <p><strong>Step 3 — direction as signed state.</strong> A single
-    int, 1 or −1, is the enemy's entire memory of where it is going.
-    Multiplying by −1 flips the sign — one line, no ifs. This is the
-    trick behind every "which way am I facing" field in games; your
-    sprite.flipX from <a href="4.2.html">4.2</a> reads this exact
-    value.</p>
+    <p><strong>Example 2 — A tide gauge measuring drift from a mooring:</strong></p>
+    <pre><code>// How far the boat has wandered from the point where it was tied up
+float drift = Vector3.Distance(mooringPoint, boat.position);</code></pre>
+
+    <p><strong>Example 3 — A lift reversing at its limit switches:</strong></p>
+    <pre><code>// The carriage reverses the instant it passes either end of its travel
+if (carriage.position.y &gt; topLimit) { travel = -1; }</code></pre>
+
+    <p><strong>Example 4 — A warehouse shuttle serving two racks:</strong></p>
+    <pre><code>// The shuttle always drives at one rack; arriving is when it swaps targets
+if (Vector3.Distance(transform.position, target.position) &lt; 0.1f) { target = otherRack; }</code></pre>
+
+    <p><strong>Example 5 — A security guard's round (comment only):</strong></p>
+    <pre><code>// The guard is not walking toward anything. The round IS the behaviour -
+// nobody is watching, so the walk has to be worth watching on its own.</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>Example 2 measures a distance that grows and shrinks forever. If you flip the sign the moment the drift exceeds the leash, the enemy is already <em>past</em> the limit when it turns. How far past — and what decides that?</li>
+            <li>Example 4 compares a distance against a small threshold. What goes wrong if you set that threshold to zero, and what goes wrong if you set it to five on a two-metre route?</li>
+            <li>Example 3 reverses using a stored sign. What are the only two values that sign may hold, and what happens if a bug lets it become zero?</li>
+            <li>Example 1 says a pendulum needs two facts. Which of your fields is "which way", which is "how far", and which one of the three beat definitions needs a third fact?</li>
+            <li>Example 5 says the walk must be worth watching on its own. What does that demand of the enemy's <em>animation</em>, which you will build in <a href="4.2.html">4.2</a>?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Give It a Beat</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>
+        <strong>Step 1 — find your enemies.</strong> The Overworld scene already contains
+        <strong>four</strong> MobileEnemy instances. Count them yourself in the Hierarchy before
+        you add anything, and note where each one sits. There is exactly <strong>one</strong> Coin
+        in that scene. You may move the enemies, and you may drag more from
+        <code>Assets/Prefabs</code> if your design needs them — but count first, so you know what
+        you actually changed.
+    </p>
+    <p>
+        <strong>Step 2 — give it a body.</strong> Add the collider and the body you chose to the
+        MobileEnemy prefab, and set Gravity Scale deliberately. Then press Play with no patrol
+        code at all and walk into it. Find out whether it is solid yet.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification for <code>EnemyController.cs</code>:</strong>
+
+        <p><strong>The anchor (only if you chose the leash):</strong></p>
+        <ul>
+            <li>What type holds a saved position, and which lifecycle method saves it exactly once? What would go wrong if it were saved in <code>Update()</code>?</li>
+            <li>What does the anchor <em>mean</em> to a designer moving the enemy around the scene? Say it in one sentence a level designer would understand.</li>
+        </ul>
+
+        <p><strong>The tuning knobs:</strong></p>
+        <ul>
+            <li>Which values should a designer be able to change from the Inspector without recompiling? At minimum you need a speed and the size of the beat — what are they called, and why those names?</li>
+            <li>What defaults suit <em>this</em> map at <em>your</em> player's speed? Justify them against the size of the Overworld rather than picking round numbers.</li>
+        </ul>
+
+        <p><strong>The direction state:</strong></p>
+        <ul>
+            <li>What single field records which way the enemy is walking? What type is smallest, and what value does it start at?</li>
+            <li>Which arithmetic operation reverses it, and why is that cheaper than an <code>if</code> that assigns the opposite value? What else in Unit 4 will read this same field?</li>
+        </ul>
+
+        <p><strong>The movement:</strong></p>
+        <ul>
+            <li>Which movement call do you use — the one you chose for the player in <a href="2.2.html">2.2</a>, or a different one? Whatever you pick, how do you keep the speed frame-rate independent?</li>
+            <li>A top-down enemy could patrol on either axis. Which axis does your design use, and what single character in your movement line decides that?</li>
+            <li>If you chose waypoints, where do the two empty objects live — children of the enemy, or separate objects in the scene? What breaks about each choice when you duplicate the enemy?</li>
+        </ul>
+
+        <p><strong>The turn:</strong></p>
+        <ul>
+            <li>Which measurement decides that the beat has ended, and which of the three beat definitions does it belong to?</li>
+            <li>Which comparison operator do you use at the boundary — and what would the enemy do at exactly the boundary with the other one?</li>
+            <li>How do you report each turn to the Console so you can watch the beat without a UI?</li>
+        </ul>
+    </div>
+
+    <p>
+        Save and press Play. Watch one full beat end to end. The enemy should walk one way, turn,
+        walk back, and repeat — forever, with no input from you.
+    </p>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The runaway guard</h3>
+        <h3>Bug Hunt: The Runaway Guard</h3>
         <ol>
-            <li>Move the enemy mid-patrol in the Scene view while in
-                PLAY mode. What is its new turnaround pattern, and why
-                does it never find its old beat?</li>
-            <li>Save startPosition in Update instead of Start. The
-                enemy... what? Explain using the value startPosition
-                holds on frame 2.</li>
-            <li>Change direction *= -1 to direction = 1. What single
-                behavior remains — and where does the enemy end up
-                after ten seconds?</li>
-            <li>Set speed to 20 and watch a full beat. Which side of
-                the leash does the flip overshoot — and why does a
-                big speed make the patrol longer than
-                patrolDistance?</li>
+            <li>Save the anchor position in <code>Update()</code> instead of <code>Start()</code>. What is the anchor's value on the second frame — and what does the enemy do for the rest of the run?</li>
+            <li>Replace the sign flip with <code>direction = 1;</code>. What single behaviour is left, and where is the enemy after ten seconds?</li>
+            <li>Set speed to <code>20</code> and the beat size to <code>0.1</code>. Describe what you see in frame terms: sixty times a second, what is the enemy doing? Which of the two numbers would you change to fix it?</li>
+            <li>Remove the Rigidbody2D but keep the collider, then walk into the enemy. Does it stop you? Do any of the enemy's own collision messages fire? Explain with the rule from 2.1.</li>
+            <li>Leave the body Dynamic with Gravity Scale at 1 and press Play in the Overworld. Where does the enemy go? Which setting did you change on the player in 2.1 for exactly this reason?</li>
+            <li>Drag one of the enemy instances to a new position mid-play. What is its new beat, and why did it never find the old one?</li>
         </ol>
     </div>
 </div>
@@ -111,30 +236,31 @@ private void PlatformerMove()
 <div class="activity basic-app">
     <div class="activity-header">
         <span class="activity-label">Tinker</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Design the beat</h3>
+        <h3>Tinker: Design a Beat</h3>
         <ol>
-            <li>Place two enemies with overlapping patrols guarding a
-                coin. Where do the beats intersect, and can the player
-                time the gap?</li>
-            <li>Patrol on ONE axis only, by code. What would you change
-                to make a vertical guard (an elevator enemy)?</li>
-            <li>Hard: a patrol that pauses at each end for one second.
-                Which pattern from <a href="3.3.html">3.3</a> do you
-                reach for — and what is the "cooldown" here?</li>
+            <li>Place or move enemies so that two beats overlap on the route to the scene's single Coin. Where do the beats intersect, and can a player time the gap between them?</li>
+            <li>Turn one enemy into a vertical guard — an elevator enemy that patrols up and down. What is the smallest change you can make, and does your code still read as "a beat"?</li>
+            <li>Make a patrol that pauses for one second at each end. Which timing pattern from <a href="3.3.html">3.3</a> do you reach for, and what plays the role of the cooldown here?</li>
+            <li>Decide whether your enemy should be stopped by walls at all. If yes, what happens to a leash-style beat when the enemy collides with a wall halfway along it?</li>
+            <li>Set the beat size to <code>0</code>. What is the patrol now — and is a guard that never moves still a guard?</li>
+            <li>Commit and push: <code>"4.1: enemy body + patrol beat"</code>.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Rebuild the patrol: save start → translate → measure → flip</li>
-            <li>Explain why Start saves the anchor and Update cannot</li>
-            <li>Explain direction as signed state and the *= −1 flip</li>
-            <li>Design patrol layouts (overlaps, leashes, choke points) on purpose</li>
+            <li>Say what the MobileEnemy prefab was missing, and why that matters beyond this lesson</li>
+            <li>Compare the three ways to define a beat, name the one you chose, and defend it</li>
+            <li>Explain why the anchor is saved in <code>Start()</code> and what breaks in <code>Update()</code></li>
+            <li>Explain the direction field as one int of signed state, and the sign flip that reverses it</li>
+            <li>Explain why the enemy's collider cannot go on the root object as-is</li>
+            <li>Say how many enemies and how many coins the Overworld shipped with</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -144,12 +270,14 @@ private void PlatformerMove()
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — patrol, chase, and the state machine</li>
-        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the full reference</li>
+        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — patrol, chase and the full state machine</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the reference you will build against all unit</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — what a body buys you, reused from Unit 2</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Transform, distance and Inspector fields</li>
     </ul>
-    <p>Next: <a href="4.2.html">4.2 — Patrol Polish: Bounds, Flips &amp; Animations</a></p>
+    <p>Next: <a href="4.2.html">4.2 — Enemy Animation: A Different State Machine</a>, where the enemy's animator turns out to follow none of your rules.</p>
 </div>`;
 ---
-<Lesson id="4.1" title="4.1a The Enemy: Waypoint Patrols — AP CS Principles" root=".." css="../style.css">
+<Lesson id="4.1" title="4.1 The Enemy: Patrol — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

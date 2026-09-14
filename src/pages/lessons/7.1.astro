@@ -1,66 +1,87 @@
 ---
 // Lesson 7.1 — Tilemaps: The Level Editor
-// Grid, Tile Palette, painting a real cave.
+// The Platformer scene ALREADY contains a Grid with two tilemap children:
+//   Collision    - tagged Ground, carries TilemapCollider2D + CompositeCollider2D
+//                  + Rigidbody2D (static). Collision already works.
+//   No Collision - renderer only.
+// The art lives in Assets/Artwork/Platformer/Sliced/ — the CavesTileSet and
+// CaveEntranceTileSet folders hold prepared Tile assets, and Caves.prefab /
+// CavesEntrance.prefab ARE Tile Palette assets.
+// There is NO Assets/Sprites folder and NO Assets/Tilemaps folder.
+// The student EXTENDS the existing tilemaps rather than creating them.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>7.1 — Tilemaps: The Level Editor</h1>
 
 <p class="lesson-lead">
-    Dragging platform sprites one by one is a hobby; painting levels
-    on a grid is an editor. Today you set up the Tilemap — the tool
-    that makes a cave the size of a cave buildable in an hour — and
-    learn why every level you love was drawn, not placed.
+    You are standing in a cave you did not build. The Platformer scene already holds a real
+    cave — floor, walls, a way out — painted onto a grid before you ever opened the project.
+    And you cannot add a single rock to it, because you have no paint tray and no idea where
+    the art lives. Today you find the art, load the palette, and take ownership of a level
+    that is already half-built.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-label">The Problem: Extending Someone Else's Cave</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
-    <p><strong>Step 1 — the grid.</strong> In the Platformer scene:
-    <code>GameObject → 2D Object → Tilemap → Rectangular</code>. You
-    get a Grid parent and a Tilemap child. Everything snaps to the
-    Grid's cell size (default 1×1 — and your sprites are scaled to
-    match, which is why the starter art fits).</p>
+    <p>
+        Open <code>Assets/_Scenes/Platformer.unity</code> and press Play. You can walk, you can
+        jump, you stand on rock. Now try to <em>change</em> that rock. Select things in the
+        Hierarchy until you find what the floor is made of. You will land on a <code>Grid</code>
+        with two children under it:
+    </p>
 
-    <p><strong>Step 2 — the palette.</strong>
-    <code>Window → 2D → Tile Palette</code>. Create a new palette
-    (save it in Assets/Tilemaps/Palettes), then drag the starter's
-    tile sprites (look in Assets/Sprites for the cave/platformer
-    ground and wall pieces) into the palette window. Unity slices
-    each into a Tile. Now you have a paint tray.</p>
+    <table>
+        <tr><th>Object</th><th>What it is for</th><th>What it already has</th></tr>
+        <tr>
+            <td><code>Grid</code></td>
+            <td>The snapping contract. Every child tilemap snaps to its cell size, and every system built on top of the level inherits that spacing.</td>
+            <td>A cell size, and two tilemap children.</td>
+        </tr>
+        <tr>
+            <td><code>Collision</code> (child)</td>
+            <td>The rock you stand on. Roughly 20 tiles wide and 12 tall.</td>
+            <td>A <strong>Tilemap Collider 2D</strong>, a <strong>Composite Collider 2D</strong>, a <strong>Rigidbody 2D</strong>, and the tag <code>Ground</code>. Physics already works.</td>
+        </tr>
+        <tr>
+            <td><code>No Collision</code> (child)</td>
+            <td>Pure picture. Backdrop, decoration, anything the player should see but never bump into.</td>
+            <td>A renderer, and nothing else. Nothing here can ever stop you.</td>
+        </tr>
+    </table>
 
-    <p><strong>Step 3 — the tools.</strong> With the Tilemap child
-    selected: Paint (drag), Rect (fill), Erase, Eye Dropper (grab the
-    tile under the cursor), Fill (flood). Draw a floor the whole width
-    of the camera, a wall, and a small raised ledge. If painting does
-    not appear: check the Tilemap child is selected, not the Grid
-    parent — the classic first-15-minutes bug.</p>
+    <p>
+        So the level editor already exists and the physics already works. What is missing is
+        everything <em>you</em> need to keep building: the <strong>palette</strong> — the tray of
+        tiles you paint from — and the location of the art it is made of. Open
+        <code>Window → 2D → Tile Palette</code>. You get an empty window. Now go find the art.
+    </p>
 
-    <p><strong>Step 4 — the scale question.</strong> Your gauntlet
-    from <a href="6.5.html">6.5</a> used loose platforms. Redraw its
-    five sections on the tilemap grid. Where the geometry fights the
-    grid (a gap that is 1.5 tiles), you now have a DECISION: change
-    the gap or change the grid. Always change the gap — the grid is
-    a contract with every other system (colliders, turrets, snap
-    spawns).</p>
+    <div class="callout info">
+        <strong>Where the cave art actually lives.</strong> Everything this project owns for the
+        cave sits under <code>Assets/Artwork/Platformer/</code>:
+        <ul>
+            <li><code>Assets/Artwork/Platformer/Sliced/CavesTileSet/</code> — the cave tiles, already sliced into individual <strong>Tile assets</strong> (each one is a small <code>.asset</code> file paired with a sprite). Hundreds of them.</li>
+            <li><code>Assets/Artwork/Platformer/Sliced/CaveEntranceTileSet/</code> — the cave-mouth pieces, sliced the same way.</li>
+            <li><code>Assets/Artwork/Platformer/Sliced/Caves.prefab</code> and <code>CavesEntrance.prefab</code> — these two are <strong>Tile Palettes</strong>, saved as prefabs. The tiles are already arranged in a grid inside them.</li>
+            <li><code>Assets/Artwork/Platformer/Sliced/MainLev2.0.png</code> and <code>Assets/Artwork/Platformer/OriginalFiles/</code> — the raw source sheets, for when you need to re-slice.</li>
+        </ul>
+        There is no <code>Assets/Sprites</code> folder and no <code>Assets/Tilemaps</code> folder in
+        this project. If you have been told otherwise, that was for a different project.
+    </div>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: Editor bugs</h3>
+    <div class="socratic">
+        <h3>Socratic: Why a Grid and Not a Pile of Sprites?</h3>
         <ol>
-            <li>Paint a tile, press Play, unpaint it — did your edit
-                survive? Why does the Scene (data file!) reload on
-                Play, and what does that mean for "save before
-                test" as a religion?</li>
-            <li>Paint on the Grid parent's own Tilemap vs a second
-                Tilemap child. Why will collision layers
-                (<a href="7.2.html">7.2</a>) want SEPARATE
-                tilemaps for ground vs. decoration?</li>
-            <li>Zoom way in and paint a tile partially off-grid.
-                What does the editor REFUSE to let you do — and why
-                is that refusal the whole point of a grid?</li>
+            <li>Before today you placed platforms by dragging individual sprite objects and typing coordinates. Name two things you had to do by hand in that world that the Grid now does for you.</li>
+            <li>A tilemap stores your level as a grid of numbers plus a table of what each number means. What does that buy you that a scene full of loose sprites cannot offer? Think about file size, and think about how a program could read your level.</li>
+            <li>The scene already has <code>Collision</code> and <code>No Collision</code> as two separate tilemaps. Why would a designer bother splitting one picture into two grids instead of painting everything into one?</li>
+            <li>The <code>Collision</code> tilemap carries the tag <code>Ground</code>. Tags belong to GameObjects, not to tiles. What does that tell you about how physics and scripting see a whole tilemap — as many objects, or as one?</li>
+            <li>If the Grid's cell size were 0.5 instead of 1, what would happen to a cave painted at 1 tile per cell? Predict it, then read the Grid component in the Inspector to check the real number.</li>
         </ol>
     </div>
 </div>
@@ -68,57 +89,174 @@ const body = `<h1>7.1 — Tilemaps: The Level Editor</h1>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Design Lab</span>
-        <span class="activity-time">~20 min</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
     <p>
-        An editor changes how you think. With loose sprites you were
-        placing; on a grid you are <strong>drawing</strong>. Do this
-        now, on paper first, 30 seconds each, then paint the winner:
+        A grid of numbers plus a legend is one of computing's oldest ideas. Read each of these
+        for what it does <em>in isolation</em>, then work out what it has to do with a cave.
+        None of these is from a video game.
     </p>
-    <ol>
-        <li>A "teeth" jump: two platforms, one gap, spikes below —
-            the smallest sentence in platformer grammar</li>
-        <li>A "stair" — three ledges each one tile higher. Where does
-            the player look while climbing — and where should the
-            NEXT threat be visible from?</li>
-        <li>A "room" — an enclosed space with exactly two exits, one
-            at floor level and one you must jump UP to reach. This is
-            the boss arena seed for Unit 8</li>
-    </ol>
+
+    <p><strong>Example 1 — A subway map's legend, in a route-planning app:</strong></p>
+    <pre><code>// The map file stores "3" at every station cell.
+// Somewhere else, one table says: 3 means "interchange".</code></pre>
+
+    <p><strong>Example 2 — A spreadsheet cell reference on a warehouse inventory sheet:</strong></p>
+    <pre><code>string cell = ColumnLetter(col) + row.ToString();
+// R4 is one address. The value at R4 is the whole content.</code></pre>
+
+    <p><strong>Example 3 — A printing press's letterpress tray:</strong></p>
+    <pre><code>// The page is a grid of slots. The tray holds one physical
+// block per character, and the press stamps the same block
+// wherever the grid asks for it.</code></pre>
+
+    <p><strong>Example 4 — A hospital's bed-occupancy board (comment only):</strong></p>
+    <pre><code>// A ward is a grid. "Occupied" is a value in a cell, not a
+// separate object standing in the room.</code></pre>
+
+    <p><strong>Example 5 — A theatre's lighting desk (comment only):</strong></p>
+    <pre><code>// Two grids can cover the same stage: one for the lights that
+// cast shadows, one for the lanterns the audience only sees.</code></pre>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The AP exam describes a <strong>data abstraction</strong>
-            as hiding implementation behind a representation. A
-            tilemap IS your level stored as a grid of numbers. What
-            does the paint tool hide — and what would you lose if
-            you edited the numbers directly?
-        </p>
+        <h3>Predict Before You Paint</h3>
+        <ol>
+            <li>In the subway example, one number means "interchange". In your tilemap, what plays the role of that number, and where is the table that says what it means?</li>
+            <li>The letterpress tray holds one block per character and stamps it in many places. What is the equivalent of the tray in the Tile Palette window, and what is the equivalent of the page?</li>
+            <li>Example 5 describes two grids over one stage — one for shadow-casting lights, one for decorative lanterns. Which of the Platformer scene's two tilemaps is which?</li>
+            <li>A ward board stores "occupied" as a value in a cell rather than as a separate object standing in the room. If your level were one object per tile, what would happen to the scene file after you painted a 40-tile floor?</li>
+            <li>If a tile is a number in a grid, what happens to everything painted with that number when you later change what the number means?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Load the Palette and Extend the Cave</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>
+        <strong>Step 1 — open the paint tray.</strong> In
+        <code>Window → 2D → Tile Palette</code>, use the palette selector to open the
+        <code>Caves</code> palette that ships in
+        <code>Assets/Artwork/Platformer/Sliced/</code>. Tiles should fill the window. If you
+        would rather build your own tray — or the shipped one is arranged confusingly — create a
+        new palette and drag the <strong>Tile assets</strong> out of
+        <code>Assets/Artwork/Platformer/Sliced/CavesTileSet/</code> into it. Drag the
+        <code>.asset</code> tiles, not the raw PNGs: the slicing is already done for you, and
+        re-slicing a finished sheet is a job you should only take on deliberately. Save a palette
+        you make yourself next to the art it uses, in
+        <code>Assets/Artwork/Platformer/Sliced/</code>, so it travels with the project.
+    </p>
+
+    <p>
+        <strong>Step 2 — choose the right grid.</strong> Select <code>Collision</code> in the
+        Hierarchy before you paint rock. Select <code>No Collision</code> before you paint
+        backdrop. Watch the Hierarchy highlight to confirm which one has focus — painting into
+        the wrong tilemap is the single most common first-hour mistake in this unit, and it
+        produces a picture that lies to you.
+    </p>
+
+    <p>
+        <strong>Step 3 — learn the five tools.</strong> The Palette window gives you Paint (drag
+        to draw), Rect (fill a rectangle), Fill (flood a region), Erase, and the Eye Dropper
+        (grab the tile already under your cursor). Paint a 6-tile-wide ledge jutting out of an
+        existing wall, and a two-tile pit floor below it. Then erase half of what you drew and
+        redraw it — the point is the hand, not the level.
+    </p>
+
+    <p>
+        <strong>Step 4 — paint something and prove it is real.</strong> Extend the floor to the
+        right by ten tiles and press Play. Walk onto your new floor. If you can stand on it, you
+        painted on <code>Collision</code>. If you fall straight through it, you painted on the
+        other grid and now know exactly what "No Collision" means.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: before you touch the palette.</strong>
+        <ul>
+            <li>Which of the two tilemaps must a tile go into for the player to stand on it? Which one is only ever seen?</li>
+            <li>What is the Grid's cell size, and what does every sprite in the cave tileset have in common with that number? (Read the Grid component. Then look at a sprite's Pixels Per Unit in its import settings, if you want the long answer.)</li>
+            <li>If a ledge must be exactly two tiles above a floor so your <a href="6.1.html">6.1</a> jump clears it, and the grid is 1 unit per cell, how high is that in world units?</li>
+            <li>Where does a palette you build yourself belong, and why there rather than anywhere else in the project?</li>
+            <li>What is the difference between a Tile asset and the sprite it points at? Which one do you drag into a palette, and which one do you edit when you want to change the picture?</li>
+            <li>If you delete a Tile asset that a palette uses, what breaks — the palette, the painted tiles, or both? Predict, then test it on a copy.</li>
+        </ul>
+    </div>
+
+    <div class="callout trap">
+        <strong>The grid is a contract, not a suggestion — and it is already signed.</strong>
+        Your collider, your jump arc, your turret placement and your ground check from
+        <a href="6.2.html">6.2</a> were all tuned against <strong>1 unit per cell</strong>. Every
+        tile you paint must land on a cell, and every distance you design must be a whole number
+        of cells. When a layout fights the grid — a gap that wants to be 1.5 tiles — you do not
+        resize the grid. You move the gap. Break that rule and you will spend an evening
+        debugging jumps that are <em>almost</em> possible.
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: what you are extending.</strong> Read
+        <code>Collision</code>'s existing components before you add a tile to it, and answer:
+        <ul>
+            <li>What does <strong>Tilemap Collider 2D</strong> build, and how many of those exist right now for a 20×12 cave?</li>
+            <li><strong>Composite Collider 2D</strong> sits beside it on the same object. What is it for, and what happens if you delete it? (You will study this properly in <a href="7.2.html">7.2</a> — for now, note that it is load-bearing and leave it alone.)</li>
+            <li>The tilemap also carries a Rigidbody 2D. Why would a floor that never moves need a body at all? What Body Type is it set to?</li>
+            <li>When you paint one more tile of rock, which of those three components notices, and when — immediately, or on the next Play?</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: Editor Faults</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt</h3>
+        <ol>
+            <li>Paint a wall on the <code>No Collision</code> tilemap and press Play. It looks solid. You walk straight through it. Which component is missing from that object, and what does this prove about how much of a level is picture versus physics?</li>
+            <li>Paint one tile with the Grid selected instead of a tilemap child. Does the tile appear? Where does it go? Explain why selecting the parent is not the same as selecting the child.</li>
+            <li>Paint on <code>Collision</code>, press Play, stop, and look again. Did your edit survive? Now save the scene, change a tile, and <em>do not</em> save, then press Play and stop. What is the rule you just discovered about edits made during Play Mode?</li>
+            <li>Zoom in and try to place a tile half a cell off. What does the editor refuse to let you do, and why is that refusal the entire value of a grid?</li>
+            <li>Erase a tile from the middle of the cave floor and press Play. Where does the player end up? Which is more expensive to find later — a missing tile now, or a missing tile during a playtest?</li>
+            <li>Drag a raw PNG into a palette instead of a Tile asset. Look at the result. What did you lose compared to the tiles that were already sliced?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Tinker</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Editor craft</h3>
+        <h3>Tinker: Thinking in Reusable Shapes</h3>
         <ol>
-            <li>Build one 10-tile "language" of shapes (gap, stair,
-                teeth, room, corridor) and reuse each at least twice
-                in different sizes. Why do real level designers work
-                in reusable phrases rather than one-off layouts?</li>
-            <li>Decorate: can you paint BACKGROUND tiles on a second
-                tilemap with no collider — what makes them different
-                from ground (hint: that is 7.2a's whole lesson)?</li>
+            <li>Build a small vocabulary of shapes and reuse each one twice at different sizes: a <em>step</em> (one ledge, one tile higher), a <em>teeth</em> (two ledges, one gap between them), a <em>shaft</em> (a vertical gap two tiles wide), a <em>room</em> (an enclosed space with exactly two openings at different heights). Why do designers work in reusable phrases rather than one-off layouts?</li>
+            <li>Paint the same <em>teeth</em> shape once with a 2-tile gap and once with a 3-tile gap. Jump both with the character you built in <a href="6.1.html">6.1</a>. Which one is a gift and which one is a demand? Write down the number that decides it.</li>
+            <li>Paint a <em>room</em> whose only opening is three tiles above the floor — reachable only with the double jump from <a href="6.4.html">6.4</a>. This is a soft gate made of pure geometry, with no code at all. What does the player learn the moment they see it?</li>
+            <li>Paint a backdrop behind a room on <code>No Collision</code> using a different region of the tileset. Does the player read the room differently? Take a screenshot of both versions before you answer.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Create a tilemap + palette and paint/erase/rect/fill with confidence</li>
-            <li>Explain grid-snap as a contract with the rest of the game</li>
-            <li>Sketch then build the three core shapes: teeth, stair, room</li>
-            <li>Explain "drawing, not placing" — the editor mindset shift</li>
+            <li>Say where the cave art lives, and name the two palette prefabs that ship with it</li>
+            <li>Load a palette, and describe the difference between a Tile asset and a sprite</li>
+            <li>State which tilemap is solid and which is only picture, and prove it by painting into each</li>
+            <li>Name all three components already sitting on <code>Collision</code> and what each is for</li>
+            <li>Explain grid-snap as a contract with jumps, colliders and turrets</li>
+            <li>Build the four shapes — step, teeth, shaft, room — and say what each one asks of the player</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -131,9 +269,9 @@ const body = `<h1>7.1 — Tilemaps: The Level Editor</h1>
         <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a> — tilemap setup in depth</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — editor windows cheat-sheet</li>
     </ul>
-    <p>Next: <a href="7.2.html">7.2 — Tile Collision, Layers &amp; Sorting</a></p>
+    <p>Next: <a href="7.2.html">7.2 — Tile Collision, Layers &amp; Sorting</a>, where you find out what the three components on <code>Collision</code> have been doing for you all along.</p>
 </div>`;
 ---
-<Lesson id="7.1" title="7.1a Tilemaps: The Level Editor — AP CS Principles" root=".." css="../style.css">
+<Lesson id="7.1" title="7.1 Tilemaps: The Level Editor — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

@@ -1,133 +1,253 @@
 ---
 // Lesson 6.4 — Boots: Double Jump
-// A pickup that changes capability AGAIN — and a jump counter.
+// The counter lives on PlayerController; the pickup follows the pattern the
+// student built in 2.3 (potion: prefab + its own tag + a cap on a number).
+// NOTE: the starter has NO AxeItem, Coin, Spikes or Turret instance in the cave
+// scene, and there is no "Boots" tag - the student creates all of it. The axe is
+// NOT used as a worked example anywhere in this lesson.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>6.4 — Boots: Double Jump</h1>
 
 <p class="lesson-lead">
-    The axe granted an attack. The potion capped a number. The boots
-    grant <em>movement</em> — a second jump mid-air — and that one
-    item restructures your whole level design, because every gap,
-    wall, and secret is now jumpable twice. Capability items rewrite
-    the world.
+    The potion capped a number. The coin raised one. The boots change something else
+    entirely: they change what your <em>level design is allowed to ask for</em>. One pickup
+    that grants a second jump in mid-air rewrites every gap in the cave — including gaps you
+    have not built yet. Today: a counter, a pickup you build from scratch, and a gate that
+    has no lock.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">The Problem: One Jump Is Not a Number</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p>You already know the shape (<a href="5.1.html">5.1</a>):
-    pickup → bool → capability. Predict the three pieces before
-    writing them:</p>
+    <p>
+        Your ground check from <a href="6.2.html">6.2</a> answers one question:
+        <em>may I jump right now?</em> That was enough for one jump. It is not enough for two,
+        because the second jump happens in exactly the situation where the answer is
+        <strong>no</strong> — you are in the air, the ground check is false, and that is the
+        whole point.
+    </p>
+    <p>
+        So the boolean is the wrong shape for this problem, and no amount of arranging it will
+        help. <strong>Your goal: a character that can jump a second time in mid-air, but only
+        after picking up a pair of boots.</strong> Before you write anything, answer these on
+        paper:
+    </p>
+
     <table>
-        <tr><th>Piece</th><th>Your prediction</th></tr>
-        <tr><td>Inventory field</td><td>private bool ___ = false</td></tr>
-        <tr><td>Pickup branch</td><td>CompareTag("___") → set true, Destroy</td></tr>
-        <tr><td>Jump logic</td><td>??? — and HERE is the new question: how do you count jumps in mid-air?</td></tr>
+        <tr><th>Question</th><th>Your answer</th></tr>
+        <tr>
+            <td>What fact does the script need that it does not currently have?</td>
+            <td>Not "am I grounded" — something about <em>how many</em>.</td>
+        </tr>
+        <tr>
+            <td>When does that fact go back to its starting value?</td>
+            <td>There is exactly one moment in the whole game where it should reset. Name it.</td>
+        </tr>
+        <tr>
+            <td>What is the new jump condition, in English, with an AND in it?</td>
+            <td>Write the sentence before you write the code.</td>
+        </tr>
+        <tr>
+            <td>What does the pickup actually change — the maximum, or the remaining count?</td>
+            <td>One of these two makes a bug you will meet in the Bug Hunt. Pick carefully.</td>
+        </tr>
     </table>
 
-    <p>The trap: isGrounded (from <a href="6.2.html">6.2</a>) can
-    answer "may I jump?" but not "is this my FIRST or SECOND jump?"
-    Mid-air, grounded is false for both. You need a
-    <strong>counter</strong> — jumps used — that resets when you land.
-    Predict its type, its reset point, and the exact condition:</p>
-    <pre><code>if (Input.GetKeyDown(KeyCode.Space) &amp;&amp; ??? )
-{
-    ???
-}</code></pre>
+    <div class="callout info">
+        <strong>A bool says "one", a counter says "how many".</strong> Your inventory from
+        <a href="2.3.html">2.3</a> used a bool because a potion is a yes-or-no fact
+        (<em>do I have one?</em>). A jump allowance is a <em>quantity</em> — and a quantity
+        that a designer will want to set to 3 the week they invent wing boots. Choosing the
+        data type that matches the question is the whole lesson; the code is four lines.
+    </div>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            A bool says one jump; a counter says any number of jumps;
-            the AP exam says: choose the abstraction that matches the
-            problem. If your game later adds WING BOOTS for a third
-            jump, which of your lines changes — and which one
-            sentence would you write for the Create PT to justify
-            this data choice?
-        </p>
+        <h3>Socratic: Choosing the Data</h3>
+        <ol>
+            <li>Where does the jump allowance live — on the player, on the boots, or on a manager? Your answer should sound like the one you gave in <a href="2.1.html">2.1</a>, and for the same reason.</li>
+            <li>What type is the counter, and what is its starting value in a game with no boots? What does the <em>field default</em> mean to a designer who has never read your code?</li>
+            <li>Is the reset "when I land" or "when I touch a ground-layer collider"? Are those two statements the same thing in your build?</li>
+            <li>If the counter resets on landing, what is the counter's value at the moment you walk off a ledge? Is that value a bug waiting to happen?</li>
+            <li>Should the boots raise the maximum, or refill the remaining count? Describe a game where each is correct.</li>
+            <li>Your death rule from <a href="2.2.html">2.2</a> reloads a scene. What happens to a permanent maximum when the world reloads — and is that fair, or is it an accident of where the number lives?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: Who Owns a Pickup?</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        You built one pickup in <a href="2.3.html">2.3</a> — the potion — and you put the
+        check on the player. That worked. It is not the only way, and by the time you have
+        five items it is not obviously the best way. Read all three before you build the
+        boots:
+    </p>
+
+    <table>
+        <tr><th>Approach</th><th>Who notices the overlap</th><th>What it costs</th><th>When it wins</th></tr>
+        <tr>
+            <td><strong>(a) The player's <code>OnTriggerEnter2D</code> with <code>CompareTag</code></strong></td>
+            <td>The player. It asks "what did I just touch?" and reacts.</td>
+            <td>Every item in the game adds another branch to one file, and every item needs a tag and a collider to exist at all.</td>
+            <td>Now. Two or three items, all doing something to the player. It is the shortest path from idea to playable.</td>
+        </tr>
+        <tr>
+            <td><strong>(b) A pickup component on the item itself</strong></td>
+            <td>The item. It checks the <code>Player</code> tag and then changes the player.</td>
+            <td>The item must reach into the player, so it needs a reference — and a wrong tag silently does nothing.</td>
+            <td>When the same pickup behaviour should be reusable on ten objects, and the player file has grown long.</td>
+        </tr>
+        <tr>
+            <td><strong>(c) A generic pickup with its effect exposed as an event</strong></td>
+            <td>The item, and the effect is wired in the Inspector rather than in code.</td>
+            <td>The most moving parts, and the hardest to read on your first pass. Also the most reusable.</td>
+            <td>When designers, not programmers, decide what each item does.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>Whichever you pick, the item still needs three things.</strong> A shape the
+        physics engine can test (a collider, and remember <a href="2.1.html">2.1</a>: two
+        colliders with no body anywhere produce total silence), a way to be identified, and a
+        thing that actually happens when it is collected. Tag, collider, effect. Every pickup
+        all year is those three in a different outfit.
+    </div>
+
+    <div class="socratic">
+        <h3>Pick One and Defend It</h3>
+        <ol>
+            <li>Which of the three does your potion use, and which one are you going to use for the boots? If they differ, justify the inconsistency out loud — a partner will ask.</li>
+            <li>In approach (b), the item changes the player. Where does the item get its reference to the player from — a tag lookup, the collision itself, or an Inspector field?</li>
+            <li>A pickup with a collider and no Rigidbody2D anywhere in the pair is silent. In the cave, which object in the pair has the body — and does the player still have one after <a href="2.2.html">2.2</a>?</li>
+            <li>Does the boots item get destroyed on pickup, or switched off? Compare against what you chose for the coin and say whether the reasons are the same.</li>
+            <li>If you later add a third item — gloves that grant a wall jump — how much of your boots work is copy-paste, and how much is genuinely new?</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
+        <span class="activity-label">Build Lab: The Counter</span>
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — the counter.</strong> Add to PlayerController,
-    in the starter's voice:</p>
-    <pre><code>[SerializeField] private int maxJumps = 1;   // boots raise this
-private int jumpsUsed;
+    <div class="callout">
+        <strong>Architectural specification: the jump allowance.</strong>
+        <ul>
+            <li>How many fields, and what does each one mean? You need a <em>maximum</em> (a designer's knob, so it belongs in the Inspector) and a <em>running count</em> (nobody else's business, so it stays private).</li>
+            <li>What is the maximum's default value in a build where the player has no boots? Say it out loud, then check that the field in the Inspector agrees with what you said.</li>
+            <li>Where is the <em>single</em> place the counter resets, and is it nested inside the ground check you already wrote? If your reset lives anywhere else, you now own two definitions of "on the ground".</li>
+            <li>What exactly does the new jump condition say? It must contain your ground/coyote logic from <a href="6.3.html">6.3</a> <em>and</em> a comparison on the counter — write the English sentence first, then translate it.</li>
+            <li>What do you do to the counter at the instant the jump fires? If you skip that, what does the player get for free?</li>
+            <li>Where does the jump impulse itself come from — the same code path for both jumps, or a second one? One path is less code and more bugs of one kind; two paths is more code and more bugs of another. Choose and justify.</li>
+        </ul>
+    </div>
 
-// reset the moment you touch ground (right where isGrounded is set):
-if (isGrounded) jumpsUsed = 0;
+    <p>
+        <strong>Deploy in neutral.</strong> Add the counter, wire the reset, and leave the
+        maximum at its default. Play: the character should behave <em>exactly</em> as it did
+        before — one jump, nothing new. If it does not, your counter is wrong and you have not
+        written the pickup yet, which makes the wrong counter much easier to find. Only then
+        change the maximum.
+    </p>
 
-// the jump condition becomes:
-if (Input.GetKeyDown(KeyCode.Space) &amp;&amp; jumpsUsed &lt; maxJumps)
-{
-    rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-    jumpsUsed++;
-}</code></pre>
-    <p>Run it: still one jump (1 used &lt; 1 max). The counter
-    exists but changes nothing yet — deploy code in neutral, THEN
-    flip the switch. That order keeps bugs boring.</p>
+    <div class="callout">
+        <strong>Architectural specification: does the second jump replace or add?</strong>
+        Two honest options, and they feel different:
+        <ul>
+            <li><strong>Replace the vertical velocity</strong> — every jump reaches the same height, whether you fire it at the start of a fall or the top of a rise. Predictable, and it is what most platformers do.</li>
+            <li><strong>Add another impulse</strong> — a second jump fired while you are still rising stacks on top of the first and goes much higher. Chaotic, occasionally delightful, and very hard to design levels around.</li>
+            <li>Which one does your <a href="6.1.html">6.1</a> technique give you by default? If it is the one you did not want, what is the smallest change that gets you the other, and does it break the first jump?</li>
+            <li>Whichever you choose, the <em>second</em> jump now needs to know which jump it is. Which line of your code already knows?</li>
+        </ul>
+    </div>
+</div>
 
-    <p><strong>Step 2 — the boots.</strong> Build the pickup exactly
-    like the axe: sprite (a boot!), trigger collider, tag "Boots"
-    (make the tag), and the branch:</p>
-    <pre><code>if (other.CompareTag("Boots"))
-{
-    maxJumps = 2;
-    // animator swap / particle flourish here if you have art
-    Destroy(other.gameObject);
-}</code></pre>
-    <p>Press Play: one jump. Grab the boots. Two jumps. Now the
-    LEVEL is different — every gap you tuned in
-    <a href="6.1.html">6.1</a> just became trivial. Hold that
-    thought for Step 4.</p>
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: The Boots and the Soft Gate</span>
+        <span class="activity-time">~25 min</span>
+    </div>
 
-    <p><strong>Step 3 — merge with the mercies.</strong> Your jump
-    condition from <a href="6.3.html">6.3</a> had coyote time and a
-    buffer in it. Careful surgery: the buffer should NOT fire the
-    second jump while you fall (buffer was for landing). Decide:
-    second jump must be a DIRECT press in the air. Write the full
-    condition: (grounded OR coyote) AND count-ok for the first;
-    NOT grounded AND count-ok for the second. Test both jumps with
-    late presses and early presses at a ledge edge. If it feels
-    wrong, your two timer-paths are fighting — print them.</p>
+    <p>
+        <strong>Step 1 — the tag.</strong> There is no <code>Boots</code> tag in this project
+        yet, so make one: <em>Edit &rarr; Project Settings &rarr; Tags and Layers</em>. While
+        you are in there, read the list of tags that <em>do</em> exist and note how few there
+        are. Tags are cheap but not free — every tag is a name somebody has to remember.
+    </p>
 
-    <p><strong>Step 4 — redesign for capability.</strong> Place a
-    coin where ONLY a double jump reaches. Now the level has a
-    soft gate: no damage, no lock — just a visible "come back when
-    you are more." That is a metroidvania in one sentence. The boots
-    are not a power-up; they are a KEY made of physics.</p>
+    <p>
+        <strong>Step 2 — the prefab.</strong> Build it the way you built the potion in
+        <a href="2.3.html">2.3</a>: a sprite from <code>Assets/Artwork</code>, a collider, and
+        a tag. Decide whether the collider is a trigger or solid, and be ready to defend the
+        answer — a solid pair of boots you cannot walk over would be a strange item. Put the
+        finished prefab in <code>Assets/Prefabs</code> so the whole game can use it.
+    </p>
+
+    <p>
+        <strong>Step 3 — place it.</strong> The cave scene ships with no Coins, no Spikes and
+        no Turrets. That is not an oversight: it is your level, and it starts empty. Drag a
+        boots instance into the cave and put it somewhere the player has to walk to. Then drag
+        a <code>Coin</code> from <code>Assets/Prefabs</code> in as well — you will need it in
+        the next step.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: the pickup branch.</strong>
+        <ul>
+            <li>Which callback fires when the player touches the boots — the trigger one or the collision one? The answer depends on the collider setting you chose in Step 2, and it changes the <em>parameter type</em> you are handed.</li>
+            <li>How do you identify the boots from inside that callback, and how do you reach the object that should disappear?</li>
+            <li>What does the branch change on the player — the maximum, or the count? Justify the choice you made on paper earlier.</li>
+            <li>What do you print so the player can see the change with no UI in the game? The whole project reports through the Console, and it is about to report something worth watching.</li>
+            <li>What happens if you walk into the boots with the counter already at its maximum — a second pair, later in the level? Should that do nothing, or is there a design where it stacks? Who should decide, the code or the designer?</li>
+        </ul>
+    </div>
+
+    <p>
+        <strong>Step 4 — the soft gate.</strong> Take the Coin you placed and move it somewhere
+        that is genuinely unreachable with one jump: a high ledge, a shelf across a wide gap.
+        Now the level contains a promise it cannot keep yet — no lock, no door, no damage, just
+        a visible thing you cannot have. Play it with and without the boots, and time how long
+        it takes a tester to work out what the boots are for.
+    </p>
+
+    <div class="callout trap">
+        <strong>Test the whole loop, including death.</strong> Grab the boots, then die on
+        purpose. Your death rule from <a href="2.2.html">2.2</a> reloads a scene — so where do
+        the boots go, and where does the maximum go? Write down what you observe, decide
+        whether it is the rule you want, and if it is not, say which of the two things has to
+        change: the death rule, or where the boots live.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: The Infinite Stair</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The infinite stair</h3>
+        <h3>Bug Hunt</h3>
         <ol>
-            <li>Put maxJumps = 2 in the field's starting value
-                (serialized!). The whole cave is now jumpable
-                without boots — what "cost" did forgetting the
-                default destroy?</li>
-            <li>Reset jumpsUsed in Update instead of where
-                isGrounded is set. Where does the reset happen when
-                you are FALLING (isGrounded false) — and why is the
-                second jump... not second?</li>
-            <li>Grab the boots TWICE (two pickups on the map).
-                maxJumps becomes 2 then 2. Should the second pair
-                do NOTHING, or is there a design where stacking
-                makes sense (3 jumps)? Who decides — code or
-                designer?</li>
-            <li>Second jump with FULL jumpForce feels like a
-                stutter-step. Try 0.8 × jumpForce for the air jump.
-                Which line needs to know WHICH jump number it
-                is?</li>
+            <li>Set the maximum's default to 2 and never place the boots. Walk the whole cave. What did you just delete from your game, and which single Inspector field was hiding it?</li>
+            <li>Move the counter's reset out of the ground check and into the top of <code>Update()</code>. Count how many jumps you get in mid-air, and explain why the reset ran while you were falling.</li>
+            <li>Forget to change the counter when the jump fires. Now walk off a ledge, wait a full three seconds, and press the key. How many jumps did you get, and which line from <a href="6.3.html">6.3</a> is the missing twin of the line you forgot?</li>
+            <li>Walk into two boots placed on the same ledge. What is the maximum after the second pair, and what would a player expect to happen?</li>
+            <li>Grab the boots, then die. Is the second jump still available after you respawn? Trace which reload caused the loss, and decide whether the rule is fair.</li>
+            <li>Make the second jump fire the full-strength impulse instead of matching the first. Jump once, then tap again at the very top of the rise. Describe the motion, and name the technique from <a href="6.1.html">6.1</a> that produced it.</li>
         </ol>
     </div>
 </div>
@@ -140,27 +260,26 @@ if (Input.GetKeyDown(KeyCode.Space) &amp;&amp; jumpsUsed &lt; maxJumps)
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Capability design</h3>
+        <h3>Tinker: Capability Design</h3>
         <ol>
-            <li>Design a THIRD item (gloves → wall jump?) using the
-                same pickup skeleton. What does the LEVEL gain
-                access to — write two sentences like a designer
-                selling it.</li>
-            <li>Make the boots REQUIRED: seal the cave exit behind a
-                high ledge. What does the player do when they hit the
-                ledge before the boots — and is that frustration or
-                curiosity?</li>
-            <li>Commit + push: <code>"6.4a: double jump + soft gate"</code>.</li>
+            <li>Design a third item using the same skeleton — gloves that allow a wall jump, or a hook that pulls you to a ledge. What does the <em>level</em> gain access to? Sell it in two sentences like a designer.</li>
+            <li>Make the boots required rather than optional: wall off the cave's exit behind a shelf only a double jump reaches. What does a player do when they meet that shelf with no boots — is it frustration or curiosity?</li>
+            <li>Put a Console line in the pickup that reports the new maximum. What does the player learn from it, and what would they learn if you printed the <em>remaining</em> count instead?</li>
+            <li>Try giving the boots a permanent effect on the world instead of the player — a platform that only appears after pickup. Which approach from the table does that need, and why can the player-owned version not do it?</li>
+            <li>Commit and push: <code>"6.4: double jump + boots + soft gate"</code>.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain counter vs bool for multi-jump and why the counter resets on landing</li>
-            <li>Build the boots pickup and raise maxJumps</li>
-            <li>Merge the counter with coyote/buffer without the buffer double-firing</li>
-            <li>Design a soft gate (visible, unreachable, no damage)</li>
+            <li>Explain why a counter is the right data type here and a bool is not</li>
+            <li>Say exactly where the counter resets, and why there is only one such place</li>
+            <li>Build a pickup end to end — tag, collider, effect — the way you built the potion</li>
+            <li>Say whether your second jump replaces or adds velocity, and defend it</li>
+            <li>Explain what happens to the boots when the player dies, and whether you accept that rule</li>
+            <li>Design a soft gate: visible, unreachable, no damage, no text</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -170,12 +289,13 @@ if (Input.GetKeyDown(KeyCode.Space) &amp;&amp; jumpsUsed &lt; maxJumps)
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the double-jump design notes</li>
-        <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — the pickup family, compared</li>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — jump counters and capability design</li>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the pickup family the boots belong to</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — tags, triggers and Rigidbody2D</li>
     </ul>
-    <p>Next: <a href="6.5.html">6.5 — Platforming Studio: The Gauntlet</a></p>
+    <p>Next: <a href="6.5.html">6.5 — Platforming Studio: The Gauntlet</a>, where every one of these skills has to survive a stranger.</p>
 </div>`;
 ---
-<Lesson id="6.4" title="6.4a Boots: Double Jump — AP CS Principles" root=".." css="../style.css">
+<Lesson id="6.4" title="6.4 Boots: Double Jump — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

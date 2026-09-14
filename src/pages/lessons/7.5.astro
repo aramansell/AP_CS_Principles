@@ -1,110 +1,239 @@
 ---
 // Lesson 7.5 — Design a Big Cave: Flow & Difficulty
-// Level design theory: sightlines, pacing, difficulty curves, signposting.
+// Design-only day. Inventory of what the student ACTUALLY has: the cave
+// tilemaps, the Player with jump/coyote/double jump, the Unit 3 turret, the
+// Unit 4 enemy, the Spikes and Coin prefabs (which ship with NO instance in the
+// scene and, for Spikes, no collider), the Switch prefab + Lever.cs (real
+// working code), the `Cave Exit` SceneSwitch object already in the Platformer
+// scene, the ladder they built in 7.3/7.4, and StatManager from 5.3.
+// There is NO boss, NO boss door and NO boss sprite anywhere in the project.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>7.5 — Design a Big Cave: Flow &amp; Difficulty</h1>
 
 <p class="lesson-lead">
-    You have all the tools — tiles, enemies, ladders, spikes, turrets.
-    Tools do not make a level; <strong>flow</strong> does. Today, zero
-    code: you learn to read a level like a designer, sketch your whole
-    big cave on paper, and only then paint it.
+    You have a set of tools, and it is a smaller set than you think. Be honest about it before
+    you design with it: you own tiles, a player who can jump, an enemy, a turret, a spike, a
+    coin, a lever, a ladder you built yourself, and one exit back to the hub. That is enough
+    for a whole cave. Today: zero code. You learn to read a level like a designer, sketch your
+    cave on paper, and only then paint it.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity expand-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Concept Lab</span>
+        <span class="activity-label">The Problem: A Cave With No Reason to End</span>
         <span class="activity-time">~20 min</span>
     </div>
 
-    <p><strong>1. Flow: the path is the message.</strong> Players move
-    toward: open space, light, coins, and AWAY from spikes and
-    enemies. A level steers without a single word.</p>
-    <pre><code>Good: room → glimpse of next room through a gap → curiosity pulls
-Bad:  room → identical exits left/right both dark → player stops,
-      and a stopped player reads the room as a wall</code></pre>
+    <p>
+        Right now the Platformer scene is a box with a floor. You can walk in it, and there is
+        nothing to do. Before you can design a cave you must know exactly what you can put in
+        one — so take inventory. Tick every row honestly; several of these will force you to
+        place or build something first.
+    </p>
 
-    <p><strong>2. Pacing: the beat chart.</strong> Any good cave is a
-    rhythm of TENSION (threat) and RELEASE (safety + reward):</p>
     <table>
-        <tr><td>Section</td><td>Beat</td><td>Feel</td></tr>
-        <tr><td>1 Entrance</td><td>quiet</td><td>"I belong here"</td></tr>
-        <tr><td>2 Teeth</td><td>tension</td><td>spike jumps — first death possible</td></tr>
-        <tr><td>3 Ladder + turret</td><td>release → tension</td><td>climb while shot at</td></tr>
-        <tr><td>4 Rest + coins</td><td>release</td><td>breath, spend coins mentally</td></tr>
-        <tr><td>5 Gauntlet</td><td>peak tension</td><td>everything at once</td></tr>
-        <tr><td>6 Boss door</td><td>quiet</td><td>the door says "next time"</td></tr>
+        <tr><th>Tool</th><th>Where it comes from</th><th>What you must still do</th></tr>
+        <tr>
+            <td><strong>Cave tiles</strong> (floor, wall, backdrop)</td>
+            <td><a href="7.1.html">7.1</a> — the tileset in <code>Assets/Artwork/Platformer/Sliced/</code></td>
+            <td>Paint them. The existing cave is only about 20 tiles wide.</td>
+        </tr>
+        <tr>
+            <td><strong>The Player</strong>, with walk, jump, coyote time and a double jump</td>
+            <td>Units 1–6, on the <code>Player</code> prefab</td>
+            <td>Nothing. This is the one tool that is genuinely finished.</td>
+        </tr>
+        <tr>
+            <td><strong>Spikes</strong></td>
+            <td>The <code>Spikes</code> prefab, tagged <code>Spikes</code> since <a href="2.2.html">2.2</a></td>
+            <td>Place them yourself — <strong>no spikes exist in any scene</strong>, and the prefab still has no collider unless you added one in 2.2.</td>
+        </tr>
+        <tr>
+            <td><strong>Coins</strong></td>
+            <td>The <code>Coin</code> prefab, from <a href="2.1.html">2.1</a></td>
+            <td>Place them. Coins live in the Overworld; the cave has none.</td>
+        </tr>
+        <tr>
+            <td><strong>The enemy</strong> on its patrol / chase / attack state machine</td>
+            <td>Unit 4, on the <code>MobileEnemy</code> prefab</td>
+            <td>Place instances, and check it actually moves in this scene — it needs whatever your state machine needs to find the player.</td>
+        </tr>
+        <tr>
+            <td><strong>The turret</strong> and its projectile</td>
+            <td>Unit 3, on the <code>Turret</code> and <code>Turret_Projectile</code> prefabs</td>
+            <td>Place instances. Only a couple exist in the project today — you are the one who decides how many the cave gets.</td>
+        </tr>
+        <tr>
+            <td><strong>The ladder</strong></td>
+            <td><a href="7.3.html">7.3</a> and <a href="7.4.html">7.4</a> — built entirely by you</td>
+            <td>Rebuild it wherever the cave needs one. Nothing about it ships. It is a zone you place and a strip of tiles you paint.</td>
+        </tr>
+        <tr>
+            <td><strong>The lever and its door</strong></td>
+            <td>The <code>Switch</code> prefab plus <code>Lever.cs</code>, from <a href="5.2.html">5.2</a></td>
+            <td>Wire the UnityEvent, and build the thing it opens. <code>Lever.cs</code> is real, working, tested code — it is the one piece of this project you can trust completely.</td>
+        </tr>
+        <tr>
+            <td><strong>An exit</strong></td>
+            <td>The <code>Cave Exit</code> object, already sitting in the Platformer scene with a <code>SceneSwitch</code> pointing at the Overworld</td>
+            <td>Decide whether the cave ends there, or somewhere you build yourself.</td>
+        </tr>
     </table>
 
-    <p><strong>3. Difficulty curve (again, at scale).</strong> The
-    personality-turret ramp from <a href="3.4.html">3.4</a> was
-    three copies of a knob; this is the same idea with rooms. Rule of
-    thumb: each section may introduce ONE new combination (spikes +
-    turret = one new thing; not spikes + turret + ladder + moving
-    platform = four).</p>
+    <p>
+        Notice what is not on that list. There is no boss and no boss door in this project — no
+        sprite, no prefab, no object in any scene. If you want the cave to end at something
+        dramatic, <em>you</em> build that thing, and the cheapest dramatic thing you already own
+        is a lever that opens a door. Today you decide what the cave's ending is, and then you
+        design everything as a path toward it.
+    </p>
 
-    <p><strong>4. Signposting: telegraph everything.</strong> Safe
-    routes look safe. Danger is visible BEFORE it is threatening
-    (the turret is seen at rest before it shoots). The exit is
-    visible from the entrance (or glimpsed once). Your soft gate
-    from <a href="6.4.html">6.4</a> is signposting for the
-    boots.</p>
+    <div class="callout">
+        <strong>Architectural specification: choose your ending before you sketch.</strong> Read
+        all three, pick one, and write down why:
+        <ul>
+            <li><strong>A lever-operated door.</strong> The <code>Switch</code> prefab sits in the cave; pressing E nearby calls <code>Interact()</code>, which fires a <strong>UnityEvent</strong> you wire in the Inspector. Point that event at a door object and have it do something visible — disable the collider so the player can pass, or move a wall aside. The lever never names the door; the event is the wire between them. This is a real puzzle with real code you already have.</li>
+            <li><strong>A collectible target.</strong> Somewhere in the cave, put something the player is obviously trying to reach — a coin cluster, or the <code>Axe Item</code> prefab. The cave ends when they reach it, even if nothing explodes. Cheap, and completely unambiguous.</li>
+            <li><strong>The existing exit.</strong> The <code>Cave Exit</code> object returns the player to the Overworld hub. Reaching it ends the cave. The cost of this option is that it is already in the scene, so it is not a discovery — you may want to place a second one somewhere the player has to earn.</li>
+        </ul>
+    </div>
+
+    <p><strong>1. Flow: the path is the message.</strong> Players move toward open space, light
+    and reward, and away from spikes and enemies. A level steers without a single word.</p>
+    <pre><code>Good: room → glimpse of the next room through a gap → curiosity pulls
+Bad:  room → identical exits left and right, both dark → the player stops,
+      and a stopped player reads the room as a wall</code></pre>
+
+    <p><strong>2. Pacing: the beat chart.</strong> A good cave is a rhythm of tension and
+    release. Yours should have four to six beats, and it should end at the ending you just chose:</p>
+
+    <table>
+        <tr><th>Section</th><th>Beat</th><th>What the player feels</th></tr>
+        <tr><td>1 Entrance</td><td>quiet</td><td>"I belong here"</td></tr>
+        <tr><td>2 First hazard</td><td>tension</td><td>the first jump that can kill you</td></tr>
+        <tr><td>3 The climb</td><td>release, then tension</td><td>your ladder, with something watching from above</td></tr>
+        <tr><td>4 Rest and reward</td><td>release</td><td>breathing room, and coins on the route you wanted walked</td></tr>
+        <tr><td>5 The gauntlet</td><td>peak tension</td><td>everything at once, for a short stretch</td></tr>
+        <tr><td>6 The goal</td><td>quiet</td><td>the lever, the door, the thing you built — and the cave lets you finish</td></tr>
+    </table>
+
+    <p><strong>3. Difficulty curve, at the scale of rooms.</strong> Each section may introduce
+    <em>one</em> new combination. Spikes plus a turret is one new thing. Spikes plus a turret
+    plus a ladder plus a moving platform is four, and it is not a level, it is a wall.</p>
+
+    <p><strong>4. Signposting: telegraph everything.</strong> Safe routes look safe. Danger is
+    visible before it is threatening — the turret is seen at rest before it fires, exactly as you
+    tuned it in <a href="3.4.html">3.4</a>. The goal should be visible from the entrance, or
+    glimpsed once on the way.</p>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            Difficulty and fairness are different axes: hard-but-fair
-            vs easy-but-random. Using sightlines and telegraphs,
-            explain how your cave can be the FIRST while your
-            random-placement impulse (we all have it) makes the
-            SECOND. Which one do testers call "good" even when they
-            die?
-        </p>
+        <h3>Socratic: Hard but Fair, or Easy but Random?</h3>
+        <ol>
+            <li>Difficulty and fairness are different axes. Describe a cave that is hard and fair, and a cave that is easy and random. Which one do testers call "good" even when they die repeatedly?</li>
+            <li>Your spikes do not ship in the cave — you place every one of them. What does that make you responsible for that a designer who inherits a level is not?</li>
+            <li>A lever door asks the player to find a switch and then find the door again. Which of those two is the puzzle, and how does the layout answer it without a single line of text?</li>
+            <li>The beat chart's rest section comes <em>before</em> the gauntlet. What would happen to the player's experience if you deleted the rest section? Answer in terms of the player, not the level.</li>
+            <li>Your camera shows a fixed width. If a player can only see one screen at a time, what is a sightline actually for?</li>
+            <li>Name one thing that makes a level unfair that is not difficulty at all.</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Design Lab</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>
+        A beat chart is data. Read each of these for what it does in isolation, then work out
+        what it has to do with the page you are about to sketch.
+    </p>
+
+    <p><strong>Example 1 — A museum's audio-guide running order:</strong></p>
+    <pre><code>// Each stop declares how long the visitor is expected to linger.
+stops = [{ "entrance", 45 }, { "armoury", 90 }, { "exit", 20 }];</code></pre>
+
+    <p><strong>Example 2 — A theme park's queue design notes:</strong></p>
+    <pre><code>// The ride must be visible from the queue, or the wait feels
+// longer than it is. Sightline is a queue-management tool.</code></pre>
+
+    <p><strong>Example 3 — A supermarket's one-way aisle plan:</strong></p>
+    <pre><code>// The route is decided by the building, not by signage.
+// If a shopper doubles back, the plan failed, not the shopper.</code></pre>
+
+    <p><strong>Example 4 — An airport's wayfinding audit (comment only):</strong></p>
+    <pre><code>// A traveller who stops walking is a sign that the next step was
+// not visible from the last one. Count the stops, not the signs.</code></pre>
+
+    <p><strong>Example 5 — A film editor's reel timings (comment only):</strong></p>
+    <pre><code>// Tension and release alternate, and the release is timed, not
+// left to chance. Nobody edits a film as one long crescendo.</code></pre>
+
+    <div class="callout">
+        <strong>Architectural specification: your cave, in writing, before any paper.</strong>
+        Answer these in a notes file. They are the design document, and the sketch is just a
+        drawing of the answers.
+        <ul>
+            <li>What is the ending, exactly — a lever door, a collectible, or an exit? Name the object you will place and the one thing the player must do to reach it.</li>
+            <li>How many beats does your cave have, and what is each beat's one-line feel sentence? If you cannot write the sentence, the beat is not a beat.</li>
+            <li>Which beat introduces each new combination, and what is the single new thing in it?</li>
+            <li>Where is the ladder, and what does the player see from the bottom of it? Remember the ladder is a zone plus a painted strip — what is its height in tiles?</li>
+            <li>Where are the spikes? They are yours to place, so name the exact count and where each one is. "Some spikes" is not a design.</li>
+            <li>What does the player see from the entrance, and what do they see from the rest beat?</li>
+            <li>If the player dies at the gauntlet, how many seconds of progress do they lose? Under 20 is healthy; over 60 is spite.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Design Lab: The Paper Cave</span>
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — the paper sketch.</strong> Pencil, one page,
-    your whole cave: all 6 beats as rooms/boxes, with arrows for the
-    path and notes for threats. No detail on any single screen —
-    flow first. This paper IS the design; the tilemap is just a
-    transcription of it.</p>
+    <p>
+        <strong>Step 1 — the sketch.</strong> Pencil, one page, the whole cave: every beat as a
+        box or a room, arrows for the path, notes for threats, and a marked symbol for the goal.
+        No detail inside any single screen — flow first. This paper <em>is</em> the design; the
+        tilemap is only a transcription of it.
+    </p>
 
-    <p><strong>Step 2 — the camera question.</strong> Your game camera
-    shows a fixed width. Mark on your sketch what is VISIBLE at each
-    beat: what does the player see from section 2? They should see
-    the goal of section 2 and the PROMISE of section 3 (a glimpse,
-    a light, a coin trail). Adjust boxes so each screen shows: this
-    beat's challenge + a hint of the next one.</p>
+    <p>
+        <strong>Step 2 — the camera pass.</strong> Your camera shows a fixed width, so mark on the
+        sketch what is visible from each beat. Standing in beat 2, the player should see beat 2's
+        challenge <em>and</em> a promise of beat 3 — a glimpse of a ledge, a coin just out of
+        reach, a light. Adjust the boxes until every screen shows one challenge and one hint.
+    </p>
 
-    <p><strong>Step 3 — the death audit.</strong> Walk your sketch
-    and ask at every beat: if the player dies HERE, what do they
-    lose? Under 20 seconds of progress = healthy. Over 60 = spite
-    (either add a checkpoint trigger, or shorten the section — your
-    <a href="2.2.html">2.2</a> respawn loop is all you get unless
-    you build checkpoints, which you may).</p>
+    <p>
+        <strong>Step 3 — the death audit.</strong> Walk your sketch and ask at every beat: if the
+        player dies here, what do they lose? Under twenty seconds of progress is healthy. Over a
+        minute is spite, and the repair is either a shorter approach or a checkpoint you build
+        yourself — a trigger that stores a position and a respawn that reads it. Decide honestly
+        whether your cave earns checkpoints or not.
+    </p>
+
+    <p>
+        <strong>Step 4 — the inventory pass.</strong> For every object your sketch demands, write
+        where it comes from: a painted tile, a prefab you place, or a thing you must build
+        yourself. Anything in the third column is a job you are taking on in
+        <a href="7.6.html">7.6</a> — count them before you commit.
+    </p>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: Design smell test</h3>
+        <h3>Bug Hunt: Design Smells</h3>
         <ol>
-            <li>Sketch audit: is there ANY beat that introduces two
-                new things at once? Which thing moves to a later
-                beat?</li>
-            <li>Stand (mentally) in beat 4 (rest) — can the player
-                see a spike from there? Why must rest beats be
-                visually clean of threats?</li>
-            <li>Count screens between the boss door and the last
-                save/heal. Is your potion before or after the peak
-                tension — and why do great games heal BEFORE the
-                boss, not after?</li>
+            <li>Find any beat on your sketch that introduces two new things at once. Which one moves to a later beat, and why is moving it cheaper than tuning it?</li>
+            <li>Stand mentally in your rest beat. Can the player see a spike or a turret from there? Why must a rest beat be visually clean of threats?</li>
+            <li>Count the screens between your goal and the last reward. Where does the coin cluster sit — before or after the peak tension? Why do good levels reward <em>before</em> the hardest section rather than after?</li>
+            <li>Your goal is a lever door. From the entrance, is there anything that tells the player a lever exists? If not, where do they first see it, and how do they connect it to the door?</li>
+            <li>A tester walks into beat 3 and does not notice the ladder. What in your sketch was supposed to say "climb me", and is it visible from the floor?</li>
+            <li>Your sketch has a wall the player cannot pass. Is it a gate or a dead end? A gate has a visible alternative; a dead end does not. Which is yours?</li>
         </ol>
     </div>
 </div>
@@ -117,29 +246,27 @@ Bad:  room → identical exits left/right both dark → player stops,
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Trade sketches</h3>
+        <h3>Tinker: Trade Sketches</h3>
         <ol>
-            <li>Trade sketches with a partner. They point at any box:
-                you must say the BEAT and the FEEL sentence in
-                five seconds. If you hesitate, the sketch is not
-                clear enough yet.</li>
-            <li>Partner marks your path with a pencil "blind" — where
-                do THEY think the player will go? Anywhere their
-                line diverges from your intended path is a
-                signposting bug found for free.</li>
-            <li>Commit + push a photo/scan of the final sketch:
-                <code>"7.5a: cave sketch + beat chart"</code>. The
-                sketch goes in the repo — design docs are code.</li>
+            <li>Trade sketches with a partner. They point at any box and you must name its beat and say its feel sentence within five seconds. If you hesitate, the sketch is not clear enough yet.</li>
+            <li>Your partner marks the path with a pencil "blind" — where do they think the player will go? Everywhere their line diverges from your intended route is a signposting bug found for free.</li>
+            <li>Ask your partner to find your goal on the sketch without your help. How long did it take? What does that time predict about a real player?</li>
+            <li>Read your partner's beat chart back to them and let them correct you. Which beat did you misread, and what does that tell you about how its feel sentence is written?</li>
+            <li>Swap one beat between the two sketches — take their beat 3 and put it in your cave. Does it still work? What does that prove about whether a beat is a shape or a moment?</li>
+            <li>Commit and push a photo or scan of the finished sketch: <code>"7.5: cave sketch + beat chart"</code>. The sketch goes in the repo — design documents are code.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain flow, pacing, difficulty curve, signposting — each in one sentence</li>
-            <li>Draw a 6-beat cave sketch with path arrows and threat notes</li>
-            <li>Run a camera-visibility pass and a death audit on your sketch</li>
-            <li>Explain hard-but-fair vs easy-but-random with examples from your own sketch</li>
+            <li>Account for every tool you have, and name the things that do not exist (no boss, no boss door, no shipped ladders)</li>
+            <li>State what your cave's ending is, and what the player must do to reach it</li>
+            <li>Explain flow, pacing, difficulty curve and signposting, each in one sentence</li>
+            <li>Draw a four-to-six beat sketch with path arrows and threat notes, ending at your goal</li>
+            <li>Run a camera-visibility pass and a death audit on your own sketch</li>
+            <li>Explain hard-but-fair versus easy-but-random using examples from your own sketch</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -150,11 +277,13 @@ Bad:  room → identical exits left/right both dark → player stops,
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a> — the design theory page</li>
+        <li><a href="../docs/unit-05/index.html">Unit 5: Levers &amp; Doors</a> — the UnityEvent door you are designing toward</li>
         <li><a href="../data/playtests.csv">Playtest data (CSV)</a> — the numbers that argue about difficulty</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the components behind every object you will place</li>
     </ul>
-    <p>Next: <a href="7.6.html">7.6 — Level Studio I</a></p>
+    <p>Next: <a href="7.6.html">7.6 — Level Studio I</a>, where the paper becomes tiles.</p>
 </div>`;
 ---
-<Lesson id="7.5" title="7.5a Design a Big Cave: Flow &amp; Difficulty — AP CS Principles" root=".." css="../style.css">
+<Lesson id="7.5" title="7.5 Design a Big Cave: Flow &amp; Difficulty — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

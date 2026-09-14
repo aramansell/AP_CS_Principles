@@ -41,11 +41,16 @@
     hazard deals damage only once). <strong>Stay</strong> handlers mean
     "an event every frame" (a continuous hazard — but a coin collected
     in Stay would try to collect itself 60 times a second and crash on
-    the second, because Destroy already removed it). The starter's
-    EnemyController uses BOTH: OnCollisionEnter2D and OnCollisionStay2D
-    both call TryDamage, and the damage cooldown
-    (<a href="../../lessons/4.4.html">4.4</a>) is what keeps the
-    per-frame Stay call from draining health at 60 hits per second.
+    the second, because Destroy already removed it).
+</p>
+<p>
+    You will meet a hazard that genuinely needs <em>both</em> in
+    <a href="../../lessons/4.4.html">4.4</a>, when the enemy attacks you.
+    Damage on contact handles the first bump; damage while you remain in
+    contact is what stops you simply standing inside an enemy forever.
+    The moment you use Stay, you owe it a <strong>cooldown</strong> —
+    because Stay fires every frame, and without a cooldown it drains your
+    whole health bar in about a twentieth of a second.
 </p>
 
 <h2>The tag check — the first branch of every handler</h2>
@@ -54,26 +59,20 @@
     the player, your own projectiles. The first line of almost every
     handler you write this year filters with CompareTag:
 </p>
-<pre><code>private void OnTriggerEnter2D(Collider2D other)
-{
-    if (other.CompareTag("Coin"))
-    {
-        if (StatManager.manager != null)
-        {
-            StatManager.manager.ChangeCoins(1);
-        }
-        Destroy(other.gameObject);
-    }
-}</code></pre>
 <p>
-    Read the three habits in that shape: <strong>filter</strong> by tag
-    (what did we touch?), <strong>guard</strong> the singleton (does
-    the manager exist?), <strong>act and clean up</strong> (change the
-    number, remove the pickup). The silent-failure trap: a misspelled
-    tag does not throw — the branch simply never matches, and nothing
-    happens. When a trigger "does nothing," check the tag's spelling
-    FIRST, in both places: the object's Tag field and the string in
-    code.
+    Every handler you write this year has the same three-part shape:
+    <strong>filter</strong> (which object did we touch?), <strong>guard</strong>
+    (is everything I need actually there?), then <strong>act and clean up</strong>
+    (change the number, remove the pickup). You will write that shape four
+    times before the year is out — coin, potion, axe, and damage — and the
+    <em>only</em> parts that change are the tag you filter on and the number
+    you change.
+</p>
+<p>
+    The silent-failure trap: a misspelled tag does not throw. The branch
+    simply never matches and nothing happens, with no error to follow. When a
+    trigger "does nothing," check the tag's spelling FIRST — in both places:
+    the object's Tag field, and the string in your code.
 </p>
 
 <h2>Why pickups are triggers and hazards are colliders</h2>
@@ -82,11 +81,13 @@
     event, not a wall: trigger. A spike is a physical thing you are
     stopped by or standing on, AND an event when touched — collider,
     with the damage handler riding on the collision message. The
-    turret's projectile splits the difference: its collider is a
-    <strong>trigger</strong> (bullets pass through the player's body
-    until they choose to "hit") but it dies on contact with anything
-    tagged appropriately — and the starter's Projectile also destroys
-    itself on the "Ground" tag.
+    turret's projectile splits the difference, and you will decide this
+    yourself in <a href="../../lessons/3.4.html">3.4</a>: its collider is
+    usually a <strong>trigger</strong> (a bullet passes through the player's
+    body until it chooses to "hit"), but it dies on contact with whatever you
+    decide should stop it. Note that a bullet also needs a
+    <strong>Rigidbody2D</strong> before any of this fires — one of the two
+    objects in the pair must have a body, exactly as with the coin.
 </p>
 
 <h2>The settings that break everything</h2>

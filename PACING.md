@@ -8,27 +8,27 @@ Exam: **Friday, May 14, 2027**, 8:00 AM (Session 1). Create PT due **2027-04-30,
 | 2026-09-03 (Thu) | Lesson | 0.2 | Scratch Starter 2: Motion, Loops & Your Scene | CRD-2 |
 | 2026-09-08 (Tue) | Lesson | 0.3 | Scratch Starter 3: Events, Sound & Iteration — Two weeks of Scratch: the same building blocks as Unity, zero environment overhead. | CRD-2 |
 | 2026-09-10 (Thu) | Lesson | 0.4 | Scratch Starter 4: Gallery Walk — Showcase and names. Next B day the real engine starts. | CRD-1 CRD-2 |
-| 2026-09-14 (Mon) | Launch | 1.1 | Launch: Fork the Starter & Press Play — Unity begins. The Scratch ideas do not change - the engine does. GitHub account, fork cs-curriculum-main, clone it, open it in Unity, press Play. | CRD-1 CRD-2 |
-| 2026-09-16 (Wed) | Lesson | 1.2 | The Unity Editor: Scenes, GameObjects, Components | CRD-2 |
-| 2026-09-18 (Fri) | Lesson | 1.3 | Your First Script: Variables & Update | AAP-1 AAP-2 |
-| 2026-09-22 (Tue) | Lesson | 1.4 | Movement I & II: Input, Vectors, Speed & deltaTime | AAP-1 AAP-2 |
-| 2026-09-24 (Thu) | Lesson | 1.6 | Animation States: IsWalking, WalkDir, Attack | CRD-2 |
-| 2026-09-28 (Mon) | Lesson | 2.1 | Coins: Triggers, Tags & the StatManager | AAP-3 CRD-2 |
-| 2026-09-30 (Wed) | Lesson | 2.2 | Spikes & Potions: Health, Death & the Cap — Your first if statement - selection is the highest-value idea on the exam. | AAP-3 AAP-2 CRD-2 |
-| 2026-10-02 (Fri) | Lesson | 2.4 | Prefabs, Spawning & Playtesting | CRD-2 |
+| 2026-09-14 (Mon) | Launch | 1.1 | Unity Launch: Fork, Clone, Press Play - then Movement — Unity begins. The teacher demos the fork, the clone and the editor tour live in about fifteen minutes; 1.1-1.3 are the written version for anyone who needs to catch up on their own. The real build today is 1.4 - getting the player moving in the overworld. | CRD-1 CRD-2 |
+| 2026-09-16 (Wed) | Lesson | 1.5 | Movement II & Animation States — Choose the movement method this game actually needs, tune it, then drive the Animator with IsWalking, WalkDir and Attack. | AAP-1 AAP-2 |
+| 2026-09-18 (Fri) | Lesson | 2.1 | Coins: Triggers, Tags & Your First Stat — The physics engine switches on. Nothing in this project has a collider or a rigidbody - today you give the player a body, and find out that it changes the whole game. | AAP-3 CRD-2 |
+| 2026-09-22 (Tue) | Lesson | 2.2 | Spikes: Physics, Damage & Death — The pivotal lesson of the unit. A solid spike reveals that transform.Translate has made your character a ghost - so you choose a movement method you can live with all year, then build health and death on top of it. | AAP-3 AAP-2 CRD-2 |
+| 2026-09-24 (Thu) | Lesson | 2.3 | Healing Pickups & the Max-Health Cap — Your first selection rule. A value with a ceiling needs a rule, not just arithmetic. | AAP-3 AAP-2 |
+| 2026-09-28 (Mon) | Lesson | 2.4 | Prefabs, Spawning & Playtesting — One working object becomes a whole level, and you run the playtest ritual that ends every jam for the rest of the year. | CRD-2 |
+| 2026-09-30 (Wed) | Studio | S1 | Physics & Stats Studio: Catch Up and Tune — The heaviest unit gets a day to settle. Finish 2.1-2.4 if you are behind, re-tune your movement now that a physics body is doing the work, and fix the top item from your playtest notes. | AAP-2 AAP-3 CRD-2 |
+| 2026-10-02 (Fri) | Studio | S2 | Unit 2 Review + Second Playtest — Swap seats and playtest again now that your fixes have landed. Compare the two sheets - did the fix actually work? Close the unit by demonstrating your spike, your potion and your death rule. | CRD-2 AAP-2 |
 | 2026-10-06 (Tue) | Lesson | 3.1 | The Turret: Distance & the Detection Radius | AAP-2 |
 | 2026-10-08 (Thu) | Lesson | 3.2 | Projectiles: Instantiate, Fire, Destroy | AAP-2 |
 | 2026-10-13 (Tue) | Lesson | 3.3 | Fire Rate: Cooldowns & Time | AAP-2 |
-| 2026-10-16 (Fri) | Lesson | 3.4 | Turret Damage, Tuning & Playtest | CRD-2 |
-| 2026-10-20 (Tue) | Lesson | 4.1 | The Enemy: Waypoint Patrols | AAP-2 |
-| 2026-10-22 (Thu) | Lesson | 4.2 | Patrol Polish: Bounds, Flips & Animations | AAP-2 CRD-2 |
+| 2026-10-16 (Fri) | Lesson | 3.4 | Projectile Damage, Tuning & Playtest | CRD-2 |
+| 2026-10-20 (Tue) | Lesson | 4.1 | The Enemy: Patrol | AAP-2 |
+| 2026-10-22 (Thu) | Lesson | 4.2 | Enemy Animation: A Different State Machine | AAP-2 CRD-2 |
 | 2026-10-26 (Mon) | Lesson | 4.3 | Chase: The Aggro Radius | AAP-2 |
-| 2026-10-28 (Wed) | Lesson | 4.4 | Attack: Close-Range Danger | AAP-2 |
-| 2026-11-03 (Tue) | Lesson | 4.5 | The Full State Machine: Back to Patrol | AAP-2 |
+| 2026-10-28 (Wed) | Lesson | 4.4 | Attack: Close-Range Contact Damage | AAP-2 |
+| 2026-11-03 (Tue) | Lesson | 4.5 | The Full State Machine: Patrol, Chase, Attack | AAP-2 |
 | 2026-11-05 (Thu) | Lesson | 5.1 | The Axe: Item Pickups & Inventory Bools | AAP-1 CRD-2 |
-| 2026-11-09 (Mon) | Lesson | 5.2 | The Door: Breaking In with Events | AAP-2 CRD-2 |
-| 2026-11-12 (Thu) | Lesson | 5.3 | Into the Cave: Scene Loading & Mode Switch | CRD-2 |
-| 2026-11-16 (Mon) | Lesson | 6.1 | Gravity & Jump: AddForce Impulse | AAP-2 |
+| 2026-11-09 (Mon) | Lesson | 5.2 | The Door: Opening It with Events | AAP-2 CRD-2 |
+| 2026-11-12 (Thu) | Lesson | 5.3 | Into the Cave: Scenes, Persistence & the Refactor — The architectural payoff. Leaving the overworld destroys every stat the student owns, because a scene load replaces rather than loses. They refactor stats out of PlayerController into the StatManager singleton that has been an empty stub since Unit 2, guard against duplicates, and put the HUD where the game begins. | AAP-1 CRD-2 |
+| 2026-11-16 (Mon) | Lesson | 6.1 | Gravity & Jump: The First Flick | AAP-2 |
 | 2026-11-18 (Wed) | Lesson | 6.2 | Ground Checks: No Infinite Jumps | AAP-2 |
 | 2026-11-20 (Fri) | Lesson | 6.3 | Jump Feel & Double Jump | AAP-2 |
 | 2026-12-01 (Tue) | Studio | 6.5 | Platforming Studio: The Gauntlet — Back from Thanksgiving week. Studio day: build the Gauntlet. | CRD-2 |
@@ -39,7 +39,7 @@ Exam: **Friday, May 14, 2027**, 8:00 AM (Session 1). Create PT due **2027-04-30,
 | 2026-12-15 (Tue) | Studio | 7.5 | Design a Big Cave + Level Studio I | CRD-2 |
 | 2026-12-17 (Thu) | Studio | 7.7 | Level Studio II + Cross-Playtest — Last class before winter break - your cave is playable before you go. | CRD-2 |
 | 2027-01-04 (Mon) | Lesson | 8.1 | Boss Design: Spec It First — The first build that is fully yours. Design on paper before you open Unity. | CRD-2 |
-| 2027-01-06 (Wed) | Lesson | 8.2 | Boss Body, Health Bar & Phases | AAP-1 CRD-2 |
+| 2027-01-06 (Wed) | Lesson | 8.2 | Boss Body, Health & Phases | AAP-1 CRD-2 |
 | 2027-01-08 (Fri) | Lesson | 8.3 | Player Attack: Fight Back | AAP-2 AAP-3 |
 | 2027-01-12 (Tue) | Lesson | 8.4 | Boss Attacks: Patterns & Phases | AAP-2 |
 | 2027-01-14 (Thu) | Lesson | 8.5 | Win, Lose & the Death Loop | CRD-2 |

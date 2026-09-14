@@ -1,133 +1,253 @@
 ---
 // Lesson 8.3 — Player Attack: Fight Back
-// Melee hitbox on mouse click; hitting the boss; the attack contract.
+// The hitbox, the damage window, and the layer-mask reality.
+// CORRECTED: Physics2D.queriesHitTriggers defaults to TRUE, so raycasts and
+// overlaps DO return trigger colliders. A layer mask is the real tool, not
+// the hope that triggers are invisible to queries.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>8.3 — Player Attack: Fight Back</h1>
 
 <p class="lesson-lead">
-    You have a swing animation and an axe. Today the swing stops
-    being decoration: a click spawns a hitbox, the hitbox checks for
-    enemies, and the boss's number goes DOWN. The combat loop — the
-    sentence "I hit it, it hurt" — takes about ten lines.
+    You have a swing animation and an axe sprite, and neither of them has ever hurt anything.
+    Today the swing stops being decoration: a click opens a short damage window, a shape in front
+    of the player asks the physics engine what it is standing in, and the number you built in
+    <a href="8.2.html">8.2</a> goes <em>down</em>. The combat loop — "I hit it, it hurt" — is
+    small. The reason this lesson is long is that the shape you use to ask that question has a
+    side effect most people get wrong, and it will quietly break the jump you wrote in Unit 6.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
+        <span class="activity-label">The Problem: The Physics Engine Answers Question You Did Not Ask</span>
         <span class="activity-time">~10 min</span>
     </div>
 
     <p>
-        Recall the player's attack animation from
-        <a href="1.6.html">1.6</a>: mouse button 0 sets the Attack
-        trigger. That trigger plays frames; frames convince nobody.
-        The QUESTIONS to answer before writing code:
+        An attack hitbox is a shape that exists for about a fifth of a second and then
+        disappears. You already know how to make one from <a href="2.1.html">2.1</a>: a
+        Collider2D with <strong>Is Trigger</strong> ticked, so it reports overlaps instead of
+        shoving things. What you have not met yet is that a trigger is not a private object. It
+        is a full participant in every physics question anyone asks.
     </p>
-    <ul>
-        <li>WHERE does the hitbox live when no attack is happening?
-            (Not "hidden somewhere" — destroyed, or deactivated, or
-            zero-sized. Pick one and say why.)</li>
-        <li>WHEN does damage happen — the instant of the click, or
-            during part of the swing? (Real games: a window within
-            the animation. Ours: a fixed window after the click —
-            simpler, same contract.)</li>
-        <li>WHAT stops you from hitting the boss EVERY frame of the
-            window? (You already own the answer: the
-            <a href="3.3.html">3.3</a> cooldown pattern — your
-            swing has a fire rate, exactly like the turret.)</li>
-    </ul>
+
+    <p>
+        Here is the fact that decides this whole lesson, and it is worth reading twice:
+        <strong><code>Physics2D.queriesHitTriggers</code> defaults to <code>true</code>.</strong>
+        It is a global setting, and while it is true, <em>every</em> physics query in your game —
+        <code>Physics2D.Raycast</code>, <code>Physics2D.OverlapCircle</code>,
+        <code>Physics2D.OverlapBox</code> — <strong>returns trigger colliders</strong>, unless
+        that particular query's layer mask excludes them.
+    </p>
+
+    <div class="callout trap">
+        <strong>A trigger absolutely can confuse a raycast. Do not build on the opposite belief.</strong>
+        You may have heard that ground checks are safe from triggers because "triggers are not
+        what raycasts look for". That is the wrong model, and it produces one of the nastiest
+        bugs in this project. Your ground check asks a question — <em>what is directly under my
+        feet?</em> — and a raycast returns the <em>first</em> collider it meets. Put your attack
+        hitbox near the player's feet and it becomes a candidate answer. The ray hits the hitbox,
+        your <code>CompareTag("Ground")</code> check fails, and for that frame your player
+        believes they are standing in mid-air.
+        <br><br>
+        The symptom is a jump that works <em>most</em> of the time — usually failing exactly when
+        you are swinging, or standing still, or both. You spent Unit 6 chasing that class of bug.
+        This is where it comes back.
+    </div>
+
+    <p>
+        So the question is not <em>whether</em> the engine will hand your hitbox to a query. It
+        will. The question is which tool you use to make it stop. There are four, and they are
+        not equivalent:
+    </p>
+
+    <table>
+        <tr><th>Tool</th><th>What it actually does</th><th>What it costs</th></tr>
+        <tr>
+            <td><strong>(a) A layer mask on the query</strong></td>
+            <td><code>Physics2D.Raycast(origin, direction, distance, groundLayer)</code> names the layers the query is allowed to see. Anything outside the mask does not exist as far as that call is concerned.</td>
+            <td>You must create the layers. <strong>This project has no custom physics layers yet</strong> — they are yours to add in Project Settings, and every query you already wrote that wants to see the new object needs the mask added too.</td>
+        </tr>
+        <tr>
+            <td><strong>(b) The built-in <code>Ignore Raycast</code> layer</strong></td>
+            <td>An unmasked raycast uses <code>Physics2D.DefaultRaycastLayers</code>, which <em>already</em> excludes the built-in <code>Ignore Raycast</code> layer. Put the hitbox on it and every unmasked query in the game skips it — for free, with no code.</td>
+            <td>It is a blunt weapon: if something you genuinely want to find also lives on that layer, unmasked queries will miss it too. It is also a poor name for "the layer your attack lives on".</td>
+        </tr>
+        <tr>
+            <td><strong>(c) <code>Physics2D.queriesHitTriggers = false;</code></strong></td>
+            <td>One global switch that removes triggers from <em>every</em> query in the game at once.</td>
+            <td>Also global: any query that legitimately needs to find a trigger — an
+            <code>OverlapCircleAll</code> that gathers pickups, say — silently stops working, with
+            no error. It is also a runtime setting, so it must be re-applied from code on every
+            play session, not ticked once in the Inspector.</td>
+        </tr>
+        <tr>
+            <td><strong>(d) Query everything, filter by tag</strong></td>
+            <td><code>OverlapCircleAll</code> with no mask, then skip every result whose tag is not the one you wanted.</td>
+            <td>Works with zero setup, and it is what most first attempts look like. It allocates an array on every call, and it is fragile: the day something new is tagged <code>Ground</code>, your floor has a new member.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>Which tool is "correct"?</strong> There is no universal answer, and you should be
+        able to argue for the one you pick. The professional default is (a) — narrow the
+        <em>question</em>, not the <em>world</em>. Option (c) changes the game for every system
+        you will ever write, to solve a problem in one of them; that is a large price for a small
+        fix. Option (b) is the cheapest thing that works today and is a perfectly defensible
+        choice for a project this size. Pick one, write down why, and be able to say what it cost.
+    </div>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The AP exam calls two-way interaction "input →
-            program behavior → output." Write this fight as that
-            sentence: input (___), behavior (___), output (___).
-            Where does the OUTPUT become a new INPUT (the boss
-            reacting)? That loop — you act, world answers — is
-            what interactivity IS.
-        </p>
+        <h3>Socratic: Sensors and the Questions They Answer</h3>
+        <ol>
+            <li>A raycast returns the <em>first</em> collider it meets along its path. Why does that single fact turn a stray trigger into a ground-check bug rather than a harmless extra result?</li>
+            <li>Your ground check and your attack query are both asking the physics engine a question — "what is under my feet" and "what is in front of me". Which of the two is the hitbox a legitimate answer to?</li>
+            <li>Option (c) fixes the hitbox and breaks every other query in the game that wanted to find a trigger. Which query in your own project, written by you, would break?</li>
+            <li>Option (b) is free but blunt. What is the long-term cost of putting two very different objects on the same built-in layer?</li>
+            <li>You are going to swing at the boss. Whose collider does the query need to find — the boss's body, or a separate one? What did you decide in <a href="8.2.html">8.2</a>, and does your mask match that decision?</li>
+            <li>Before you build: what do you predict happens to your jump if you put the hitbox on the player's default layer and change nothing else?</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Step 1 — the hitbox.</strong> Child of the player:
-    a GameObject named AttackHitbox with a Box Collider 2D, Is
-    Trigger, sized to reach one tile in front (about 1.2 × 1). No
-    Renderer. On the "Player" physics layer is fine — your
-    <a href="7.2.html">7.2</a> raycast masks mean the hitbox will
-    never confuse the ground check (it is a trigger, and triggers
-    are not what ground raycasts ask about).</p>
+    <p>
+        Every one of these is about a sensor that reports more than the operator wanted. Read
+        them for the <em>shape</em> of the fix, then decide which one your hitbox is.
+    </p>
 
-    <p><strong>Step 2 — the window + cooldown.</strong> In
-    PlayerController, where the mouse-0 branch already sets the
-    Attack trigger, add the damage window in the starter's voice:</p>
-    <pre><code>[SerializeField] private float attackRange = 1.2f;
-[SerializeField] private float attackCooldown = 0.8f;
-private float lastAttackTime;
+    <p><strong>Example 1 — The warehouse metal detector arch (narrow the question, not the world):</strong></p>
+    <pre><code>// The arch reports everything that walks through it, trolleys
+// included. You fix that by telling the arch which aisle to watch,
+// not by hoping the trolley walks quietly.</code></pre>
 
-private void Update()
+    <p><strong>Example 2 — A corridor motion light (a sensor with a wider cone than you want):</strong></p>
+    <pre><code>// The light triggers on the building's own curtain moving.
+// Nobody fixes this by trusting the sensor less - they narrow
+// what it is pointed at.</code></pre>
+
+  <p><strong>Example 3 — A stamping press (the cycle, not the finger, is the limit):</strong></p>
+    <pre><code>// A press stamps once per cycle. Holding the button down does not
+// stamp twice - the cooldown is mechanical, so it cannot be cheated.</code></pre>
+
+    <p><strong>Example 4 — A stadium turnstile (one entry per rotation):</strong></p>
+    <pre><code>// The turnstile counts one person per rotation, not one per person
+// leaning on it. Same counting problem as a held mouse button.</code></pre>
+
+    <p><strong>Example 5 — A crane's limit switch (a guard that fires regardless of intent):</strong></p>
+    <pre><code>// The hoist stops at the top of its travel whether or not the
+// operator is still holding the lever. The guard outranks the input.</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>In examples 3 and 4, the limit is mechanical rather than a rule someone remembers to follow. How would you make your attack's rate limit mechanical in the same way?</li>
+            <li>You already built a fire-rate cooldown for the turret in <a href="3.3.html">3.3</a>. Which parts of that idea transfer to a swing, and which part does not — what is different about a projectile that travels and a hitbox that appears?</li>
+            <li>Example 5's guard outranks the operator. If the player holds the mouse button down for two full seconds, what should happen — and which of your variables enforces that?</li>
+            <li>Example 1's fix narrows what the sensor looks at. If you choose that tool, which layers does your ground check need to name, and which layers does your attack query need to name?</li>
+            <li>Predict, in writing: you swing while standing on the ground. Does your player's <code>IsWalking</code> or ground check flicker for a frame? If it does, which of the four tools in the table fixes it?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: The Hitbox, the Window, the Query</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>
+        <strong>Step 1 — build the hitbox object.</strong> Create a child of your Player named
+        <code>AttackHitbox</code>. Give it a BoxCollider2D with <strong>Is Trigger</strong>
+        ticked, sized to reach roughly one tile in front — about 1.2 wide by 1 tall. No
+        SpriteRenderer (add one temporarily in a bright colour while you are debugging, then
+        remove it). Then answer the layer question from the table above and act on it. This is
+        not a detail: it is the decision this lesson exists to teach.
+    </p>
+
+    <p>
+        <strong>Step 2 — find the branch you already wrote.</strong> In
+        <a href="1.6.html">1.6</a> you wired mouse button 0 to your attack animation. That code
+        is already in your <code>PlayerController</code> — the branch that calls the Attack
+        trigger. Note two things about it before you touch it: the Animator is not on the Player
+        root, it is on the child named <code>Sprite</code> (which is why you reached it with
+        <code>GetComponentInChildren</code>), and the trigger is a <em>request to play frames</em>
+        — it has no idea a hitbox exists.
+    </p>
+
+    <p>
+        <strong>Step 3 — the window and the cooldown.</strong> Decide when damage happens and how
+        often it may happen, then add exactly two things to that existing branch: a time gate, and
+        a call that opens the damage window. Shape only — you write the body:
+    </p>
+    <pre><code>private void TryHitBoss()   // one window, one query, one damage call
 {
-    if (Input.GetMouseButtonDown(0) &amp;&amp; Time.time &gt;= lastAttackTime + attackCooldown)
-    {
-        lastAttackTime = Time.time;
-        animator.SetTrigger("Attack");   // your 1.6 line
-        TryHitEnemies();
-    }
-}
-
-private void TryHitEnemies()
-{
-    Collider2D[] hits = Physics2D.OverlapBoxAll(
-        transform.position + (Vector3)(Vector2.right * facingDir * 0.7f),
-        new Vector2(attackRange, 1f), 0f, enemyLayer);
-
-    foreach (Collider2D hit in hits)
-    {
-        BossManager bm = hit.GetComponent&lt;BossManager&gt;();
-        if (bm != null) bm.ChangeHealth(-1);
-    }
+    // query what is in front of me, then damage what owns boss health
 }</code></pre>
-    <p>facingDir is your <a href="4.1.html">4.1</a> sign trick:
-    1 or −1, wherever you last read your horizontal input. If your
-    swing should hit ALL directions (a spin), drop facingDir —
-    your spec decides, code obeys.</p>
 
-    <p><strong>Step 3 — wire the boss.</strong> The boss collider is
-    on the enemyLayer (set it!). Click near the boss: the bar from
-    <a href="8.2.html">8.2</a> falls by one. YOU HAVE A FIGHT.
-    Everything else this unit is tuning, phases, and drama.</p>
+    <p>
+        <strong>Step 4 — point it somewhere.</strong> The hitbox has to be placed on the side you
+        are facing. Read the table below and decide where that direction comes from.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: when does damage happen?</strong>
+        <ul>
+            <li>Does damage land the instant of the click, or partway through the swing? Argue from the player's point of view: which one matches what they <em>see</em>?</li>
+            <li>If you use a fixed delay after the click, what is the delay measured against — and what happens to it if the animation is ever retimed?</li>
+            <li>Could the window be driven by the animation itself rather than a timer — an event placed on the clip, or a check against the clip's normalised time? What does that buy you, and what does it cost you in complexity?</li>
+            <li>While the window is open, how many frames pass? What stops each of those frames from dealing damage?</li>
+            <li>Can the player swing again before the animation finishes? Decide, and name the variable that enforces your decision.</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: where does "the direction I am facing" come from?</strong>
+        <ul>
+            <li>Your animator already carries a <code>WalkDir</code> integer (0 = Up, 1 = Horiz, 2 = Down). Does it record <em>which</em> horizontal direction — and if not, what does it fail to tell you?</li>
+            <li>If you add a facing field of your own, every branch that reads movement input now has to keep it up to date. What is the bug when one branch forgets?</li>
+            <li>Could you simply read the movement input again at the moment of the swing, instead of storing it? What happens to that idea when the player swings while standing completely still?</li>
+            <li>Or does your swing hit all directions — a spin? Name what that costs you in the fight your <a href="8.1.html">8.1</a> spec describes.</li>
+            <li>Where does the hitbox go when no attack is happening — destroyed, deactivated, or simply moved out of the way? Pick one and say why the other two are worse.</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: how does the hitbox find the boss?</strong>
+        <ul>
+            <li><code>Physics2D.OverlapBoxAll</code> at an offset, with a layer mask — what are its arguments, and which of them is the layer mask?</li>
+            <li><code>OnTriggerEnter2D</code> on the hitbox itself, with a small script of its own — what does that cost you in objects and scripts?</li>
+            <li><code>OnTriggerStay2D</code> plus a record of what this swing has already hit — how do you stop one swing dealing twenty frames of damage, and what data structure holds "already hit"?</li>
+            <li>Whichever you choose, how do you get from the <em>thing you found</em> to the boss's health component? What method do you call on it, and what sign does its argument carry?</li>
+            <li>What happens if the query finds something that has no boss health component at all? Why is that a normal case rather than an error?</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: The Phantom Swing</span>
+        <span class="activity-time">~20 min</span>
+    </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The phantom swing</h3>
+        <h3>Bug Hunt: What the Hitbox Touches That It Should Not</h3>
         <ol>
-            <li>Set attackCooldown to 0 and hold the mouse. How many
-                hits per second does a held button deal — and why
-                did the turret teach you to predict this
-                (<a href="3.3.html">3.3</a>)?</li>
-            <li>OverlapBoxAll with the wrong layer mask (Everything).
-                What else does your swing hit — pickups?
-                Projectiles? What does the projectile's Ground-tag
-                destroy teach you about collateral damage?</li>
-            <li>The boss deals CONTACT damage
-                (<a href="4.4.html">4.4</a> style) AND you must
-                stand close to hit it. Play the range game: how
-                many frames are you inside the boss's touch when
-                you land your swing — and should the boss have a
-                melee cooldown LONGER than your swing's (argue
-                with numbers)?</li>
-            <li>Hit the boss in PHASE 3 — does your attack still
-                work? Why must damage-dealing be phase-INDEPENDENT
-                (a hint: what did phase guards protect
-                <a href="8.2.html">8.2</a> from)?</li>
+            <li>Stand still on solid ground and swing. Watch the Console for anything your ground check prints. Does it flicker for a frame? If it does, which of the four tools in the first table would stop it, and which one did you pick?</li>
+            <li>Set the ground check's layer mask to nothing (or remove the mask entirely) and swing again near a trigger. What does your player now believe about the floor — and what does that prove about what raycasts return?</li>
+            <li>Place a Coin a short distance in front of the player — close enough for the hitbox but clearly out of reach of the player's own collider. Swing. Does the coin vanish? Trace the message through your own pickup code to explain why the hitbox collected it.</li>
+            <li>Set your attack cooldown to zero and hold the mouse button down. How many hits per second land, and what did <a href="3.3.html">3.3</a> teach you to predict about a rule that lives only in the input?</li>
+            <li>Leave the query's mask wide open so it sees everything. What else does a swing now hit — pickups, projectiles, the lever, the player's own colliders? Which of those results is a real problem and which is merely noise?</li>
+            <li>Read the documentation page for <code>Physics2D.Raycast</code> and find the sentence about a ray whose origin lies <em>inside</em> a collider. Does that change how you would place your ground check's origin — and does it explain anything you have seen?</li>
         </ol>
     </div>
 </div>
@@ -140,27 +260,26 @@ private void TryHitEnemies()
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Combat design</h3>
+        <h3>Tinker: Combat Feel and One Optional Upgrade</h3>
         <ol>
-            <li>Tune the range game: attackRange 1.2 vs. boss contact
-                radius. Where does your 8.1 arithmetic land NOW —
-                is the fight still 60–90 seconds? Adjust HP, not
-                the range, until the pace matches the spec.</li>
-            <li>Add hit FEEDBACK: the boss flashes white for 0.1s on
-                taking a hit (a sprite tint swap). Why is
-                "no reaction" the deadliest combat bug even when
-                the numbers work?</li>
-            <li>Commit + push: <code>"8.3a: player melee + boss takes damage"</code>.</li>
+            <li>Add hit feedback: flash the boss's colour for a tenth of a second when a hit lands. Why is "the numbers work but nothing reacts" the deadliest combat bug there is?</li>
+            <li>Time your swing against the boss's contact damage. How many frames are you inside the boss's reach while your own window is open? Is the trade fair — argue with the numbers from your <a href="8.1.html">8.1</a> arithmetic.</li>
+            <li>There is a fully built but <em>unassigned</em> animator controller at <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/Player_Axe.controller</code>. It uses the same parameter names you already drive — <code>IsWalking</code>, <code>WalkDir</code> and <code>Attack</code> — so it can be swapped onto the child <code>Sprite</code> almost as a drop-in. What does it cost you to try it, and what does it buy?</li>
+            <li>Swing at a wall, at a coin, and at the boss. Which of the three should deal damage, and does your mask currently agree with you?</li>
+            <li>Commit and push with a message naming the lesson: <code>"8.3: attack hitbox + damage window + layer fix"</code>.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Build a trigger hitbox and a click window with a cooldown</li>
-            <li>Use OverlapBoxAll with a layer mask and facing direction</li>
-            <li>Connect the swing to BossManager.ChangeHealth and see the bar move</li>
-            <li>Tune the range game against the contact damage trade</li>
+            <li>State what <code>Physics2D.queriesHitTriggers</code> defaults to, and what that means for every query you have written</li>
+            <li>Explain why a trigger hitbox can corrupt a ground raycast, and name the tool you used to prevent it</li>
+            <li>Name the cost of each of the four tools, and defend the one you chose</li>
+            <li>Explain how you get from a collider your query returned to the boss's health, and what sign the argument carries</li>
+            <li>Explain why a coin can be collected by a swing that never touches it</li>
+            <li>State when damage lands inside the swing, and what stops it landing every frame</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -171,11 +290,12 @@ private void TryHitEnemies()
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../docs/unit-08/index.html">Unit 8: Boss Fight</a> — the player-attack reference</li>
-        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — hitboxes are triggers</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — what a trigger is, and every message it sends</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the <code>Physics2D</code> query family and layer masks</li>
     </ul>
-    <p>Next: <a href="8.4.html">8.4 — Boss Attacks: Patterns &amp; Phases</a></p>
+    <p>Next: <a href="8.4.html">8.4 — Boss Attacks: Patterns &amp; Phases</a>, where the thing you are hitting starts hitting back.</p>
 </div>`;
 ---
-<Lesson id="8.3" title="8.3a Player Attack: Fight Back — AP CS Principles" root=".." css="../style.css">
+<Lesson id="8.3" title="8.3 Player Attack: Fight Back — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

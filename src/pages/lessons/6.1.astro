@@ -1,118 +1,298 @@
 ---
-// Lesson 6.1 — Gravity & Jump: AddForce Impulse
-// The platformer begins: Space, AddForce Impulse, gravityScale tuning.
+// Lesson 6.1 — Gravity & Jump: The First Flick
+// Unit 6 opens in the cave (Platformer, build index 2). Nothing in the starter
+// jumps: PlayerController.cs is an empty stub, and the Rigidbody2D the student
+// built in Unit 2 was tuned for a top-down world with Gravity Scale 0. So this
+// lesson is documentation-first: Gravity Scale, Body Type, ForceMode2D, and four
+// honest ways to leave the ground. Every snippet is domain-shifted and
+// function-level. Scene wiring: Start(0) <-> Overworld(1) <-> Platformer(2).
 import Lesson from '../../layouts/LessonLayout.astro';
 
-const body = `<h1>6.1 — Gravity &amp; Jump: AddForce Impulse</h1>
+const body = `<h1>6.1 — Gravity &amp; Jump: The First Flick</h1>
 
 <p class="lesson-lead">
-    You are in the cave now (<a href="5.3.html">5.3</a>), and caves
-    have holes, ledges, and reasons to leave the ground. Today you give
-    your character a jump — one line of physics — and then spend the
-    rest of the hour tuning what that line <em>feels</em> like.
+    The cave is the first place in this game where <em>down</em> means something. Your
+    character has spent five units as a top-down walker with gravity switched off — and it
+    shows. Walk off the edge of the cave floor and you keep going, level, forever. Today you
+    turn gravity back on for this one scene, and then you use the same body to throw the
+    character into the air.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
+        <span class="activity-label">The Problem: The Cave Has No Down</span>
         <span class="activity-time">~10 min</span>
     </div>
 
-    <p>Read the jump branch inside PlayerController.Update — the part
-    that only exists because isPlatformer is true:</p>
-    <pre><code>[SerializeField] private float jumpForce = 10f;
-private Rigidbody2D rb;
-
-...
-
-if (isPlatformer)
-{
-    if (Input.GetKeyDown(KeyCode.Space))
-    {
-        rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-    }
-}</code></pre>
-
     <p>
-        Predict before running: AddForce with mode Impulse applies an
-        INSTANT kick, not a steady push — like a flick, not a hand.
-        So why does the player keep RISING after the flick ends? What
-        field from <a href="5.3.html">5.3</a> pulls them back down,
-        and what number controls how floaty the arc is?
+        <strong>Your goal: fall, then jump.</strong> Open
+        <code>Assets/_Scenes/Platformer.unity</code> — the cave — and press Play. Walk left
+        and right: that still works, because the movement you built in
+        <a href="1.4.html">1.4</a> and rewired in <a href="2.2.html">2.2</a> does not care
+        what the world looks like. Now walk off the edge of the floor and watch.
     </p>
     <p>
-        Second prediction: you hold Space down for two whole seconds.
-        One jump or several? Why does GetKeyDown (not GetKey) decide
-        this — and what would rocket boots feel like with GetKey?
+        Nothing happens. You do not fall, and you do not jump. And neither of those is a bug
+        in your code — they are both consequences of a decision <em>you</em> made two units
+        ago. The Rigidbody2D you gave the Player in <a href="2.1.html">2.1</a> has
+        <strong>Gravity Scale 0</strong>, because a top-down character who obeys gravity
+        falls through the world forever. You were right then. The cave is the first place in
+        the game where you are wrong.
     </p>
+
+    <p><strong>Discover it before you write anything:</strong></p>
+    <ul>
+        <li>Select the Player <em>while the game is running</em>. Find Gravity Scale on the
+            Rigidbody2D, set it to <code>1</code>, and watch what the character does. Then
+            set it to <code>0.3</code>. Describe the difference out loud.</li>
+        <li>Stop Play mode. Look at Gravity Scale again. What happened to the number you just
+            typed? Inspector edits during Play are thrown away on Stop — which is exactly why
+            the next step has to be code, not a checkbox.</li>
+        <li>Now select the Player in the <code>Overworld</code> scene — the top-down hub — and
+            set Gravity Scale to 1 there, then press Play. This is the trap in the other
+            direction. Write down what it costs.</li>
+    </ul>
+
+    <div class="callout info">
+        <strong>Two physics facts, and they are independent.</strong> A body only falls if it
+        is <strong>Dynamic</strong> <em>and</em> its Gravity Scale is above zero — either one
+        alone does nothing. And a jump is not "move up": it is a <em>change in velocity</em>
+        that physics then spends over the next half second. Gravity and jumping are the same
+        mechanic seen from two sides.
+    </div>
+
+    <table>
+        <tr><th>Field on the Rigidbody2D</th><th>What it actually does</th></tr>
+        <tr>
+            <td><code>Body Type</code></td>
+            <td>Dynamic bodies fall and are pushed. Kinematic bodies only move where code puts them and <strong>ignore gravity entirely</strong>. Static never moves. If your character stands still in mid-air with Gravity Scale 5, look here first.</td>
+        </tr>
+        <tr>
+            <td><code>Gravity Scale</code></td>
+            <td>A <strong>multiplier</strong> on the project-wide gravity (Project Settings &rarr; Physics 2D, default <code>-9.81</code> on Y). 0 is off; 1 is Earth; 0.3 is the moon; 3 is a dropped anvil. It only exists for Dynamic bodies.</td>
+        </tr>
+        <tr>
+            <td><code>Mass</code></td>
+            <td>How much the <em>same</em> force moves you. Gravity pulls harder on a heavy body, so mass partly cancels itself out and the jump arc barely changes — but any force you apply by hand divides by mass. Raise mass and your jump gets lower while your fall stays roughly the same.</td>
+        </tr>
+        <tr>
+            <td><code>Linear Damping</code></td>
+            <td>Drag. Bleeds off speed over time. Useful for a floaty "air resistance" feel; a value of 0 keeps your arc a clean parabola.</td>
+        </tr>
+        <tr>
+            <td><code>Constraints</code></td>
+            <td>Freeze Rotation Z is the one you set in <a href="2.2.html">2.2</a> so your character stops tumbling. It still matters in the air: an unfrozen body spins when it clips a corner mid-jump.</td>
+        </tr>
+    </table>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            Every jump you have ever felt was three numbers arguing:
-            jumpForce up, gravityScale down, mass resisting. Which
-            two of those live on the player in the Inspector right
-            now — and which one would you tune FIRST to make the jump
-            feel heavy rather than floaty?
-        </p>
+        <h3>Socratic: Gravity Is a Number You Own</h3>
+        <ol>
+            <li>Real gravity is a constant of the universe. Unity ships it as an <em>Inspector field</em>. Why would a game engine make a law of physics editable per object?</li>
+            <li>Your top-down scenes need Gravity Scale 0 and your cave needs it above 0. Same Player prefab, same script, two different worlds. Where should that difference live — in the script, in the scene, or in both?</li>
+            <li>A Kinematic body ignores gravity, forces and mass entirely. If you set Body Type to Kinematic in the cave, what would your jump code have to do instead to look like a jump?</li>
+            <li>Mass barely changes how fast you <em>fall</em> but strongly changes how high you <em>jump</em>. Explain why one number treats the two cases differently.</li>
+            <li>You can hold a body in the air forever by leaving Gravity Scale at 0 in the cave. Name a game genre where that is a feature rather than a bug.</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
-    <p><strong>Step 1 — the flick.</strong> In the Platformer scene,
-    press Play and tap Space. If the jump already works, do NOT move
-    on: you are going to rebuild it anyway. Comment out the AddForce
-    line, tap Space (nothing — you are a top-down ghost in a
-    platformer body), and retype it. That gap — "nothing" then
-    "flight" — is the whole lesson. AddForce says: apply this force
-    NOW, physics takes over. Impulse means the "now" is one frame,
-    not a dribble.</p>
+    <p>
+        None of these is from a video game. Read each one for what it does in isolation, then
+        decide how it maps onto a jump.
+    </p>
 
-    <p><strong>Step 2 — the tuning triangle.</strong> Three knobs, one
-    jump. Change ONE at a time and write one sentence of feel:
+    <p><strong>Example 1 — The difference between a hand and a flick (bowling alley):</strong></p>
+    <pre><code>// A steady push applied every physics step is a hand on the ball.
+// An impulse is one flick. Same total push. Completely different sport.</code></pre>
+
+    <p><strong>Example 2 — A forklift lifting a pallet:</strong></p>
+    <pre><code>liftBody.AddForce(Vector2.up * forkStrength, ForceMode2D.Impulse); // one shove</code></pre>
+
+    <p><strong>Example 3 — A submarine blowing its ballast tanks:</strong></p>
+    <pre><code>hull.linearVelocity = new Vector2(hull.linearVelocity.x, riseRate); // keep drift, set rise</code></pre>
+
+    <p><strong>Example 4 — A weather balloon (comment only):</strong></p>
+    <pre><code>// A balloon is not "anti-gravity". It is a body with a tiny gravity scale
+// and a huge drag, so it rises slowly and stops rising.</code></pre>
+
+    <p><strong>Example 5 — A trampoline inspection rig (comment only):</strong></p>
+    <pre><code>// The height of a bounce is a velocity the moment the feet leave the mat.
+// Everything after that is gravity spending it.</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>In the forklift example, what would change if you removed the <code>ForceMode2D.Impulse</code> argument? Predict the behaviour in one sentence, then test both in your cave.</li>
+            <li>The submarine keeps its horizontal drift and overwrites only the vertical part. What does that tell you about which component of a velocity a jump should touch?</li>
+            <li>The balloon rises with a tiny gravity scale. Your top-down world used gravity scale 0. What is the difference between <em>nothing falls</em> and <em>something rises</em>?</li>
+            <li>On the trampoline, height is decided at the instant the feet leave the mat. After that, does the player's input matter at all in a plain jump?</li>
+            <li>The bowling example says the same total push can be two different shots. Which of the two would you pick for a jump, and what would the other one be used for in your game?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: How Does a Jump Get Into the Air?</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        There is no <code>Jump()</code> in Unity, and nobody is going to give you one. There
+        are four defensible ways to get a Dynamic body off the ground. Read all four before
+        you pick — you are going to live with this choice for the rest of the year.
+    </p>
+
     <table>
-        <tr><th>Knob</th><th>Try</th><th>Feel sentence</th></tr>
-        <tr><td>jumpForce</td><td>10 → 15 → 5</td><td>"how high" — arcade vs. ant</td></tr>
-        <tr><td>rb.gravityScale</td><td>2 → 4 → 1</td><td>"how heavy" — moon vs. balloon</td></tr>
-        <tr><td>rb.mass</td><td>1 → 5 → 0.5</td><td>how much the SAME force moves you</td></tr>
+        <tr><th>Technique</th><th>How it works</th><th>What it requires</th><th>What it feels like</th><th>The cost</th></tr>
+        <tr>
+            <td><code>AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse)</code></td>
+            <td>One instant change in momentum. You never touch velocity yourself; physics spends it over the following frames.</td>
+            <td>A Dynamic body and Gravity Scale above 0.</td>
+            <td>The classic flick. Arc is a clean parabola.</td>
+            <td>Mass divides into it, so retuning mass silently retunes every jump in the game.</td>
+        </tr>
+        <tr>
+            <td><code>linearVelocity = new Vector2(x, jumpSpeed)</code></td>
+            <td>You overwrite the vertical half of the velocity directly. Physics still owns everything after that.</td>
+            <td>A Dynamic body and Gravity Scale above 0.</td>
+            <td>Identical height every single time, to the pixel.</td>
+            <td>It erases whatever vertical motion was already there — a moving platform's lift, a knockback, a bounce.</td>
+        </tr>
+        <tr>
+            <td><code>AddForce(Vector2.up * thrust, ForceMode2D.Force)</code> every frame while held</td>
+            <td>A continuous push, applied each physics step the key is down.</td>
+            <td>A Dynamic body; some rule that stops it (fuel, ceiling, timer).</td>
+            <td>A rocket, not a jump. Height depends on how long you hold.</td>
+            <td>It is flight. Without a limit your player leaves the level and never comes back.</td>
+        </tr>
+        <tr>
+            <td><code>MovePosition()</code> in steps</td>
+            <td>The body is swept to a target position by code. It never has a velocity at all.</td>
+            <td>A <strong>Kinematic</strong> body, moved in <code>FixedUpdate</code>.</td>
+            <td>Perfectly controlled, weightless, and no arc.</td>
+            <td>A Kinematic body does not fall, so you would have to write gravity yourself — the thing you came here to stop doing.</td>
+        </tr>
     </table>
-    Note the trap: raising mass makes you fall faster AND jump lower.
-    The starter keeps mass at 1 and tunes the other two — that is the
-    convention most platformers use: keep one knob boring so the other
-    two mean something.</p>
 
-    <p><strong>Step 3 — read the arc.</strong> Jump next to a wall and
-    trace the shape your character draws. It is a parabola: the flick
-    gives upward velocity, gravity subtracts from it every frame
-    (that is literally what gravityScale does — a multiplier on the
-    engine's 9.81 m/s²). Halfway up, velocity passes through zero —
-    that hang time at the apex is the floatiest moment in the game,
-    and 6.3 will weaponize it.</p>
+    <div class="callout info">
+        <strong><code>ForceMode2D.Force</code> versus <code>ForceMode2D.Impulse</code> in one
+        sentence.</strong> Force is a push that keeps applying while you keep calling it;
+        Impulse is a single hit. Forget the argument and you get Force — which is a dribble,
+        not a jump. That is the single most common "my jump does nothing" bug in this unit.
+    </div>
+
+    <div class="socratic">
+        <h3>Choose, Then Justify</h3>
+        <ol>
+            <li>Which of the four did you choose, and what does it require you to set on the Rigidbody2D that the other three do not?</li>
+            <li>Row two gives the same height every time; row one gives a height that depends on mass. Which is easier to explain to a teammate in six months, and which is easier to retune?</li>
+            <li>Row three is the only one where holding the key keeps mattering. Is that a jump or a jetpack — and what would have to be true about your level design for a jetpack to be fair?</li>
+            <li>Row four needs a Kinematic body. Read the table in <a href="2.2.html">2.2</a> again: what did a Kinematic body cost you there, and is the price the same here?</li>
+            <li>Whatever you choose, the jump is one line. So what is the actual engineering work of this lesson?</li>
+            <li>Would an enemy or a projectile want the same row as the player? Argue a position before you answer.</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Turn Gravity On, Then Jump</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>
+        <strong>Step 0 — inventory.</strong> Select the Player in the cave scene and list what
+        is on it: Transform, <code>PlayerController</code>, whatever you added in Unit 2 — and
+        the child <code>Sprite</code> carrying the SpriteRenderer and Animator. Confirm a
+        <strong>Rigidbody2D</strong> and a <strong>Collider2D</strong> are both there. If you
+        added them to a scene instance instead of the prefab in Unit 2, the prefab may still
+        be bare — fix that first, or every scene you build from here inherits the problem.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: how does your script know it is in the cave?</strong>
+        Your movement code currently assumes a top-down world. The cave needs the opposite
+        assumptions, and the script has to be told which world it woke up in. Options, all of
+        them used in real projects:
+        <ul>
+            <li><strong>(a) Ask the scene its name</strong> — <code>SceneManager.GetActiveScene().name</code> compared against <code>"Platformer"</code> in <code>Start()</code>. Readable, and it breaks silently if someone renames the scene.</li>
+            <li><strong>(b) Ask the scene its build index</strong> — the cave is index 2. Numbers do not break when a scene is renamed, but they lie when the build order changes.</li>
+            <li><strong>(c) A serialized bool on the prefab, ticked per scene instance</strong> — you can see it in the Inspector without pressing Play. The cost is that every new scene needs someone to remember to tick it.</li>
+            <li><strong>(d) A separate component that only exists on the cave's Player</strong> — the component's presence <em>is</em> the flag. Costs one more file and a <code>GetComponent</code>.</li>
+            <li>Whatever you pick: if you already built a scene-mode flag earlier in the year, reuse it. Two flags that both mean "which world am I in" is how a project starts rotting.</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: gravity.</strong>
+        <ul>
+            <li>Where do you set Gravity Scale above zero for the cave, and where — if anywhere — do you set it back to 0? Name the exact point in the lifecycle (a field default, <code>Start()</code>, or every frame).</li>
+            <li>If you write <code>gravityScale = 1</code> inside <code>Update()</code> unconditionally, what happens to the top-down Overworld? Go and check rather than guessing.</li>
+            <li>What value do you start with for the cave — 1, 3, 0.5? Write down the number and one word for the feel, before you tune it.</li>
+            <li>Is your top-down scene still correct after this change? The test is not "does the cave work" — it is "does the <em>other</em> scene still work".</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the flick.</strong>
+        <ul>
+            <li>Which key, and which of <code>GetKey</code> or <code>GetKeyDown</code>? What does holding the key for two seconds do under each one?</li>
+            <li>Where does the <code>Rigidbody2D</code> reference come from, and when do you cache it? Does it live on the same GameObject as your script, or on the child <code>Sprite</code>? Look before you type.</li>
+            <li>Does the jump belong in <code>Update()</code> or <code>FixedUpdate()</code>? Read the docs for what a physics step is and how often it runs compared to a frame.</li>
+            <li>What is the magnitude — a serialized field so a designer can tune it, or a magic number? Which one will you thank yourself for in <a href="6.3.html">6.3</a>?</li>
+            <li>How do you know it worked? Write the Console line that proves the jump fired, and the second one that proves gravity is pulling you back down.</li>
+        </ul>
+    </div>
+
+    <p>
+        <strong>The tuning triangle.</strong> Change one number at a time and write one
+        sentence of feel for each, in a file you keep:
+    </p>
+
+    <table>
+        <tr><th>Knob</th><th>Try</th><th>The sentence you write</th></tr>
+        <tr><td>jump force</td><td>half, then double</td><td>"how high" — arcade versus ant</td></tr>
+        <tr><td>Gravity Scale</td><td>0.5 &rarr; 1 &rarr; 4</td><td>"how heavy" — moon versus dropped stone</td></tr>
+        <tr><td>Mass</td><td>1 &rarr; 5</td><td>how much the same push moves you — and whether your fall changed at all</td></tr>
+    </table>
+
+    <div class="callout trap">
+        <strong>Gravity off plus an impulse is not a jump — it is an escape.</strong> If the
+        cave's Player keeps Gravity Scale 0 and you add an impulse, the character rises and
+        <em>never stops rising</em>. There is no error and no warning; the game simply has no
+        ceiling. When a jump "works but feels wrong", check Gravity Scale and Body Type before
+        you touch your code.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: The Physics Faults</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The broken jump</h3>
+        <h3>Bug Hunt</h3>
         <ol>
-            <li>Delete the <code>ForceMode2D.Impulse</code> argument
-                (keep the force). Tap Space. Describe the difference
-                — and explain it using "one frame vs. dribble."</li>
-            <li>Swap Vector2.up for Vector2.down. What did you build
-                instead of a jump — and what kind of game mechanic
-                IS that (a stomp!)?</li>
-            <li>Set gravityScale to 0 in the Platformer scene (the
-                branch in Start sets it for you — fight it). What
-                happens after ONE jump, and why does "no gravity" and
-                "no jump" end in the same place?</li>
-            <li>Change GetKeyDown to GetKey and hold Space. Count the
-                jumps per second — and why will
-                <a href="6.2.html">6.2</a> make this bug impossible
-                rather than merely annoying?</li>
+            <li>Remove the <code>ForceMode2D.Impulse</code> argument and keep the force. Tap the key. What did the jump become, and why does a "dribble" look like nothing at all in a single frame?</li>
+            <li>Set Body Type to <strong>Kinematic</strong> and press the key. Does anything move? Which single word in the Rigidbody2D documentation explains it?</li>
+            <li>Set Gravity Scale to 0 in the cave with the jump code still in place. Describe the first two seconds after one press — and why is "no gravity" worse than "no jump"?</li>
+            <li>Jump in the cave and watch the camera. Does it follow you upward? Find the component on Main Camera, read its fields, and work out which setting is holding it still. (<em>Assets/Scripts/Package Scripts</em> is worth knowing by now.)</li>
+            <li>Set Gravity Scale to 8 and jump onto a raised platform. Where do you land relative to where you aimed, and what does that tell you about tuning gravity and jump force as a <em>pair</em>?</li>
+            <li>Leave the jump in <code>Update()</code> but move the gravity change into <code>FixedUpdate()</code>, then set the gravity change to run every frame. Do you see any difference at 60 fps? When would you see it — and on whose laptop?</li>
         </ol>
     </div>
 </div>
@@ -125,29 +305,26 @@ if (isPlatformer)
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Jump design</h3>
+        <h3>Tinker: Jump Design</h3>
         <ol>
-            <li>Tune a "sticky" jump: gravityScale 4, jumpForce 14.
-                Then a "floaty" one: 1.5 and 8. Which fits a cave
-                full of spikes — and why do most action games choose
-                sticky?</li>
-            <li>Variable jump height (the classic): release Space
-                early to jump LOW. What would you cut off mid-flight
-                — hint: the rb's velocity.y? Why is that fairer than
-                it sounds?</li>
-            <li>Hard: jump on a MOVING platform. What does AddForce
-                do to the platform's velocity — and why do real games
-                parent the rider instead?</li>
+            <li>Tune a "sticky" jump and a "floaty" one — two very different pairs of gravity and force. Which one suits a cave full of hazards, and what does each do to how far ahead a player can see?</li>
+            <li>Variable jump height, the classic: releasing the key early produces a shorter hop. Which single quantity would you cut off mid-rise, and why is that fairer than it sounds?</li>
+            <li>Make the character jump <em>downward</em> through a platform. What has to be true about the platform's collider for that to work at all?</li>
+            <li>Untick the camera's vertical lock and play your cave again. What does the room read like now, and what does the camera do at the top of a jump?</li>
+            <li>Try a jump from a moving platform. Which of your four techniques would survive the ride, and which would fight it?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain Impulse vs. continuous force in feel-words</li>
-            <li>Tune jumpForce / gravityScale / mass and say what each changes</li>
-            <li>Explain the parabola: flick up, gravity subtracts, apex, fall</li>
-            <li>Explain GetKeyDown vs GetKey for one-shot actions</li>
+            <li>Explain Gravity Scale, Body Type and Mass as three separate ideas, not one</li>
+            <li>Say where the cave's gravity gets turned on, and prove the top-down world still works</li>
+            <li>Compare the four ways to leave the ground and defend the one you wrote</li>
+            <li>Explain Force versus Impulse in feel-words</li>
+            <li>Explain the parabola: a velocity that gravity spends, an apex, and a fall</li>
+            <li>Explain <code>GetKeyDown</code> versus <code>GetKey</code> for one-shot actions</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -157,12 +334,12 @@ if (isPlatformer)
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the jump feel guide</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — AddForce, ForceMode2D</li>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — gravity, force modes and jump feel in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Rigidbody2D, AddForce, ForceMode2D</li>
     </ul>
-    <p>Next: <a href="6.2.html">6.2 — Ground Checks: No Infinite Jumps</a></p>
+    <p>Next: <a href="6.2.html">6.2 — Ground Checks: No Infinite Jumps</a>, where you discover that your jump works perfectly in mid-air too.</p>
 </div>`;
 ---
-<Lesson id="6.1" title="6.1a Gravity &amp; Jump: AddForce Impulse — AP CS Principles" root=".." css="../style.css">
+<Lesson id="6.1" title="6.1 Gravity &amp; Jump: The First Flick — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

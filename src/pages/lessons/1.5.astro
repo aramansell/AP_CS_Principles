@@ -1,16 +1,18 @@
 ---
 // Lesson 1.5 — Movement II: Speed, deltaTime & Tuning
-// Evaluating multiple ways to move in Unity (Translate vs MovePosition vs Velocity vs AddForce),
-// understanding Time.deltaTime for frame independence, and live tuning in the Inspector.
+// Evaluating multiple ways to move in Unity (Translate vs MovePosition vs
+// linearVelocity vs AddForce), understanding Time.deltaTime for frame
+// independence, and live tuning in the Inspector.
+// Framed around the discovery from 1.4: transform.Translate walks through walls.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>1.5 — Movement II: Speed, deltaTime &amp; Tuning</h1>
 
 <p class="lesson-lead">
-    Movement works, but does it <em>feel</em> right? In game development, feel is
-    the intersection of physics, math, and tuning. Today you compare the different functions
-    Unity provides for moving objects, learn why <code>Time.deltaTime</code> is critical
-    for fair gameplay, and tune your character's speed knobs live.
+    Your character moves — but it walks straight through walls, and it does not yet
+    <em>feel</em> like anything. Today you take both problems seriously. You will compare
+    every way Unity offers to move an object, learn why <code>Time.deltaTime</code> is
+    what makes speed fair across machines, and tune your character until it feels right.
 </p>
 
 <!-- ============================================================ -->
@@ -21,47 +23,56 @@ const body = `<h1>1.5 — Movement II: Speed, deltaTime &amp; Tuning</h1>
     </div>
 
     <p>
-        In Unity, there is rarely just one way to solve a problem. Depending on your game's
-        design, different movement functions offer different advantages. Read this comparison
-        of four common Unity movement techniques:
+        In Unity there is rarely just one way to solve a problem. Each of these four movement
+        techniques exists because it solves a problem the others handle badly. Read the
+        trade-offs — including which ones demand a component your character does not have yet:
     </p>
 
     <table>
-        <tr><th>Movement Technique</th><th>How It Works</th><th>Best Used For</th></tr>
+        <tr><th>Technique</th><th>How it works</th><th>Needs a Rigidbody2D?</th><th>Best for</th></tr>
         <tr>
             <td><code>transform.Translate(vector)</code></td>
-            <td>Directly offsets the object's coordinates. Bypasses the physics simulation during movement.</td>
-            <td>Simple top-down games, moving UI, linear projectiles, bullets without gravity.</td>
+            <td>Directly offsets the object's coordinates. Skips the physics engine entirely.</td>
+            <td><strong>No</strong></td>
+            <td>Simple top-down games, moving UI, linear projectiles, bullets without gravity</td>
         </tr>
         <tr>
             <td><code>Rigidbody2D.MovePosition(position)</code></td>
-            <td>Sweeps the physics body to the target position, stopping cleanly against solid colliders.</td>
-            <td>Kinematic characters, moving platforms, top-down games that must never clip into walls.</td>
+            <td>Sweeps the physics body to a target position, stopping cleanly against solid colliders.</td>
+            <td>Yes</td>
+            <td>Kinematic characters, moving platforms, top-down games that must never clip into walls</td>
         </tr>
         <tr>
             <td><code>Rigidbody2D.linearVelocity = vector</code></td>
-            <td>Assigns a direct velocity vector to the physics body. Unity's physics engine handles movement.</td>
-            <td>Snappy platformers, arcade physics, carrying momentum across surfaces.</td>
+            <td>Assigns a velocity vector to the physics body. The physics engine does the moving.</td>
+            <td>Yes</td>
+            <td>Snappy platformers, arcade physics, carrying momentum across surfaces</td>
         </tr>
         <tr>
             <td><code>Rigidbody2D.AddForce(vector)</code></td>
-            <td>Applies a physical push or impulse to the object, factoring in mass, drag, and inertia.</td>
-            <td>Jumping, thrusters, ice physics, knockback from explosions or enemy hits.</td>
+            <td>Applies a physical push or impulse, factoring in mass, drag, and inertia.</td>
+            <td>Yes</td>
+            <td>Jumping, thrusters, ice physics, knockback from explosions or enemy hits</td>
         </tr>
     </table>
+
+    <p>
+        Note what <code>MovePosition</code> buys you: it <em>sweeps</em> the body, meaning it
+        checks the path rather than teleporting. That is the difference between walking into a
+        wall and walking through one.
+    </p>
 
     <div class="socratic">
         <h3>Socratic: Choosing the Right Tool for the Job</h3>
         <ol>
-            <li>What happens if a high-speed character uses <code>transform.Translate</code> to move through a thin wall? (Hint: If the character jumps 2 units in one frame, what happens to the 0.5-unit wall in between?)</li>
-            <li>In what scenarios would you choose <code>Rigidbody2D.MovePosition</code> over <code>transform.Translate</code>?</li>
-            <li>Why would a game about a spaceship drifting in space prefer <code>AddForce</code> over <code>Translate</code>?</li>
-            <li>For our top-down overworld, why is starting with <code>transform.Translate</code> clean and simple for learning?</li>
+            <li>You proved in <a href="1.4.html">1.4</a> that <code>transform.Translate</code> walks through walls. In your own words, why does <code>MovePosition</code> not?</li>
+            <li>Look at the third column. Three of these four options need a component your Player does not have yet. What would you have to add to your character, and where would you add it — on the Player, or on the child Sprite?</li>
+            <li>Why would a game about a spaceship drifting through space prefer <code>AddForce</code> over <code>Translate</code>?</li>
+            <li><strong>The real question.</strong> This game is a top-down overworld where you explore, collect things, and later take damage from hazards. Which of these four does <em>this</em> game actually need? Argue for one, and name what you give up by choosing it.</li>
         </ol>
     </div>
 </div>
 
-<!-- ============================================================ -->
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
@@ -70,36 +81,38 @@ const body = `<h1>1.5 — Movement II: Speed, deltaTime &amp; Tuning</h1>
     </div>
 
     <p>
-        Examine how each function and language feature operates in isolation across completely different systems:
+        Examine how each function and language feature behaves in isolation, across completely
+        different systems:
     </p>
 
-    <p><strong>Example 1 — Fallback Defaults vs. Inspector Overrides on a Racing Kart:</strong></p>
-    <pre><code>// Code sets a fallback default, but whatever number is typed into the Inspector wins!
+    <p><strong>Example 1 — Fallback defaults versus Inspector overrides, on a racing kart:</strong></p>
+    <pre><code>// Code sets a fallback default, but whatever number is typed into the Inspector wins
 [SerializeField] private float topSpeedMph = 45.0f;</code></pre>
 
-    <p><strong>Example 2 — Frame-Rate Independence on a Grandfather Clock Pendulum:</strong></p>
-    <pre><code>// Multiplying rate by Time.deltaTime guarantees 30 degrees of rotation per second,
-// whether running on a 30 FPS phone or a 240 FPS gaming PC:
+    <p><strong>Example 2 — Frame-rate independence, on a grandfather clock pendulum:</strong></p>
+    <pre><code>// Multiplying a rate by Time.deltaTime guarantees 30 degrees per SECOND,
+// whether this runs on a 30 FPS phone or a 240 FPS gaming PC
 float degreesThisFrame = swingSpeedDegreesPerSecond * Time.deltaTime;</code></pre>
 
-    <p><strong>Example 3 — Four Movement Function Signatures Compared:</strong></p>
+    <p><strong>Example 3 — Four movement signatures compared:</strong></p>
     <pre><code>// 1. Direct coordinate offset (arcade / bullets / moving UI):
 transform.Translate(new Vector3(stepDistance, 0, 0));
 
-// 2. Kinematic sweep (stops cleanly against walls without penetration):
+// 2. Kinematic sweep (stops cleanly against walls, never penetrates):
 rb2d.MovePosition(rb2d.position + stepVector);
 
 // 3. Velocity assignment (arcade platformers):
 rb2d.linearVelocity = new Vector2(runSpeed, rb2d.linearVelocity.y);
 
-// 4. Force impulse (rocket thrusters / jump launch):
+// 4. Force impulse (thrusters / a jump launch):
 rb2d.AddForce(Vector2.up * launchThrust, ForceMode2D.Impulse);</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>If a designer changes <code>topSpeedMph</code> to <code>60.0f</code> in the Inspector, but the C# file says <code>= 45.0f</code>, which number runs in the game?</li>
-            <li>In Example 3, why does <code>transform.Translate</code> take a relative displacement vector (how far to step right now), whereas <code>MovePosition</code> takes an absolute target coordinate in world space?</li>
+            <li>A designer types <code>60.0</code> into the Inspector, but the C# file still says <code>= 45.0f</code>. Which number does the game use? What does that tell you about who is really in charge of a serialized field?</li>
+            <li>Why does <code>transform.Translate</code> take a <em>relative</em> displacement ("how far to step right now"), while <code>MovePosition</code> takes an <em>absolute</em> target coordinate in world space?</li>
+            <li>In signature 3, why does the code preserve <code>rb2d.linearVelocity.y</code> instead of simply setting both components? What would break if it zeroed them both?</li>
         </ol>
     </div>
 </div>
@@ -111,26 +124,40 @@ rb2d.AddForce(Vector2.up * launchThrust, ForceMode2D.Impulse);</code></pre>
         <span class="activity-time">~20 min</span>
     </div>
 
-    <p><strong>The live-tuning workflow:</strong></p>
+    <p>
+        Numbers you guess at in the editor are almost never the numbers that feel right in
+        motion. Professional designers tune <em>while the game runs</em>. Here is the workflow
+        you will use for the rest of the year:
+    </p>
     <ol>
-        <li>Press Play in Unity. Walk around the overworld.</li>
-        <li>While the game is running, select the Player in the Hierarchy. In the Inspector, change <code>xSpeed</code> to <code>3</code>. Walk around. Too sluggish?</li>
-        <li>Change <code>xSpeed</code> to <code>12</code>. Notice how responsive and rapid it feels.</li>
-        <li>Test several numbers until you find the speed that feels right for exploration (try between 4 and 7).</li>
-        <li><strong>Remember your favorite number, exit Play mode</strong>, and set that value in edit mode so it saves permanently!</li>
+        <li>Press Play in Unity, then walk around the overworld.</li>
+        <li>While the game is still running, select the Player in the Hierarchy and change your speed knob in the Inspector. Walk again. Too sluggish?</li>
+        <li>Try a much larger number. Notice how twitchy and uncontrollable it becomes.</li>
+        <li>Bisect your way to a number that feels right for exploring a world this size. Try somewhere between 4 and 7 as a starting point.</li>
+        <li><strong>Write the number down, exit Play mode</strong>, and set that value in edit mode so it persists.</li>
     </ol>
 
     <div class="callout trap">
-        <strong>Remember the play-mode rule:</strong> Any value you change while the Play button is blue
-        resets when you stop the game. Use play mode to <em>find</em> your number, then enter it in edit mode to <em>keep</em> it.
+        <strong>Remember the play-mode rule from <a href="1.2.html">1.2</a>:</strong> any value
+        you change while the Play button is blue resets when you stop the game. Use play mode
+        to <em>find</em> your number, then enter it in edit mode to <em>keep</em> it.
     </div>
+
+    <p>
+        While you are tuning, also settle the design question you argued about in the Socratic
+        section. If you decided to add a physics body, do it now — add the component in edit
+        mode, then re-tune, because a physics-driven character will not feel the same as a
+        translated one. Either choice is defensible. What matters is that you made it on
+        purpose.
+    </p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: The deltaTime Abstraction</h3>
         <ol>
-            <li>Temporarily delete <code>* Time.deltaTime</code> from <code>xVector</code> in <code>Update()</code>. Run the game. What happens when you tap D?</li>
-            <li>If a game runs at 60 frames per second on your laptop and 240 frames per second on a high-end desktop, how many times farther would the player move on the faster machine without <code>Time.deltaTime</code>?</li>
-            <li>Why is <code>Time.deltaTime</code> considered an essential <strong>abstraction</strong> for multi-platform game development?</li>
+            <li>Temporarily delete <code>* Time.deltaTime</code> from your movement calculation in <code>Update()</code>. Run the game and tap a direction key. Describe what happens in a single frame.</li>
+            <li>A game runs at 60 FPS on your laptop and 240 FPS on a gaming desktop. Without <code>Time.deltaTime</code>, how much farther does the character travel per second on the faster machine?</li>
+            <li>Why is <code>Time.deltaTime</code> best described as an <strong>abstraction</strong>? What messy detail is it hiding from you, and why is hiding it valuable?</li>
+            <li>Set one speed knob far higher than the other — say 30 and 5 — and move diagonally. What does the character's path look like, and why?</li>
         </ol>
     </div>
 </div>
@@ -143,20 +170,22 @@ rb2d.AddForce(Vector2.up * launchThrust, ForceMode2D.Impulse);</code></pre>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Asymmetric Movement &amp; Feel</h3>
+        <h3>Tinker: Asymmetric movement &amp; feel</h3>
         <ol>
-            <li>In the Inspector, set <code>ySpeed</code> to <code>3.5</code> while leaving <code>xSpeed</code> at <code>5.0</code>. Walk around. In top-down 2D games, why do many classic RPGs make vertical movement slightly slower than horizontal movement?</li>
-            <li>Press W and D together to move diagonally. If horizontal speed is 5 and vertical speed is 5, Pythagorean theorem says diagonal speed is \(\\approx 7.07\\). How could you use vector normalization (<code>vector.normalized</code>) to keep speed constant in all directions?</li>
+            <li>Make your vertical speed a little slower than your horizontal speed. Walk around. In top-down 2D games, why do many classic RPGs do exactly this?</li>
+            <li>Hold two direction keys to move diagonally. If both speeds are 5, the Pythagorean theorem says your diagonal speed is about 7.07 — you are moving 41% faster than intended. How could <code>vector.normalized</code> keep the speed constant in every direction, and what does "normalized" mean about the vector's length?</li>
+            <li>If you chose a physics-based method, compare it against <code>transform.Translate</code> with the same speed value. Do they <em>feel</em> the same? If not, why not — what is the physics method doing that Translate is not?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Compare four ways to move an object in Unity (<code>Translate</code>, <code>MovePosition</code>, <code>linearVelocity</code>, <code>AddForce</code>)</li>
-            <li>Explain what scenarios require physics sweep functions instead of direct translation</li>
-            <li>Explain the relationship between code defaults and serialized Inspector overrides</li>
-            <li>Explain how <code>Time.deltaTime</code> produces identical real-world speed across differing framerates</li>
+            <li>Compare four ways to move an object in Unity: <code>Translate</code>, <code>MovePosition</code>, <code>linearVelocity</code>, <code>AddForce</code></li>
+            <li>Say which of the four need a Rigidbody2D, and explain what a sweep does differently from a teleport</li>
+            <li>Justify the movement method you chose for this game, and name its cost</li>
+            <li>Explain how <code>Time.deltaTime</code> produces the same real-world speed at different frame rates</li>
+            <li>Explain the relationship between a code default and a serialized Inspector value</li>
             <li>Save your tuned speeds and commit your changes</li>
         </ul>
     </div>
@@ -170,9 +199,9 @@ rb2d.AddForce(Vector2.up * launchThrust, ForceMode2D.Impulse);</code></pre>
         <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — speed, vectors, and physics functions</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Rigidbody2D and Transform APIs</li>
     </ul>
-    <p>Next: <a href="1.6.html">1.6 — Animation States</a></p>
+    <p>Next: <a href="1.6.html">1.6 — Animation States: IsWalking, WalkDir, Attack</a></p>
 </div>`;
 ---
-<Lesson id="1.5" title="1.5a Movement II: Speed, deltaTime &amp; Tuning — AP CS Principles" root=".." css="../style.css">
+<Lesson id="1.5" title="1.5 Movement II: Speed, deltaTime &amp; Tuning — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

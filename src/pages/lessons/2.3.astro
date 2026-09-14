@@ -1,17 +1,20 @@
 ---
-// Lesson 2.3 — Health Potions & the Max-Health Cap
+// Lesson 2.3 — Healing Pickups & the Max-Health Cap
 // 3-way comparative analysis: Coin vs Spike vs Potion.
 // Multiple functions for bounding values (if vs Mathf.Min vs Mathf.Clamp).
-// Creating the Potion prefab and implementing selection algorithms in StatManager.cs.
+// GROUND TRUTH: there is no Potion prefab, no Potion tag, and no potion sprite
+// anywhere in the project. The student creates all three, tinting an existing
+// sprite (greyboxing). Health and the cap live on PlayerController.
 import Lesson from '../../layouts/LessonLayout.astro';
 
-const body = `<h1>2.3 — Health Potions &amp; the Max-Health Cap</h1>
+const body = `<h1>2.3 — Healing Pickups &amp; the Max-Health Cap</h1>
 
 <p class="lesson-lead">
-    You can collect wealth (coins) and suffer damage (spikes). Now you need a way to restore life.
-    Today, you compare the potion to the coin and the spike, discover why healing without a limit
-    creates a game-breaking exploit, and evaluate three different Unity functions for enforcing
-    boundary rules using <strong>selection</strong>.
+    You can gain wealth and lose health. Now you need a way to get health back — and the
+    moment you add healing, you create a new kind of problem. Healing without a limit is not
+    a feature, it is an exploit. Today you compare the potion against both things you have
+    already built, then discover that a value with a ceiling needs a <em>rule</em>, not just
+    arithmetic.
 </p>
 
 <!-- ============================================================ -->
@@ -22,65 +25,46 @@ const body = `<h1>2.3 — Health Potions &amp; the Max-Health Cap</h1>
     </div>
 
     <p>
-        Notice how our game systems build on each other. When designing the Potion,
-        we ask: <em>what have we already built that works like this?</em>
+        Good engineers do not design from nothing. When you meet a new mechanic, ask what you
+        have already built that behaves like it:
     </p>
 
     <table>
         <tr><th>Comparison</th><th>Analysis</th></tr>
         <tr>
-            <td><strong>How is the potion similar to the coin?</strong></td>
-            <td>Both are <strong>pickups</strong>: intangible trigger colliders (<code>Is Trigger = true</code>), handled by <code>OnTriggerEnter2D</code>, and destroyed immediately upon collection so they cannot be grabbed twice.</td>
+            <td><strong>How is the potion like the coin?</strong></td>
+            <td>Both are <strong>pickups</strong>: trigger colliders, handled by <code>OnTriggerEnter2D</code>, and destroyed on contact so they cannot be taken twice. Almost all of your coin code is reusable.</td>
         </tr>
         <tr>
-            <td><strong>How is the potion similar to the spike?</strong></td>
-            <td>Both affect <strong>health</strong> on the <code>StatManager</code>, unlike coins which affect wealth.</td>
+            <td><strong>How is the potion like the spike?</strong></td>
+            <td>Both change <strong>health</strong> — and health lives on <code>PlayerController</code>, exactly where your coin count lives.</td>
         </tr>
         <tr>
             <td><strong>How is the potion different from both?</strong></td>
-            <td>It heals (+1 health), but introduces a brand-new constraint: <strong>health must never exceed maximum capacity</strong> (e.g. 3 hearts). Without a rule, drinking 10 potions gives 13 health!</td>
+            <td>It raises a value that now has a <strong>ceiling</strong>. Without a rule, ten potions means ten times the health, and the game stops being a game.</td>
         </tr>
     </table>
 
-    <p>
-        Enforcing this rule is what the AP CSP framework calls <strong>selection</strong>:
-        using conditional logic to decide whether or how state changes.
-    </p>
+    <div class="callout info">
+        <strong>There is no potion art in this project — you are going to make one.</strong>
+        There is no Potion prefab, no Potion tag, and no potion sprite in
+        <code>Assets/Artwork</code>. So: pick a sprite you <em>do</em> have, and tint it with the
+        Sprite Renderer's <strong>Color</strong> field so it cannot be mistaken for a coin.
+        Create the tag yourself. Building a mechanic with borrowed art is called
+        <strong>greyboxing</strong>, and it is what professionals do all day — the mechanic is
+        the work; the art is a placeholder until someone draws the real thing.
+    </div>
 
     <div class="socratic">
-        <h3>Socratic: Evaluating Multiple Ways to Cap a Value</h3>
-        <p>
-            In Unity C#, there are three common ways to ensure a value does not exceed a maximum limit:
-        </p>
-        <table>
-            <tr><th>Approach</th><th>Code Example</th><th>Mechanism</th></tr>
-            <tr><td><strong>1. Procedural <code>if</code></strong></td><td><code>if (health &gt; maxHealth) health = maxHealth;</code></td><td>Direct selection statement. Simple, easy to read for humans.</td></tr>
-            <tr><td><strong>2. <code>Mathf.Min</code></strong></td><td><code>health = Mathf.Min(health + amount, maxHealth);</code></td><td>Mathematical function. Returns the smaller of two numbers.</td></tr>
-            <tr><td><strong>3. <code>Mathf.Clamp</code></strong></td><td><code>health = Mathf.Clamp(health + amount, 0, maxHealth);</code></td><td>Boundary clamp. Restricts a value between a minimum (0) and maximum.</td></tr>
-        </table>
+        <h3>Socratic: Similar, Different, and Why It Matters</h3>
         <ol>
-            <li>Why is <code>Mathf.Clamp</code> particularly powerful when managing health? How could a single clamp function handle both dying (falling below 0) and overhealing (rising above maxHealth)?</li>
-            <li>In what scenarios is an explicit <code>if</code> statement better than <code>Mathf.Min</code> or <code>Mathf.Clamp</code>? (Hint: What if you want to play a special "Buzz / Error" sound only when the player tries to drink at full health?)</li>
-            <li>Where should this capping logic live — in the Potion script or in <code>StatManager.cs</code>? Why is placing the rule in <code>StatManager</code> better software design?</li>
+            <li>The potion reuses the coin's trigger, its callback, and its destroy. What is the <em>only</em> thing that genuinely differs?</li>
+            <li>Without a ceiling, a player who collects ten potions has ten times the health. Which breaks first — the challenge, the economy, or the feedback the player gets?</li>
+            <li>The rule "health must never exceed the maximum" has to live <em>somewhere</em>. Name two places it could live, and say which one keeps the rule true no matter which script calls the healing method.</li>
+            <li>If a second healing source arrives in Unit 5 — a heart, a shrine, a level-up — is a ceiling check inside the <em>potion</em> script still enough? What does your answer say about where rules belong?</li>
         </ol>
     </div>
 </div>
-
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
-    </div>
-
-    <p><strong>Step 1 — Create the Potion Prefab.</strong></p>
-    <ol>
-        <li>In the Hierarchy, right-click → <strong>2D Object → Sprite</strong>, name it <strong>Potion</strong>.</li>
-        <li>Assign a potion sprite from <code>Assets/Artwork</code>.</li>
-        <li>Add a <strong>BoxCollider2D</strong> or <strong>CircleCollider2D</strong>, and check <strong>Is Trigger</strong>.</li>
-        <li>At the top of the Inspector, click Tag → <strong>Add Tag...</strong>, create the tag <strong>Potion</strong>, and assign it to the Potion.</li>
-        <li>Drag the Potion GameObject into <code>Assets/Prefabs</code> to make it a reusable prefab!</li>
-    </ol>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
@@ -90,30 +74,37 @@ const body = `<h1>2.3 — Health Potions &amp; the Max-Health Cap</h1>
     </div>
 
     <p>
-        Notice how different mathematical capping techniques operate in isolation across completely different systems:
+        Four ways to keep a number inside its limits, each from a different system. Read them in
+        isolation and work out what each one can and cannot do:
     </p>
 
-    <p><strong>Example 1 — Selection Guard on a Water Reservoir Dam:</strong></p>
-    <pre><code>// Uses an if statement to enforce an upper ceiling
-if (currentGallons &gt; maxReservoirCapacity)
+    <p><strong>Example 1 — A water reservoir dam, using <code>if</code>:</strong></p>
+    <pre><code>if (currentGallons &gt; maxReservoirCapacity)
 {
     currentGallons = maxReservoirCapacity;
 }</code></pre>
 
-    <p><strong>Example 2 — Mathematical Ceiling with Mathf.Min on an Electric Scooter Battery:</strong></p>
-    <pre><code>// Mathf.Min returns the smaller value, preventing the battery from charging past 100%
+    <p><strong>Example 2 — An electric scooter battery, using <code>Mathf.Min</code>:</strong></p>
+    <pre><code>// Mathf.Min returns the smaller of the two, so the battery cannot charge past 100%
 batteryLevel = Mathf.Min(batteryLevel + chargeAdded, 100f);</code></pre>
 
-    <p><strong>Example 3 — Two-Sided Bounding with Mathf.Clamp on a Spaceship Thruster:</strong></p>
-    <pre><code>// Mathf.Clamp guarantees the output stays between minimum idle (0) and maximum safe power (100)
+    <p><strong>Example 3 — A spaceship thruster, using <code>Mathf.Clamp</code>:</strong></p>
+    <pre><code>// Mathf.Clamp bounds a value at BOTH ends at once - here, 0 and 100
 thrusterPower = Mathf.Clamp(requestedThrust, 0, 100);</code></pre>
+
+    <p><strong>Example 4 — A reservoir overflow alarm, an <code>if</code> with a side effect:</strong></p>
+    <pre><code>if (currentGallons &gt;= maxReservoirCapacity)
+{
+    Debug.Log("Overflow: intake refused.");
+}</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>If <code>currentGallons</code> is <code>95</code> and <code>20</code> gallons are added, trace Example 1: what is the value before and after the <code>if</code> check?</li>
-            <li>What is the difference between <code>Mathf.Min</code> (one upper bound) and <code>Mathf.Clamp</code> (both lower and upper bounds)?</li>
-            <li>Where should health-capping logic live — on the potion GameObject, or inside <code>StatManager</code>? Why is placing the rule in the central manager better software design?</li>
+            <li><code>currentGallons</code> is 95 and 20 gallons arrive. Trace Example 1: what is the value before the check, inside the body, and after it?</li>
+            <li>What is the difference between <code>Mathf.Min</code> and <code>Mathf.Clamp</code>? In a game where damage can drive health down as well as up, which one covers both ends?</li>
+            <li>Example 4 logs a refusal. Which of the first three examples could produce that message on its own — and why can the other two not?</li>
+            <li>If you clamp health at 0, have you also implemented death? What is the difference between "this value cannot go below zero" and "the player dies"?</li>
         </ol>
     </div>
 </div>
@@ -121,56 +112,64 @@ thrusterPower = Mathf.Clamp(requestedThrust, 0, 100);</code></pre>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: Your Turn</span>
+        <span class="activity-label">Build Lab: The Potion</span>
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — Create the Potion Prefab.</strong></p>
-    <ol>
-        <li>In the Hierarchy, right-click → <strong>2D Object → Sprite</strong>, name it <strong>Potion</strong>.</li>
-        <li>Assign a potion sprite from <code>Assets/Artwork</code>.</li>
-        <li>Add a <strong>BoxCollider2D</strong> or <strong>CircleCollider2D</strong>, and check <strong>Is Trigger</strong>.</li>
-        <li>At the top of the Inspector, click Tag → <strong>Add Tag...</strong>, create the tag <strong>Potion</strong>, and assign it to the Potion.</li>
-        <li>Drag the Potion GameObject into <code>Assets/Prefabs</code> to make it a reusable prefab!</li>
-    </ol>
-
     <div class="callout">
-        <strong>Architectural Specification for <code>StatManager.cs</code>:</strong>
-        <p><strong>Enforce the Max Health Ceiling:</strong></p>
+        <strong>Architectural specification: the prefab.</strong>
         <ul>
-            <li>What variable represents the maximum health a player can hold? How do you expose it as a tuning knob in the Inspector?</li>
-            <li>Where should the rule live that prevents health from exceeding maximum capacity? Should it be on every potion, or centralized inside <code>StatManager</code>?</li>
-            <li>Inside your health modification method, after adjusting health, how can you guarantee the value never exceeds maximum capacity?</li>
-            <li>What conditional check or mathematical bounding function (such as <code>Mathf.Min</code> or <code>Mathf.Clamp</code>) can you use to enforce this ceiling?</li>
+            <li>In the Hierarchy, right-click → <strong>2D Object → Sprite</strong>. Name it <strong>Potion</strong>, then drag it into <code>Assets/Prefabs</code> so it becomes reusable. What is the difference between the object in the scene and the asset in the folder?</li>
+            <li>Which sprite will you use, and what Color tint makes it obviously <em>not</em> a coin at a glance?</li>
+            <li>Add a collider. Trigger or solid — and what is your reason? Which of the two things you built this unit does this make it most like?</li>
+            <li>You are about to create a tag that does not exist in this project. Where does the tag list actually live? Does the <em>prefab</em> need the tag, or does one instance in the scene?</li>
+            <li>Before you write <code>CompareTag("Potion")</code> in code, how do you check the tag exists? What happens if you get the spelling wrong?</li>
         </ul>
     </div>
 
     <div class="callout">
-        <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
-        <p><strong>Handle Potion Trigger:</strong></p>
+        <strong>Architectural specification: the rule.</strong>
         <ul>
-            <li>What function does this belong in?</li>
-            <li>Should this be a trigger or a collider?</li>
-            <li>How do you check if the object is a Potion?</li>
-            <li>How do you check to see if the <code>StatManager</code> exists before communicating with it?</li>
-            <li>What function on the manager do you call to change health?</li>
-            <li>Should you be able to go above <code>maxHealth</code>? How would you prevent this from happening, and what do you need to check?</li>
-            <li>How do you destroy the potion? Is the potion <code>other.gameObject</code> or is it <code>gameObject</code>? (Hint: this script is attached to <code>gameObject</code>; we collided with <code>other</code>).</li>
+            <li>What field holds the maximum health? How is it different from the current-health field, and which of the two should be the designer's tuning knob?</li>
+            <li>Where exactly does the ceiling get applied — before the heal, after the heal, or <em>inside</em> the method that changes health? Which of those cannot be bypassed by a future caller?</li>
+            <li>Pick one of the three capping approaches from the examples. What does your choice do that the other two cannot?</li>
+            <li>If you chose <code>Mathf.Clamp</code>, what is the <em>lower</em> bound — and what does clamping at 0 mean for the death check you wrote in <a href="2.2.html">2.2</a>?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the trigger.</strong>
+        <ul>
+            <li>Which callback, and which tag check?</li>
+            <li>Which method on the player do you call, and do you pass a positive or a negative number?</li>
+            <li>Do you destroy the potion? Which object — <code>other.gameObject</code> or <code>gameObject</code>?</li>
+            <li>What should happen when a player already at full health touches a potion: consume it, or leave it on the ground? Both are defensible. Pick one, and name the extra check your choice requires and where that check belongs.</li>
         </ul>
     </div>
 
     <p>
-        Save both files and press Play!
-        Walk into spikes to drop your health to 2, then walk into a potion: your health restores to 3.
-        Walk into another potion while at full health: your health stays capped at 3 instead of climbing to 4!
+        Save, press Play, and verify. Drop your health on a spike, then walk into a potion and
+        confirm it comes back up. Then walk into another potion at full health and confirm your
+        rule holds.
     </p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: Boundary Conditions</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: Testing Boundary Conditions</h3>
+        <h3>Bug Hunt</h3>
         <ol>
-            <li>What happens if you change <code>maxHealth</code> to <code>5</code> in the Inspector? Does the code still cap correctly, or did you hardcode the number 3 anywhere?</li>
-            <li>What happens if you accidentally write <code>health &lt; maxHealth</code> in the capping check? Trace what happens when health is 2.</li>
-            <li>What happens if you forget to check <strong>Is Trigger</strong> on the Potion prefab? Does <code>OnTriggerEnter2D</code> run?</li>
+            <li>Set maximum health to <code>5</code> in the Inspector. Does the code still cap correctly, or did you hardcode <code>3</code> somewhere in your file?</li>
+            <li>Change your cap comparison from <code>&gt;</code> to <code>&gt;=</code>, or the reverse. With health <em>exactly</em> at the maximum, what happens now — and how would you ever have noticed if you only ever tested from the middle?</li>
+            <li>Forget to create the tag, then call <code>CompareTag("Potion")</code> anyway. What does Unity report? Why is a loud error better here than silence?</li>
+            <li>Make the potion solid instead of a trigger. What does the player do when they walk into it, and does the heal still fire?</li>
+            <li>Heal at full health under each of the three capping approaches. Which one silently does nothing, and which one could tell you the heal was wasted?</li>
+            <li>Set maximum health <em>below</em> your current health while the game is running. What does your rule do — and is that a bug or a feature?</li>
         </ol>
     </div>
 </div>
@@ -185,19 +184,23 @@ thrusterPower = Mathf.Clamp(requestedThrust, 0, 100);</code></pre>
     <div class="tinker">
         <h3>Tinker: Testing Mathf.Clamp</h3>
         <ol>
-            <li>In <code>StatManager.cs</code>, try rewriting your ceiling check using <code>Mathf.Clamp</code> to bound health between <code>0</code> (death) and <code>maxHealth</code> in a single line. Test taking damage on spikes and healing with potions. Does this one function replace multiple <code>if</code> statements?</li>
-            <li>Game Design Question: Should a player at full health be allowed to consume a potion and waste it, or should the potion stay on the ground until needed? How would you implement that check in <code>PlayerController.cs</code>?</li>
+            <li>Rewrite your ceiling using <code>Mathf.Clamp(health, 0, maxHealth)</code>. Test both spikes and potions. Does one line replace two separate checks — and what did you have to be careful about?</li>
+            <li>Implement your answer to "should a full-health player waste a potion?" Which check did you add, and where did you put it?</li>
+            <li>Read the docs for <code>Mathf.Min</code> and <code>Mathf.Clamp</code>. Which would you use if a designer said "health may go negative — that is how we count overkill damage"?</li>
+            <li>Where else in this game will a value need a ceiling — a fire rate, a detection radius, a jump count, a coin total? Which of the three approaches would you reach for there, and is it the same one you chose here?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain how potions are similar to coins, similar to spikes, and different from both</li>
-            <li>Define selection and explain how it prevents the overheal exploit</li>
-            <li>Compare three ways to bound values in C# (<code>if</code>, <code>Mathf.Min</code>, <code>Mathf.Clamp</code>)</li>
-            <li>Create a new prefab with appropriate collider settings and custom tags</li>
-            <li>Commit your working potion healing system to GitHub</li>
+            <li>Explain how the potion is like the coin, like the spike, and unlike both</li>
+            <li>Create a prefab and a brand-new project tag from scratch</li>
+            <li>Explain the overheal exploit, and which selection rule prevents it</li>
+            <li>Compare <code>if</code>, <code>Mathf.Min</code> and <code>Mathf.Clamp</code>, and defend the one you chose</li>
+            <li>Explain why the rule lives in the method that changes health rather than in the potion</li>
+            <li>Test at the boundary — health exactly at maximum — instead of only in the middle</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -207,13 +210,13 @@ thrusterPower = Mathf.Clamp(requestedThrust, 0, 100);</code></pre>
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — StatManager, selection, and pickups</li>
-        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — reference guide for trigger pickups</li>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — selection, pickups and health in depth</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the reference for trigger pickups</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Mathf and selection syntax</li>
     </ul>
-    <p>Next: <a href="2.4.html">2.4 — Prefabs, Spawning &amp; Playtesting</a></p>
+    <p>Next: <a href="2.4.html">2.4 — Prefabs, Spawning &amp; Playtesting</a>, where one working object becomes a whole level.</p>
 </div>`;
 ---
-<Lesson id="2.3" title="2.3a Health Potions &amp; the Max-Health Cap — AP CS Principles" root=".." css="../style.css">
+<Lesson id="2.3" title="2.3 Healing Pickups &amp; the Max-Health Cap — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

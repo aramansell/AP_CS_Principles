@@ -1,130 +1,214 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>6.3a Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles</title><meta name="description" content="Lesson 6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="6.3a Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles"><meta property="og:description" content="Lesson 6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="6.2.html">&#9664; 6.2</a><span class="lesson-id">6.3</span><a href="6.4.html">6.4 &#9654;</a></div><h1>6.3 — Jump Feel: Fall Speed &amp; Coyote Time</h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles</title><meta name="description" content="Lesson 6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles"><meta property="og:description" content="Lesson 6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="6.2.html">&#9664; 6.2</a><span class="lesson-id">6.3</span><a href="6.4.html">6.4 &#9654;</a></div><h1>6.3 — Jump Feel: Fall Speed &amp; Coyote Time</h1>
 
 <p class="lesson-lead">
-    Your jump works (<a href="6.2.html">6.2</a>) but it feels like a
-    spreadsheet. Nobody can say WHY — until you learn that "feel" is
-    three tunables with names: asymmetric gravity, jump buffer, and
-    coyote time. Today you make a jump that players call "tight"
-    without knowing they were taught to.
+    Your jump works and your ground check is honest — and the character still feels like it
+    is being operated through a spreadsheet. That is not a vague complaint. "Feel" is four
+    tunable numbers with names, and every platformer you have ever called <em>tight</em> is
+    using all four. Today you learn their names, decide where each number lives, and build
+    the two that are timers.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Concept Lab</span>
+        <span class="activity-label">The Problem: It Works and It Feels Bad</span>
         <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Feel rule #1 — fall faster than you rise.</strong> Real
-    games multiply gravity while falling. New code, same voice:</p>
-    <pre><code>[SerializeField] private float fallMultiplier = 2.5f;
-
-private void FixedUpdate()
-{
-    if (isPlatformer &amp;&amp; rb.velocity.y &lt; 0)
-    {
-        // falling: pull harder
-        rb.gravityScale = baseGravity * fallMultiplier;
-    }
-    else if (rb.velocity.y &gt; 0)
-    {
-        rb.gravityScale = baseGravity; // rising: normal
-    }
-}</code></pre>
     <p>
-        Save baseGravity in Start (read rb.gravityScale once). Now
-        rise is a balloon and fall is a decision. Try it with
-        fallMultiplier 1: the floaty "moon hop" you tuned away by hand
-        in <a href="6.1.html">6.1</a> — this one knob replaces three
-        fiddly jumpForce settings, and it is why nearly every
-        platformer you love does NOT obey real physics.
+        Play your cave for thirty seconds and pay attention to your hands, not the screen.
+        Notice three specific complaints — they are the three that every playtester in the
+        world reports, and each one has a name and a fix:
     </p>
+    <ul>
+        <li><em>"I float down like a balloon."</em> Your rise and your fall use the same
+            gravity. Real characters fall faster than they rise.</li>
+        <li><em>"I pressed jump right at the edge and nothing happened."</em> Your check turns
+            false the instant your feet leave the ledge, so the game rejects a jump the player
+            genuinely made.</li>
+        <li><em>"I pressed jump just before landing and nothing happened."</em> The mirror
+            image: the input arrives a few frames before the ground does, and gets thrown
+            away.</li>
+    </ul>
 
-    <p><strong>Feel rule #2 — forgive the player.</strong> Two
-    classic mercies, both timers (the
-    <a href="3.3.html">3.3</a> pattern, pointed at kindness):</p>
     <table>
-        <tr><th>Name</th><th>The complaint it kills</th><th>Implementation</th></tr>
-        <tr><td>Coyote time</td><td>"I jumped but the ledge ate it"</td><td>remember the last grounded moment; allow jump for ~0.1s after</td></tr>
-        <tr><td>Jump buffer</td><td>"I pressed too early, nothing happened"</td><td>remember the last Space press; fire the jump the instant you land</td></tr>
+        <tr><th>The knob</th><th>The complaint it kills</th><th>What it really is</th></tr>
+        <tr>
+            <td><strong>Asymmetric gravity</strong> (a fall multiplier)</td>
+            <td>"It floats."</td>
+            <td>One gravity number for the rise and a <em>larger</em> one for the fall, chosen by which way the body is currently moving vertically.</td>
+        </tr>
+        <tr>
+            <td><strong>Coyote time</strong></td>
+            <td>"The ledge ate my jump."</td>
+            <td>Remember the last moment you were grounded. Keep accepting a jump for a short window after that moment has passed.</td>
+        </tr>
+        <tr>
+            <td><strong>Jump buffer</strong></td>
+            <td>"I pressed too early."</td>
+            <td>Remember the last moment the key went down. Fire the jump the instant the ground check goes true, if the press was recent enough.</td>
+        </tr>
+        <tr>
+            <td><strong>Variable jump height</strong></td>
+            <td>"I can't do small hops."</td>
+            <td>Release the key early and the rise is cut short. The player's <em>release</em> becomes an input, not just their press.</td>
+        </tr>
     </table>
 
+    <div class="callout info">
+        <strong>Both mercies are the same pattern you met in <a href="3.3.html">3.3</a>.</strong>
+        A timestamp is written when something happened, and later you compare the clock
+        against it. The fire-rate cooldown said <em>"has enough time passed?"</em>. Coyote time
+        and the buffer say <em>"has too much time passed?"</em> — the same subtraction, read in
+        the opposite direction.
+    </div>
+
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            Both mercies are the SAME pattern: remember an event's
-            timestamp, compare against Time.time, act on the gap.
-            Why does this NOT make the game easier — what is the
-            difference between forgiving the player's intent and
-            playing for them?
-        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc1:q1" data-block="socratic" data-question="Both mercies are the SAME pattern: remember an event's timestamp, compare against Time.time, act on the gap. Why does this NOT make the game easier — what is the difference between forgiving the player's intent and playing for them?" placeholder="write your answer, then keep going"></textarea></label>
+        <h3>Socratic: Forgiving Intent Versus Playing For Them</h3>
+        <ol>
+            <li>Coyote time and the jump buffer both let a press count when it "should not". Why does that make the player feel more in control, when technically it makes the game more permissive?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc1:q1" data-block="socratic" data-question="Coyote time and the jump buffer both let a press count when it &quot;should not&quot;. Why does that make the player feel more in control, when technically it makes the game more permissive?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set coyote time long enough and you can jump from thin air a metre past a ledge. What is the difference between forgiving the player's <em>intent</em> and playing the game for them?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc1:q2" data-block="socratic" data-question="Set coyote time long enough and you can jump from thin air a metre past a ledge. What is the difference between forgiving the player's intent and playing the game for them?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Asymmetric gravity is a lie about physics. Name one other lie your character already tells — and say what each lie buys the player.</li>
+            <li>Which of the four knobs needs to know which way the body is <em>moving</em>, and which only need to know about <em>time</em>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc1:q3" data-block="socratic" data-question="Which of the four knobs needs to know which way the body is moving , and which only need to know about time ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Two of these are timers and two are numbers. Does that split tell you anything about where in your script each belongs?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc1:q4" data-block="socratic" data-question="Two of these are timers and two are numbers. Does that split tell you anything about where in your script each belongs?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Which of the four would a player notice immediately if you removed it from a game they had been playing for an hour?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc1:q5" data-block="socratic" data-question="Which of the four would a player notice immediately if you removed it from a game they had been playing for an hour?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
-    <p><strong>Step 1 — coyote time.</strong> Two fields and one
-    comparison, added to the ground check from
-    <a href="6.2.html">6.2</a>:</p>
-    <pre><code>[SerializeField] private float coyoteTime = 0.1f;
-private float lastGroundedTime;
+    <p>
+        Each of these is a timer with a name, from somewhere that is not a video game. Read
+        it for the shape of the logic, then decide which of your four knobs it describes.
+    </p>
 
-// inside Update, right after isGrounded is set:
-if (isGrounded) lastGroundedTime = Time.time;
+    <p><strong>Example 1 — A subway door that stays open a moment longer (comment only):</strong></p>
+    <pre><code>// The doors do not reopen because a hand is in them. They reopen because the
+// hand was in them a fraction of a second ago and the timer has not expired.</code></pre>
 
-// and the jump condition becomes:
-if (Input.GetKeyDown(KeyCode.Space)
-    &amp;&amp; Time.time - lastGroundedTime &lt;= coyoteTime)
-{
-    rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-    lastGroundedTime = -999f; // spend the coyote
-}</code></pre>
-    <p>Test the exact way players fail: run off a ledge and tap Space
-    a beat late — you jump! Set coyoteTime to 0: the complaint is
-    back. Set it to 0.5: you can fly off ledges for half a second —
-    tune until the mercy is invisible.</p>
+    <p><strong>Example 2 — A parking meter grace period:</strong></p>
+    <pre><code>bool stillFine = Time.time - paidAt &lt;= gracePeriod; // paid a moment ago, not now</code></pre>
 
-    <p><strong>Step 2 — jump buffer.</strong> The mirror image:
-    remember when the key was pressed, allow the jump shortly
-    after landing:</p>
-    <pre><code>[SerializeField] private float jumpBuffer = 0.12f;
-private float lastJumpPressTime;
+    <p><strong>Example 3 — A lift that reopens if you press within a second (comment only):</strong></p>
+    <pre><code>// The press is remembered, not honoured immediately. The doors are already
+// closing; the remembered press is what brings them back.</code></pre>
 
-if (Input.GetKeyDown(KeyCode.Space)) lastJumpPressTime = Time.time;
+    <p><strong>Example 4 — A wind tunnel ramping down instead of cutting off:</strong></p>
+    <pre><code>// Falling air is not the same as rising air. The tunnel is symmetric on paper
+// and asymmetric in the test chamber, on purpose.</code></pre>
 
-if (isGrounded &amp;&amp; Time.time - lastJumpPressTime &lt;= jumpBuffer)
-{
-    rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-    lastJumpPressTime = -999f;
-}</code></pre>
-    <p>Test: stand under a low ceiling... no — simpler: press Space
-    a hair before you land from a jump. Before the buffer: nothing,
-    press again. After: the jump just HAPPENS. Your inputs feel
-    honored.</p>
+    <p><strong>Example 5 — A keyboard's repeat delay:</strong></p>
+    <pre><code>// Hold the key and the characters start after a pause, then arrive fast.
+// The pause is a number somebody chose.</code></pre>
+
+    <div class="socratic">
+        <h3>Map Them Before You Build Them</h3>
+        <ol>
+            <li>Which example is coyote time, and which is the jump buffer? Be precise — one of them remembers a <em>state</em> and one remembers a <em>press</em>.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc2:q1" data-block="socratic" data-question="Which example is coyote time, and which is the jump buffer? Be precise — one of them remembers a state and one remembers a press ." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The lift example remembers a press that arrives too late. In your game, what is the equivalent of "the doors are already closing"?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc2:q2" data-block="socratic" data-question="The lift example remembers a press that arrives too late. In your game, what is the equivalent of &quot;the doors are already closing&quot;?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The wind tunnel is asymmetric on purpose. Which of your two directions should be the strong one, and what does the player read into that?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc2:q3" data-block="socratic" data-question="The wind tunnel is asymmetric on purpose. Which of your two directions should be the strong one, and what does the player read into that?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The parking meter compares the clock against a past moment. What value do you write down, and what do you compare against it, for each of your two timers?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc2:q4" data-block="socratic" data-question="The parking meter compares the clock against a past moment. What value do you write down, and what do you compare against it, for each of your two timers?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The keyboard repeat delay is a number somebody chose. Where is that number in <em>your</em> project going to live so that somebody else can choose it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc2:q5" data-block="socratic" data-question="The keyboard repeat delay is a number somebody chose. Where is that number in your project going to live so that somebody else can choose it?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: The Fall Multiplier</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: asymmetric gravity.</strong>
+        <ul>
+            <li>What tells you the body is <em>falling</em>? Name the exact quantity you read, and which of its two components matters. (Careful: in Unity 6 that property was renamed. Older tutorials and older Stack Overflow answers will call it something else — find the current name in the docs before you type it.)</li>
+            <li>Which gravity number is "normal"? You already set gravity for the cave in <a href="6.1.html">6.1</a>. Where is that number now — a literal in your own code, a serialized field, or a value you read off the Rigidbody2D? Whatever the answer, you now need it in <em>two</em> places, and that is a design smell worth fixing rather than living with.</li>
+            <li>Your options for the "normal" number: <strong>(a)</strong> a second serialized field you keep equal to the first by hand, <strong>(b)</strong> read <code>gravityScale</code> once in <code>Start()</code> and keep it in a private field, <strong>(c)</strong> a named constant. Which one survives a teammate changing the Inspector value, and which one survives a teammate changing the scene-mode logic you wrote in 6.1?</li>
+            <li>What happens in the top-down Overworld if this logic runs there? Your character has Gravity Scale 0 and never falls, so a "falling" branch may never be true — but the <em>rising</em> branch might be, and it will happily overwrite your 0. Which scene-mode flag from <a href="6.1.html">6.1</a> gates this?</li>
+            <li><code>Update()</code> or <code>FixedUpdate()</code>? You are writing a physics property that the physics engine reads. Argue it, then test the other one and describe the difference.</li>
+            <li>Do you also need to restore normal gravity when the body is <em>rising</em>, or only multiply it when falling? What happens on the very first frame after a jump if you only write the falling branch?</li>
+        </ul>
+    </div>
+
+    <p>
+        <strong>Test it the way a player would.</strong> Set the multiplier to 1 and play: that
+        is the balloon you started with. Set it to 2.5 and play. Set it to 8 and play. Write
+        one sentence per value. Then go back through the four ways to leave the ground you
+        compared in <a href="6.1.html">6.1</a> and answer honestly: does this trick work equally
+        well with all four, or does your choice constrain you here?
+    </p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: The Two Mercies</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: coyote time.</strong>
+        <ul>
+            <li>What exact moment do you record, and where in your script is the <em>one</em> place the ground check is already computed? Recording it anywhere else means you now have two ground checks and one of them is wrong.</li>
+            <li>What is the comparison that decides "still within the window"? Write it in English first: <em>"if the time since I was last grounded is less than X"</em>.</li>
+            <li>How long is the window — 0.05s, 0.1s, 0.2s? Pick a number, then test it by running off a ledge and pressing jump as late as you can.</li>
+            <li>What is the "spend" rule? If you jump using the grace window, can you jump again on the next frame using the same recorded moment? What has to happen to that timestamp at the instant the jump fires?</li>
+            <li>What is the initial value of your timestamp field before the player has ever touched the ground? If it starts at 0 and the game clock starts near 0, what does your first frame of play do?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: jump buffer.</strong>
+        <ul>
+            <li>Which moment do you record now — and is it the same variable as the coyote one? Two timers, two names, two responsibilities.</li>
+            <li>The jump fires when <em>two</em> things are true: a recent press was remembered <em>and</em> the character is grounded (or inside the coyote window). Write that as a sentence with an AND in it before you write any code.</li>
+            <li>Does the buffer need its own spend rule, or can the same jump fire twice off one remembered press the moment you land and leave the ground again?</li>
+            <li>Your key check from <a href="6.1.html">6.1</a> was <code>GetKeyDown</code>. Does the buffer replace it or wrap it? Which one is the "input happened" fact and which one is the "input is still relevant" fact?</li>
+            <li>Test it by pressing jump a fraction of a second <em>before</em> you land from a fall. Then press it a full second before. Where is the boundary, and is the boundary the number you thought you set?</li>
+        </ul>
+    </div>
+
+    <div class="callout trap">
+        <strong>Two timers and one jump key is how you build an infinite jump by accident.</strong>
+        If the grace window is never spent, a player can tap the key repeatedly <em>in mid-air</em>
+        and every tap lands inside a window that never closes. Watch the Console line you print
+        each time the jump fires — if the count climbs while you are nowhere near the floor, one
+        of your timestamps is being refreshed when it should not be.
+    </div>
+
+    <p>
+        <strong>Variable jump height</strong> is the fourth knob and the smallest change: the
+        rise is a velocity, and the player's release can shorten it. Decide what to cut, when
+        to allow the cut (only while rising? only on the first jump?), and whether it interacts
+        with the jump buffer you just built — a buffered jump the player never held will be cut
+        instantly if you are careless. Test all four knobs together before you move on.
+    </p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: The Mushy Jump</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The mushy jump</h3>
+        <h3>Bug Hunt</h3>
         <ol>
-            <li>Forget to spend the coyote (no lastGroundedTime =
-                -999 after the jump). Jump once in place, repeatedly.
-                What does Time.time - lastGroundedTime equal while
-                you are STILL on the ground — and why does that mean
-                the mercy never expires?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:bh1:q1" data-block="bug-hunt" data-question="Forget to spend the coyote (no lastGroundedTime = -999 after the jump). Jump once in place, repeatedly. What does Time.time - lastGroundedTime equal while you are STILL on the ground — and why does that mean the mercy never expires?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Coyote time lets you jump from a SPIKE's edge after
-                you already left ground. Trace lastGroundedTime
-                through the death (<a href="2.2.html">2.2</a>) —
-                why does respawn reset the mercy, and should it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:bh1:q2" data-block="bug-hunt" data-question="Coyote time lets you jump from a SPIKE's edge after you already left ground. Trace lastGroundedTime through the death ( 2.2 ) — why does respawn reset the mercy, and should it?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Buffer 0.12 with a LOW jump means double-fire chains:
-                land → buffer fires → land again... how would the
-                -999 spend stop this on the SECOND landing?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:bh1:q3" data-block="bug-hunt" data-question="Buffer 0.12 with a LOW jump means double-fire chains: land → buffer fires → land again... how would the -999 spend stop this on the SECOND landing?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Set fallMultiplier to 10. The character lands like a
-                dropped anvil — fun? For which genre would 10 be
-                correct (one-word answer: a ___ game like Downwell)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:bh1:q4" data-block="bug-hunt" data-question="Set fallMultiplier to 10. The character lands like a dropped anvil — fun? For which genre would 10 be correct (one-word answer: a ___ game like Downwell)?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Delete the branch that restores normal gravity while rising, so only the falling case is written. Jump. Where does the character end up, and why does the <em>next</em> full jump leave you barely off the floor?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:bh1:q1" data-block="bug-hunt" data-question="Delete the branch that restores normal gravity while rising, so only the falling case is written. Jump. Where does the character end up, and why does the next full jump leave you barely off the floor?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Never spend the coyote timestamp after a jump. Stand still on the floor and tap the key twice quickly, then walk off a ledge and tap it again. How many jumps did you get, and which single line was supposed to stop that?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:bh1:q2" data-block="bug-hunt" data-question="Never spend the coyote timestamp after a jump. Stand still on the floor and tap the key twice quickly, then walk off a ledge and tap it again. How many jumps did you get, and which single line was supposed to stop that?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set your coyote window to half a second. Jump from the middle of a gap that is nowhere near a ledge. What did you just build, and what word from <a href="6.2.html">6.2</a> describes it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:bh1:q3" data-block="bug-hunt" data-question="Set your coyote window to half a second. Jump from the middle of a gap that is nowhere near a ledge. What did you just build, and what word from 6.2 describes it?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set the fall multiplier to 10 and land from a full-height jump. Where does the character's feet end up relative to the tile, and what does that tell you about how hard the physics engine is being asked to look?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:bh1:q4" data-block="bug-hunt" data-question="Set the fall multiplier to 10 and land from a full-height jump. Where does the character's feet end up relative to the tile, and what does that tell you about how hard the physics engine is being asked to look?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Run your gravity changes in <code>Update()</code> and then again in <code>FixedUpdate()</code>. On a machine running at 144 frames per second, which one applies the multiplier more often — and why does that make the jump feel different on different computers?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:bh1:q5" data-block="bug-hunt" data-question="Run your gravity changes in Update() and then again in FixedUpdate() . On a machine running at 144 frames per second, which one applies the multiplier more often — and why does that make the jump feel different on different computers?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set the fall multiplier to 0.4 — the fall is now <em>slower</em> than the rise. Play for a minute and describe the genre you accidentally changed your game into.</li>
         </ol>
     </div>
 </div>
@@ -137,27 +221,26 @@ if (isGrounded &amp;&amp; Time.time - lastJumpPressTime &lt;= jumpBuffer)
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Feel portfolio</h3>
+        <h3>Tinker: Feel Portfolio</h3>
         <ol>
-            <li>Tune a "heavy knight": fallMultiplier 3, coyote 0.08,
-                buffer 0.08. Then a "nimble rogue": 1.8, 0.15, 0.2.
-                Swap a partner between yours and theirs — can they
-                feel the class you built without being told?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:tk1:q1" data-block="tinker" data-question="Tune a &quot;heavy knight&quot;: fallMultiplier 3, coyote 0.08, buffer 0.08. Then a &quot;nimble rogue&quot;: 1.8, 0.15, 0.2. Swap a partner between yours and theirs — can they feel the class you built without being told?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Write your three numbers on paper and hand them to
-                another team — rebuild from paper only. Are the
-                numbers a program? (AP exam word: abstraction — what
-                do the numbers HIDE?)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:tk1:q2" data-block="tinker" data-question="Write your three numbers on paper and hand them to another team — rebuild from paper only. Are the numbers a program? (AP exam word: abstraction — what do the numbers HIDE?)" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Commit + push: <code>"6.3a: fall multiplier + coyote + buffer"</code>.</li>
+            <li>Tune a "heavy knight" and a "nimble rogue" — four numbers each. Hand the numbers to another team and have them build the character from paper only. Can they feel which one they built?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:tk1:q1" data-block="tinker" data-question="Tune a &quot;heavy knight&quot; and a &quot;nimble rogue&quot; — four numbers each. Hand the numbers to another team and have them build the character from paper only. Can they feel which one they built?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What do the four numbers <em>hide</em> when you hand them over? Name the abstraction in one sentence, and name the one thing a teammate cannot recover from the numbers alone.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:tk1:q2" data-block="tinker" data-question="What do the four numbers hide when you hand them over? Name the abstraction in one sentence, and name the one thing a teammate cannot recover from the numbers alone." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Make the fall multiplier apply only in the cave. Which scene-mode decision from <a href="6.1.html">6.1</a> did that force you to look at again, and is it still the right one?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:tk1:q3" data-block="tinker" data-question="Make the fall multiplier apply only in the cave. Which scene-mode decision from 6.1 did that force you to look at again, and is it still the right one?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Print the two timestamps every frame for ten seconds and watch them. What does each one do at the exact moment you land, and what does the other one do?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:tk1:q4" data-block="tinker" data-question="Print the two timestamps every frame for ten seconds and watch them. What does each one do at the exact moment you land, and what does the other one do?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Delete one of the four knobs entirely and play. Which removal is the least noticeable, and which one can you not live without?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:tk1:q5" data-block="tinker" data-question="Delete one of the four knobs entirely and play. Which removal is the least noticeable, and which one can you not live without?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Commit and push: <code>"6.3: fall multiplier + coyote + buffer"</code>.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain asymmetric gravity and wire fallMultiplier in FixedUpdate</li>
-            <li>Build coyote time and jump buffer from the timestamp pattern</li>
-            <li>Explain "spending" a grace period and what double-fire is</li>
-            <li>Defend mercies as intent-forgiveness, not difficulty-lowering</li>
+            <li>Explain asymmetric gravity and apply it on the physics clock</li>
+            <li>Say where the "normal" gravity number lives, and why that is the right home</li>
+            <li>Build coyote time and the jump buffer from the timestamp pattern in <a href="3.3.html">3.3</a></li>
+            <li>Explain "spending" a grace window and describe the infinite-jump bug it prevents</li>
+            <li>Defend all four knobs as intent-forgiveness rather than difficulty-lowering</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -167,8 +250,8 @@ if (isGrounded &amp;&amp; Time.time - lastJumpPressTime &lt;= jumpBuffer)
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the full feel guide</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — velocity, Time.time patterns</li>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the full jump-feel guide</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — linearVelocity, Time.time and the physics clock</li>
     </ul>
-    <p>Next: <a href="6.4.html">6.4 — Boots: Double Jump</a></p>
-</div><div class="lab-bar" data-lesson="6.3" data-lesson-title="Jump Feel: Fall Speed &amp; Coyote Time" data-count="7" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/7 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="6.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="6.2.html"><span class="dir">&#9664; Previous</span><span class="where">6.2 — Ground Checks: No Infinite Jumps</span></a><a class="foot-next" href="6.4.html"><span class="dir">Next &#9654;</span><span class="where">6.4 — Boots: Double Jump</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+    <p>Next: <a href="6.4.html">6.4 — Boots: Double Jump</a>, where one pickup changes what your level design is allowed to ask for.</p>
+</div><div class="lab-bar" data-lesson="6.3" data-lesson-title="Jump Feel: Fall Speed &amp; Coyote Time" data-count="20" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/20 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="6.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="6.2.html"><span class="dir">&#9664; Previous</span><span class="where">6.2 — Ground Checks: No Infinite Jumps</span></a><a class="foot-next" href="6.4.html"><span class="dir">Next &#9654;</span><span class="where">6.4 — Boots: Double Jump</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

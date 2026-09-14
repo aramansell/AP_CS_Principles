@@ -1,118 +1,228 @@
 ---
 // Lesson 4.3 — Chase: The Aggro Radius
-// TopDownMove: find by tag, chaseDistance, normalized pursuit.
+// Adds pursuit to the enemy from 4.1. Deliberately reuses the two comparisons
+// from 3.1 (Vector3.Distance vs sqrMagnitude, FindWithTag vs a serialized
+// reference) because the student has already made those choices once, for the
+// turret - now they must decide whether the enemy gets the same answer.
+// The heart of the lesson is the PATROL -> CHASE TRANSITION, and the bug that
+// comes from letting both behaviours write the same transform.
+// GROUND TRUTH: EnemyController.cs is an empty stub. Nothing here exists yet.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>4.3 — Chase: The Aggro Radius</h1>
 
 <p class="lesson-lead">
-    Patrol is calm. Now the enemy notices you. One distance check turns
-    a guard into a hunter — and normalization makes the hunter fair,
-    because it moves at the same speed from every angle.
+    Patrol is calm. One distance check turns a guard into a hunter. The maths is the same maths
+    you used on the turret in <a href="3.1.html">3.1</a> — but the <em>consequence</em> is
+    different, and that difference is where the whole lesson lives. A turret that notices you
+    shoots. An enemy that notices you has to stop doing what it was doing.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">The Problem: Noticing You</span>
+        <span class="activity-time">~20 min</span>
     </div>
 
-    <p>Read the chase half of EnemyController.cs:</p>
-    <pre><code>[SerializeField] private float chaseDistance = 5.0f;
-private Transform playerTransform;
-
-private void Start()
-{
-    GameObject player = GameObject.FindWithTag("Player");
-    if (player != null)
-    {
-        playerTransform = player.transform;
-    }
-    ...
-}
-
-private void TopDownMove()
-{
-    if (playerTransform == null) return;
-
-    float dist = Vector3.Distance(transform.position, playerTransform.position);
-
-    if (dist &lt; chaseDistance)
-    {
-        Vector3 dir = (playerTransform.position - transform.position).normalized;
-        transform.Translate(dir * speed * Time.deltaTime);
-        ...
-    }
-}</code></pre>
+    <p>
+        <strong>Your goal: the enemy should come for you when you get close, and go back to its
+        beat when you leave.</strong> That sentence contains four separate problems, and you have
+        already solved two of them once:
+    </p>
+    <ol>
+        <li><em>Who is my target, and where are they?</em> — target acquisition (3.1)</li>
+        <li><em>How far away are they right now?</em> — distance measurement (3.1)</li>
+        <li><em>Is that distance inside my aggro radius?</em> — a selection condition (3.1)</li>
+        <li><em>And then what?</em> — the transition. <strong>This one is new.</strong></li>
+    </ol>
 
     <p>
-        Predict: you walk circles around the enemy at exactly the
-        radius's edge. Does it lurch diagonally faster than straight —
-        remember the diagonal tinker from
-        <a href="1.5.html">1.5</a>? What did <code>.normalized</code>
-        do about that, and what would the chase feel like without it?
-        (Fix the memory first, then re-answer.)
+        Problems 1 to 3 you have solved before, for the turret. Decide whether the enemy gets the
+        same answers or different ones, and be ready to defend either:
     </p>
 
+    <table>
+        <tr><th>Sub-problem</th><th>Option A</th><th>Option B</th><th>The trade</th></tr>
+        <tr>
+            <td><strong>Finding the player</strong></td>
+            <td><code>GameObject.FindWithTag("Player")</code> — searches the scene by tag.</td>
+            <td>A <code>[SerializeField]</code> reference wired in the Inspector.</td>
+            <td>A finds things you never wired, but scans the scene. B costs nothing at runtime and shows you what it points at, but it must be wired on every copy of the prefab — and you have four enemies.</td>
+        </tr>
+        <tr>
+            <td><strong>Measuring the distance</strong></td>
+            <td><code>Vector3.Distance(a, b)</code> — the true straight-line distance.</td>
+            <td><code>(b - a).sqrMagnitude &lt; radius * radius</code> — squared, so no square root is ever computed.</td>
+            <td>A is readable and the number means what a designer thinks it means. B is cheaper, which matters when hundreds of enemies ask at once — and it also happens to be the same comparison the physics engine makes for you.</td>
+        </tr>
+        <tr>
+            <td><strong>Deciding</strong></td>
+            <td><code>dist &lt; radius</code></td>
+            <td><code>dist &lt;= radius</code></td>
+            <td>They differ at exactly one distance: the boundary itself. You tested this on the turret in 3.1 — decide it on purpose rather than by typing <code>&lt;</code> out of habit.</td>
+        </tr>
+    </table>
+
+    <p>
+        Now the new problem. Your enemy's <code>Update()</code> currently patrols
+        <em>unconditionally</em>. To add a second behaviour you have to decide how the two
+        coexist — and this is a genuine architectural fork:
+    </p>
+
+    <table>
+        <tr><th>How the two behaviours coexist</th><th>What the code does each frame</th><th>What the player sees</th><th>The risk</th></tr>
+        <tr>
+            <td><strong>Chase is an <code>if</code>; patrol is the <code>else</code></strong></td>
+            <td>Exactly one of the two runs.</td>
+            <td>A clean switch: the moment you cross the line, the enemy turns and comes for you.</td>
+            <td>Nothing holds the answer to "am I chasing?" — so no other part of your code can ask. It also forces you to decide which wins when you are inside the leash <em>and</em> the radius at the same time.</td>
+        </tr>
+        <tr>
+            <td><strong>Chase is an <code>if</code>; the patrol keeps running anyway</strong></td>
+            <td>Both write to the enemy's position in the same frame.</td>
+            <td>A stutter, or an enemy that drifts toward you while still dutifully flipping at the end of its beat.</td>
+            <td>Two systems moving one object. Their sum is a third movement that <em>nobody designed</em> — and it is the single most common bug in this lesson.</td>
+        </tr>
+        <tr>
+            <td><strong>Chase is an <code>if</code>; the patrol is switched off by a flag</strong></td>
+            <td>The flag records the mode, and the patrol checks it.</td>
+            <td>Same as the first row, at first.</td>
+            <td>One extra field, and one extra thing to keep true. Harmless for two behaviours — and the seed of a real problem once you have four. Keep this thought for <a href="4.5.html">4.5</a>.</td>
+        </tr>
+    </table>
+
+    <div class="callout trap">
+        <strong>The bug you are most likely to write today.</strong> If your patrol code still
+        runs while the chase runs, the enemy receives two movement instructions per frame. With
+        the <a href="4.1.html">4.1</a> leash approach this is especially easy to miss, because
+        the patrol's flip check is still measuring distance from the spawn anchor and happily
+        reversing your chase mid-pursuit. Watch the enemy's motion: a hunter that stutters or
+        crabs sideways is not chasing badly, it is patroling and chasing at once.
+    </div>
+
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The enemy finds the player ONCE in Start and holds the
-            reference in playerTransform. Why is that safer than
-            calling FindWithTag every frame — and when would the
-            cached transform become a null disaster (hint: scene
-            changes, like the cave door in <a href="5.3.html">5.3</a>)?
-        </p>
+        <h3>Socratic: States, Transitions and Two Writers</h3>
+        <ol>
+            <li>You gave the turret a distance check in 3.1 and it opened fire. What does the enemy do with that same answer that the turret did not do — and why does that make the enemy harder to build?</li>
+            <li>Your enemy is inside its patrol leash and inside the aggro radius at the same time. Which behaviour must win? Describe exactly what the player sees if you pick the other one.</li>
+            <li>If both behaviours move the transform in one frame, what is the sum of "walk right at 2 units per second" and "walk toward the player at 2 units per second"? Why is that sum not a chase — and which direction does the enemy actually travel?</li>
+            <li><code>Vector3.Distance</code> and <code>sqrMagnitude</code> answer the same question. Which would you use for a number you intend to print to the Console for a designer to tune, and which would you use if this enemy were copied two hundred times across a level?</li>
+            <li>You chose a targeting approach for the turret in 3.1. The enemy prefab exists as <strong>four</strong> instances in the Overworld. Does that change your answer? What does a serialized reference cost you per instance?</li>
+            <li>Where does the target lookup go so it runs exactly once? And what happens to a cached reference if your death rule from <a href="2.2.html">2.2</a> reloads the scene — is the enemy's cached player still the player?</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
+        your enemy. None of these is from a video game.
+    </p>
+
+    <p><strong>Example 1 — A porch light on a motion sensor:</strong></p>
+    <pre><code>// The lamp only reacts once a walker is inside its detection radius
+bool inRange = Vector3.Distance(lamp.position, walker.position) &lt; senseRadius;</code></pre>
+
+    <p><strong>Example 2 — A tugboat closing on a buoy:</strong></p>
+    <pre><code>// (target - me) points at the target. Reverse the subtraction and you flee.
+Vector3 toTarget = (buoy.position - boat.position).normalized;</code></pre>
+
+    <p><strong>Example 3 — A cheetah's cheaper proximity test:</strong></p>
+    <pre><code>// The same test without the square root: compare squared lengths instead
+bool inReach = (prey.position - cat.position).sqrMagnitude &lt; reach * reach;</code></pre>
+
+    <p><strong>Example 4 — A radar operator locking on (comment only):</strong></p>
+    <pre><code>// The operator writes the callsign on a sticky note ONCE, when the lock is
+// first acquired. They do not re-identify the aircraft on every sweep.</code></pre>
+
+    <p><strong>Example 5 — A supermarket automatic door (comment only):</strong></p>
+    <pre><code>// The door greets you when you arrive and closes behind you when you leave.
+// It never follows you down the aisle.</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>Example 1 stores its answer in a <code>bool</code> and throws the distance away. Your chase needs the distance itself, or just the answer? What does the difference cost you?</li>
+            <li>Example 2 normalizes the closing vector. Without <code>.normalized</code>, what happens to the enemy's speed as it gets closer to you — and what shape does its approach curve become?</li>
+            <li>Example 3 compares against <code>reach * reach</code> rather than <code>reach</code>. If your aggro radius is <code>5</code>, what number goes on the right-hand side — and what would comparing against plain <code>5</code> actually mean?</li>
+            <li>Example 4 caches the lock once. Which of your enemy's problems does that solve, and which lifecycle method does the sticky note belong in?</li>
+            <li>Example 5 describes a door that knows the difference between "arrived" and "staying". Which of the three transition designs in the docs behaves that way, and which one gets it wrong?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Turn the Guard Into a Hunter</span>
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — aim the pursuit vector.</strong> The whole hunt
-    is one line of arithmetic:
-    <code>(playerTransform.position - transform.position)</code> is
-    the arrow FROM the enemy TO you. Minus order matters — subtract
-    backwards and the enemy flees. Try it: flip the subtraction, run
-    the game, watch your enemy become a coward. Restore.</p>
+    <p>
+        Open <code>Assets/Scripts/EnemyController.cs</code> — the patrol you wrote in
+        <a href="4.1.html">4.1</a>. Everything below is an addition to that file.
+    </p>
 
-    <p><strong>Step 2 — normalize, seen.</strong> With
-    <code>.normalized</code>: walking toward you from any angle, the
-    enemy covers the same distance per second. Without it (delete the
-    call, keep everything else): the closer it gets, the SHORTER the
-    vector, the slower it closes in — an asymptote of menace. That is
-    why the turret's projectile used normalized in
-    <a href="3.2.html">3.2</a>: constant bullet speed from every
-    firing angle.</p>
+    <div class="callout">
+        <strong>Architectural specification for the chase:</strong>
 
-    <p><strong>Step 3 — two thresholds, one brain.</strong> The enemy
-    now has patrolDistance (3) AND chaseDistance (5). Both use the
-    same Distance call in different modes. Which wins when you are
-    inside BOTH — and what does the enemy do in the moment you step
-    from 5.1 to 4.9? Watch the flip: it is a state change with no if
-    for "switch to chase" — the chase IS the if.</p>
+        <p><strong>Acquiring the target:</strong></p>
+        <ul>
+            <li>Which of the two targeting options did you choose, and what does that choice cost across four enemy instances?</li>
+            <li>Which lifecycle method holds the lookup so it runs once rather than every frame? What did you do in 3.1, and is the reason the same?</li>
+            <li>What does <code>FindWithTag</code> return when nothing matches, and what guard clause must follow it?</li>
+            <li>Should the guard clause stop the whole update, or only the chase half? What does the enemy need to keep doing when there is no player in the scene?</li>
+        </ul>
+
+        <p><strong>The aggro knob:</strong></p>
+        <ul>
+            <li>What serialized float lets a designer set how close you must get before the enemy turns? What do you name it so a stranger reading the Inspector understands the relationship to the patrol knob beside it?</li>
+            <li>Choose a default and justify it against the size of the Overworld, your patrol beat, and the turret's detection range from <a href="3.1.html">3.1</a>. Which of those two radii should be larger, and what does the player feel if it is the other way round?</li>
+        </ul>
+
+        <p><strong>The pursuit:</strong></p>
+        <ul>
+            <li>Which subtraction order gives you a vector pointing <em>from</em> the enemy <em>to</em> the player? State it, then say what the other order produces.</li>
+            <li>Why must that vector be normalized before you multiply it by a speed? Describe the enemy's approach curve without it — an enemy that slows down as it closes is not a hunter.</li>
+            <li>Which movement call moves the enemy, and is it the same one your patrol uses? If the patrol and the chase use different movement methods, what does the Rigidbody2D have to satisfy for both?</li>
+        </ul>
+
+        <p><strong>The transition — the new problem:</strong></p>
+        <ul>
+            <li>Which of the three coexistence designs did you choose? Write it down before you code it, including what happens at exactly the aggro boundary.</li>
+            <li>What guarantees that only one of the two behaviours moves the enemy in any given frame? Point at the exact construct in your own file.</li>
+            <li>Should the patrol's own memory — its direction and its anchor — be reset or preserved when the chase ends? What does the player see if you preserve it, and what do they see if you reset it?</li>
+            <li>Which animator <code>Direction</code> value should be set while chasing, and how does the enemy's animator cope with a direction that changes every frame? (Re-read your 4.2 notes rather than guessing.)</li>
+        </ul>
+
+        <p><strong>Proving it:</strong></p>
+        <ul>
+            <li>How do you print the current mode to the Console so you can watch the transition happen? What word would you print for each mode?</li>
+        </ul>
+    </div>
+
+    <p>
+        Save and play. Walk toward an enemy from a distance and watch the Console. You should see
+        the mode change the instant you cross the boundary, and change back when you walk away —
+        and while chasing, the enemy's movement should be smooth and single-minded.
+    </p>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The broken hunter</h3>
+        <h3>Bug Hunt: The Broken Hunter</h3>
         <ol>
-            <li>Delete the null check in Start and remove the Player
-                from the scene. What crashes — and where exactly
-                (which line, which method)?</li>
-            <li>Set chaseDistance to 100. Where does "chasing" stop
-                being a behavior and start being teleport-adjacent —
-                and why is 100 really "there is no patrol
-                anymore"?</li>
-            <li>Set the enemy's speed HIGHER than the player's xSpeed.
-                Can the player escape at all — and what does that do
-                to the game's fairness contract?</li>
-            <li>Return early: <code>if (playerTransform == null)
-                return;</code>. Why must this run BEFORE the Distance
-                call — what would Unity say otherwise?</li>
+            <li>Reverse the subtraction order in the pursuit vector. What does the enemy do, and what does that prove about which operand must come first?</li>
+            <li>Delete the null guard and remove the Player from the scene. Which method errors, and which line does Unity point at?</li>
+            <li>Leave the patrol code running while the chase runs. What does the enemy's motion look like — and how would you name that bug in terms of two writers to one transform?</li>
+            <li>Set the aggro radius larger than the whole map. What has "chasing" become — and why is a radius that big exactly the same as deleting the patrol?</li>
+            <li>Set the enemy's speed higher than your player's. Can the player escape at all? What does that do to the fairness contract you designed in 2.2?</li>
+            <li>Walk slowly back and forth across the aggro boundary and read the Console. What is it printing sixty times a second, and which single number would you change to calm it down?</li>
         </ol>
     </div>
 </div>
@@ -121,32 +231,30 @@ private void TopDownMove()
 <div class="activity basic-app">
     <div class="activity-header">
         <span class="activity-label">Tinker</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Aggro design</h3>
+        <h3>Tinker: Aggro Design</h3>
         <ol>
-            <li>Set chaseDistance slightly LARGER than the turret's
-                range and place them together. What combined kill zone
-                did you design, and where is the one safe line?</li>
-            <li>Give the chase a memory: once you are seen, the enemy
-                keeps chasing even outside the radius until you reach
-                12 away. What new field does that need — and does
-                the AP exam's word "state" apply to it?</li>
-            <li>Hard: LOS — should walls stop the chase? What Unity
-                feature would you have to borrow (hint: raycast),
-                and why is that too expensive to run 60×/second?</li>
+            <li>Give the chase a memory: once the enemy has seen you, it keeps coming even outside the radius, until you get <code>12</code> units away. What new field does that need, and does the AP exam's word "state" apply to it?</li>
+            <li>With two different distances — one to start chasing, one to give up — walk across the boundary again. How has the Console flicker changed, and why does a gap between two thresholds remove it?</li>
+            <li>Should walls stop the chase? Name the Unity feature you would need (look up <code>Physics2D.Raycast</code>), and explain why running it every frame for every enemy is expensive. What could you do instead to run it less often?</li>
+            <li>Set the aggro radius slightly larger than the turret's detection range and place an enemy and a turret near each other. What combined kill zone did you design, and where is the one safe line through it?</li>
+            <li>Commit and push: <code>"4.3: aggro radius + chase"</code>.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Write the pursuit: subtraction → normalize → translate, in that order</li>
-            <li>Explain what normalized buys (constant speed) and show the bug without it</li>
-            <li>Explain the cached playerTransform and its null danger</li>
-            <li>Design an aggro radius that reads as fair to the player</li>
+            <li>Compare <code>Vector3.Distance</code> against <code>sqrMagnitude</code>, and say which you chose for the enemy and why</li>
+            <li>Compare <code>FindWithTag</code> against a serialized reference, and account for the four enemy instances</li>
+            <li>State which subtraction order produces a pursuit vector, and why normalizing matters</li>
+            <li>Explain your patrol-to-chase transition, and point at the construct that stops both behaviours running at once</li>
+            <li>Explain why two writers on one transform produce motion nobody designed</li>
+            <li>Design an aggro radius that reads as fair next to the turret's range</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -156,13 +264,13 @@ private void TopDownMove()
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — chase and pursuit math</li>
-        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — chase as a state</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — normalized, FindWithTag</li>
+        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — chase and pursuit in depth</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — patrol and chase as two states of one machine</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>normalized</code>, <code>FindWithTag</code> and vector maths</li>
     </ul>
-    <p>Next: <a href="4.4.html">4.4 — Attack: Close-Range Danger</a></p>
+    <p>Next: <a href="4.4.html">4.4 — Attack: Close-Range Contact Damage</a>, where catching you finally has a consequence.</p>
 </div>`;
 ---
-<Lesson id="4.3" title="4.3a Chase: The Aggro Radius — AP CS Principles" root=".." css="../style.css">
+<Lesson id="4.3" title="4.3 Chase: The Aggro Radius — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

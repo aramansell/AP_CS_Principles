@@ -1,121 +1,192 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>4.5a The Full State Machine: Back to Patrol — AP CS Principles</title><meta name="description" content="Lesson 4.5 The Full State Machine: Back to Patrol — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="4.5a The Full State Machine: Back to Patrol — AP CS Principles"><meta property="og:description" content="Lesson 4.5 The Full State Machine: Back to Patrol — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="4.4.html">&#9664; 4.4</a><span class="lesson-id">4.5</span><a href="5.1.html">5.1 &#9654;</a></div><h1>4.5 — The Full State Machine: Back to Patrol</h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>4.5 The Full State Machine: Patrol, Chase, Attack — AP CS Principles</title><meta name="description" content="Lesson 4.5 The Full State Machine: Patrol, Chase, Attack — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="4.5 The Full State Machine: Patrol, Chase, Attack — AP CS Principles"><meta property="og:description" content="Lesson 4.5 The Full State Machine: Patrol, Chase, Attack — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="4.4.html">&#9664; 4.4</a><span class="lesson-id">4.5</span><a href="5.1.html">5.1 &#9654;</a></div><h1>4.5 — The Full State Machine: Patrol, Chase, Attack</h1>
 
 <p class="lesson-lead">
-    Everything you built this unit is one animal: a machine with
-    states, transitions, and no memory it does not need. Today you draw
-    it, trace it, and connect it to the biggest idea in the AP exam's
-    algorithms unit: selection decides everything.
+    You have written every line of this enemy already. Patrol. Chase. Contact damage. What you
+    do <em>not</em> have is a place in the code that says which one the enemy is doing right now
+    — and that missing field is the difference between a pile of behaviours and a machine.
+    Today you name the states, draw the arrows, and choose how you want to represent them.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity expand-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Concept Lab</span>
+        <span class="activity-label">The Problem: Where Is the State?</span>
         <span class="activity-time">~20 min</span>
     </div>
 
     <p>
-        You have written every line of this enemy already. Read the
-        whole Update path at once and count the behaviors:
+        Look at <code>EnemyController.cs</code> as it stands. Your patrol runs unconditionally,
+        your chase hides inside an <code>if</code>, and your attack is a collision callback. The
+        enemy behaves correctly — and yet there is no line anywhere that you could print to answer
+        the question <em>"what is this enemy doing?"</em>
     </p>
-    <pre><code>private void Update()
-{
-    if (isPlatformer)
-    {
-        PlatformerMove();   // STATE: PATROL
-    }
-    else
-    {
-        TopDownMove();      // STATE: PATROL (when far) or CHASE (when near)
-    }
-}</code></pre>
-
     <p>
-        Inside TopDownMove the chase is an if; outside it, the attack
-        is a collision handler with a cooldown. Now draw the machine
-        on paper — states as boxes, transitions as labeled arrows:
+        That is the problem. The state is not stored; it is <em>implied</em> by which branch of
+        the code happened to run this frame. Before you fix it, draw the machine on paper — boxes
+        for states, labelled arrows for transitions:
     </p>
+
     <table>
-        <tr><th>From</th><th>Event / condition</th><th>To</th></tr>
-        <tr><td>PATROL</td><td>distance to player &lt; chaseDistance</td><td>CHASE</td></tr>
-        <tr><td>CHASE</td><td>every frame: move toward player (normalized)</td><td>(stay in CHASE)</td></tr>
-        <tr><td>CHASE</td><td>contact (collision)</td><td>ATTACK (deals damage on cooldown)</td></tr>
-        <tr><td>CHASE</td><td>distance &gt;= chaseDistance</td><td>PATROL</td></tr>
+        <tr><th>From</th><th>Condition or event</th><th>To</th></tr>
+        <tr><td>PATROL</td><td>distance to the player is inside the aggro radius</td><td>CHASE</td></tr>
+        <tr><td>CHASE</td><td>every frame: move toward the player, normalized</td><td>CHASE (stay)</td></tr>
+        <tr><td>CHASE</td><td>contact with the player, and the damage cooldown has elapsed</td><td>ATTACK</td></tr>
+        <tr><td>ATTACK</td><td>damage delivered, cooldown started</td><td>CHASE</td></tr>
+        <tr><td>CHASE</td><td>distance is outside the radius (or outside the give-up radius if you built one)</td><td>PATROL</td></tr>
     </table>
 
-    <p>
-        The fourth row is the one the teacher's design asks about:
-        <strong>"returns to patrol when the player flees."</strong>
-        Find it in the code — there is no explicit "return to patrol"
-        line. The chase is inside an if; when the if stops matching,
-        the enemy simply falls back to doing nothing extra. The
-        patrol was never switched off, it was just outvoted. The most
-        elegant state machines hide exits inside conditions.
-    </p>
+    <div class="callout info">
+        <strong>One row of that table is a lie, and it is worth knowing why.</strong> In your
+        code, ATTACK is not a state. It is a callback that fires whenever the enemy's collider
+        meets the player's — which means it can fire while the enemy is chasing
+        <em>or while it is calmly patrolling</em>. Walk into a guard on its beat and find out.
+        Your diagram draws ATTACK as a state because that is how it <em>feels</em> to the player,
+        and that is a legitimate reason to draw it. Just be able to say which rows your code
+        actually implements.
+    </div>
+
+    <p>Here are the three ways to represent a machine like this. You are going to pick one:</p>
+
+    <table>
+        <tr><th>Representation</th><th>What it looks like in the file</th><th>What it buys you</th><th>What it costs</th></tr>
+        <tr>
+            <td><strong>Implicit — the shape of the code is the state</strong></td>
+            <td>The chase is an <code>if</code>; the patrol is whatever runs when the <code>if</code> fails; the attack is a callback.</td>
+            <td>No new fields at all, and the machine is short enough to read in one screen. This is what you have right now.</td>
+            <td>Nothing can ask what the enemy is doing — not a <code>Debug.Log</code>, not the animator, not a behaviour you add in Unit 6. A third behaviour means nesting a third <code>if</code>, and the number of paths grows faster than you can read them.</td>
+        </tr>
+        <tr>
+            <td><strong>Boolean flags — one bool per behaviour</strong></td>
+            <td><code>isChasing</code>, <code>isAttacking</code>, and one per behaviour after that.</td>
+            <td>Cheap to add the first flag, and genuinely readable with exactly two behaviours. It is also the smallest change from what you have.</td>
+            <td>Every flag doubles the number of combinations: four flags describe sixteen situations, and most of them are nonsense. Nothing in the language stops you from being "chasing and attacking and fleeing" at the same time — you simply get a bug instead of a compile error.</td>
+        </tr>
+        <tr>
+            <td><strong>An enum state variable</strong></td>
+            <td>One enum listing the states, plus one field of that type.</td>
+            <td>The set of legal states is written down in exactly one place, so illegal combinations cannot even be expressed. You can print the state name, drive the animator from it, and read every transition out of one <code>switch</code>. This is the version that survives Unit 8.</td>
+            <td>One field, one enum declaration, and one transition rule — and you must decide <em>every</em> exit on purpose. The implicit version gave you the exits for free; here you have to write them down.</td>
+        </tr>
+    </table>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The AP exam says an algorithm needs <strong>sequencing,
-            selection, and iteration</strong>. Label all three in the
-            enemy's code: where is sequence, where is selection, and
-            where is iteration? (The iteration one is sneaky — think
-            about what calls Update.)
-        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc1:q1" data-block="socratic" data-question="The AP exam says an algorithm needs sequencing, selection, and iteration . Label all three in the enemy's code: where is sequence, where is selection, and where is iteration? (The iteration one is sneaky — think about what calls Update.)" placeholder="write your answer, then keep going"></textarea></label>
+        <h3>Socratic: Naming the Machine</h3>
+        <ol>
+            <li>Right now, is there any field in <code>EnemyController.cs</code> that holds what the enemy is currently doing? If not, what <em>is</em> holding it — and what does that cost you when you want to debug?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc1:q1" data-block="socratic" data-question="Right now, is there any field in EnemyController.cs that holds what the enemy is currently doing? If not, what is holding it — and what does that cost you when you want to debug?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>With two behaviours, a single bool is perfectly readable. How many combinations do four booleans describe, and how many of those are real states? What does that ratio tell you about scaling the flag approach?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc1:q2" data-block="socratic" data-question="With two behaviours, a single bool is perfectly readable. How many combinations do four booleans describe, and how many of those are real states? What does that ratio tell you about scaling the flag approach?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Your attack is a callback, not a state. Can it fire while the enemy is patrolling? Walk into a patrolling enemy and find out — then say whether your diagram is a description of the code or a description of the player's experience.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc1:q3" data-block="socratic" data-question="Your attack is a callback, not a state. Can it fire while the enemy is patrolling? Walk into a patrolling enemy and find out — then say whether your diagram is a description of the code or a description of the player's experience." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Your chase ends when the <code>if</code> stops matching. There is no "return to patrol" line in the file. Is an exit that exists as the <em>absence</em> of a match easier or harder to reason about than an explicit transition? Argue both sides.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc1:q4" data-block="socratic" data-question="Your chase ends when the if stops matching. There is no &quot;return to patrol&quot; line in the file. Is an exit that exists as the absence of a match easier or harder to reason about than an explicit transition? Argue both sides." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The AP exam names sequencing, selection and iteration as the building blocks of algorithms. Where is each one in your enemy? One of them is sneaky — think about what calls <code>Update()</code>.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc1:q5" data-block="socratic" data-question="The AP exam names sequencing, selection and iteration as the building blocks of algorithms. Where is each one in your enemy? One of them is sneaky — think about what calls Update() ." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If you print a state name every frame, what do you expect to see at exactly the boundary of the aggro radius? Which number would you change to calm it down, and what did you build in 4.3 that already fixes it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc1:q6" data-block="socratic" data-question="If you print a state name every frame, what do you expect to see at exactly the boundary of the aggro radius? Which number would you change to calm it down, and what did you build in 4.3 that already fixes it?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Step 1 — prove the diagram with Debug.Log.</strong>
-    Instrument TopDownMove for five minutes (then delete it):</p>
-    <pre><code>if (dist &lt; chaseDistance)
-{
-    Debug.Log("CHASE");
-    ...
-}
-else
-{
-    Debug.Log("PATROL");  // you will have to make the else explicit
-}</code></pre>
+    <p>
+        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
+        your enemy. None of these is from a video game.
+    </p>
 
-    <p>Walk the boundary in and out: the Console flickers
-    CHASE/PATROL/CHASE. You are watching state transitions print in
-    real time. Why is "flickering at the edge" not a bug — and which
-    number (chaseDistance) would you tune to make the flicker stop?</p>
+    <p><strong>Example 1 — A washing machine that is always in exactly one phase:</strong></p>
+    <pre><code>// The machine is never between phases; the panel can always say which one it is
+Console.WriteLine("Phase: " + machine.Phase);</code></pre>
 
-    <p><strong>Step 2 — the ATTACK column is a lie (mostly).</strong>
-    Notice: attack is not a state in the code, it is a collision
-    event that can fire during CHASE or even during PATROL (walk into
-    a patrolling enemy!). Your diagram probably drew it as a state
-    anyway — because that is how it FEELS. Designers draw the
-    machine from the player's point of view; the code just makes the
-    arrows cheap. Bosses in Unit 8 will have real phase states —
-    this enemy fakes them.</p>
+    <p><strong>Example 2 — A lift declaring its legal states (comment only):</strong></p>
+    <pre><code>// A lift is Idle, Moving or DoorsOpen. There is no fourth thing, and it is
+// never two of them at once - the type itself forbids it.</code></pre>
 
-    <p><strong>Step 3 — name the states out loud.</strong> Write the
-    three names — PATROL, CHASE, ATTACK — as comments next to the
-    code lines that implement them. The comment IS the design
-    document; the code is one implementation of it.</p>
+    <p><strong>Example 3 — A vending machine's cycle:</strong></p>
+    <pre><code>// Idle -> CreditHeld -> Dispensing -> Idle. Two of those exits exist only
+// because somebody wrote them down.
+private enum VendState { Idle, CreditHeld, Dispensing, OutOfStock }</code></pre>
+
+    <p><strong>Example 4 — A level crossing (comment only):</strong></p>
+    <pre><code>// Warn, lower the barriers, wait, raise them. The ORDER is the behaviour -
+// run them out of sequence and the sequence is what you lost.</code></pre>
+
+    <p><strong>Example 5 — A traffic signal (comment only):</strong></p>
+    <pre><code>// A signal is never green and red at once. In a machine built from two
+// booleans, that state is representable - which means someday it will happen.</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+            <li>Example 1 prints a phase name. What would the equivalent print look like in your <em>current</em> file — and what could you print today that comes closest?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc2:q1" data-block="socratic" data-question="Example 1 prints a phase name. What would the equivalent print look like in your current file — and what could you print today that comes closest?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Example 2 says the type forbids a fourth state. Which illegal situation would your flag-based version allow but an enum would not?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc2:q2" data-block="socratic" data-question="Example 2 says the type forbids a fourth state. Which illegal situation would your flag-based version allow but an enum would not?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Example 4 says the order is the behaviour. Which part of your enemy is a <em>sequence</em> rather than a set of conditions — and what would break if the order changed?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc2:q3" data-block="socratic" data-question="Example 4 says the order is the behaviour. Which part of your enemy is a sequence rather than a set of conditions — and what would break if the order changed?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Example 5 says a two-bool signal will eventually show green and red together. Where in your own enemy could two of your bools disagree, and which one wins on that frame?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc2:q4" data-block="socratic" data-question="Example 5 says a two-bool signal will eventually show green and red together. Where in your own enemy could two of your bools disagree, and which one wins on that frame?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Example 3 lists an <code>OutOfStock</code> state that is not really part of a cycle. Which state in your enemy is like that — reachable, but not part of the loop you drew?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:sc2:q5" data-block="socratic" data-question="Example 3 lists an OutOfStock state that is not really part of a cycle. Which state in your enemy is like that — reachable, but not part of the loop you drew?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Refactor to a Real Machine</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification for the state machine:</strong>
+
+        <p><strong>Step 1 — write the states down before you code.</strong></p>
+        <ul>
+            <li>What are the legal states of this enemy? Name them in capitals, and be honest about ATTACK: is it a state in your machine, or an event that fires while another state is active?</li>
+            <li>Which state does the machine start in, and what guarantees that on frame one?</li>
+            <li>What happens to the machine when the player is destroyed by your death rule from <a href="2.2.html">2.2</a>? Which state should an enemy with no target fall into, and where does the null guard sit relative to the machine?</li>
+        </ul>
+
+        <p><strong>Step 2 — choose the representation and refactor.</strong></p>
+        <ul>
+            <li>Enum or boolean flags? Pick the one you prefer and write one sentence justifying it against the other. (The implicit version is what you already have, so it cannot be your answer.)</li>
+            <li>If you chose the enum: what type holds the current state, what is its default value, and does it need to be serialized or private?</li>
+            <li>If you chose the flags: how many flags do you need for the states you named, and how many of the resulting combinations are real? Write the count down.</li>
+            <li>Whichever you chose: where is the state <em>changed</em>? Is it at the top of the frame before any behaviour runs, or inside each state's own code? What could go wrong if two transitions fire in the same frame?</li>
+        </ul>
+
+        <p><strong>Step 3 — dispatch the behaviour.</strong></p>
+        <ul>
+            <li>What does the top-level update method of the enemy now look like? Does it branch with a <code>switch</code>, an <code>if</code>/<code>else</code> chain, or one small method per state?</li>
+            <li>Where did your patrol code go? Your chase code? Your contact damage?</li>
+            <li>Which state is the <em>default</em> for a state you have not written a branch for — and what does the machine do if the value is somehow wrong?</li>
+        </ul>
+
+        <p><strong>Step 4 — the return to patrol.</strong></p>
+        <ul>
+            <li>Write the return-to-patrol transition down explicitly. What is the exact condition, and which of the two radii from 4.3 does it use?</li>
+            <li>When the machine returns to PATROL, does the enemy resume its old beat or start a fresh one? What does the player see in each case, and which does your code actually do?</li>
+        </ul>
+
+        <p><strong>Step 5 — prove it.</strong></p>
+        <ul>
+            <li>How do you print the current state's <em>name</em> so you can read it in the Console? With an enum this is nearly free — with flags, what do you have to write instead?</li>
+            <li>Which animator parameter from <a href="4.2.html">4.2</a> could now be driven from the state directly, and where would that line go?</li>
+        </ul>
+    </div>
+
+    <p>
+        Save and play. Walk toward an enemy, let it catch you, then run away and watch the
+        Console. You should see the state change in order — patrol, chase, attack, chase, patrol
+        — as a sequence of names you chose.
+    </p>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: Break the machine</h3>
+        <h3>Bug Hunt: Breaking the Machine</h3>
         <ol>
-            <li>Swap the chaseDistance and patrolDistance values (5
-                and 3). Which behavior gets weird first — and does
-                the diagram still hold?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:bh1:q1" data-block="bug-hunt" data-question="Swap the chaseDistance and patrolDistance values (5 and 3). Which behavior gets weird first — and does the diagram still hold?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Make isPlatformer true in the Overworld. Which states
-                vanish — and what does that say about the enemy's
-                whole brain in the cave scenes?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:bh1:q2" data-block="bug-hunt" data-question="Make isPlatformer true in the Overworld. Which states vanish — and what does that say about the enemy's whole brain in the cave scenes?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Add a second chase if INSIDE the first: chase when
-                dist &lt; 5 AND dist &gt; 2. What did you just invent
-                (a dead zone!) — and where does the enemy stand when
-                the player stands still inside it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:bh1:q3" data-block="bug-hunt" data-question="Add a second chase if INSIDE the first: chase when dist &lt; 5 AND dist &gt; 2. What did you just invent (a dead zone!) — and where does the enemy stand when the player stands still inside it?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Delete the transition back to PATROL. What does the enemy do after you escape? How is "no transition at all" different from "the wrong transition"?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:bh1:q1" data-block="bug-hunt" data-question="Delete the transition back to PATROL. What does the enemy do after you escape? How is &quot;no transition at all&quot; different from &quot;the wrong transition&quot;?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If you chose the enum, also add a <code>bool isChasing</code> and drive the chase from it. Now two sources of truth exist — where do they disagree, and which one wins?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:bh1:q2" data-block="bug-hunt" data-question="If you chose the enum, also add a bool isChasing and drive the chase from it. Now two sources of truth exist — where do they disagree, and which one wins?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set the aggro radius smaller than the distance at which the enemy can actually touch you. Can the machine ever reach your ATTACK state? Trace the arrows on your diagram to prove it.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:bh1:q3" data-block="bug-hunt" data-question="Set the aggro radius smaller than the distance at which the enemy can actually touch you. Can the machine ever reach your ATTACK state? Trace the arrows on your diagram to prove it." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Remove the exit from ATTACK. What does the enemy do forever, and what would a game designer call that state?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:bh1:q4" data-block="bug-hunt" data-question="Remove the exit from ATTACK. What does the enemy do forever, and what would a game designer call that state?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Print the state every frame and walk slowly across the boundary. Where does the printed state flicker, and which single number would you change to stop it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:bh1:q5" data-block="bug-hunt" data-question="Print the state every frame and walk slowly across the boundary. Where does the printed state flicker, and which single number would you change to stop it?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If you chose flags: add a FLEE flag. How many conditions are now nested in your update, and how do you know which one is in charge on any given frame?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:bh1:q6" data-block="bug-hunt" data-question="If you chose flags: add a FLEE flag. How many conditions are now nested in your update, and how do you know which one is in charge on any given frame?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -124,29 +195,30 @@ else
 <div class="activity basic-app">
     <div class="activity-header">
         <span class="activity-label">Tinker</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Design a fourth state</h3>
+        <h3>Tinker: Design a Fourth State</h3>
         <ol>
-            <li>Invent FLEE: the enemy runs AWAY when you get within
-                1.5 (a cowardly guard). Which subtraction flips, and
-                where does the new arrow go on your diagram?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:tk1:q1" data-block="tinker" data-question="Invent FLEE: the enemy runs AWAY when you get within 1.5 (a cowardly guard). Which subtraction flips, and where does the new arrow go on your diagram?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Invent ENRAGE: after taking a hit (someday), double
-                speed for 3 seconds. What field counts the 3 seconds
-                — and which pattern does it borrow?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:tk1:q2" data-block="tinker" data-question="Invent ENRAGE: after taking a hit (someday), double speed for 3 seconds. What field counts the 3 seconds — and which pattern does it borrow?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Commit + push: <code>"4.5a: state diagram + states named"</code> — include a photo or ASCII of your diagram in the repo.</li>
+            <li>Invent FLEE: the enemy runs <em>away</em> when you get within 1.5 units. Which subtraction flips, what does the arrow on your diagram look like, and which state does it exit to?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:tk1:q1" data-block="tinker" data-question="Invent FLEE: the enemy runs away when you get within 1.5 units. Which subtraction flips, what does the arrow on your diagram look like, and which state does it exit to?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Invent ENRAGE: after being hurt, the enemy moves at double speed for three seconds. Which timing pattern from <a href="3.3.html">3.3</a> do you borrow for the three seconds, and what new field does it need?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:tk1:q2" data-block="tinker" data-question="Invent ENRAGE: after being hurt, the enemy moves at double speed for three seconds. Which timing pattern from 3.3 do you borrow for the three seconds, and what new field does it need?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Add a fourth state to your enum and count how many transitions you had to add. Now imagine the same thing with flags — how many did you save, and how many did you risk?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:tk1:q3" data-block="tinker" data-question="Add a fourth state to your enum and count how many transitions you had to add. Now imagine the same thing with flags — how many did you save, and how many did you risk?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Drive the animator's <code>Attack</code> trigger from the ATTACK state rather than from the contact callback. What changed about when the animation plays, and which ordering do you prefer?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.5:tk1:q4" data-block="tinker" data-question="Drive the animator's Attack trigger from the ATTACK state rather than from the contact callback. What changed about when the animation plays, and which ordering do you prefer?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Commit and push: <code>"4.5: explicit enemy state machine"</code> — include a photo or an ASCII sketch of your diagram in the repository.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Draw the enemy's state machine from memory, with conditions on the arrows</li>
-            <li>Find "return to patrol" in the code — as the absence of a match</li>
-            <li>Label sequencing, selection, and iteration in real code</li>
-            <li>Explain why a drawn state and a coded state are different things</li>
+            <li>Draw the enemy's state machine from memory, with a condition written on every arrow</li>
+            <li>Compare the implicit, flag-based and enum-based representations, and defend the one you chose</li>
+            <li>Say where the return-to-patrol transition lives in your code, and what condition it tests</li>
+            <li>Label sequencing, selection and iteration in real code</li>
+            <li>Explain why your drawn ATTACK state and your coded attack are not quite the same thing</li>
+            <li>Print the current state's name without a UI</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -157,8 +229,8 @@ else
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the full reference, with the boss preview</li>
-        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — every branch annotated</li>
-        <li><a href="../exam/reference-sheet.html">Exam Reference Sheet</a> — where selection meets pseudocode</li>
+        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — every branch of the enemy annotated</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — enums, switch statements and <code>Debug.Log</code></li>
     </ul>
-    <p>Next: <a href="5.1.html">5.1 — The Axe: Item Pickups &amp; Inventory Bools</a> — Unit 5 begins.</p>
-</div><div class="lab-bar" data-lesson="4.5" data-lesson-title="The Full State Machine: Back to Patrol" data-count="6" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/6 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="4.5" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="4.4.html"><span class="dir">&#9664; Previous</span><span class="where">4.4 — Attack: Close-Range Danger</span></a><a class="foot-next" href="5.1.html"><span class="dir">Next &#9654;</span><span class="where">5.1 — The Axe: Item Pickups &amp; Inventory Bools</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+    <p>Next: <a href="5.1.html">5.1 — The Axe: Item Pickups &amp; Inventory Bools</a>, where Unit 5 begins and your stats finally have a reason to leave the player.</p>
+</div><div class="lab-bar" data-lesson="4.5" data-lesson-title="The Full State Machine: Patrol, Chase, Attack" data-count="21" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/21 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="4.5" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="4.4.html"><span class="dir">&#9664; Previous</span><span class="where">4.4 — Attack: Close-Range Contact Damage</span></a><a class="foot-next" href="5.1.html"><span class="dir">Next &#9654;</span><span class="where">5.1 — The Axe: Item Pickups &amp; Inventory Bools</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

@@ -1,16 +1,22 @@
 ---
 // Lesson 5.1 — The Axe: Item Pickups & Inventory Bools
-// hasAxe as boolean state; the pickup family grows up.
+// hasAxe as boolean state; the pickup family grows up; and the real lesson -
+// swapping an Animator's runtime controller to change the whole weapon set.
+// GROUND TRUTH: AxeItem.prefab is tag `Axe` with Transform + SpriteRenderer only
+// (NO collider) and ZERO instances in any scene. The Player prefab's Animator is
+// wired to Player_Shovel.controller; Player_Axe.controller is a separate,
+// complete, UNASSIGNED asset. SceneSwitch.cs already demonstrates swapping
+// runtimeAnimatorController, which is the technique this lesson teaches.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>5.1 — The Axe: Item Pickups &amp; Inventory Bools</h1>
 
 <p class="lesson-lead">
-    Coins and potions changed numbers. The axe changes what you
-    <em>are</em>: it flips a boolean, swaps your animation variant, and
-    suddenly you look like someone who can break down a door. Today:
-    inventory as true/false flags — the cheapest data structure that
-    can possibly work.
+    Coins and potions changed <em>numbers</em>. The axe changes what you <em>are</em>: it flips a
+    boolean, swaps your entire animation set, and suddenly you look like someone who can break
+    down a door. Today you build a pickup that grants <strong>capability</strong> instead of a
+    count — and you discover that changing a weapon is not a transition you draw, it is a
+    controller you replace.
 </p>
 
 <!-- ============================================================ -->
@@ -21,101 +27,129 @@ const body = `<h1>5.1 — The Axe: Item Pickups &amp; Inventory Bools</h1>
     </div>
 
     <p>
-        Look at the shipped Player prefab in Assets/Prefabs: it uses
-        the <strong>PlayerAnimator with Axe/Shovel variants</strong> —
-        the art for axe-wielding already exists. And in
-        PlayerController, find the animation branch from
-        <a href="1.6.html">1.6</a> that runs on mouse click
-        (Attack trigger). The starter is aching to hand you an axe.
+        Before you build anything, answer the data question. Coins needed a counter. A potion
+        needed to change an existing number. What does "the player is carrying an axe" actually
+        need?
     </p>
 
-    <p>
-        Predict: where should "has an axe" live? A new int field? A
-        list of items? A bool? Argue for your answer in one sentence
-        before reading on — the starter's design uses a
-        <strong>bool</strong> (hasAxe), because one item, one
-        yes/no, is the honest data structure. Six items would be six
-        bools; sixty would be a list (see the card jam in
-        <a href="10.2a.html">10.2a</a> — that is the list era).
-    </p>
+    <table>
+        <tr><th>Option</th><th>What it stores</th><th>Why you would or would not</th></tr>
+        <tr>
+            <td>An <code>int</code> count</td>
+            <td>How many axes you hold</td>
+            <td>Useless extra information. Nobody has ever needed two axes. You would be storing a number you will never read.</td>
+        </tr>
+        <tr>
+            <td>A <code>bool</code></td>
+            <td>Yes or no — you have one, or you do not</td>
+            <td>The honest shape of the fact. One item, one yes/no.</td>
+        </tr>
+        <tr>
+            <td>A list of items</td>
+            <td>Every item you carry, by name</td>
+            <td>The right answer for sixty items. Overkill for one, and it makes the simplest question — "do I have an axe?" — into a search.</td>
+        </tr>
+    </table>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The AP exam loves questions that ask what data type fits
-            the job. Why is a bool the right abstraction for "has an
-            axe" but the WRONG one for "how many coins"? What does
-            "right size the data" mean — one sentence.
-        </p>
+        <h3>Socratic: Right-sizing the data</h3>
+        <ol>
+            <li>Why is a <code>bool</code> the right abstraction for "I have an axe" but the wrong one for "how many coins do I have"?</li>
+            <li>At roughly how many items does a collection of booleans become the wrong design? What breaks first — readability, or the number of branches you have to write?</li>
+            <li>Where should this boolean live — on the axe, on the player, or somewhere global? Use the reasoning you applied in <a href="2.1.html">2.1</a>, then check it against what you actually do below.</li>
+            <li>You already store coins and health on <code>PlayerController</code>. Is "has an axe" the same kind of fact? What makes it different from a number, if anything?</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
+        <span class="activity-label">Build Lab: The pickup</span>
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — the field.</strong> In PlayerController, add
-    the pickup family's newest member:</p>
-    <pre><code>// Inventory
-private bool hasAxe = false;</code></pre>
-
-    <p><strong>Step 2 — the pickup.</strong> The AxeItem prefab exists
-    in Assets/Prefabs: check its collider (trigger) and its tag
-    (Axe? add it if missing — same ritual as
-    <a href="2.3.html">2.3</a>). Grow OnTriggerEnter2D with a third
-    branch:</p>
-    <pre><code>if (other.CompareTag("Axe"))
-{
-    hasAxe = true;
-    // swap to the axe animation variant:
-    // set the animator's parameter for the axe layer/variant here
-    Destroy(other.gameObject);
-}</code></pre>
-
     <p>
-        Notice what this branch does NOT do: it touches no StatManager,
-        prints no count. Not every pickup is a number. The axe is
-        <em>capability</em>: a boolean that future code will read
-        before allowing an action. You are building a permission.
+        <strong>Step 1 — put an axe in the world.</strong> Open
+        <code>Assets/Prefabs/AxeItem</code> and read its Inspector. Then answer this before
+        touching anything: if you walked into this object right now, would anything happen?
     </p>
 
-    <p><strong>Step 3 — see the permission.</strong> Prove hasAxe is
-    real state: add a temporary print in Update —</p>
-    <pre><code>Debug.Log("hasAxe: " + hasAxe);</code></pre>
-    <p>Run, watch it spam false, pick up the axe, watch it spam
-    true. Delete the print after; the proof is in the behavior.</p>
+    <div class="callout">
+        <strong>Architectural specification: making it a pickup.</strong>
+        <ul>
+            <li>The prefab carries the tag <code>Axe</code> already. What is it missing that every other pickup in this game has? Add it, and choose trigger or solid with a reason.</li>
+            <li>There are currently <strong>zero</strong> axes placed in any scene. Drag an instance into the Overworld somewhere your player will find it. How will you know the tester can reach it?</li>
+            <li>Where does the "I have an axe" field live? What type, what default value, and why must the default be what it is rather than the opposite?</li>
+            <li>Which callback receives the pickup, and how do you confirm the thing you touched is the axe rather than a coin? (You have written this check twice already.)</li>
+            <li>Should collecting the axe destroy it? Compare against the coin from 2.1 and the potion from 2.3 — is the axe the same kind of object?</li>
+        </ul>
+    </div>
 
-    <p><strong>Step 4 — the art swap.</strong> Open the Player's
-    Animator: the axe variant states exist but nothing transitions
-    INTO them. Add an Animator bool parameter (axePickedUp, say), a
-    transition from the normal set to the axe set on "true", and set
-    it from your pickup branch — the same code-sets-parameter,
-    animator-plays-frames split from <a href="1.6.html">1.6</a>,
-    now driving an equipment change. When it works, your little
-    sprite stops being a tourist.</p>
+    <p>
+        Notice what this pickup does <em>not</em> do: it changes no number and prints no count.
+        The axe is a <strong>permission</strong> — a fact that future code will read before
+        allowing an action. You are not building a score, you are building a capability.
+    </p>
+
+    <p>
+        <strong>Step 2 — prove it is real state.</strong> Add a temporary <code>Debug.Log</code>
+        that prints the boolean every frame. Run the game: watch the Console repeat the default
+        value, walk into the axe, and watch it flip. Then delete the print — the proof is the
+        behaviour, not the message.
+    </p>
+
+    <p>
+        <strong>Step 3 — the interesting part: change how the player looks.</strong> Open the
+        Player's Animator and read which controller it is using. Now go and look at
+        <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/</code> and see what else is in
+        that folder. You will find a <strong>second, complete controller</strong> — axe swings
+        instead of shovel swings — and it is not assigned to anything. Someone built you the
+        whole weapon set and left it on the shelf.
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic: Three ways to change a weapon</h3>
+        <p>All three of these are legitimate. Read the cost column before you commit:</p>
+        <table>
+            <tr><th>Approach</th><th>How it works</th><th>What it costs</th></tr>
+            <tr>
+                <td><strong>Assign the other controller at runtime</strong></td>
+                <td>The Animator component has a property holding the controller it is currently using. Set it to the axe controller when the axe is picked up, and the whole state machine — states, transitions, clips — is replaced instantly.</td>
+                <td>Nothing to author. You must remember to set it back if the axe is ever lost.</td>
+            </tr>
+            <tr>
+                <td><strong>Author the axe states into one controller</strong></td>
+                <td>Add the axe states and transitions into the controller you already have, and drive them with a new parameter.</td>
+                <td>You duplicate an entire state machine by hand, and every future clip must be added twice.</td>
+            </tr>
+            <tr>
+                <td><strong>Use an Animator Override Controller</strong></td>
+                <td>A Unity asset built for exactly this: it takes one base controller and swaps the clips it plays, keeping all the logic in one place.</td>
+                <td>One extra asset to create, and one more concept to learn. This is the professional answer.</td>
+            </tr>
+        </table>
+        <ol>
+            <li>Which approach does the project's own art layout clearly <em>intend</em> you to take? What is the evidence?</li>
+            <li>Read <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code>. Find where it saves and restores something related to the Animator. Which property does it touch, and what does that prove is possible at runtime?</li>
+            <li>Which approach would you choose if this game had four weapons instead of two, and why does the answer change?</li>
+            <li>What is the name of the property on the Animator component that holds the controller? Find it in the documentation rather than guessing.</li>
+        </ol>
+    </div>
+
+    <p>
+        Build the version you chose, then walk into the axe and swing. If you took the first
+        approach, your character should visibly become someone else the moment you touch it.
+    </p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: The phantom axe</h3>
         <ol>
-            <li>Set hasAxe = true as the field's starting value. What
-                does the game grant you before you ever found it —
-                and what did the default-after-pickup design protect
-                against?</li>
-            <li>Pick up the axe, die on a spike (death loop from
-                <a href="2.2.html">2.2</a>), and watch your back.
-                Do you still have the axe? Should you — and whose
-                decision is that, code or designer?</li>
-            <li>Add a SECOND axe to the map. Pick up both. What does
-                hasAxe become after the second one — and why is
-                "true" the only correct answer even though the count
-                is two?</li>
-            <li>You swap the animator parameter name to "hasAxe" in
-                code but the Animator still says "axePickedUp".
-                What is the symptom — silence, an error, or
-                nothing?</li>
+            <li>Set the boolean's starting value to the "already has it" state. What does the game grant you before you ever found the axe — and what did the default you originally chose protect against?</li>
+            <li>Pick up the axe, then die using the death rule you built in <a href="2.2.html">2.2</a>. Do you still have the axe? Should you — and is that a coding decision or a design decision?</li>
+            <li>Add a second axe and collect both. What does the boolean become after the second one? Why is that the only correct answer even though you touched two axes?</li>
+            <li>If you took the runtime-swap approach, what happens to the player's appearance when a <em>scene loads</em>? Check what <code>SceneSwitch.cs</code> does about it, and explain why that code has to exist.</li>
+            <li>Change the name your code uses for an Animator parameter so it no longer matches the controller. What is the symptom — silence, an error, or nothing at all? What does that tell you about the cost of string-based APIs?</li>
         </ol>
     </div>
 </div>
@@ -130,27 +164,22 @@ private bool hasAxe = false;</code></pre>
     <div class="tinker">
         <h3>Tinker: Inventory design</h3>
         <ol>
-            <li>Add a shovel sibling (the art variant exists!). Two
-                bools, two tags, two branches — at what number of
-                items does copy-pasting branches become the wrong
-                design?</li>
-            <li>Design the HUD: how would the player SEE that they
-                hold an axe? Argue sprite-only vs a UI icon — and
-                which does the art variant already give you for
-                free?</li>
-            <li>Hard: one-use axe — breaking the door consumes it
-                (hasAxe = false, swap back). Which script flips the
-                bool back, and why must it NOT be the pickup branch?</li>
+            <li>Look in <code>Assets/Character/Player/ExtraSpriteSheets/</code>. How many alternative weapon sets ship with this project? What would each one cost you to wire up, under the approach you chose?</li>
+            <li>Design the feedback: how would a player <em>see</em> that they are holding an axe? Argue sprite-only versus a UI icon — and which does the animation swap give you for free?</li>
+            <li>The one-use axe: breaking the door consumes it, so the boolean flips back to false. Which script should flip it back, and why must it not be the pickup branch that does so?</li>
+            <li>Right now your boolean is lost when the scene reloads. Write down exactly what that means for the player. You will fix this in <a href="5.3.html">5.3</a>, and the fix will not be about the axe.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain inventory bools vs counters and when each fits</li>
-            <li>Build an item that grants capability instead of a number</li>
-            <li>Drive an animation-variant swap from code through an Animator parameter</li>
-            <li>Trace hasAxe across death (does it persist? should it?)</li>
+            <li>Explain when a bool fits a fact and when it does not, and right-size the data for a new pickup</li>
+            <li>Build an item that grants capability instead of changing a number</li>
+            <li>Compare the three ways to change a weapon set, and defend your choice</li>
+            <li>Find a property in the Unity documentation rather than guessing its name</li>
+            <li>Explain what <code>SceneSwitch.cs</code> does about the Animator, and why it must</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -160,12 +189,13 @@ private bool hasAxe = false;</code></pre>
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — items, events, scenes</li>
+        <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — items, events and scenes</li>
         <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the pickup family</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Animator and SpriteRenderer APIs</li>
     </ul>
-    <p>Next: <a href="5.2.html">5.2 — The Door: Breaking In with Events</a></p>
+    <p>Next: <a href="5.2.html">5.2 — The Door: Opening It with Events</a>, where that permission finally gets spent.</p>
 </div>`;
 ---
-<Lesson id="5.1" title="5.1a The Axe: Item Pickups &amp; Inventory Bools — AP CS Principles" root=".." css="../style.css">
+<Lesson id="5.1" title="5.1 The Axe: Item Pickups &amp; Inventory Bools — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

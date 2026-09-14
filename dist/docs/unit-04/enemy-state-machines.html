@@ -15,32 +15,26 @@
     choosing between behaviors</strong> (AAP-3), and <strong>Update
     providing the iteration</strong> that asks the conditions over and
     over. The exam's definition of an algorithm — sequencing,
-    selection, iteration — lives inside every enemy controller in the
-    starter, and you can point at each one:
+    selection, iteration — is the whole shape of an enemy controller:
 </p>
-<pre><code>private void Update()                         // ITERATION (60×/sec)
+<pre><code>private void Update()          // ITERATION - runs ~60 times a second
 {
-    if (isPlatformer)                         // SELECTION
-    {
-        PlatformerMove();                     // SEQUENCING: which behavior
-    }
-    else
-    {
-        TopDownMove();
-    }
+    // SELECTION  - which behaviour is active right now?
+    // SEQUENCING - run exactly one of them
 }</code></pre>
 
 <h2>The guard's machine (Unit 4)</h2>
 <p>
-    The starter's EnemyController implements a machine whose states are
-    mostly <em>implicit</em> — they exist as conditions, not as a named
-    enum:
+    The enemy controller you build in Unit 4 is a machine whose states are
+    mostly <em>implicit</em> — they exist as conditions, not as a named enum.
+    That is a legitimate design, and worth understanding before you decide
+    whether to upgrade it:
 </p>
 <table>
-    <tr><th>State</th><th>Where it lives in the code</th><th>Transitions</th></tr>
-    <tr><td>PATROL</td><td>the else of the chase condition / PlatformerMove</td><td>→ CHASE when distance &lt; chaseDistance</td></tr>
-    <tr><td>CHASE</td><td>the if in TopDownMove</td><td>→ PATROL when the player is out of range</td></tr>
-    <tr><td>ATTACK</td><td>OnCollisionEnter2D / Stay2D → TryDamage</td><td>fires during either move state, on a cooldown</td></tr>
+    <tr><th>State</th><th>What makes it active</th><th>Transition out</th></tr>
+    <tr><td>PATROL</td><td>nothing else is true — it is the default behaviour</td><td>→ CHASE once the player is inside the aggro radius</td></tr>
+    <tr><td>CHASE</td><td>the player is within range, so the chase condition matches</td><td>→ PATROL when the player leaves that radius</td></tr>
+    <tr><td>ATTACK</td><td>a contact event, not a move state — it fires <em>during</em> patrol or chase</td><td>→ back to whatever movement state is still true, after a cooldown</td></tr>
 </table>
 <p>
     The elegant part: there is no "return to patrol" line anywhere.
@@ -49,6 +43,13 @@
     switched OFF — it was outvoted. Drawn on paper
     (<a href="../../lessons/4.5.html">4.5</a>), the machine is four
     boxes and three arrows; coded, it is three ifs and a cooldown.
+</p>
+<p>
+    Notice something important about ATTACK: it is not a movement state at all.
+    It is triggered by physics, so it can happen while the enemy is patrolling
+    <em>or</em> chasing. That is the single most common design mistake in a
+    first state machine — assuming every state must be mutually exclusive with
+    every other.
 </p>
 
 <h2>The turret, minimized</h2>
@@ -65,31 +66,16 @@
 
 <h2>Making states explicit (the enum upgrade)</h2>
 <p>
-    When a machine grows past "a couple of ifs," named states earn
-    their ceremony. The starter style would keep it simple:
+    When a machine grows past "a couple of ifs," named states earn their
+    ceremony. The upgrade has four parts, and you can write them yourself
+    from the descriptions alone:
 </p>
-<pre><code>private enum BossState { Idle, Attacking, Recovering, Dead }
-private BossState state = BossState.Idle;
-
-private void Update()
-{
-    switch (state)                              // explicit selection
-    {
-        case BossState.Idle:
-            state = BossState.Attacking;        // a transition
-            break;
-        case BossState.Attacking:
-            FireShockwave();
-            state = BossState.Recovering;
-            break;
-        case BossState.Recovering:
-            if (Time.time &gt;= lastAttackTime + attackInterval)
-            {
-                state = BossState.Idle;
-            }
-            break;
-    }
-}</code></pre>
+<ul>
+    <li>An <strong>enum</strong> declaring the states as named values, so the compiler can catch a typo that a string could not</li>
+    <li>One <strong>field</strong> holding the currently active state</li>
+    <li>A <strong>switch on that field</strong> inside the update loop, with one case per state</li>
+    <li>Each case <strong>assigning the next state</strong> when its condition is met — that assignment <em>is</em> the transition</li>
+</ul>
 <p>
     Two rules make explicit machines trustworthy:
     <strong>one state active at a time</strong> (if two can be active,
@@ -97,6 +83,28 @@ private void Update()
     has a condition you can read aloud</strong> ("recovering ends when
     the interval has elapsed"). A machine whose transitions you cannot
     narrate is a pile of ifs wearing a costume.
+</p>
+
+<h2>Do not assume the animator agrees with you</h2>
+<p>
+    A state machine in code and a state machine in the Animator are two
+    different machines that happen to share a vocabulary, and they do not
+    have to use the same conventions. This project proves it. The Player's
+    controller and the enemy's controller were built by different hands and
+    they disagree on almost everything:
+</p>
+<table>
+    <tr><th></th><th>Player</th><th>Enemy</th></tr>
+    <tr><td>Direction parameter</td><td><code>WalkDir</code>: 0 = up, 1 = sideways, 2 = down</td><td><code>Direction</code>: 0 = right, 1 = up, 2 = left, 3 = down</td></tr>
+    <tr><td>Idle states?</td><td>Yes — idle <em>and</em> walk states</td><td>No — walk states only</td></tr>
+    <tr><td>Left and right</td><td>One sideways clip, mirrored with <code>flipX</code></td><td>Separate left and right clips, no <code>flipX</code> at all</td></tr>
+</table>
+<p>
+    The lesson: read a state machine before you drive it. Two controllers that
+    both have a direction parameter can still mean completely different
+    things by <code>0</code>. When you drive someone else's machine — including
+    one you wrote last month — open the Animator window and check its
+    parameters rather than assuming they match the last one you met.
 </p>
 
 <h2>The boss's phase layer (Unit 8)</h2>

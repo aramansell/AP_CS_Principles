@@ -1,114 +1,240 @@
 ---
 // Lesson 7.4 — Ladders II: Mounts, Tops & Polish
-// The top-of-ladder problem, mount prompts, climb polish.
+// The top-of-ladder problem, the mount decision, and an HONEST climb-animation
+// block: Player_Shovel.controller holds only Idle / Walk / Shovel_Swing x
+// Up / Horiz / Down. There are no climb clips and no climb frames in any
+// character sheet, so adding climb animation is framed as "here is what you
+// would have to do", never as something already present.
+// Nobody has made the capped-ladder decision for the student - the starter
+// contains no ladders at all.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>7.4 — Ladders II: Mounts, Tops &amp; Polish</h1>
 
 <p class="lesson-lead">
-    Your ladder works in the middle — and fails at both ends. Today:
-    the top-of-ladder problem (the hardest 3 tiles in platformer
-    engineering), the mount prompt, and the polish pass that makes
-    climbing feel like an answer to a question the level asked.
+    Your ladder works in the middle and fails at both ends. Climb it and keep holding W: you
+    rise into the ceiling, or hover at the seam, or fall off the moment the zone ends. The
+    middle of a ladder is easy. The last three tiles are the hardest problem in platformer
+    engineering, and nobody has solved them for you — there are no ladders in this project
+    except the one you built in <a href="7.3.html">7.3</a>.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Concept Lab</span>
+        <span class="activity-label">The Problem: The Top of the Ladder</span>
         <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>The top-of-ladder problem.</strong> Climb to the top
-    of yesterday's ladder (<a href="7.3.html">7.3</a>) and keep
-    holding W. You rise INTO the floor above (or hover at the seam,
-    depending on your geometry). Every game with ladders has solved
-    this; the three classic answers:</p>
+    <p>
+        Climb your ladder from <a href="7.3.html">7.3</a> and hold W past the top tile. Write
+        down exactly what happens — every build does something slightly different, and yours is
+        the only build that matters. Then read the three classic answers:
+    </p>
+
     <table>
-        <tr><th>Solution</th><th>Feel</th><th>Cost</th></tr>
-        <tr><td><strong>Stop-at-top:</strong> when grounded ABOVE the ladder top, exit climb state</td><td>Honest, sudden</td><td>Needs a check: raycast down when climbing past the top</td></tr>
-        <tr><td><strong>Pop-off:</strong> climbing W past the top applies a small hop</td><td>Flows into a jump</td><td>Physics fiddly — can overshoot into enemies</td></tr>
-        <tr><td><strong>Platform top:</strong> a solid tile caps the ladder; you stop under it</td><td>Cheap and common</td><td>You must JUMP the last bit — level design must allow it</td></tr>
+        <tr><th>Answer</th><th>What the player feels</th><th>What it costs you</th></tr>
+        <tr>
+            <td><strong>Stop at the top.</strong> While climbing, ask whether there is floor under your feet; if there is, leave the climb state and stand up.</td>
+            <td>Honest and sudden. The climb ends the moment you have arrived.</td>
+            <td>One more physics question per frame, and a precise definition of "at the top".</td>
+        </tr>
+        <tr>
+            <td><strong>Pop off.</strong> Holding W past the top applies a small upward hop that carries you onto the ledge.</td>
+            <td>Flows straight into a jump. Can feel generous or magical.</td>
+            <td>Fiddly physics. The hop can overshoot into a spike or an enemy you never saw.</td>
+        </tr>
+        <tr>
+            <td><strong>Cap the ladder.</strong> Paint a solid tile above the top of the strip so the player simply stops under it, then jumps the last bit.</td>
+            <td>Blunt and completely learnable. Every player reads it instantly.</td>
+            <td>Level design must guarantee the last jump is possible with the jump you tuned in <a href="6.1.html">6.1</a>. Zero new code.</td>
+        </tr>
     </table>
 
+    <div class="callout info">
+        <strong>The cheapest answer is a tile, not a script.</strong> Option three requires no new
+        code at all — it is one painted tile on the <code>Collision</code> tilemap, and it works
+        because <a href="7.2.html">7.2</a> already made that tilemap solid. Before you write
+        anything, check whether your level can simply be shaped to solve the problem. A great deal
+        of platformer engineering is avoided by moving one tile.
+    </div>
+
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The starter's levels use the third answer mostly — capped
-            ladders. Why is the CHEAPEST solution often the most
-            honest one? What does the player learn about your game's
-            rules from a capped ladder vs. a magic pop-off?
-        </p>
+        <h3>Socratic: Who Decides Where the Climb Ends?</h3>
+        <ol>
+            <li>Which of the three answers does your build currently have — by accident, not by choice? Say what the player sees at the top tile right now.</li>
+            <li>Option three costs no code and option one costs a per-frame physics question. Which one teaches the player more about your game's rules, and which one is easier to explain to a tester?</li>
+            <li>If you cap the ladder, the last step is a jump. What must be true about the height between the cap and the ledge above it? Which number from <a href="6.1.html">6.1</a> — or which pair of numbers — decides it?</li>
+            <li>If you stop at the top, you must define "at the top" precisely. Is that "there is ground 0.2 units below me", or "I have risen above the ladder's first tile", or something else? Which definition survives a player who climbs halfway and lets go?</li>
+            <li>Your ladder zone is a box. The top of the box and the top of the picture are two different places. Which one should end the climb, and what goes wrong if they disagree?</li>
+            <li>A ladder that ends with a jump can strand a player who is out of practice. Is stranding ever acceptable? What level feature would you add to make it safe?</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
-    <p><strong>Step 1 — implement stop-at-top.</strong> In the climb
-    branch, when W is held and your ground raycast (you already own
-    it from <a href="6.2.html">6.2</a> — extend its reach) finds
-    solid ground at your feet while climbing, exit the climb state
-    cleanly:</p>
-    <pre><code>// while climbing, if there is floor under my feet at the top:
-if (Physics2D.Raycast(transform.position, Vector2.down,
-        groundCheckDistance + 0.6f, groundLayer))
-{
-    isOnLadder = false;
-    rb.gravityScale = 2;
-    // snap onto the ledge: tiny translate toward it, or leave
-    // it to physics — play with both, choose one
-}</code></pre>
+    <p>
+        Each of these is a machine that has to know when to stop. Read each one for what it does
+        in isolation, then find the piece that maps onto the top of your ladder.
+    </p>
 
-    <p><strong>Step 2 — the mount prompt.</strong> The middle of a
-    ladder works by walking into it — but the BOTTOM of a tall
-    ladder often sits above the player's reach. Add a one-liner
-    prompt (same UI family as your HUD thinking):
-    when within range of a ladder's base, show "Press W to climb"
-    text for exactly as long as the condition holds. Cheap version:
-    a trigger zone at the base toggling a world-space TextMesh
-    visible/hidden. The rule: prompts die the instant they are
-    obeyed or no longer relevant.</p>
+    <p><strong>Example 1 — A lift levelling itself with a landing, in a hoist controller:</strong></p>
+    <pre><code>// The car stops when its floor lines up with the landing floor,
+// not at the end of the shaft.
+if (Mathf.Abs(carFloorY - landingY) &lt; tolerance) StopCar();</code></pre>
 
-    <p><strong>Step 3 — polish passes (pick two).</strong>
-    <ul>
-        <li><strong>Animation:</strong> add a Climb parameter to the
-            animator; drive it from isOnLadder, and let climbing
-            idle vs. climbing move show different frames</li>
-        <li><strong>Sound:</strong> a soft tick per climb-step (your
-            feet know the ladder's rung count — or just a
-            heartbeat)</li>
-        <li><strong>Ladder edges:</strong> at the bottom of the climb
-            state, restore a tiny gravity moment so you do not
-            hang in the air when the trigger ends</li>
-        <li><strong>Ladders through platforms:</strong> your
-            one-way platform tinker from
-            <a href="7.2.html">7.2</a> lets a climb pass THROUGH
-            the cap — the two features love each other</li>
-    </ul></p>
+    <p><strong>Example 2 — A crane's limit switch, cutting the motor at the top of the arc:</strong></p>
+    <pre><code>private bool atLimit;   // set by the switch, cleared when the hook descends</code></pre>
+
+    <p><strong>Example 3 — An escalator's comb plate at the top landing:</strong></p>
+    <pre><code>// The same tread that carried you up lets you walk off level.
+// Nothing lifts you - you simply stop being carried.</code></pre>
+
+    <p><strong>Example 4 — An aircraft boarding stair's handrail (comment only):</strong></p>
+    <pre><code>// The rail is only a rail while someone is on the steps. It is
+// not a wall, and it never appears in the doorway.</code></pre>
+
+    <p><strong>Example 5 — A stage's fly floor and its counterweight (comment only):</strong></p>
+    <pre><code>// The rope takes the weight, the floor takes it back. The moment
+// is a handover, and handovers are where the bugs live.</code></pre>
+
+    <div class="callout">
+        <strong>Architectural specification: ending the climb cleanly.</strong>
+        <ul>
+            <li>Which question do you ask to detect "I have arrived"? Name the exact API you already own from <a href="6.2.html">6.2</a> — you built a ground check there, in whatever form you chose. Reuse it; do not write a second one.</li>
+            <li>How far down does that question need to reach while you are climbing? Your normal ground check distance was tuned for walking. What number would miss the ledge, and what does an over-long reach risk detecting instead?</li>
+            <li>What is the very first thing that must happen when you decide the climb is over — the state flag, the gravity, or the movement? Justify the order.</li>
+            <li>Which branch of your <code>Update</code> runs first: the climb movement or the arrival check? If the movement runs first on the frame you arrive, what does the player do for one frame, and does anyone see it?</li>
+            <li>When you leave the climb state at the top, do you snap the player onto the ledge or let physics settle them? Argue both, then choose.</li>
+            <li>How do you know you have not broken the ordinary ground check for walking? Name the test you will run after the change.</li>
+        </ul>
+    </div>
+
+    <div class="callout trap">
+        <strong>The order-of-operations bug will not announce itself.</strong> If your climb branch
+        moves the player <em>before</em> you check whether the climb has ended, then on the arrival
+        frame you move once more and then stop — a single frame of drift into the tile above. At
+        60 frames per second that is a millimetre. At a low frame rate, on a slow machine, it is
+        enough to shove the player inside a collider that then pushes them out sideways. Find the
+        order in your own <code>Update</code>, write it down, and test at a deliberately low frame
+        rate before you decide it does not matter.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Mount, Cap, and What a Climb Would Take</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>
+        <strong>Step 1 — solve the top.</strong> Choose one of the three answers and build it.
+        You have already read the costs. If you choose the capped ladder, paint the cap tile
+        first and test the last jump before you write a line of code — if the jump does not clear
+        it, the answer is to move the cap, not to add a pop-off.
+    </p>
+
+    <p>
+        <strong>Step 2 — the mount decision.</strong> Walk into a ladder and nothing happens until
+        you press W. That is one design. Another is that stepping into the zone mounts you
+        automatically and you hang there. A third is that the ladder only grabs you if you press W
+        <em>while inside the zone</em>, so walking past it sideways never snags you. Read all
+        three, choose one, and answer the question that decides it: <em>what does the player
+        expect when they walk past a ladder on the ground?</em>
+    </p>
+
+    <p>
+        <strong>Step 3 — the mount prompt, or its absence.</strong> The bottom of a tall ladder
+        can be out of reach or hard to read. Three honest options, and the project supports all
+        of them:
+    </p>
+
+    <table>
+        <tr><th>Prompt</th><th>What the player sees</th><th>What it costs</th></tr>
+        <tr>
+            <td><strong>Nothing at all</strong> — make the ladder obvious through geometry and tiles</td>
+            <td>A ladder that looks climbable</td>
+            <td>Nothing. And it is the option real games choose most often.</td>
+        </tr>
+        <tr>
+            <td><strong>A <code>Debug.Log</code> line</strong> while the mount is possible</td>
+            <td>The Console, which your player cannot see</td>
+            <td>Nothing, and it is consistent with your HUD so far — the project has no Canvas and your readouts are all Console lines.</td>
+        </tr>
+        <tr>
+            <td><strong>A world-space text object</strong> (a TextMesh in the scene) toggled active while the mount is possible</td>
+            <td>Floating text, in the world, above the ladder</td>
+            <td>A new object, a new reference, and a rule about when it disappears.</td>
+        </tr>
+    </table>
+
+    <p>
+        Whatever you choose, the rule is the same one you applied to the spike and the coin:
+        <strong>a prompt dies the instant it is obeyed or no longer relevant.</strong> A prompt
+        that lingers after you have started climbing is worse than no prompt.
+    </p>
+
+    <div class="callout">
+        <strong>What adding a real climb animation would actually involve.</strong> You may have
+        noticed your character rises up the ladder in a standing pose. That is not an oversight —
+        it is the honest state of the project. The Player's Animator controller contains exactly
+        three motions, <strong>Idle</strong>, <strong>Walk</strong> and
+        <strong>Shovel_Swing</strong>, and each of those exists in <strong>Up</strong>,
+        <strong>Horizontal</strong> and <strong>Down</strong> variants, driven by the
+        <code>IsWalking</code>, <code>WalkDir</code> and <code>Attack</code> parameters you built
+        in Unit 1. There is no climb state, no climb clip, and <strong>no climbing pose in any
+        sprite sheet that ships with this project</strong> — check
+        <code>Assets/Artwork/Character/Player/</code> and its
+        <code>ExtraSpriteSheets/</code> folder if you want to confirm that yourself.
+        <br><br>
+        So if you want a climb animation, here is the whole job, in order, and none of it is
+        today's work:
+        <ul>
+            <li><strong>Get frames.</strong> Either draw climbing poses, or find a licensed sheet. This is the step that stops most students, and it is art, not code.</li>
+            <li><strong>Import and slice</strong> the sheet in the Sprite Editor — the same workflow you met in Unit 1 — so each pose is its own sprite.</li>
+            <li><strong>Author two clips</strong>, a climb-idle and a climb-move, or one clip for both if you are being economical.</li>
+            <li><strong>Add the states</strong> to the controller and wire transitions in and out of them.</li>
+            <li><strong>Add a parameter</strong> — a Bool named for climbing — and drive it from the same state flag your trigger zone already writes.</li>
+            <li><strong>Decide the Up/Down question:</strong> do you need a mirrored clip, or does one climb pose read correctly in both directions?</li>
+        </ul>
+        If you do decide to take that on later, it belongs to <a href="7.7.html">7.7</a>'s polish
+        pass or to Unit 8 — not to a mechanic that already works.
+    </div>
+
+    <p>
+        <strong>Step 4 — polish passes. Pick two, and no more.</strong>
+        <ul>
+            <li><strong>Ladder edges:</strong> at the very bottom of the climb state, restore a moment of gravity so the player settles onto the floor instead of hanging in the air when the zone ends.</li>
+            <li><strong>Ladders through one-way ledges:</strong> if you built a one-way platform in <a href="7.2.html">7.2</a>, a climb can pass up through the cap. The two features love each other — test it and write down what happens.</li>
+            <li><strong>Sound:</strong> one soft tick per tile climbed. You are not adding audio today unless you already have a clip; note it as a candidate instead.</li>
+            <li><strong>The re-entry repair from <a href="7.3.html">7.3</a>:</strong> if you chose the cooldown, tune its length. Time it with a stopwatch, not by feel.</li>
+        </ul>
+    </p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: Both Ends</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: Endgame of ends</h3>
+        <h3>Bug Hunt</h3>
         <ol>
-            <li>At the top, you exit climb WHILE holding W, grounded
-                on the ledge. But your code above still runs the
-                translate BEFORE the check. What happens on the
-                frame after the exit — one-frame drift INTO the
-                ledge? Fix the order, then explain why one frame of
-                a 60fps game still matters.</li>
-            <li>The prompt appears when you can reach the ladder
-                BASE, but you jump UP to the trigger from below.
-                Should the prompt appear mid-jump? Why is "prompt
-                when possible" the wrong rule — what IS the right
-                one?</li>
-            <li>Two ladders back-to-back (a ladder shaft). The exit
-                trigger of ladder 1 fires at the seam... does your
-                enter of ladder 2 fire before the exit? Draw the
-                two messages on a timeline; who wins?</li>
+            <li>At the top you exit the climb while still holding W — but your movement code runs before the arrival check. What happens on the frame after the exit, and how would you prove it is only one frame?</li>
+            <li>The prompt appears when you are near the ladder's base, and you jump up into the zone from below. Should the prompt have appeared mid-jump? State the rule you would use instead of "prompt whenever possible".</li>
+            <li>Two ladders stacked with a one-tile gap between them. Draw the enter and exit messages on a timeline as the player climbs through the seam. Which message arrives last, and what is the flag's value afterwards?</li>
+            <li>You capped the ladder, but the cap sits four tiles above the floor and the ledge is one tile above that. Can you still finish the climb? What number from 6.1 decides it, and what do you change — the cap or the jump?</li>
+            <li>Your arrival check reaches too far down and finds the floor at the <em>bottom</em> of the ladder. Describe the symptom — the player is still climbing, but the state has already ended. How do you narrow the check without breaking the walking ground check?</li>
+            <li>Set your arrival check to reuse the 6.2 ground check exactly as written, mask and all. It never fires while climbing. Why not? (Think about which layer the ladder picture is on and which layer the cap tile is on.)</li>
         </ol>
     </div>
 </div>
@@ -121,28 +247,26 @@ if (Physics2D.Raycast(transform.position, Vector2.down,
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Ladder levels</h3>
+        <h3>Tinker: Ladder Levels</h3>
         <ol>
-            <li>Design a "chimney": two ladders 3 tiles apart with
-                enemies patrolling the top. What is the player
-                reading during the climb — and why is climbing a
-                PERFECT vulnerability window (you cannot jump
-                away mid-climb)?</li>
-            <li>Make the ladder the SAFE route and the jump route the
-                fast-but-spikey one. Which do testers choose —
-                record it, this is <a href="9.5.html">9.5</a>
-                data in the wild.</li>
-            <li>Commit + push: <code>"7.4a: ladder tops + mount prompt + polish"</code>.</li>
+            <li>Design a chimney: two ladders three tiles apart with enemies patrolling the top. What is the player reading during the climb — and why is climbing a perfect vulnerability window, given that you cannot dodge sideways mid-climb?</li>
+            <li>Make one route up a wall a ladder and the other route a set of jumps. Time both with a stopwatch. Which does a tester choose first, and which do they use on the second attempt? Record it — this is <a href="9.5.html">9.5</a> data in the wild.</li>
+            <li>Build a ladder whose top is capped and whose bottom is a two-tile drop. Does anything about the ladder need to change for the drop, or is the drop entirely the floor's business?</li>
+            <li>Take the mount prompt you chose and delete it entirely for one playtest. Does the tester still find the ladder? What does their behaviour tell you about whether a prompt was ever doing any work?</li>
+            <li>Time a climb with a stopwatch at two different <code>climbSpeed</code> values and write both numbers next to the ladder's height in tiles. Which one would you defend to a tester, and why?</li>
+            <li>Commit and push: <code>"7.4: ladder tops + mount decision + polish"</code>.</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain the top-of-ladder problem and implement stop-at-top with a raycast</li>
-            <li>Build a mount prompt that dies when obeyed</li>
-            <li>Drive climb animation from state you already track</li>
-            <li>Reason about order-of-operations on the exit frame</li>
+            <li>Explain the top-of-ladder problem and name the three classic answers with a cost for each</li>
+            <li>Say which answer you built, and why it fits your level</li>
+            <li>Reuse your 6.2 ground check to end the climb, and explain why the reach had to change</li>
+            <li>Defend your mount rule and your prompt decision — including choosing no prompt</li>
+            <li>State honestly that this project ships no climb frames, and list what adding one would involve</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -153,11 +277,12 @@ if (Physics2D.Raycast(transform.position, Vector2.down,
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a> — the polish reference</li>
-        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the ground raycast you are reusing</li>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the ground check you are reusing</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Animator parameters and 2D physics queries</li>
     </ul>
-    <p>Next: <a href="7.5.html">7.5 — Design a Big Cave: Flow &amp; Difficulty</a></p>
+    <p>Next: <a href="7.5.html">7.5 — Design a Big Cave: Flow &amp; Difficulty</a>, where the pieces you have built become a place.</p>
 </div>`;
 ---
-<Lesson id="7.4" title="7.4a Ladders II: Mounts, Tops &amp; Polish — AP CS Principles" root=".." css="../style.css">
+<Lesson id="7.4" title="7.4 Ladders II: Mounts, Tops &amp; Polish — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

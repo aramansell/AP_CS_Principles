@@ -1,111 +1,251 @@
 ---
 // Lesson 8.1 — Boss Design: Spec It First
-// Write the boss spec BEFORE building. Phases, tells, health economy.
+// DESIGN ONLY. There is no boss sprite, no boss prefab, no arena and no
+// boss door anywhere in this project. All of it is built by the student
+// in 8.2-8.5. This lesson produces a written spec and nothing else.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>8.1 — Boss Design: Spec It First</h1>
 
 <p class="lesson-lead">
-    "Sorta their first on their own experience" — this is the
-    capstone. The mistake every first-time boss builder makes: start
-    with the boss's SIZE. Today you start with its SPEC — a one-page
-    design document, in words, that a stranger could build from.
+    Open the Project window, click into the search box and type <code>boss</code>. You will find
+    <strong>nothing</strong> — no sprite, no prefab, no arena, no locked door. Every other unit
+    this year handed you a starter asset and asked you to make it behave. This one hands you an
+    empty search result. So today you do not open Unity at all: you write the document that
+    decides what you will build for the next four lessons.
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Concept Lab</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">The Problem: The Boss Does Not Exist</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
     <p>
-        A boss is a conversation: it asks a question with an attack,
-        the player answers with a move, and the boss listens (takes
+        Most first bosses are designed backwards. A student opens Unity, drags a big sprite into
+        the scene, scales it to 4×, adds a health number, and only then asks "what does it
+        <em>do</em>?" The result is always the same: an enemy that is a wall with a number on it.
+        It cannot be lost to, and it cannot be won against either — it is tedious in both
+        directions.
     </p>
-    <p><strong>The spec sheet (write all six, today, on paper):</strong></p>
-    <ol>
-        <li><strong>Identity (1 sentence):</strong> "The Cave Warden:
-            slow, huge, guards the exit; telegraphs everything."</li>
-        <li><strong>Health economy:</strong> boss HP vs. how many hits
-            your player can deal (<a href="8.3.html">8.3</a>) vs.
-            player HP 3. Aim: a fight of 60–90 seconds. Do the
-            arithmetic NOW: hits needed × seconds between openings =
-            fight length</li>
-        <li><strong>Phases (2 or 3):</strong> what changes at each
-            threshold — new attack? faster? arena change? Each phase
-            must be <em>readable</em> by the player within one
-            exchange</li>
-        <li><strong>Attacks (2–3 per phase max), each with:</strong>
-            telegraph (what tells you it is coming — wind-up frames,
-            a flash), timing (how long to react), counterplay (the
-            move that beats it), and punishment (what a mistake
-            costs)</li>
-        <li><strong>Tells &amp; fairness:</strong> same rule as
-            <a href="7.5.html">7.5</a> signposting — the boss is a
-            level that fights back, so it must be readable</li>
-        <li><strong>Arena:</strong> reuse your Unit 6 "room" shape:
-            two exits becomes one exit (the door only opens when the
-            boss dies); hazards the BOSS ignores but the player
-            must respect</li>
-    </ol>
+    <p>
+        The fix is not more discipline. It is <em>ordering</em>: decide the fight in words first,
+        and let the code be the transcription of a decision you already made. Here is the honest
+        inventory of what this project gives you to work with:
+    </p>
+
+    <table>
+        <tr><th>What already exists</th><th>What you must create from nothing</th></tr>
+        <tr>
+            <td>
+                <strong>Scenes:</strong> <code>Start</code> (index 0 — where the game begins; it
+                holds the StatManager object, a Ground-tagged Quad and the tilemaps, and
+                <em>no Player</em>), <code>Overworld</code> (the hub), <code>Platformer</code>
+                (your cave). All three wired through <code>SceneSwitch</code>.
+            </td>
+            <td>
+                <strong>The arena</strong> — a room that does not exist yet. You will decide
+                which scene hosts it and build it with the tilemap skills from
+                <a href="7.1.html">7.1</a>.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <strong>Enemy art:</strong> <code>Assets/Artwork/Character/Enemy/</code> holds
+                <code>OrcwithAxe1.png</code>, <code>OrcwithAxe2.png</code>, a
+                <code>LoRTowerV2</code> tower sheet and <code>Turret_Bullet.png</code>. The
+                Player folder holds <code>Axe1</code>, <code>Axe2</code> and <code>Shovel</code>.
+            </td>
+            <td>
+                <strong>The boss itself</strong> — no boss sprite exists. You will assemble one
+                out of that art in <a href="8.2.html">8.2</a>, by scaling and recombining what
+                is there. A scaled orc is a real answer; so is an oversized turret. A grey
+                rectangle is also honest.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <strong>Systems you own:</strong> a <code>StatManager</code> singleton holding
+                your player's health and coins (the refactor you did in
+                <a href="5.3.html">5.3</a>), an <code>ItemSpawner</code>, a turret that fires
+                projectiles, an enemy state machine, a lever with a UnityEvent.
+            </td>
+            <td>
+                <strong>The lock, the win and the loss.</strong> There is no boss door in this
+                project. There is a <code>Switch.prefab</code> carrying the working
+                <code>Lever.cs</code> whose events are currently empty — you may reuse that
+                machinery, but the door itself is yours to make in <a href="8.5.html">8.5</a>.
+            </td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>Read this before you spec a single number.</strong> The boss's health, your
+        swing's damage and the player's max health are not independent. Your player's health is
+        whichever number you chose in Unit 2 and then moved into <code>StatManager</code> in
+        5.3 — you own it, and it is not a value in this document. Your swing's damage is decided
+        in <a href="8.3.html">8.3</a>. The only number you are choosing <em>today</em> is the
+        boss's HP, and it only means something relative to the other two.
+    </div>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The AP exam's Create PT asks you to justify design
-            decisions in writing. Boss specs ARE that skill. Why does
-            writing the spec BEFORE the code make the coding shorter
-            — and what kind of bug does a spec prevent (hint: the
-            kind where the boss is simultaneously too strong to
-            lose to and too boring to win against)?
-        </p>
+        <h3>Socratic: What Makes a Boss a Boss?</h3>
+        <ol>
+            <li>Name the last boss you actually lost to, then beat. What did it teach you <em>before</em> it attacked — and how did it teach you?</li>
+            <li>A boss is a conversation: it asks a question with an attack, the player answers with a move, and the boss responds. What happens to that conversation if an attack has no answer the player can perform?</li>
+            <li>You searched the Project for "boss" and found nothing. Where else in this project did an object you needed fail to exist — and what did you have to decide before you could build it?</li>
+            <li>Your player's max health is whatever you chose, and the boss's damage is a decision you have not made yet. If the player may only make four mistakes in the whole fight, what does that fix about the boss's damage numbers?</li>
+            <li>Which of these can you actually settle on paper: the boss's HP, your swing's damage, or how good the player is? Which one must you never balance against, and why?</li>
+            <li>What kind of bug does a written spec prevent that a playtest cannot — the kind of flaw that no amount of tuning will repair?</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Design Lab</span>
+        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        A spec is a document that fixes an <em>outcome</em> and a <em>budget</em>, and leaves the
+        machinery to whoever builds it. None of these examples is from a video game. Read each
+        one for the shape of the thinking, then ask what the equivalent sentence is for your
+        boss.
+    </p>
+
+    <p><strong>Example 1 — A siege engine's spec sheet (the numbers are the design):</strong></p>
+    <pre><code>// A trebuchet is specified as: 90 m range, 8-second reload,
+// 300 kg counterweight. The crew drills to those numbers.
+// Nobody specifies the wood.</code></pre>
+
+    <p><strong>Example 2 — A bottling line's throughput (one number constrains every station):</strong></p>
+    <pre><code>// The line is specified as 40,000 bottles per hour.
+// Every station's cycle time must fit inside that.
+// One station out of budget makes the whole line's number a lie.</code></pre>
+
+    <p><strong>Example 3 — A stadium scoreboard cue sheet (cause left, effect right):</strong></p>
+    <pre><code>// "Q4 00:00 - sound horn, show FINAL" is a cue.
+// The operator is told the cue, never the wiring.</code></pre>
+
+    <p><strong>Example 4 — A stage manager's lighting cue (one name, many machines):</strong></p>
+    <pre><code>// "LX 12 - preshow blackout" touches forty dimmer racks.
+// The cue has a name so the caller never has to know which ones.</code></pre>
+
+    <p><strong>Example 5 — A recipe card is a spec (outcome and budget, not method):</strong></p>
+    <pre><code>// "Serves 4. 20 minutes." That is the whole contract.
+// The pan, the flame and the order of operations are the cook's problem.</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before You Write the Spec</h3>
+        <ol>
+            <li>Which of the five examples above specifies a <em>cycle time</em> — a delay between repetitions? Which part of your fight is that same idea?</li>
+            <li>The cue sheet names effects and never the wiring. What is the equivalent of "the wiring" in your boss, and why should the person playing your game never need to know it?</li>
+            <li>The bottling line's single number constrains every station. Which single number in your boss fight must every attack's timing fit inside?</li>
+            <li>The recipe card fixes the outcome and the budget but not the method. Which of the six parts of your boss spec is explicitly a <em>method</em> decision that you are allowed to change later without breaking the others?</li>
+            <li>Every one of these documents was written before the machine was built. What is the cost of discovering a bad fight-length number after the boss is coded instead of before?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: The Six-Part Spec</span>
         <span class="activity-time">~20 min</span>
     </div>
 
-    <p><strong>Stress-test the spec with the enemy state machine.</strong>
-    Your boss is <a href="4.5.html">4.5</a>'s machine with more
-    states. Map it — states as boxes, thresholds on the arrows:</p>
-    <pre><code>IDLE (2s) → ATTACK 1 (telegraph 0.6s, strike, recover 1s)
-    → IDLE → ATTACK 2 ...
-HP &lt;= 50%  → PHASE 2 (attack cooldown 2s → 1.2s, adds ATTACK 3)
-HP &lt;= 20%  → PHASE 3 (speed 2 → 3, arena hazard activates)
-HP &lt;= 0    → DEAD (door opens)</code></pre>
     <p>
-    Count your boxes: a boss with 6 states is a big build; with 12
-    it will not exist by January. Cut states until it is buildable,
-    not until it is impressive. You can always add a phase after it
-    WORKS — and never before.</p>
+        Here are the six parts, what each one is <em>for</em>, and the failure each one prevents.
+        Write all six today, on paper, before you touch Unity.
+    </p>
 
-    <p><strong>The one question that catches bad specs:</strong> for
-    each attack, what does the player DO? If the answer is "dodge
-    randomly" or "take the hit," the attack is decoration. Every
-    attack needs its counterplay sentence: "jump over the shockwave;
-    the jump is possible because the wave is 1 tile tall and your
-    jump is 2."</p>
+    <table>
+        <tr><th>Part</th><th>What it fixes</th><th>The failure it prevents</th></tr>
+        <tr>
+            <td><strong>1. Identity</strong></td>
+            <td>One sentence naming what the thing is and how it behaves: "The Cave Warden: slow, huge, guards the exit, telegraphs everything."</td>
+            <td>A boss with no personality becomes a stat block, and a stat block is never scary.</td>
+        </tr>
+        <tr>
+            <td><strong>2. Health economy</strong></td>
+            <td>Boss HP, against your swing's damage from <a href="8.3.html">8.3</a>, against the seconds between openings. Hits needed × seconds between openings = fight length.</td>
+            <td>A fight that is over in twelve seconds, or one that outlasts the player's patience.</td>
+        </tr>
+        <tr>
+            <td><strong>3. Phases (two or three)</strong></td>
+            <td>What changes at each threshold — a new attack, a faster rhythm, a hazard waking up.</td>
+            <td>A fight whose second half is identical to its first, which players read as "the boss has more HP than personality."</td>
+        </tr>
+        <tr>
+            <td><strong>4. Attacks</strong></td>
+            <td>Two or three per phase, each with four named properties: <em>telegraph</em> (what tells you it is coming), <em>timing</em> (how long you have to react), <em>counterplay</em> (the move that beats it), <em>punishment</em> (what a mistake costs).</td>
+            <td>The "dodge randomly or take the hit" attack — decoration that reads as unfairness.</td>
+        </tr>
+        <tr>
+            <td><strong>5. Tells and fairness</strong></td>
+            <td>The rule from <a href="7.5.html">7.5</a>: a boss is a level that fights back, so it must be readable. Same signposting standard you applied to the cave.</td>
+            <td>A fight you can only win by memorising it, which is not the same thing as being hard.</td>
+        </tr>
+        <tr>
+            <td><strong>6. Arena</strong></td>
+            <td>Where the fight happens, how the player enters, whether they may leave, and which hazards the boss ignores but the player must respect.</td>
+            <td>An arena that is a featureless box, or a fight the player simply walks away from.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification: the fight's arithmetic.</strong>
+        <ul>
+            <li>Write the target fight length first, in seconds, and defend the number. A fight that is too short cannot teach its own patterns; a fight that is too long has to invent difficulty out of repetition.</li>
+            <li>How many seconds out of every ten is your player actually <em>allowed</em> to attack? That is the inverse of your boss's attack pressure. Estimate it from the rhythm you are planning, then write it down — you will check it against the real build in 8.4.</li>
+            <li>With that fraction fixed, how many hits must land for the fight to reach its target length? That number, times your swing's damage from 8.3, is the boss's HP.</li>
+            <li>Why is the boss's HP the <em>last</em> number you write rather than the first, even though it is the one the player stares at?</li>
+            <li>Where does the player's own health come from in this calculation — a value you invent today, or the max health already sitting in your <code>StatManager</code>? What does that tell you about how many mistakes the fight should allow?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the arena.</strong>
+        <ul>
+            <li>Which scene hosts the fight? Your three scenes are <code>Start</code>, <code>Overworld</code> and <code>Platformer</code> — and one of them contains <em>no Player at all</em>. Which one is that, and what would happen if you staged a fight there?</li>
+            <li>Where does the player enter, and can they leave the same way? If your arena has two open exits, what is stopping the player from simply walking out mid-fight?</li>
+            <li>There is no boss door in this project. You will build one in <a href="8.5.html">8.5</a>. Decide now whether the fight is <em>locked</em> (a barrier appears), <em>gated</em> (the way onward opens only when the boss dies) or <em>open</em> (the player may always flee). Write one sentence defending your choice.</li>
+            <li>Which hazards does the boss ignore but the player must respect? Why does a hazard that hurts <em>both</em> of you usually read as a bug rather than a feature?</li>
+            <li>The room's size is a difficulty knob nobody remembers to turn. Sketch it in tiles using the numbers you already know: your player's walk speed and your jump's apex height from <a href="6.3.html">6.3</a>. How wide must the room be before your boss's fastest attack is dodgeable by running rather than by luck?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the attack list.</strong>
+        <ul>
+            <li>For each attack, write the telegraph as something the player can <em>see</em>: a colour flash, a wind-up pose, a sound. "It just happens" is not a telegraph.</li>
+            <li>For each attack, write the counterplay as a sentence naming the player's move and the number that makes it possible: "jump the wave; the wave is one tile tall and the jump apex is two."</li>
+            <li>Is the counterplay available in <em>every</em> phase, or does a later phase remove it? Removing an answer is a legitimate escalation — removing <em>all</em> of them is not.</li>
+            <li>Count your states: a boss with six states is a large build. How many did you write, and which one will you cut first if the build is not working by the end of <a href="8.2.html">8.2</a>?</li>
+            <li>Which single attack is your boss's <em>signature</em> — the one a player would describe if asked what the fight was about? If you cannot name one, you have written a list rather than a boss.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: Spec Review</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: Spec review</h3>
+        <h3>Bug Hunt: Finding the Holes in a Fight That Does Not Exist Yet</h3>
         <ol>
-            <li>Swap specs with a partner. They play the boss IN
-                THEIR HEAD against your attack list — ask them to
-                say the counterplay for each. Any attack they
-                cannot answer is under-designed.</li>
-            <li>Check the arithmetic: if the player can deal damage
-                only 1 second out of every 5, and the boss needs 20
-                hits... what is the FIGHT LENGTH? Over 90 seconds
-                means cut HP or add openings.</li>
-            <li>Phase 3 adds speed AND a hazard AND a new attack.
-                How many new things did you introduce at once —
-                what does <a href="7.5.html">7.5</a> say about
-                that number?</li>
+            <li>Hand your spec to a partner and have them play the boss <em>in their head</em>, attack by attack. Ask them to say the counterplay out loud for each one. Which attack could they not answer — and what does that silence tell you?</li>
+            <li>Do the arithmetic out loud: if the player may attack one second in every five, and the boss needs twenty hits, how long is the fight? Is that inside or outside the target you wrote in part 2?</li>
+            <li>Phase three of your spec adds a faster rhythm and a new attack at the same time. How many new things is the player expected to learn at once, and what does <a href="7.5.html">7.5</a> say about introducing more than one new idea per beat?</li>
+            <li>Read your telegraphs again and find any that are only visible in the Console. Which of your tells would a player who is <em>not</em> reading the Console completely miss?</li>
+            <li>Your arena spec says the player enters here and the fight happens there. Measure the room on your sketch against your player's walk speed: how many seconds does it take to cross? Is there anywhere in the room that is genuinely safe?</li>
+            <li>Find the sentence in your spec that would be hardest to change later — the one a different decision would invalidate. Is that a load-bearing decision or an accident of ordering?</li>
         </ol>
     </div>
 </div>
@@ -118,25 +258,24 @@ HP &lt;= 0    → DEAD (door opens)</code></pre>
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Commit the design</h3>
+        <h3>Tinker: Commit the Design</h3>
         <ol>
-            <li>Type the final spec as <code>BOSS_SPEC.md</code> in
-                your repo root, next to the code it will govern.
-                Design docs live WITH the project.</li>
-            <li>Sketch the arena on paper (reuse the Unit 6 room);
-                mark where the player enters, where the boss
-                idles, and the door that stays shut.</li>
-            <li>Commit + push: <code>"8.1a: boss spec + arena sketch"</code>.</li>
+            <li>Type the final spec as <code>BOSS_SPEC.md</code> in your repo, next to the code it will govern. Why does a design document belong in version control rather than in a notebook you will lose?</li>
+            <li>Sketch the arena on paper. Mark where the player enters, where the boss waits, and where — if anywhere — the way onward opens. Which tilemap from <a href="7.1.html">7.1</a> will you build it on?</li>
+            <li>Which single thing will you cut first if the build runs long, and why does naming that sacrifice in advance make a design document earn its keep?</li>
+            <li>Commit and push with a message naming the lesson: <code>"8.1: boss spec + arena sketch"</code>. Why is the commit message part of the deliverable?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Write a six-part boss spec: identity, economy, phases, attacks, tells, arena</li>
-            <li>Do the health arithmetic and defend the fight length</li>
-            <li>Map the boss as a state machine with thresholds on the arrows</li>
-            <li>Answer "what does the player DO?" for every single attack</li>
+            <li>Explain why the boss, the arena and the door must be built rather than found — and name what this project actually ships you</li>
+            <li>Write all six parts of a boss spec: identity, economy, phases, attacks, tells, arena</li>
+            <li>Derive the boss's HP from your swing's damage and your target fight length instead of guessing it</li>
+            <li>Say the counterplay sentence out loud for every attack you wrote</li>
+            <li>Name the scene that will host the fight, and say which of your three scenes has no Player in it</li>
+            <li>Commit and push your <code>BOSS_SPEC.md</code></li>
         </ul>
     </div>
 </div>
@@ -147,11 +286,12 @@ HP &lt;= 0    → DEAD (door opens)</code></pre>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../docs/unit-08/index.html">Unit 8: Boss Fight</a> — the spec-to-build pipeline</li>
-        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the pattern your boss extends</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the machine your boss extends, and the vocabulary you will spec in</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the APIs the next four lessons will use</li>
     </ul>
-    <p>Next: <a href="8.2.html">8.2 — Boss Body, Health Bar &amp; Phases</a></p>
+    <p>Next: <a href="8.2.html">8.2 — Boss Body, Health &amp; Phases</a>, where the spec becomes an object in a scene.</p>
 </div>`;
 ---
-<Lesson id="8.1" title="8.1a Boss Design: Spec It First — AP CS Principles" root=".." css="../style.css">
+<Lesson id="8.1" title="8.1 Boss Design: Spec It First — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

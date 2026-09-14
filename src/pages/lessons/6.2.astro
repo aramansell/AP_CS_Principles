@@ -1,130 +1,221 @@
 ---
 // Lesson 6.2 — Ground Checks: No Infinite Jumps
-// isGrounded state via a ground layer raycast; the fair-flight contract.
+// The student creates the Ground LAYER themselves (the project has a Ground TAG
+// and a GroundCheck tag, and the cave's Collision tilemap already carries the
+// Ground tag - but no Ground layer exists, and a raycast mask needs a layer).
+// The cave's Collision tilemap already has TilemapCollider2D + CompositeCollider2D
+// + Rigidbody2D(gravityScale 0), so it is already solid - the work here is asking
+// it questions, not making it collidable.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>6.2 — Ground Checks: No Infinite Jumps</h1>
 
 <p class="lesson-lead">
-    Yesterday's jump has a problem you already met in
-    <a href="6.1.html">6.1</a>'s bug hunt: tap Space in mid-air and
-    you fly. A jump you can spam is a jetpack. Today: one boolean,
-    kept honest by physics — the ground check, the single most reused
-    pattern in platformer code.
+    Your jump works. That is the problem. Tap the key in mid-air and you jump again, and
+    again, and again — a jump with no ground check is not a jump, it is a jetpack with
+    infinite fuel. Today you teach the script to ask a question it has never asked:
+    <em>am I standing on something?</em>
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Predict First</span>
+        <span class="activity-label">The Problem: You Can Jump in Mid-Air</span>
         <span class="activity-time">~10 min</span>
     </div>
 
-    <p>Here is the ground check the starter style calls for — new
-    code, same voice as PlayerController (private fields, serialized
-    knobs, Update work):</p>
-    <pre><code>[SerializeField] private LayerMask groundLayer;
-[SerializeField] private float groundCheckDistance = 0.2f;
-private bool isGrounded;
+    <p>
+        Open the cave and press Play. Jump once, then keep tapping the key while you are in
+        the air. You climb. Nothing stops you, and the Console says nothing, because from the
+        computer's point of view your code is working exactly as written: <em>if the key went
+        down, add an impulse</em>. There is no rule about where you are allowed to do that.
+    </p>
+    <p>
+        <strong>Your goal: a jump that only fires when the character is standing on
+        something.</strong> So start with the honest question — how would a script ever
+        <em>know</em> it is standing on something? Nothing in the Rigidbody2D says "grounded".
+        There is no event that fires when you touch a floor and another when you leave it.
+        You have to go and ask.
+    </p>
 
-private void Update()
-{
-    // Ask physics: is there ground just below my feet?
-    RaycastHit2D hit = Physics2D.Raycast(
-        transform.position,
-        Vector2.down,
-        groundCheckDistance,
-        groundLayer);
-
-    isGrounded = hit.collider != null;
-
-    if (isPlatformer)
-    {
-        if (Input.GetKeyDown(KeyCode.Space) &amp;&amp; isGrounded)
-        {
-            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-        }
-    }
-}</code></pre>
+    <div class="callout info">
+        <strong>The floor is already there. The question is not.</strong> The cave's
+        <code>Collision</code> tilemap already carries a <strong>TilemapCollider2D</strong>,
+        a <strong>CompositeCollider2D</strong> and a <strong>Rigidbody2D</strong> with
+        Gravity Scale 0, which is why your character lands on it instead of falling through.
+        Collision already works. What does not exist yet is any code that <em>asks about</em>
+        it — and that is the entire lesson.
+    </div>
 
     <p>
-        Predict: the raycast is a question you ask the physics engine
-        60 times a second — "is a ground-layer collider within 0.2
-        units under my center?" isGrounded is not stored anywhere
-        else; it is <strong>re-derived every frame</strong>. Why is
-        re-asking better than remembering (contrast with the lever's
-        isOn, which remembers)? When is memory the right tool and when
-        is asking?
+        Select the <code>Collision</code> tilemap in the cave and read its Inspector
+        carefully. Note two things: it is tagged <code>Ground</code> (the tag already exists
+        in this project, along with a tag called <code>GroundCheck</code>), and its
+        <strong>Layer</strong> is <code>Default</code>. Then open
+        <em>Edit &rarr; Project Settings &rarr; Tags and Layers</em> and scroll the Layers
+        list. Find the empty user layer slots. A <em>tag</em> is a name you can compare
+        against; a <em>layer</em> is a bucket the physics engine can filter on. The project
+        has the tag and does not have the layer — and you are about to find out why that
+        distinction costs people entire afternoons.
     </p>
 
     <div class="socratic">
-        <h3>Socratic</h3>
-        <p>
-            The jump condition is now a compound AND: key down AND
-            grounded. In AP pseudocode that is
-            <code>IF (key AND grounded)</code>. Why does the order of
-            the checks not matter to the computer here — but matter
-            enormously if the second check were expensive (a
-            FindWithTag)?
-        </p>
+        <h3>Socratic: Asking Versus Remembering</h3>
+        <ol>
+            <li>A tag and a layer are both just names attached to an object. Why can a raycast be told to ignore everything except one layer, but not "everything except one tag"?</li>
+            <li>The <code>Collision</code> tilemap is tagged <code>Ground</code> right now. If you wrote a ground check that compared tags, would it work — and what would it cost you every frame you ran it?</li>
+            <li>Your character is standing still on the floor. Is "grounded" a <em>fact you could store</em> when you land, or a <em>fact you should re-check</em> every frame? What could change it without any code of yours running?</li>
+            <li>Standing on the floor is not the same as standing on <em>the</em> floor. Should a crate, a moving platform or an enemy's head count as ground? Who decides — the physics engine or you?</li>
+            <li>A jump that fires in mid-air is not a crash, an error or a warning. What does that tell you about the kind of bug this is, and how you have to find it?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: Four Ways to Ask About the Ground</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        Every platformer ever shipped uses one of these. Read all four — the differences are
+        in what each one can <em>tell you</em> and where each one lies to you.
+    </p>
+
+    <table>
+        <tr><th>Technique</th><th>The question you are asking</th><th>What it needs</th><th>What it returns</th><th>Where it lies to you</th></tr>
+        <tr>
+            <td><code>Physics2D.Raycast(origin, Vector2.down, distance, mask)</code></td>
+            <td>"Is there a ground-layer collider directly below this exact point?"</td>
+            <td>An origin (usually your feet, not your centre), a distance, and a <strong>LayerMask</strong>.</td>
+            <td>A <code>RaycastHit2D</code>: the collider, the distance to it, the exact contact point and the surface normal.</td>
+            <td>It is one infinitely thin line. Stand with one pixel of your feet over the edge of a tile and it reports <em>air</em>.</td>
+        </tr>
+        <tr>
+            <td><code>Physics2D.OverlapCircle(point, radius, mask)</code></td>
+            <td>"Is there a ground-layer collider anywhere inside this circle at my feet?"</td>
+            <td>A point, a radius, and a LayerMask.</td>
+            <td>The collider only — no direction, no distance, no contact point.</td>
+            <td>A wall beside your feet is inside the circle too, so you can be "grounded" against a vertical surface.</td>
+        </tr>
+        <tr>
+            <td><code>Collider2D.IsTouchingLayers(mask)</code></td>
+            <td>"Is my own collider touching anything on this layer, right now?"</td>
+            <td>Your Collider2D and a LayerMask. No origin, no distance, no ray.</td>
+            <td>A single true or false.</td>
+            <td>It can only see contacts that physically exist — a <strong>Kinematic</strong> body needs <em>Use Full Kinematic Contacts</em> ticked or it will report false while standing on the floor.</td>
+        </tr>
+        <tr>
+            <td><code>OnCollisionStay2D(Collision2D c)</code> with a layer or tag check</td>
+            <td>"What am I in contact with during this physics step?"</td>
+            <td>A callback method, plus a rule to stop it re-firing your jump every step.</td>
+            <td>The whole collision: the object, the contact points, the relative velocity.</td>
+            <td>It fires continuously, so a naive jump fires continuously too; and it does not fire at all for a Kinematic body against static colliders unless full kinematic contacts are enabled.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>Two names from the docs that are the same idea.</strong> A
+        <code>LayerMask</code> field in the Inspector looks like a dropdown, but it is an
+        integer whose bits mark which layers you care about. That is why "Everything" is not
+        a special case in the code — it is simply all the bits switched on, which is exactly
+        why it is the setting that produces the classic bug in a moment.
+    </div>
+
+    <div class="socratic">
+        <h3>Choose Your Check</h3>
+        <ol>
+            <li>Which of the four did you pick, and which one does your character's <em>shape</em> argue for? A wide-footed character and a narrow one do not fail the same way.</li>
+            <li>Two of the four can tell you <em>how far</em> the ground is. Name a game behaviour that needs that distance, and say whether your game has it.</li>
+            <li>The circle check would call a wall "ground". Is that a bug you would fix, or a feature a wall-slide or wall-jump would later exploit?</li>
+            <li>The collision-callback check needs no mask and no distance — it is the laziest to write. What does it demand instead, and which Rigidbody2D checkbox can silently break it?</li>
+            <li>Your body type was chosen back in <a href="2.2.html">2.2</a>. Read your own answer again: does your body type rule out one of these four techniques entirely?</li>
+            <li>Whichever you choose, the value you compute has to be <em>re-derived every frame</em> rather than stored once when you land. What is the argument for that, and what kind of object would argue the other way?</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
+        <span class="activity-label">Build Lab: Create the Layer, Then Ask</span>
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — the layer mask.</strong> Raycasts need a
-    target. In the Platformer scene, select your tilemap/ground
-    GameObjects, and in the Inspector set their Layer to a new layer
-    named "Ground" (Add Layer... → type it, apply to all ground
-    objects). Then drag "Ground" into the player's
-    <code>groundLayer</code> field. Without the mask, the ray would
-    hit the player's own collider — read that bug in Step 3.</p>
+    <p>
+        <strong>Step 1 — create the <code>Ground</code> layer.</strong> In
+        <em>Edit &rarr; Project Settings &rarr; Tags and Layers</em>, find the first empty
+        <strong>User Layer</strong> and name it <code>Ground</code>. Close the window. Note
+        what did <em>not</em> happen: no object in your project changed. A layer is a name for
+        an empty bucket until something is put in it — and layers are project-wide, not
+        per-scene, so you do this once for the whole game.
+    </p>
 
-    <p><strong>Step 2 — trust but verify with a debug ray.</strong>
-    Gizmos make the invisible question visible:</p>
-    <pre><code>private void OnDrawGizmos()
-{
-    Gizmos.color = Color.green;
-    Gizmos.DrawLine(transform.position,
-        transform.position + Vector3.down * groundCheckDistance);
-}</code></pre>
-    <p>Scene view: a green whisker under the character. On the
-    ground it touches tile; in the air it dangles. If your jump does
-    not work, the whisker is the FIRST thing you look at — does it
-    actually reach the tile? (Character center to tile top might be
-    longer than 0.2 — that is the number you tune.)</p>
+    <p>
+        <strong>Step 2 — put the floor in the bucket.</strong> In the cave, select the
+        <code>Collision</code> tilemap and set its <strong>Layer</strong> dropdown (top right
+        of the Inspector) to <code>Ground</code>. Do the same for every other solid surface
+        you intend to land on — platforms, crates, ledges you have placed yourself. Do
+        <em>not</em> do it to the <code>No Collision</code> tilemap: that one is decoration,
+        and a raycast that hits it will tell you that you are standing on scenery.
+    </p>
 
-    <p><strong>Step 3 — the self-hit bug.</strong> Temporarily set
-    groundLayer to "Everything". Now the ray hits the player's own
-    collider: isGrounded is ALWAYS true and Space is a jetpack
-    again. Layer masks are not decoration — they are how you say
-    "I care about SOME objects." Same reason turret projectiles
-    ignore the turret that fired them.</p>
+    <div class="callout">
+        <strong>Architectural specification: the check.</strong>
+        <ul>
+            <li>Which technique did you choose, and what are its exact inputs — origin, direction, distance, mask?</li>
+            <li>Where does the origin sit? The character's root is at its centre, and a ray fired from the centre has to travel through your own legs before it reaches the floor. What is the fix — an offset, a child object, or a different technique?</li>
+            <li>How far is "down"? Measure the real gap from your collider's bottom edge to the tile surface, then write that number down. Guessing here is what produces the bug in a moment.</li>
+            <li>Where does the mask come from — a serialized <code>LayerMask</code> field, or a hard-coded layer name? Which one lets a teammate fix your level without opening your script?</li>
+            <li>Where is the result stored, and what type is it? A bool named for the <em>question</em> ("am I grounded") reads better than one named for the technique.</li>
+            <li>Does the check run in <code>Update()</code> or <code>FixedUpdate()</code>? Remember that the answer is a physics answer, produced by physics, on the physics clock.</li>
+            <li>Is the jump condition now compound? Write the whole sentence in English before you write it in C#.</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: making the invisible visible.</strong>
+        Before you trust a check you cannot see, draw it. <code>OnDrawGizmos</code> runs in the
+        editor and can draw a line from your origin along your check direction, scaled by your
+        distance. Three lines of code turn "my jump doesn't work" into "my whisker is too
+        short" in about four seconds. Draw it in one colour when the check is false and
+        another when it is true.
+    </div>
+
+    <p>
+        <strong>Step 3 — the mask experiment.</strong> Set your mask to
+        <strong>Everything</strong> and press Play. Stand still on the floor, then jump. If
+        your origin sits inside your own collider, the ray hits <em>you</em> at distance zero
+        and reports ground forever — the jetpack is back, and now it is wearing a disguise.
+        This is the first bug in the project that the mask alone prevents, and it is the same
+        reason a turret's projectile must ignore the turret that fired it. Put the mask back
+        to <code>Ground</code> and confirm the check is honest again.
+    </p>
+
+    <p>
+        <strong>Step 4 — the honesty test.</strong> Watch your gizmo while you: stand still
+        (true), jump (false the moment you leave), land (true), walk off a ledge (false). If
+        any of those four is wrong, your distance or your origin is wrong, not your logic.
+    </p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: The Flying Ant</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt: The flying ant</h3>
+        <h3>Bug Hunt</h3>
         <ol>
-            <li>Set groundCheckDistance to 2. You can jump while
-                standing on AIR near a ledge. Where does the
-                character "stand" — and what did you just build
-                (a hint from <a href="6.3.html">6.3</a> called
-                coyote time, but broken)?</li>
-            <li>Remove the groundLayer mask field entirely and pass
-                ~0 (no mask). Which collider does the ray find
-                first — the player's own — and what is the symptom?</li>
-            <li>Jump onto a spike. Mid-hit, does isGrounded matter?
-                Why does the death loop from
-                <a href="2.2.html">2.2</a> never need to know
-                about grounded-ness?</li>
-            <li>Walk off a ledge and press Space exactly 0.1 seconds
-                after leaving the ground. Rejected! Why is this the
-                #1 player complaint about ground checks — and what
-                does 6.3 promise to do about it?</li>
+            <li>Set your check distance to something huge — two or three tiles. You can now jump while standing on thin air near a ledge. How far from the ground does the character have to be before it stops being "grounded", and what is the honest name for the state you accidentally built?</li>
+            <li>Move your origin to the character's exact centre with a short distance. What does the ray hit first, and why does the jump <em>still</em> work while standing but fail at the lip of a ledge?</li>
+            <li>Set the mask to <code>Everything</code> and stand on the floor. Name every object in the cave the ray could now be hitting, and describe the symptom in one word (<em>jetpack</em>).</li>
+            <li>Put the layer on the <code>No Collision</code> tilemap by mistake. Where does the character now believe it can jump from, and what does the gizmo whisker look like while it happens?</li>
+            <li>If you chose <code>OnCollisionStay2D</code>: leave it firing the jump with no extra rule and hold the key. How many physics steps per second is it being called on, and what does your character do?</li>
+            <li>If you chose <code>IsTouchingLayers</code> and your body is Kinematic, read the Rigidbody2D Inspector for <em>Use Full Kinematic Contacts</em>. With it unticked, what does the check report while you are standing still on solid floor — and where would you have looked first if you had not read this question?</li>
         </ol>
     </div>
 </div>
@@ -137,31 +228,26 @@ private void Update()
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Check design</h3>
+        <h3>Tinker: Check Design</h3>
         <ol>
-            <li>Two feet, one check: what would break if the ray fired
-                from the character's center while the character
-                stands on the very EDGE of a tile? Fix: fire it from
-                the feet — which coordinate do you adjust?</li>
-            <li>Raycast vs OnCollisionStay2D with ground tag — the
-                other classic approach. One needs a mask and a
-                distance; the other needs a layer/tag and gives you
-                the ground object. Which is easier for moving
-                platforms?</li>
-            <li>Hard: the jump reads "key AND grounded" — but the
-                animation should ALSO know (jump pose vs. walk
-                cycle). Which parameter does your Animator gain, and
-                which line sets it?</li>
+            <li>Fire <em>two</em> checks — one at each foot — instead of one in the centre. Which single-coordinate bug does that fix, and what is the cost to your frame budget on a level with fifty characters?</li>
+            <li>Draw your gizmo in a second colour when the check is false. Why does a designer who never reads your script still benefit from that?</li>
+            <li>Make the check ignore the ground for a moment after a jump so you can drop through a platform. What has to be true about the platform's collider for a "drop through" to be possible at all?</li>
+            <li>Your Animator already has <code>IsWalking</code>, <code>WalkDir</code> and <code>Attack</code>. A jump pose needs a fourth fact. Which parameter type would you add, and which single line in your ground check now earns its keep?</li>
+            <li>Look at <code>Assets/Scripts/Package Scripts/TopDown_EnemyAnimator.cs</code> and read how it decides what to animate. It has no ground check at all — why does the top-down world not need one, and what does that say about the cave?</li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Build the raycast ground check: mask, distance, hit.collider != null</li>
-            <li>Show it with a Gizmo whisker and tune the distance</li>
-            <li>Explain the self-hit bug and what layer masks prevent</li>
-            <li>Explain re-derived state vs remembered state, with an example of each</li>
+            <li>Explain the difference between a tag and a layer, with your own project as the example</li>
+            <li>Create a layer, assign it to the right objects, and say which objects must <em>not</em> get it</li>
+            <li>Compare the four ground-check techniques and defend your choice</li>
+            <li>Show the check with a gizmo and tune the distance by measurement, not by guessing</li>
+            <li>Explain the self-hit bug and what a LayerMask prevents</li>
+            <li>Explain why the grounded value is re-derived every frame instead of stored</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -171,12 +257,13 @@ private void Update()
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — ground checks in depth</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Physics2D.Raycast, LayerMask</li>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — ground checks, layers and raycasts in depth</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — what the physics engine reports, and when</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Physics2D, RaycastHit2D, LayerMask</li>
     </ul>
-    <p>Next: <a href="6.3.html">6.3 — Jump Feel: Fall Speed &amp; Coyote Time</a></p>
+    <p>Next: <a href="6.3.html">6.3 — Jump Feel: Fall Speed &amp; Coyote Time</a>, where a jump that works starts to feel like a jump that is <em>yours</em>.</p>
 </div>`;
 ---
-<Lesson id="6.2" title="6.2a Ground Checks: No Infinite Jumps — AP CS Principles" root=".." css="../style.css">
+<Lesson id="6.2" title="6.2 Ground Checks: No Infinite Jumps — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>

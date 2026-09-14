@@ -1,57 +1,75 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>2.1a Coins: Triggers, Tags &amp; the StatManager — AP CS Principles</title><meta name="description" content="Lesson 2.1 Coins: Triggers, Tags &amp; the StatManager — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="2.1a Coins: Triggers, Tags &amp; the StatManager — AP CS Principles"><meta property="og:description" content="Lesson 2.1 Coins: Triggers, Tags &amp; the StatManager — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="1.6.html">&#9664; 1.6</a><span class="lesson-id">2.1</span><a href="2.2.html">2.2 &#9654;</a></div><h1>2.1 — Coins: Triggers, Colliders &amp; the StatManager</h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>2.1 Coins: Triggers, Tags &amp; Your First Stat — AP CS Principles</title><meta name="description" content="Lesson 2.1 Coins: Triggers, Tags &amp; Your First Stat — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="2.1 Coins: Triggers, Tags &amp; Your First Stat — AP CS Principles"><meta property="og:description" content="Lesson 2.1 Coins: Triggers, Tags &amp; Your First Stat — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="1.6.html">&#9664; 1.6</a><span class="lesson-id">2.1</span><a href="2.2.html">2.2 &#9654;</a></div><h1>2.1 — Coins: Triggers, Tags &amp; Your First Stat</h1>
 
 <p class="lesson-lead">
-    Movement gets you around the world; now it is time to interact with it.
-    Today you learn how Unity detects when two objects overlap, how to set up
-    a coin with trigger colliders, and how to build a <code>StatManager</code> from
-    scratch to keep score.
+    Your character can walk, but it cannot <em>touch</em> anything. Walk straight over the coin
+    and nothing happens — not because your code is wrong, but because nothing in this entire
+    project is built to notice a collision. Today you make the first object in the game that
+    reacts to the player, and in doing so you switch the physics engine on for good.
 </p>
 
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Read the Docs</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-label">The Problem</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
     <p>
-        In real life, two solid objects cannot occupy the same space. In a physics engine,
-        detecting when shapes touch requires <strong>Colliders</strong>. But not all collisions
-        are meant to stop you like a brick wall. Pickups like coins should let you walk right
-        through them while recording an event.
+        <strong>Your goal: make a coin disappear when the player touches it.</strong> Before
+        you write a single line, answer this honestly — how would Unity ever <em>know</em> the
+        two objects touched? The Player has a Transform. The Coin has a Transform. Two
+        positions in space do not collide. Nothing in the engine is checking.
     </p>
-
     <p>
-        Unity provides a special mode on 2D colliders called <strong>Is Trigger</strong>:
+        Something has to tell it what <em>shape</em> each object is, and something has to be
+        simulated every frame so those shapes can be tested against each other. Read what Unity
+        gives you:
     </p>
-    <ul>
-        <li><strong>Solid Collider (Is Trigger = unchecked):</strong> Bumps and blocks. Unity's physics engine stops the objects from penetrating.</li>
-        <li><strong>Trigger Collider (Is Trigger = checked):</strong> Intangible zone. Objects pass freely through each other, and Unity fires the <code>OnTriggerEnter2D</code> message.</li>
-    </ul>
 
-    <p>When two objects overlap and at least one is a trigger, Unity executes this method:</p>
-    <pre><code>private void OnTriggerEnter2D(Collider2D other)</code></pre>
+    <table>
+        <tr><th>Component</th><th>What it contributes</th></tr>
+        <tr>
+            <td><code>Collider2D</code></td>
+            <td>Gives an object a <strong>shape</strong> the physics engine can test against other shapes. Without one, an object is invisible to physics — it is only a picture.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D</code></td>
+            <td>Puts an object <strong>under simulation</strong>: the engine tracks it every physics step, and it is what makes overlap messages fire at all.</td>
+        </tr>
+        <tr>
+            <td><code>Is Trigger</code> (checkbox on any Collider2D)</td>
+            <td>Changes what an overlap <em>means</em>. A solid collider pushes objects apart. A trigger does not push — it only <strong>reports</strong> that the overlap happened.</td>
+        </tr>
+        <tr>
+            <td><code>OnTriggerEnter2D</code></td>
+            <td>The message your script receives on the first frame two shapes overlap. This is the event a coin pickup is built on.</td>
+        </tr>
+        <tr>
+            <td><code>CompareTag</code></td>
+            <td>How you check <em>what</em> you just touched. Asks the engine whether a collider carries a given tag.</td>
+        </tr>
+    </table>
 
-    <p>
-        Notice the parameter: <code>Collider2D other</code>. When the player runs into a coin,
-        who is <code>other</code>? <code>other</code> is the collider belonging to the <em>coin</em>!
-    </p>
+    <div class="callout info">
+        <strong>The rule that catches everyone.</strong> Unity's 2D physics only simulates
+        objects that have a <strong>Collider2D</strong>, and overlap messages only fire when
+        <strong>at least one of the two objects also has a Rigidbody2D</strong>. Two colliders
+        with no body anywhere produce <em>silence</em> — no error, no warning, nothing to debug.
+        <br><br>
+        And here is the part that matters today: in this project <strong>nothing in
+        <code>Assets/Prefabs</code> has either one — except the Switch</strong>. Not the Player.
+        Not the Coin. Not the Spikes. You are about to be the first person to give anything in
+        this game a physics body.
+    </div>
 
     <div class="socratic">
-        <h3>Socratic: Reading Unity Functions for Identification</h3>
-        <p>
-            When <code>OnTriggerEnter2D</code> fires, it fires for <em>anything</em> the player walks into —
-            grass, doorways, hazards, or coins. How do we know what we just touched?
-            Read these two ways to check in Unity:
-        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc1:q3" data-block="socratic" data-question="When OnTriggerEnter2D fires, it fires for anything the player walks into — grass, doorways, hazards, or coins. How do we know what we just touched? Read these two ways to check in Unity:" placeholder="write your answer, then keep going"></textarea></label>
-        <table>
-            <tr><th>Approach</th><th>Example</th><th>How It Works</th></tr>
-            <tr><td><code>CompareTag</code></td><td><code>other.CompareTag("Coin")</code></td><td>Optimized engine check. Validates the tag name and produces zero garbage collection memory.</td></tr>
-            <tr><td><code>tag ==</code></td><td><code>other.tag == "Coin"</code></td><td>String comparison. Allocates temporary memory on every call and fails silently on typos.</td></tr>
-        </table>
+        <h3>Socratic: What Is a Collider For?</h3>
         <ol>
-            <li>Why does the Unity documentation strongly recommend <code>other.CompareTag("Coin")</code> over <code>other.tag == "Coin"</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc1:q1" data-block="socratic" data-question="Why does the Unity documentation strongly recommend other.CompareTag(&quot;Coin&quot;) over other.tag == &quot;Coin&quot; ?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>If you misspell a tag as <code>"coin"</code> (lowercase) with <code>CompareTag</code>, Unity throws an error alerting you that the tag does not exist. Why is an explicit error message much better for debugging than silent failure?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc1:q2" data-block="socratic" data-question="If you misspell a tag as &quot;coin&quot; (lowercase) with CompareTag , Unity throws an error alerting you that the tag does not exist. Why is an explicit error message much better for debugging than silent failure?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>A Transform stores position, rotation and scale. What does a Collider2D store that a Transform has no way to express?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc1:q1" data-block="socratic" data-question="A Transform stores position, rotation and scale. What does a Collider2D store that a Transform has no way to express?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The physics engine runs on its own schedule, not inside your <code>Update()</code>. Why would Unity be built that way, instead of letting your script test for overlaps once a frame?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc1:q2" data-block="socratic" data-question="The physics engine runs on its own schedule, not inside your Update() . Why would Unity be built that way, instead of letting your script test for overlaps once a frame?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>A trigger pushes nothing — it only reports. Name two game behaviours besides a coin pickup where a report-only overlap is the right tool.</li>
+            <li>A collider is a shape; a rigidbody is a thing under simulation. The Player is the object that moves. Which of the two must live on the Player for a coin to ever notice it, and which one <em>could</em> live on the coin instead?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc1:q3" data-block="socratic" data-question="A collider is a shape; a rigidbody is a thing under simulation. The Player is the object that moves. Which of the two must live on the Player for a coin to ever notice it, and which one could live on the coin instead?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The minimum is "a collider on both, a body on one". Which object should carry the body — the coin that sits still and vanishes, or the player that moves all game? Argue it, then build it that way.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc1:q4" data-block="socratic" data-question="The minimum is &quot;a collider on both, a body on one&quot;. Which object should carry the body — the coin that sits still and vanishes, or the player that moves all game? Argue it, then build it that way." placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -64,51 +82,42 @@
     </div>
 
     <p>
-        Notice how each function operates in isolation across completely different game systems.
-        You do not copy a whole script; you learn what each function takes in, what it does, and how to combine them:
+        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
+        your coin. None of these is from a video game.
     </p>
 
-    <p><strong>Example 1 — Receiving Overlap Events on an Automatic Grocery Store Door:</strong></p>
-    <pre><code>// Unity calls this method automatically whenever an object enters an 'Is Trigger' zone
-private void OnTriggerEnter2D(Collider2D entrant)
+    <p><strong>Example 1 — Receiving overlap events on an automatic grocery store door:</strong></p>
+    <pre><code>private void OnTriggerEnter2D(Collider2D entrant)
 {
-    Debug.Log("Motion sensor triggered! Opening automatic doors for: " + entrant.name);
+    Debug.Log("Motion sensor tripped by: " + entrant.name);
 }</code></pre>
 
-    <p><strong>Example 2 — Validating Object Identity with Tags on a Vault Scanner:</strong></p>
-    <pre><code>// Efficiently verifies whether an incoming collider carries a specific tag label
-if (incomingItem.CompareTag("SecurityKeycard"))
+    <p><strong>Example 2 — Validating identity with tags on a vault keycard scanner:</strong></p>
+    <pre><code>if (incomingItem.CompareTag("SecurityKeycard"))
 {
-    Debug.Log("Access granted to high-security vault.");
+    Debug.Log("Access granted.");
 }</code></pre>
 
-    <p><strong>Example 3 — Memory Cleanup with Destroy on a Spent Rocket Stage:</strong></p>
-    <pre><code>// Removes the specified GameObject entirely from the scene and frees its memory
-Destroy(spentBoosterStage.gameObject);</code></pre>
+    <p><strong>Example 3 — Memory cleanup on a spent rocket stage:</strong></p>
+    <pre><code>Destroy(spentBoosterStage.gameObject);</code></pre>
 
-    <p><strong>Example 4 — Global Persistence with the Singleton Pattern on a Jukebox Manager:</strong></p>
-    <pre><code>// public static makes 'jukebox' globally accessible from any script in the game
-public static JukeboxManager jukebox;
+    <p><strong>Example 4 — An airport baggage carousel (comment only):</strong></p>
+    <pre><code>// The scanner arch is a trigger. Luggage only trips it while it is riding
+// the belt - a bag the belt never moves is invisible to the arch.</code></pre>
 
-private void Awake()
-{
-    if (jukebox == null)
-    {
-        jukebox = this;
-        DontDestroyOnLoad(gameObject); // Survives scene changes so music never stops
-    }
-    else
-    {
-        Destroy(gameObject); // Destroy duplicates if returning to the menu
-    }
-}</code></pre>
+    <p><strong>Example 5 — An overhead air-hockey table (comment only):</strong></p>
+    <pre><code>// Seen from directly above, a puck has no "down" to fall toward.
+// The table is the whole world, so gravity is switched off.</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>In the automatic door snippet, what is the type of <code>entrant</code>? Why is it a <code>Collider2D</code> rather than a <code>GameObject</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc2:q1" data-block="socratic" data-question="In the automatic door snippet, what is the type of entrant ? Why is it a Collider2D rather than a GameObject ?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>In the rocket booster snippet, what happens if you write <code>Destroy(spentBoosterStage)</code> without <code>.gameObject</code>? (Hint: Does that destroy the whole rocket or just the single collider component?)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc2:q2" data-block="socratic" data-question="In the rocket booster snippet, what happens if you write Destroy(spentBoosterStage) without .gameObject ? (Hint: Does that destroy the whole rocket or just the single collider component?)" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>In the jukebox snippet, how could any script in the entire game tell the jukebox to play a song without needing <code>GetComponent</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc2:q3" data-block="socratic" data-question="In the jukebox snippet, how could any script in the entire game tell the jukebox to play a song without needing GetComponent ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In the door snippet, <code>entrant</code> is a <code>Collider2D</code>, not a GameObject. How do you get from it to the object's name and its tag?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc2:q1" data-block="socratic" data-question="In the door snippet, entrant is a Collider2D , not a GameObject. How do you get from it to the object's name and its tag?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>In the rocket snippet, what would <code>Destroy(spentBoosterStage)</code> actually destroy if the variable were typed as a <code>Collider2D</code>? What does <code>.gameObject</code> add?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc2:q2" data-block="socratic" data-question="In the rocket snippet, what would Destroy(spentBoosterStage) actually destroy if the variable were typed as a Collider2D ? What does .gameObject add?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The bags on the carousel only trip the arch while the belt is moving them. What is the minimum this project needs for a coin to notice the player — a body on the coin, a body on the player, or both?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc2:q3" data-block="socratic" data-question="The bags on the carousel only trip the arch while the belt is moving them. What is the minimum this project needs for a coin to notice the player — a body on the coin, a body on the player, or both?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The air-hockey puck has gravity switched off. Predict what your top-down player will do if you add a Rigidbody2D and leave Gravity Scale at its default of 1. Write the prediction down before you test it in the Build Lab.</li>
+            <li>A coin that stopped you dead like a wall would be terrible. Which checkbox makes that difference, and what is the name of the message you receive instead?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc2:q4" data-block="socratic" data-question="A coin that stopped you dead like a wall would be terrible. Which checkbox makes that difference, and what is the name of the message you receive instead?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>When you walk into a coin, whose collider arrives in the <code>other</code> parameter — yours or the coin's? How could you prove it with a <code>Debug.Log</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc2:q5" data-block="socratic" data-question="When you walk into a coin, whose collider arrives in the other parameter — yours or the coin's? How could you prove it with a Debug.Log ?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -116,55 +125,137 @@ private void Awake()
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: Your Turn</span>
+        <span class="activity-label">Build Lab: Give the Player a Body</span>
         <span class="activity-time">~25 min</span>
     </div>
 
-    <p><strong>Step 1 — Set up the Coin Prefab in the Inspector.</strong> Select <code>Assets/Prefabs/Coin</code>:</p>
-    <ol>
-        <li>Verify it has a 2D collider (e.g. <code>CircleCollider2D</code>).</li>
-        <li>Check the box for <strong>Is Trigger</strong>. (A pickup must be an overlap zone, not a solid wall!).</li>
-        <li>At the very top of the Inspector, verify its <strong>Tag</strong> is set to <strong>Coin</strong>. (If "Coin" is not listed, click <em>Add Tag...</em> and create it).</li>
-    </ol>
+    <p>
+        <strong>Step 1 — get a coin within reach.</strong> The Overworld scene ships with
+        exactly <strong>one</strong> Coin instance. Find it, or drag a couple more from
+        <code>Assets/Prefabs</code> and spread them out. Put one somewhere you will walk.
+    </p>
+
+    <p>
+        <strong>Step 2 — the discovery.</strong> Select the <code>Assets/Prefabs/Coin</code>
+        <em>asset</em> and read its Inspector. Now select the Player and read its Inspector.
+        List every component each one has — and then write down what is missing from
+        <em>both</em>.
+    </p>
 
     <div class="callout">
-        <strong>Architectural Specification for <code>StatManager.cs</code>:</strong>
-        <p><strong>Singleton Architecture &amp; State:</strong></p>
+        <strong>Architectural specification: the Coin.</strong>
         <ul>
-            <li>Where in <code>Assets/Scripts/</code> should you create this script, and what must the class name match?</li>
-            <li>How do you make this manager globally accessible to any script without needing <code>GetComponent</code>? What static variable do you need to declare?</li>
-            <li>What variable tracks the total coins collected? How do you make it visible in the Inspector for debugging while keeping it private?</li>
-            <li>Which early lifecycle hook runs before <code>Start()</code> to establish singletons?</li>
-            <li>What check ensures only one instance of <code>StatManager</code> exists across scenes? What function prevents this GameObject from being destroyed when loading new scenes? What should happen to duplicate managers?</li>
-            <li>What public method should other scripts call to modify the coin count? How does it adjust the coin total and log the result?</li>
-            <li>Where in the Unity scene hierarchy should this component be attached so it exists when the game begins?</li>
+            <li>Which component gives an object a shape the physics engine can test? Where do you add it in the Inspector?</li>
+            <li>Should a coin be a solid collider or an <em>Is Trigger</em> zone? Describe what the game would feel like if a coin stopped you in your tracks like a wall.</li>
+            <li>A default collider is sized from the sprite's import bounds — and remember from <a href="1.2.html">1.2</a> that the Coin's Sprite Renderer is on a <em>child</em> object. Does the collider you just added actually cover the coin you can see? How would you check?</li>
+            <li>The coin's tag is already <code>Coin</code> on the prefab. Does a tag live on the prefab asset or on the instance in the scene? Change an instance's tag and find out which one wins.</li>
         </ul>
     </div>
 
     <div class="callout">
-        <strong>Architectural Specification for <code>PlayerController.cs</code>:</strong>
-        <p><strong>Handle Coin Trigger:</strong></p>
+        <strong>Architectural specification: the Player.</strong>
         <ul>
-            <li>What function does this belong in?</li>
-            <li>Should a coin pickup be a trigger or a solid collider?</li>
-            <li>How do you check if the object collided with is a Coin?</li>
-            <li>Before modifying stats, what safety check prevents errors if the manager is missing?</li>
-            <li>What function on <code>StatManager</code> adds to the coin total?</li>
-            <li>How do you destroy the collected coin? Is the coin <code>other.gameObject</code> or is it <code>gameObject</code>? (Hint: this script is attached to <code>gameObject</code>; we collided with <code>other</code>).</li>
+            <li>Which component makes an object <em>visible to the physics engine</em> — the one without which <code>OnTriggerEnter2D</code> never fires at all?</li>
+            <li>Where should the Player's collider go — on the root, or on the child <code>Sprite</code> that owns the renderer? What problem appears if you put a default-sized collider on the root? Press Play and find out.</li>
+            <li>A top-down world has no "down". What should Gravity Scale be — and what does your character do if you leave it at 1? Compare that against the prediction you wrote down a moment ago.</li>
+            <li>A dynamic body that clips something will also <em>spin</em>. Which Rigidbody2D setting stops your character tumbling when it grazes a wall?</li>
         </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the code.</strong>
+        <ul>
+            <li>Which method receives the overlap message on the Player, and what is the parameter's type? When <em>you</em> walk into a coin, which object does that parameter represent?</li>
+            <li>How do you check that the thing you touched is a coin? Why is <code>CompareTag</code> better than comparing tag strings with <code>==</code>?</li>
+            <li>You want the <em>coin</em> to vanish, not the player. Is it <code>gameObject</code> or <code>other.gameObject</code> — and what happens if you get it backwards?</li>
+            <li>How many coins you have collected is a fact about the player. Where does that field live? Write it, and print the new total with <code>Debug.Log</code> so a player can watch the number change with no UI at all.</li>
+        </ul>
+    </div>
+
+    <div class="callout trap">
+        <strong>A body changes the whole game — go and see what you broke.</strong>
+        The moment the Player has a Collider2D and a Rigidbody2D, <em>every</em> collider in the
+        scene starts interacting with it. That includes the <strong>Cave Entrances</strong>,
+        which carry solid colliders wired to a scene-switching script that has been sitting
+        dormant this whole time, precisely because your Player had no collider to trip it.
+        <br><br>
+        So: walk into a cave mouth and find out what happens. If you are suddenly standing in a
+        different scene, <strong>nothing is broken — you switched the physics engine on.</strong>
+        Write down what happened and why. Do <em>not</em> fix it yet, and do not delete the cave
+        entrances: Unit 5 builds the cave properly, and this is the first thread of it.
+    </div>
+
+    <div class="callout info">
+        <strong>One number, one home.</strong> For now the coin count lives on
+        <code>PlayerController</code>. There is a <code>StatManager.cs</code> in
+        <code>Assets/Scripts</code> — it is empty, and it stays empty. Later in the year you will
+        have a real reason to move your stats into a manager, and that reason will come from a
+        scene change, not from tidiness. Until then, every stat you build belongs to the player.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: Where Should a Stat Live?</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
     <p>
-        Save both files and press Play in Unity. Walk your character into a coin!
-        The coin should vanish upon contact, and the Unity Console will print the new coin total!
+        You just made a real design decision without being told to. Here are the three honest
+        options for where a number like "coins" can live, and what each one costs:
     </p>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: Tracing Pickup Bugs</h3>
+    <table>
+        <tr><th>Approach</th><th>What it looks like</th><th>What it costs</th><th>When it wins</th></tr>
+        <tr>
+            <td><strong>(a) A field on <code>PlayerController</code></strong></td>
+            <td><code>[SerializeField] private int coins;</code></td>
+            <td>The player owns the number, so anything else that wants it must find the player first.</td>
+            <td><strong>Now.</strong> The only thing that touches coins <em>is</em> the player.</td>
+        </tr>
+        <tr>
+            <td><strong>(b) A separate <code>PlayerStats</code> component</strong></td>
+            <td>The numbers live in a component whose only job is numbers.</td>
+            <td>One more component, one more reference to cache, one more thing to keep in sync.</td>
+            <td>When <code>PlayerController</code> grows long enough that movement code and stat code start fighting over the same file.</td>
+        </tr>
+        <tr>
+            <td><strong>(c) A global singleton <code>StatManager</code></strong></td>
+            <td>Any script, anywhere, reads the numbers from one shared object.</td>
+            <td>Everything can reach it, so nothing protects it — and to be worth having at all, it must survive a scene change.</td>
+            <td>When several systems need the same numbers <em>and</em> those numbers must outlive a scene load.</td>
+        </tr>
+    </table>
+
+    <div class="socratic">
+        <h3>Where Does a Number Belong?</h3>
         <ol>
-            <li>What happens if you uncheck <strong>Is Trigger</strong> on the Coin prefab? When the player walks into the coin, does <code>OnTriggerEnter2D</code> run?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:bh1:q1" data-block="bug-hunt" data-question="What happens if you uncheck Is Trigger on the Coin prefab? When the player walks into the coin, does OnTriggerEnter2D run?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>What happens if you accidentally write <code>Destroy(gameObject)</code> instead of <code>Destroy(other.gameObject)</code>? Which object vanishes from the game?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:bh1:q2" data-block="bug-hunt" data-question="What happens if you accidentally write Destroy(gameObject) instead of Destroy(other.gameObject) ? Which object vanishes from the game?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>What happens if you comment out <code>Destroy(other.gameObject)</code>? Why is a coin that gives money continuously every time you touch it a bug?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:bh1:q3" data-block="bug-hunt" data-question="What happens if you comment out Destroy(other.gameObject) ? Why is a coin that gives money continuously every time you touch it a bug?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Which of the three did you just build, and which line of your own code proves it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc3:q1" data-block="socratic" data-question="Which of the three did you just build, and which line of your own code proves it?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Open <code>Assets/Scripts/StatManager.cs</code> and read it. If you filled it in as a singleton today, would your coin count survive a scene change? Would that be a feature or a problem <em>right now</em>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc3:q2" data-block="socratic" data-question="Open Assets/Scripts/StatManager.cs and read it. If you filled it in as a singleton today, would your coin count survive a scene change? Would that be a feature or a problem right now ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The coin disappears when collected, but "how many coins I have" is not a property of the coin. So where does that number really belong — the object that vanishes, or the object that persists?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc3:q3" data-block="socratic" data-question="The coin disappears when collected, but &quot;how many coins I have&quot; is not a property of the coin. So where does that number really belong — the object that vanishes, or the object that persists?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Which option makes the number easiest to find when you reopen this project in three weeks, and which makes it easiest to test on its own?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc3:q4" data-block="socratic" data-question="Which option makes the number easiest to find when you reopen this project in three weeks, and which makes it easiest to test on its own?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>You just watched a cave entrance teleport you somewhere. What does that tell you about whether your stats need to survive a scene change <em>this month</em>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:sc3:q5" data-block="socratic" data-question="You just watched a cave entrance teleport you somewhere. What does that tell you about whether your stats need to survive a scene change this month ?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: Tracing Pickup Bugs</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <div class="bug-hunt">
+        <h3>Bug Hunt</h3>
+        <ol>
+            <li>Untick <strong>Is Trigger</strong> on the coin's collider. Does <code>OnTriggerEnter2D</code> still run? What happens instead, and where does the player end up?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:bh1:q1" data-block="bug-hunt" data-question="Untick Is Trigger on the coin's collider. Does OnTriggerEnter2D still run? What happens instead, and where does the player end up?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Remove the Rigidbody2D from the Player but leave every collider in place. Does the coin still vanish? Does the Console show a message, or nothing at all?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:bh1:q2" data-block="bug-hunt" data-question="Remove the Rigidbody2D from the Player but leave every collider in place. Does the coin still vanish? Does the Console show a message, or nothing at all?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Change your destroy call to <code>Destroy(gameObject)</code> and collect a coin. Which object disappeared — and what is the Console still printing that tells you the player survived?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:bh1:q3" data-block="bug-hunt" data-question="Change your destroy call to Destroy(gameObject) and collect a coin. Which object disappeared — and what is the Console still printing that tells you the player survived?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Comment out the destroy line and walk in and out of the same coin five times. What does the count say? Why is a coin that pays out every time a bug rather than a bonus?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:bh1:q4" data-block="bug-hunt" data-question="Comment out the destroy line and walk in and out of the same coin five times. What does the count say? Why is a coin that pays out every time a bug rather than a bonus?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set the Player's Gravity Scale back to 1. What does the character do when you stop pressing keys, and which setting was quietly doing the work all along?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:bh1:q5" data-block="bug-hunt" data-question="Set the Player's Gravity Scale back to 1. What does the character do when you stop pressing keys, and which setting was quietly doing the work all along?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Walk into a Cave Entrance deliberately with your new body and collider. Which two components you added are responsible — and given the tag check inside that script, why did it react to <em>you</em> and not to a wall?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:bh1:q6" data-block="bug-hunt" data-question="Walk into a Cave Entrance deliberately with your new body and collider. Which two components you added are responsible — and given the tag check inside that script, why did it react to you and not to a wall?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -177,21 +268,26 @@ private void Awake()
     </div>
 
     <div class="tinker">
-        <h3>Tinker: Destroy vs. SetActive</h3>
+        <h3>Tinker: Destroy versus SetActive</h3>
         <ol>
-            <li>In Unity documentation, look up <code>other.gameObject.SetActive(false)</code>. In <code>PlayerController.cs</code>, replace <code>Destroy(other.gameObject)</code> with <code>other.gameObject.SetActive(false)</code>. What happens when you collect a coin?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:tk1:q1" data-block="tinker" data-question="In Unity documentation, look up other.gameObject.SetActive(false) . In PlayerController.cs , replace Destroy(other.gameObject) with other.gameObject.SetActive(false) . What happens when you collect a coin?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>In large professional games with thousands of coins or bullets, why is disabling objects (object pooling) often preferred over destroying and creating them repeatedly?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:tk1:q2" data-block="tinker" data-question="In large professional games with thousands of coins or bullets, why is disabling objects (object pooling) often preferred over destroying and creating them repeatedly?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Replace <code>Destroy(other.gameObject)</code> with <code>other.gameObject.SetActive(false)</code>. What changes on screen, what is different in the Hierarchy <em>after</em> you stop playing, and what happens to your count?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:tk1:q1" data-block="tinker" data-question="Replace Destroy(other.gameObject) with other.gameObject.SetActive(false) . What changes on screen, what is different in the Hierarchy after you stop playing, and what happens to your count?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Read the docs for <code>SetActive</code>. In a game with thousands of coins, why might switching an object off and reusing it beat destroying it and building a new one?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:tk1:q2" data-block="tinker" data-question="Read the docs for SetActive . In a game with thousands of coins, why might switching an object off and reusing it beat destroying it and building a new one?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Open <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code> and find the method that fires when the player touches a cave mouth. Which parameter type does it take, and which of the two components you added today made it fire?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:tk1:q3" data-block="tinker" data-question="Open Assets/Scripts/Package Scripts/SceneSwitch.cs and find the method that fires when the player touches a cave mouth. Which parameter type does it take, and which of the two components you added today made it fire?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Print your coin count with <code>Debug.Log</code> every frame instead of only on pickup. What happens to the Console, and why was printing on the event the better choice?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.1:tk1:q4" data-block="tinker" data-question="Print your coin count with Debug.Log every frame instead of only on pickup. What happens to the Console, and why was printing on the event the better choice?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain the difference between a solid collider and a trigger collider</li>
-            <li>Explain what <code>OnTriggerEnter2D</code> does and identify what the <code>other</code> parameter refers to</li>
-            <li>Explain why <code>other.CompareTag("Coin")</code> is preferred over <code>other.tag == "Coin"</code></li>
-            <li>Create a new C# script (<code>StatManager.cs</code>) and attach it to a scene GameObject</li>
-            <li>Commit your working coin pickup system to GitHub</li>
+            <li>Explain what a Collider2D is for, and what a Rigidbody2D adds on top of it</li>
+            <li>State the rule — colliders on both, a body on at least one — and say which object you gave the body to, and why</li>
+            <li>Explain trigger versus solid, and defend the coin's choice</li>
+            <li>Explain what the parameter in <code>OnTriggerEnter2D</code> actually refers to</li>
+            <li>Explain why <code>CompareTag</code> beats comparing tag strings</li>
+            <li>State where the coin count lives, and name one alternative you rejected, with a reason</li>
+            <li>Explain what happened at the cave entrance, and why it is not a bug</li>
+            <li>Commit and push</li>
         </ul>
     </div>
 </div>
@@ -201,9 +297,9 @@ private void Awake()
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — triggers, tags, and state managers in depth</li>
-        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — reference guide for 2D physics events</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Collider2D and MonoBehaviour lifecycle</li>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — colliders, triggers, and health in depth</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the complete reference for this physics family, used all year</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Collider2D and Rigidbody2D APIs</li>
     </ul>
-    <p>Next: <a href="2.2.html">2.2 — Spikes: Collisions, Health &amp; Death</a></p>
-</div><div class="lab-bar" data-lesson="2.1" data-lesson-title="Coins: Triggers, Tags &amp; the StatManager" data-count="11" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/11 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.1" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.6.html"><span class="dir">&#9664; Previous</span><span class="where">1.6 — Animation States: IsWalking, WalkDir, Attack</span></a><a class="foot-next" href="2.2.html"><span class="dir">Next &#9654;</span><span class="where">2.2 — Spikes: Collisions, Health &amp; Death</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
+    <p>Next: <a href="2.2.html">2.2 — Spikes: Physics, Damage &amp; Death</a>, where you discover that the movement you wrote ignores all of this.</p>
+</div><div class="lab-bar" data-lesson="2.1" data-lesson-title="Coins: Triggers, Tags &amp; Your First Stat" data-count="24" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/24 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.1" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.6.html"><span class="dir">&#9664; Previous</span><span class="where">1.6 — Animation States: IsWalking, WalkDir, Attack</span></a><a class="foot-next" href="2.2.html"><span class="dir">Next &#9654;</span><span class="where">2.2 — Spikes: Physics, Damage &amp; Death</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>
