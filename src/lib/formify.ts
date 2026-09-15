@@ -75,7 +75,13 @@ function isQuestion(text: string): boolean {
   return !/[.:]$/.test(text);
 }
 
-function field(qid: string, block: string, question: string): string {
+/**
+ * One answer box. Exported because the "Break It Down" block (src/lib/
+ * decompose.ts) authors its own questions — it is not one of the three
+ * auto-scanned classes — but must produce byte-identical boxes, or the
+ * teacher's export would have to know about two shapes of the same thing.
+ */
+export function renderAnswerField(qid: string, block: string, question: string): string {
   const q = escapeAttr(question.slice(0, 400));
   return (
     '<label class="lab-field" data-pagefind-ignore>' +
@@ -84,6 +90,10 @@ function field(qid: string, block: string, question: string): string {
     '" data-question="' + q + '" placeholder="write your answer, then keep going"></textarea>' +
     '</label>'
   );
+}
+
+function field(qid: string, block: string, question: string): string {
+  return renderAnswerField(qid, block, question);
 }
 
 /**
@@ -126,5 +136,21 @@ export function formify(body: string, lessonId: string): FormifyResult {
     },
   );
 
-  return { html, questionCount };
+  return { html, questionCount: countFields(html) };
+}
+
+/**
+ * How many answer boxes a lesson body contains, in total.
+ *
+ * The three auto-scanned classes above are not the only source of fields: the
+ * "Break It Down" block (src/lib/decompose.ts) authors its own boxes, because
+ * its questions are generated from a spec rather than written as list items.
+ * They are real `textarea.lab-answer` elements that the browser counts and
+ * saves, so the build-time total has to count them too — otherwise the
+ * "0/N answered" bar is rendered with a denominator that the page's own
+ * script immediately contradicts, and a student who fills in everything can
+ * still be shown a fraction that never reaches the top.
+ */
+function countFields(html: string): number {
+  return (html.match(/class="lab-answer"/g) ?? []).length;
 }

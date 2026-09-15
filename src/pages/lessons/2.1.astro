@@ -7,7 +7,194 @@
 // Cave Entrance colliders (solid, wired to SceneSwitch.OnCollisionEnter2D)
 // start teleporting the student to another scene.
 // Stats live on PlayerController. StatManager stays empty until Unit 5.
+//
+// Scaffolding: FULL (level 1) — this is the first object in the game that
+// reacts to anything, so every step is given. The teacher's example for this
+// end of the ladder: "we can give them everything on the coin."
+//
+// The old "Read Function-Level Examples" block (grocery door, keycard
+// scanner, rocket stage, baggage carousel, air-hockey table) has been
+// removed. Five foreign snippets plus six questions was the shape that
+// stranded students in 1.4; the walkthrough replaces it, and the two facts
+// those snippets carried (trigger means report-not-push, top-down means
+// gravity off) are now `why` lines on the exact steps that need them.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The three recurring questions, applied to the coin pickup — the first object
+// in the game that reacts to anything. Level 1, so every part is given in full.
+// The last three parts are the teacher's own split for this lesson: confirm the
+// thing that triggered was a coin, change the count, destroy the object. The
+// first two are in the list because this is the lesson where the physics rule
+// arrives: colliders on both objects and a body on at least one, and until that
+// is true the method never runs and the Console says nothing about why. A split
+// that covered only the C# would send students hunting a script bug that lives
+// in the Inspector.
+const DECOMPOSE = {
+  big:
+    'Make a coin disappear when I touch it — "how do I detect a collision, and make something ' +
+    'happen?" As one problem it is not even startable, because at this moment nothing in the ' +
+    'whole project is built to notice that two objects touched.',
+  parts: [
+    {
+      name: 'Give the coin a shape the engine can test',
+      does: 'A Circle Collider 2D on the prefab root, its radius dragged until the green outline covers the art, and `Is Trigger` ticked. Trigger matters: a solid collider shoves you back, a trigger only reports. Leave the collider on the root, because the root is the object carrying the `Coin` tag.',
+      doc: 'the `Collider2D` row in the quick reference, and the Is Trigger checkbox in the Inspector.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Give the Player a shape and a body',
+      does: 'A Circle Collider 2D on the Player root — the root, not the Sprite child, because `CompareTag` is asked of whichever object owns the collider — plus a Rigidbody 2D with Body Type Dynamic, Gravity Scale 0 and Interpolate set. Two colliders with no body anywhere produce silence: no error, no warning, nothing to debug.',
+      doc: 'the Body Type warning in the quick reference — it is the first thing to check when nothing happens.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Confirm the thing that triggered was a coin',
+      does: '`OnTriggerEnter2D` runs on the first frame two shapes overlap, and its parameter is the other object\'s collider. The `if (other.CompareTag("Coin"))` check is what turns "something touched me" into "a coin touched me" — spikes, walls and cave doors all land in this same method before the unit is over.',
+      doc: 'the `OnTriggerEnter2D(Collider2D other)` and `other.CompareTag("Coin")` rows in the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Change the count',
+      does: '`coins = coins + 1;` inside the check, with `coins` declared as a `[SerializeField] private int` back in the class body. No type in front of the line in the method: this assigns to a field that already exists, and declaring it here instead would rebuild it every frame and leave the real total at zero.',
+      doc: 'the `[SerializeField] private float speed;` row in the quick reference, and the declare-vs-assign rule you met in 1.3.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Destroy the object',
+      does: '`Destroy(other.gameObject);` — `other` is a Collider2D, not a GameObject, so `.gameObject` walks up to the whole coin. Write `Destroy(gameObject)` by mistake and you delete the Player instead, which is the bug you will deliberately cause in the Bug Hunt.',
+      doc: 'the `Destroy(gameObject)` row in the quick reference, and the pickup pattern underneath it.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+  ],
+  why:
+    'Three of these five parts are the pickup pattern in miniature — a check, a change, a destroy — ' +
+    'and you will write them in that order all year. The first two are what this lesson is really ' +
+    'about: Unity\'s rule is a collider on both objects and a body on at least one, and until it ' +
+    'is satisfied the method never runs at all. That is why the split has to include the Inspector.',
+  sizeTest:
+    'The test: when the coin does nothing, is there one part above you can point at and test on ' +
+    'its own? A silent failure with no error in the Console is a physics problem, not a script ' +
+    'problem — and a split that stops at the C# cannot tell you which.',
+  connect: [
+    'In 1.3 you learned that a value declared inside a method forgets itself between calls. Which part above is that rule deciding, and what would the coin count do if you got it wrong?',
+    'In 1.2 you read the Player as a Transform, an empty script, and a child Sprite. Which part above adds the first components to it since that day — and why does the collider have to sit on the root rather than on the Sprite?',
+    'In 1.6 you cached the Animator with GetComponentInChildren because the component lived on the child. Today part three checks a tag. What is that check actually asked of — the picture you can see, or the object that owns the collider?',
+  ],
+  turns: [
+    'Part three is the line that turns "something touched me" into "a coin touched me". In one sentence, say what the Player would do on the first frame it walked into a wall if that line were missing.',
+  ],
+};
+
+const WALK = {
+  ask: 'how do I make a coin disappear when I touch it?',
+  file: 'Assets/Prefabs/Coin and Assets/Scripts/PlayerController.cs',
+  intro: 'Two objects to wire up in the Inspector, then one method on the Player. Every setting and every line is given below.',
+  level: 1,
+  steps: [
+    {
+      title: 'Give the Coin a shape',
+      lead: 'A coin is currently a picture and nothing else. Start by giving it a shape the physics engine can test.',
+      lines: [
+        { code: 'Hierarchy or Project ▸ select the Coin prefab', what: 'Work on the **prefab asset** in `Assets/Prefabs`, not one instance in the scene. Anything you change on the prefab applies to every coin you ever place.' },
+        { code: 'Coin (root) ▸ Add Component ▸ Circle Collider 2D', what: 'This is the coin\'s **shape**. Before this, the engine has no idea the coin occupies any space at all.' , why: 'A Circle is the right shape here because the coin is round. Unity also offers Box, Capsule, Polygon and Edge — pick the one that matches the silhouette, because a bad shape means a coin you can collect by touching empty air.' },
+        { code: 'Circle Collider 2D ▸ Radius   →  drag to fit the coin', what: 'Check the green outline in the Scene view. Does it cover the coin you can actually see?' , why: 'Two things to get right here. The **size**: a new collider does not fit itself to your art, so drag the radius until the green outline covers the coin. The **place**: leave the collider on the root, because the root is the object carrying the `Coin` tag. Move it down to the Untagged Sprite child and `CompareTag("Coin")` becomes false, and the pickup silently does nothing.' },
+        { code: 'Circle Collider 2D ▸ Is Trigger   ☑ ON', what: 'Tick it. This changes what an overlap **means**: a solid collider shoves objects apart, a trigger does not push at all — it only **reports** that the overlap happened.' , why: 'Leave this off and the coin behaves like a wall. You still get a message, but you also get stopped dead in your tracks — which is a bug you can feel immediately.' },
+      ],
+    },
+    {
+      title: 'Give the Player a shape AND a body',
+      lead: 'A collider alone is not enough. Unity\'s rule: colliders on both objects, a Rigidbody2D on at least one.',
+      lines: [
+        { code: 'Assets/Prefabs/Player (root) ▸ Add Component ▸ Circle Collider 2D', what: 'The Player\'s **shape**. Add it to the **root**, then drag the radius until the green outline fits the character you can see.' , why: '**The root, not the Sprite child**, and this is not a style preference. The cave-entrance script checks `collision.gameObject.CompareTag("Player")`, and `collision.gameObject` is whichever object owns the collider. Put the collider on the Untagged Sprite child and the cave door never opens for you — with no error to explain why.' },
+        { code: 'Assets/Prefabs/Player (root) ▸ Add Component ▸ Rigidbody 2D', what: 'The **body**. This puts the Player under simulation, and it is what makes overlap messages fire at all.' , why: '**This is the component everyone forgets.** Two colliders with no body anywhere produce total silence — no error, no warning, no message, nothing to debug. If your coin does nothing at all later, come back to this line first.' },
+        { code: 'Rigidbody 2D ▸ Body Type       =  Dynamic', what: 'A Dynamic body is simulated: it collides, and it can be pushed. This is what you want for a character that gets knocked back later.' , why: 'Keep it **Dynamic**. You are still Dynamic at the end of the year, including in the cave where gravity matters. Notice what you just chose: Dynamic is the body type that actually **collides**. Right now nothing in the world is solid to you — in 2.2 you make the spikes solid, and this is the setting that decides whether you stop at them.' },
+        { code: 'Rigidbody 2D ▸ Gravity Scale   =  0', what: 'Set it to **0**. Your world is seen from directly above and has no "down" for anything to fall toward.' , why: 'The default is **1**. Leave it and your character immediately starts sliding off the bottom of the screen the moment you press Play. This is the single most common surprise in this lesson.' },
+        { code: 'Rigidbody 2D ▸ Interpolate     =  Interpolate', what: 'Smooths the rendered position between physics steps. Physics runs on its own clock, and without this your movement looks slightly jerky.' },
+        { code: '( Constraints are still empty for now — see the note below. )', what: 'A Dynamic body picks up spin when something solid hits it off-centre. There is almost nothing solid to you yet, so you leave this alone today and deal with it properly in 2.2.' , why: 'One exception, and you may meet it in this lesson: the cave entrances are solid. If your character tumbles after touching one, that is a Dynamic body picking up torque — not a broken script. You will freeze the rotation in 2.2, next lesson.' },
+      ],
+    },
+    {
+      title: 'Write the pickup on the Player',
+      lead: 'One new field and one new method on PlayerController. The Player is what moves, so the Player is what gets told about the overlap.',
+      lines: [
+        { code: '    [SerializeField] private int coins;', what: 'How many coins you have collected. An `int` (whole number), exposed to the Inspector so you can watch it change while the game runs.' , why: 'Declared in the **class body**, not inside the method — the same rule from 1.3. This is state that has to still be there on the next frame, so it belongs to the object.' },
+        { code: '', what: '' },
+        { code: '    private void OnTriggerEnter2D(Collider2D other)', what: 'Unity calls this on the **first frame** two shapes overlap. You do not call it yourself. The parameter is the *other* object\'s collider — the one that ran into you.' },
+        { code: '    {', what: '' },
+        { code: '        if (other.CompareTag("Coin"))', what: 'Check **what** you just touched before doing anything. `CompareTag` asks the engine directly; comparing tag strings with `==` builds a new string every call and can silently miss.' , why: 'Spikes, cave entrances and healing pickups will all land in this same method before the unit is over. Without this check, the Player would vanish the first time it walked into a wall that happened to have a collider.' },
+        { code: '        {', what: '' },
+        { code: '            coins = coins + 1;', what: 'Add one to the running total. Notice there is no type in front — `coins` already exists, so this **assigns** to it. Writing `int coins = coins + 1;` here would create a brand-new local that dies at the end of the frame and leave the real total frozen at zero.' },
+        { code: '            Debug.Log("Coins collected: " + coins);', what: 'Print the new total. With no UI in this game yet, the Console is the only way to see the number go up.' },
+        { code: '            Destroy(other.gameObject);', what: 'Removes the coin. `other` is a **Collider2D**, not a GameObject — `.gameObject` walks up from the collider to the whole object it belongs to.' , why: '**`other.gameObject` — not `gameObject`.** Using plain `gameObject` destroys the Player, which is the bug you will deliberately cause in the Bug Hunt below. Get it backwards and the game is instantly unplayable.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: 'Closes the method. The tag check exists so the destroy only ever reaches a coin.' },
+      ],
+    },
+  ],
+  pitfalls: [
+    {
+      mistake: 'Colliders on both objects, but no Rigidbody2D anywhere',
+      symptom: 'Absolutely nothing happens. No error, no Console message, no warning. The coin sits there and the game looks fine.',
+      fix: 'At least one of the two objects needs a Rigidbody2D. Put it on the Player, since the Player is the thing that moves.',
+    },
+    {
+      mistake: 'leaving Gravity Scale at its default of 1 on the Player',
+      symptom: 'The character slides off the bottom of the screen the instant you press Play, and you cannot walk back.',
+      fix: 'Gravity Scale = 0. A top-down world has no down.',
+    },
+    {
+      mistake: 'Destroy(gameObject) instead of Destroy(other.gameObject)',
+      symptom: 'You collect one coin and the Player disappears instead. The camera goes dead.',
+      fix: '`other` is the thing you collided with. `other.gameObject` is it. Plain `gameObject` is **you**.',
+    },
+    {
+      mistake: 'forgetting to tick Is Trigger on the coin',
+      symptom: 'OnTriggerEnter2D never runs, and the coin stops you dead like a wall.',
+      fix: 'Is Trigger ☑ ON. A solid collider reports a *collision* (OnCollisionEnter2D), not a trigger.',
+    },
+    {
+      mistake: 'the collider added to the Sprite child instead of the root',
+      symptom: 'Coins still work, but the cave entrance never opens. Nothing in the Console either way, so there is no clue to follow.',
+      fix: 'The collider belongs on the **root** — the object that carries the tag. `CompareTag` is asked of whichever GameObject owns the collider, and the Sprite child is Untagged.',
+    },
+    {
+      mistake: 'a collider radius that was never fitted to the sprite',
+      symptom: 'You collect coins by touching empty air a character-width away, or you have to stand in exactly one spot for it to register.',
+      fix: 'Select the collider and drag its Radius until the green outline in the Scene view matches what you can see. A new collider does not size itself to your art.',
+    },
+    {
+      mistake: 'the coin\'s tag left as Untagged',
+      symptom: 'The overlap fires, the coin stays put, and no message appears. The `if` was false.',
+      fix: 'The prefab ships with the tag `Coin` already set. If you changed it, set it back — and remember a tag change on a scene instance can be overwritten by the prefab on save.',
+    },
+  ],
+  finalFile: `// Added to Assets/Scripts/PlayerController.cs, alongside your movement code.
+// The fields all sit together in the class body; the method sits below Update().
+
+    [SerializeField] private int coins;
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Coin"))
+        {
+            coins = coins + 1;
+            Debug.Log("Coins collected: " + coins);
+            Destroy(other.gameObject);
+        }
+    }
+
+// Inspector changes made in this lesson:
+//   Assets/Prefabs/Coin      : + Circle Collider 2D (Is Trigger ON, radius fitted)
+//   Assets/Prefabs/Player    : + Circle Collider 2D on the ROOT (radius fitted)
+//                              + Rigidbody 2D  (Dynamic, Gravity Scale 0,
+//                                               Interpolate)
+//                              Constraints left empty on purpose — 2.2 sets
+//                              Freeze Rotation Z once things are solid.`,
+  finalNote:
+    'Compare against your own file and Inspector. The two things to check hardest: that `coins` is declared in the class body rather than inside the method, and that the destroy says `other.gameObject`.',
+};
 
 const body = `<h1>2.1 — Coins: Triggers, Tags &amp; Your First Stat</h1>
 
@@ -17,6 +204,10 @@ const body = `<h1>2.1 — Coins: Triggers, Tags &amp; Your First Stat</h1>
     project is built to notice a collision. Today you make the first object in the game that
     reacts to the player, and in doing so you switch the physics engine on for good.
 </p>
+
+${renderAskBanner('how do I detect a collision, and make something happen?', 1)}
+
+${renderDecompose('2.1', DECOMPOSE, 1)}
 
 <!-- ============================================================ -->
 <div class="activity discovery">
@@ -86,101 +277,13 @@ const body = `<h1>2.1 — Coins: Triggers, Tags &amp; Your First Stat</h1>
 </div>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Read Function-Level Examples</span>
-        <span class="activity-time">~15 min</span>
-    </div>
-
-    <p>
-        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
-        your coin. None of these is from a video game.
-    </p>
-
-    <p><strong>Example 1 — Receiving overlap events on an automatic grocery store door:</strong></p>
-    <pre><code>private void OnTriggerEnter2D(Collider2D entrant)
-{
-    Debug.Log("Motion sensor tripped by: " + entrant.name);
-}</code></pre>
-
-    <p><strong>Example 2 — Validating identity with tags on a vault keycard scanner:</strong></p>
-    <pre><code>if (incomingItem.CompareTag("SecurityKeycard"))
-{
-    Debug.Log("Access granted.");
-}</code></pre>
-
-    <p><strong>Example 3 — Memory cleanup on a spent rocket stage:</strong></p>
-    <pre><code>Destroy(spentBoosterStage.gameObject);</code></pre>
-
-    <p><strong>Example 4 — An airport baggage carousel (comment only):</strong></p>
-    <pre><code>// The scanner arch is a trigger. Luggage only trips it while it is riding
-// the belt - a bag the belt never moves is invisible to the arch.</code></pre>
-
-    <p><strong>Example 5 — An overhead air-hockey table (comment only):</strong></p>
-    <pre><code>// Seen from directly above, a puck has no "down" to fall toward.
-// The table is the whole world, so gravity is switched off.</code></pre>
-
-    <div class="socratic">
-        <h3>Predict Before Building</h3>
-        <ol>
-            <li>In the door snippet, <code>entrant</code> is a <code>Collider2D</code>, not a GameObject. How do you get from it to the object's name and its tag?</li>
-            <li>In the rocket snippet, what would <code>Destroy(spentBoosterStage)</code> actually destroy if the variable were typed as a <code>Collider2D</code>? What does <code>.gameObject</code> add?</li>
-            <li>The bags on the carousel only trip the arch while the belt is moving them. What is the minimum this project needs for a coin to notice the player — a body on the coin, a body on the player, or both?</li>
-            <li>The air-hockey puck has gravity switched off. Predict what your top-down player will do if you add a Rigidbody2D and leave Gravity Scale at its default of 1. Write the prediction down before you test it in the Build Lab.</li>
-            <li>A coin that stopped you dead like a wall would be terrible. Which checkbox makes that difference, and what is the name of the message you receive instead?</li>
-            <li>When you walk into a coin, whose collider arrives in the <code>other</code> parameter — yours or the coin's? How could you prove it with a <code>Debug.Log</code>?</li>
-        </ol>
-    </div>
-</div>
+${renderWalkthrough(WALK)}
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: Give the Player a Body</span>
-        <span class="activity-time">~25 min</span>
-    </div>
-
-    <p>
-        <strong>Step 1 — get a coin within reach.</strong> The Overworld scene ships with
-        exactly <strong>one</strong> Coin instance. Find it, or drag a couple more from
-        <code>Assets/Prefabs</code> and spread them out. Put one somewhere you will walk.
-    </p>
-
-    <p>
-        <strong>Step 2 — the discovery.</strong> Select the <code>Assets/Prefabs/Coin</code>
-        <em>asset</em> and read its Inspector. Now select the Player and read its Inspector.
-        List every component each one has — and then write down what is missing from
-        <em>both</em>.
-    </p>
-
-    <div class="callout">
-        <strong>Architectural specification: the Coin.</strong>
-        <ul>
-            <li>Which component gives an object a shape the physics engine can test? Where do you add it in the Inspector?</li>
-            <li>Should a coin be a solid collider or an <em>Is Trigger</em> zone? Describe what the game would feel like if a coin stopped you in your tracks like a wall.</li>
-            <li>A default collider is sized from the sprite's import bounds — and remember from <a href="1.2.html">1.2</a> that the Coin's Sprite Renderer is on a <em>child</em> object. Does the collider you just added actually cover the coin you can see? How would you check?</li>
-            <li>The coin's tag is already <code>Coin</code> on the prefab. Does a tag live on the prefab asset or on the instance in the scene? Change an instance's tag and find out which one wins.</li>
-        </ul>
-    </div>
-
-    <div class="callout">
-        <strong>Architectural specification: the Player.</strong>
-        <ul>
-            <li>Which component makes an object <em>visible to the physics engine</em> — the one without which <code>OnTriggerEnter2D</code> never fires at all?</li>
-            <li>Where should the Player's collider go — on the root, or on the child <code>Sprite</code> that owns the renderer? What problem appears if you put a default-sized collider on the root? Press Play and find out.</li>
-            <li>A top-down world has no "down". What should Gravity Scale be — and what does your character do if you leave it at 1? Compare that against the prediction you wrote down a moment ago.</li>
-            <li>A dynamic body that clips something will also <em>spin</em>. Which Rigidbody2D setting stops your character tumbling when it grazes a wall?</li>
-        </ul>
-    </div>
-
-    <div class="callout">
-        <strong>Architectural specification: the code.</strong>
-        <ul>
-            <li>Which method receives the overlap message on the Player, and what is the parameter's type? When <em>you</em> walk into a coin, which object does that parameter represent?</li>
-            <li>How do you check that the thing you touched is a coin? Why is <code>CompareTag</code> better than comparing tag strings with <code>==</code>?</li>
-            <li>You want the <em>coin</em> to vanish, not the player. Is it <code>gameObject</code> or <code>other.gameObject</code> — and what happens if you get it backwards?</li>
-            <li>How many coins you have collected is a fact about the player. Where does that field live? Write it, and print the new total with <code>Debug.Log</code> so a player can watch the number change with no UI at all.</li>
-        </ul>
+        <span class="activity-label">What You Just Switched On</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
     <div class="callout trap">
@@ -254,28 +357,21 @@ const body = `<h1>2.1 — Coins: Triggers, Tags &amp; Your First Stat</h1>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Bug Hunt: Tracing Pickup Bugs</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-label">Bug Hunt &amp; Tinker</span>
+        <span class="activity-time">~25 min</span>
     </div>
 
     <div class="bug-hunt">
-        <h3>Bug Hunt</h3>
+        <h3>Bug Hunt: Tracing Pickup Bugs</h3>
         <ol>
             <li>Untick <strong>Is Trigger</strong> on the coin's collider. Does <code>OnTriggerEnter2D</code> still run? What happens instead, and where does the player end up?</li>
             <li>Remove the Rigidbody2D from the Player but leave every collider in place. Does the coin still vanish? Does the Console show a message, or nothing at all?</li>
             <li>Change your destroy call to <code>Destroy(gameObject)</code> and collect a coin. Which object disappeared — and what is the Console still printing that tells you the player survived?</li>
             <li>Comment out the destroy line and walk in and out of the same coin five times. What does the count say? Why is a coin that pays out every time a bug rather than a bonus?</li>
             <li>Set the Player's Gravity Scale back to 1. What does the character do when you stop pressing keys, and which setting was quietly doing the work all along?</li>
+            <li>Move your <code>coins = coins + 1;</code> line up so it sits <em>before</em> the <code>if</code> check instead of inside it. Walk into a wall. What does the count do, and what does that tell you about what the <code>if</code> is actually guarding?</li>
             <li>Walk into a Cave Entrance deliberately with your new body and collider. Which two components you added are responsible — and given the tag check inside that script, why did it react to <em>you</em> and not to a wall?</li>
         </ol>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Tinker</span>
-        <span class="activity-time">~10 min</span>
     </div>
 
     <div class="tinker">
@@ -294,8 +390,8 @@ const body = `<h1>2.1 — Coins: Triggers, Tags &amp; Your First Stat</h1>
             <li>Explain what a Collider2D is for, and what a Rigidbody2D adds on top of it</li>
             <li>State the rule — colliders on both, a body on at least one — and say which object you gave the body to, and why</li>
             <li>Explain trigger versus solid, and defend the coin's choice</li>
-            <li>Explain what the parameter in <code>OnTriggerEnter2D</code> actually refers to</li>
-            <li>Explain why <code>CompareTag</code> beats comparing tag strings</li>
+            <li>Explain what the parameter in <code>OnTriggerEnter2D</code> actually refers to, and why <code>CompareTag</code> beats comparing tag strings</li>
+            <li><strong>Point at your own file and say why <code>coins</code> is declared in the class body while <code>coins = coins + 1;</code> is not</strong></li>
             <li>State where the coin count lives, and name one alternative you rejected, with a reason</li>
             <li>Explain what happened at the cave entrance, and why it is not a bug</li>
             <li>Commit and push</li>
@@ -311,6 +407,7 @@ const body = `<h1>2.1 — Coins: Triggers, Tags &amp; Your First Stat</h1>
         <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — colliders, triggers, and health in depth</li>
         <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the complete reference for this physics family, used all year</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Collider2D and Rigidbody2D APIs</li>
+        <li><a href="../docs/ask.html">How do I…? index</a> — find this lesson again by the question you were asking</li>
     </ul>
     <p>Next: <a href="2.2.html">2.2 — Spikes: Physics, Damage &amp; Death</a>, where you discover that the movement you wrote ignores all of this.</p>
 </div>`;

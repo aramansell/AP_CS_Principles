@@ -13,6 +13,15 @@
  *  6. the MCQ bank is intact — every answer key matches a rendered
  *     question, every explanation exists, and the mixed practice sets
  *     sit inside the exam's published big-idea weighting ranges
+ *  7. the scaffolding ladder holds — every lesson that carries a
+ *     walkthrough declares a valid level, every "How do I…?" entry points
+ *     at a lesson that exists, and every walkthrough lesson is findable
+ *     from the question index
+ *  8. the three recurring questions survive in every lesson that has opted
+ *     onto the ladder — the problem is split into more than one part, every
+ *     part says where to read about it, the "connect it to something you
+ *     already built" beat is still asked, and the block decays by the same
+ *     level as the code
  *
  * Ported from the AP CS A Guide's verify-site.mjs, minus the legacy-site
  * URL parity checks (this site has no legacy twin).
@@ -259,6 +268,237 @@ if (!fs.existsSync(keysPath)) {
       else ok(traps.size + ' trap names all present in the strategy catalog');
     }
   }
+}
+
+// ---------- 7. scaffolding ladder + the "How do I…?" index
+// Two subsystems that can silently rot: a lesson that gains a walkthrough but
+// no ladder level (so students cannot tell how much support they are meant to
+// have), and an ask entry pointing at a lesson that was renamed or removed.
+console.log('7. scaffolding ladder & question index...');
+const askPath = path.join(dist, 'docs', 'ask.html');
+const askSrcPath = path.resolve('src/data/asks.ts');
+if (!fs.existsSync(askPath)) {
+  fail('docs/ask.html was not built (src/pages/docs/ask.astro)');
+}
+if (!fs.existsSync(askSrcPath)) {
+  fail('src/data/asks.ts is missing');
+} else {
+  const askSrc = fs.readFileSync(askSrcPath, 'utf8');
+  const askLessons = [...askSrc.matchAll(/lesson:\s*'([^']+)'/g)].map((m) => m[1]);
+  const askQs = [...askSrc.matchAll(/q:\s*'([^']+)'/g)].map((m) => m[1]);
+  if (askQs.length === 0) fail('asks.ts contains no questions');
+
+  // every ask must point at a lesson that actually exists
+  for (const lid of askLessons) {
+    if (!fs.existsSync(path.join(dist, 'lessons', lid + '.html'))) {
+      fail('asks.ts entry points at missing lesson ' + lid);
+    }
+    if (!lessonIds.includes(lid)) fail('asks.ts entry points at ' + lid + ', which is not in lessons.ts');
+  }
+
+  // the page must actually contain the questions (data -> render, not just data)
+  if (fs.existsSync(askPath)) {
+    const askHtml = fs.readFileSync(askPath, 'utf8');
+    const missing = askQs.filter((q) => !askHtml.includes(q));
+    if (missing.length) fail('docs/ask.html does not render ' + missing.length + ' ask(s), e.g. "' + missing[0] + '"');
+
+    // every walkthrough lesson must be reachable from the question index,
+    // and must declare a ladder level the badges know how to render
+    const walkthroughLessons = [];
+    const byLevel = { 1: [], 2: [], 3: [], 4: [] };
+    const askLevels = new Map();
+    for (const m of askSrc.matchAll(/lesson:\s*'([^']+)'[\s\S]*?level:\s*([1-4])/g)) {
+      if (!askLevels.has(m[1])) askLevels.set(m[1], new Set());
+      askLevels.get(m[1]).add(m[2]);
+    }
+    for (const f of built) {
+      const id = f.replace('.html', '');
+      const html = fs.readFileSync(path.join(dist, 'lessons', f), 'utf8');
+      const wt = html.includes('class="activity walkthrough"');
+
+      // A lesson's level can be declared by a walkthrough (levels 1-2) or by
+      // the ask banner alone (levels 3-4, which give no code). Both are read,
+      // because the whole ladder has to be checked, not just the lessons that
+      // happen to render a walkthrough — an unchecked level is a badge the
+      // index can lie about.
+      const wtLevel = html.match(/class="activity walkthrough" data-scaffold="([^"]*)"/);
+      const bannerLevel = html.match(/class="ask-banner" data-scaffold="([^"]*)"/);
+      if (!wtLevel && !bannerLevel) continue; // lesson declares no scaffold level at all
+
+      if (wt) walkthroughLessons.push(id);
+      if (wt && !wtLevel) fail(id + ' renders a walkthrough with no data-scaffold level');
+
+      const declared = wtLevel ?? bannerLevel;
+      if (!/^[1-4]$/.test(declared[1])) {
+        fail(id + ' declares an invalid scaffold level: ' + declared[1]);
+        continue;
+      }
+      const level = Number(declared[1]);
+      if (byLevel[level]) byLevel[level].push(id);
+
+      // A level and the shape it renders must match, or the badge is fiction.
+      // Levels 1-2 hand the student the code; levels 3-4 must not.
+      if (level <= 2 && !wt) {
+        fail(id + ' declares scaffold level ' + level + ' (gives the code) but renders no walkthrough');
+      }
+      if (level >= 3 && wt) {
+        fail(id + ' declares scaffold level ' + level + ' (gives no code) but hands over a walkthrough anyway');
+      }
+      if (level >= 3 && bannerLevel && bannerLevel[1] !== String(level)) {
+        fail(id + ' ask banner says level ' + bannerLevel[1] + ' but the walkthrough says ' + level);
+      }
+      if (level <= 2 && bannerLevel && bannerLevel[1] !== String(level)) {
+        fail(id + ' ask banner says level ' + bannerLevel[1] + ' but the walkthrough says ' + level);
+      }
+
+      // Gaps only exist where a walkthrough does. The ladder decays by
+      // WITHHOLDING, so within a walkthrough the level has to be real rather
+      // than a label: a level-1 lesson gives every line, and a guided lesson
+      // has to actually leave the student something to write, or "a little
+      // less" never happened and the next lesson's leap is back.
+      if (wt) {
+        const gaps = Number((html.match(/data-gaps="(\d+)"/) ?? [])[1] ?? 0);
+        if (level === 2 && gaps === 0) {
+          fail(id + ' declares scaffold level 2 (guided) but leaves no gaps for the student to fill');
+        }
+        if (level === 1 && gaps > 0) {
+          fail(id + ' declares scaffold level 1 (full walkthrough) but withholds ' + gaps + ' line(s)');
+        }
+        // A gap with no prompt is a blank page with a hole in it.
+        if (gaps > 0) {
+          const turns = (html.match(/class="wt-your-turn"/g) ?? []).length;
+          if (turns !== gaps) {
+            fail(id + ' renders ' + gaps + ' gap(s) but ' + turns + ' instruction(s) telling the student what to write');
+          }
+        }
+      }
+
+      // the index and the lesson must agree on how much support this is.
+      // Every entry for a lesson must agree, not merely one of them — a lesson
+      // with three ask entries and one stale level would otherwise pass while
+      // the index told students two different things.
+      const claimed = askLevels.get(id);
+      if (claimed) {
+        const wrong = [...claimed].filter((l) => l !== String(level));
+        if (wrong.length) {
+          fail(id + ' is scaffold level ' + level + ' but asks.ts describes it as level ' + wrong.join('/'));
+        }
+      }
+
+      if (!askLessons.includes(id)) fail(id + ' has a walkthrough but no "How do I…?" entry pointing at it');
+    }
+    const groupCount = (askSrc.match(/title:\s*'/g) ?? []).length;
+    const ladder = [1, 2, 3, 4]
+      .filter((l) => byLevel[l].length)
+      .map((l) => 'L' + l + ': ' + byLevel[l].join(', '))
+      .join('  |  ');
+    ok('scaffolding ladder: ' + walkthroughLessons.join(', ') + ' carry walkthroughs, all indexed');
+    ok('ladder spread — ' + ladder);
+    ok(askQs.length + ' questions indexed across ' + groupCount + ' groups, all rendering');
+
+    // ---------- 8. the three beats that must appear in every build lesson
+    // The year has two learning targets bigger than any API — break the
+    // problem into parts, and look each part up — plus the prior-knowledge
+    // question that makes the sequencing pay off. They are rendered by
+    // src/lib/decompose.ts and asked identically in every lesson, so the
+    // checks are: the block exists, it is a real split (more than one part),
+    // every named part says where to read about it, the connection beat is
+    // still there, and the block decays on the same ladder as the code.
+    console.log('8. the three recurring questions...');
+    let decomposed = 0;
+    const stillLevel = [];
+    for (const f of built) {
+      const id = f.replace('.html', '');
+      const html = fs.readFileSync(path.join(dist, 'lessons', f), 'utf8');
+
+      // Which lessons are even in scope? A lesson that has declared a rung on
+      // the ladder has opted into the new pattern, and is held to it in full.
+      // The rest are still on the old shape; they are counted and reported,
+      // not failed, or the signal would be red for weeks and worth nothing.
+      const declares = /class="activity walkthrough" data-scaffold="[1-4]"|class="ask-banner" data-scaffold="[1-4]"/.test(html);
+      const hasLab = /activity-label">[^<]*(Build Lab|Build:|Your Turn)/.test(html);
+      if (!declares) {
+        if (hasLab) stillLevel.push(id);
+        continue;
+      }
+
+      const block = html.match(/<div class="activity decompose"[^>]*>/);
+      if (!block) {
+        fail(id + ' declares a ladder level but carries no "Break It Down" block (src/lib/decompose.ts)');
+        continue;
+      }
+      decomposed++;
+
+      const attr = (n) => {
+        const m = block[0].match(new RegExp('data-' + n + '="(\\d+)"'));
+        return m ? Number(m[1]) : NaN;
+      };
+      const level = attr('level');
+      const parts = attr('parts');
+      const given = attr('given');
+      const docs = attr('docs');
+      if (!(level >= 1 && level <= 4)) fail(id + ' decompose block has no valid data-level: ' + level);
+      if (!(parts >= 2)) {
+        fail(id + ' decompose block lists ' + parts + ' part(s) — a one-part split is not a decomposition');
+      }
+      // `parts` is the authored split — the record of what the lesson intends,
+      // shown or not. `docs` is what is rendered, and at level 4 nothing is,
+      // so the sourcing rule only binds where parts are actually visible.
+      if (level <= 3 && docs !== parts) {
+        fail(id + ' decompose block lists ' + parts + ' part(s) but sources only ' + docs +
+          ' — a part with no reading is the whole problem again');
+      }
+      // the decay, read from the block itself
+      if (level === 1 && given !== parts) fail(id + ' is level 1 but withholds ' + (parts - given) + ' part(s)');
+      if (level === 2 && given >= parts) fail(id + ' is level 2 (guided) but hands over every part');
+      if (level >= 3 && level <= 3 && given !== parts) fail(id + ' is level 3 but withholds ' + (parts - given) + ' part(s)');
+      if (level === 4 && given !== 0) fail(id + ' is level 4 (solo) but still hands over ' + given + ' part(s)');
+
+      // Beat three never decays, at any level — that is the point of the
+      // sequence, so a missing connection question is a real failure.
+      if (!html.includes('class="dc-connect"')) {
+        fail(id + ' decompose block has no "connect it to something you already built" beat');
+      }
+      const boxes = (html.match(/data-block="decompose"/g) ?? []).length;
+      if (boxes === 0) fail(id + ' decompose block asks nothing — no answer box to discuss in');
+
+      // the banner and the block must agree about the rung
+      const bannerL = html.match(/class="ask-banner" data-scaffold="([1-4])"/);
+      if (bannerL && Number(bannerL[1]) !== level) {
+        fail(id + ' ask banner says level ' + bannerL[1] + ' but the decompose block says ' + level);
+      }
+    }
+    ok(decomposed + ' lessons carry the three recurring questions, decay verified');
+    if (stillLevel.length) {
+      console.log('  note: ' + stillLevel.length + ' build lesson(s) still on the old shape, not yet ' +
+        'rolled onto the ladder: ' + stillLevel.join(', '));
+    }
+  }
+
+  // ---------- 9. the lab form adds up
+  // The lesson page renders "0/N answered" at build time and a script rewrites
+  // it on load from the boxes actually present. Those two numbers come from
+  // different places (src/lib/formify.ts and the DOM), so any new kind of
+  // answer box can silently desync them — the student sees one total, then a
+  // different one a moment later, and neither is obviously the wrong one.
+  console.log('9. lab forms...');
+  let labs = 0;
+  for (const f of built) {
+    const id = f.replace('.html', '');
+    const html = fs.readFileSync(path.join(dist, 'lessons', f), 'utf8');
+    const boxes = (html.match(/class="lab-answer"/g) ?? []).length;
+    const bar = html.match(/class="lab-bar"[^>]*data-count="(\d+)"/);
+    if (!bar) {
+      if (boxes > 0) fail(id + ' renders ' + boxes + ' answer box(es) but no lab bar to hold them');
+      continue;
+    }
+    labs++;
+    if (Number(bar[1]) !== boxes) {
+      fail(id + ' lab bar counts ' + bar[1] + ' question(s) but the page renders ' + boxes +
+        ' answer box(es) — the readout will contradict itself once the script runs');
+    }
+  }
+  ok(labs + ' lessons with a lab form, every count matching its rendered boxes');
 }
 
 console.log('');

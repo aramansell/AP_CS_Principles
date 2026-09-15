@@ -1,190 +1,96 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>3.2 Projectiles: Instantiate, Fire, Destroy — AP CS Principles</title><meta name="description" content="Lesson 3.2 Projectiles: Instantiate, Fire, Destroy — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="3.2 Projectiles: Instantiate, Fire, Destroy — AP CS Principles"><meta property="og:description" content="Lesson 3.2 Projectiles: Instantiate, Fire, Destroy — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="3.1.html">&#9664; 3.1</a><span class="lesson-id">3.2</span><a href="3.3.html">3.3 &#9654;</a></div><h1>3.2 — Projectiles: Instantiate, Fire, Destroy</h1>
 
 <p class="lesson-lead">
-    Your turret knows when you are near; now it needs teeth. Spawning and firing a projectile
-    looks complicated, but it breaks into four smaller problems:
-    <strong>spawn a clone → aim it → move it → clean it up</strong>. Each of those has more than
-    one valid solution, and today you pick yours on purpose.
+    Your turret knows when you are near; now it needs teeth. This is the lesson where the
+    course stops holding your hand: everything a projectile needs, you have already written
+    once, somewhere else. Your job today is to recognise that — and then prove it.
 </p>
+
+<div class="ask-banner" data-scaffold="4"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I shoot a projectile?&rdquo;</span><span class="ask-banner-level">Solo build</span></div>
+
+<div class="activity decompose" data-level="4" data-parts="5" data-given="0" data-docs="0"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Solo build</span></div><p class="dc-big">A turret that shoots at me. That is the whole feature, and it is far too big to hold in your head at once — which is exactly why every lesson in this course starts the same way.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><p class="dc-empty">No parts listed here on purpose. Splitting the problem up <em>is</em> the work of this lesson — write your list before you open the file.</p><p class="dc-why">Notice what is NOT on that list: no new API except the spawner, and even that you have seen. Five parts, four of them lifted straight out of lessons you have already finished. That is what a well-sequenced course feels like from the inside — not "here is a new thing you have never seen", but "here is the same five things, pointed at a new target".</p><p class="dc-size">The test for a finished split: could you look this part up on its own, right now, in one search? "Make the turret shoot" cannot be looked up. "Clone a prefab at a position" can. If a part is still too big to search for, it is two parts.</p><div class="dc-connect"><h4>Connect it to something you already built</h4><p>Very little in this course is new. Most of it is something you have already done, pointed in a different direction — and saying which one out loud is how you stop relearning it every time.</p><p>List the parts of this problem, in the order you would build them.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:dc1:q1" data-block="decompose" data-question="List the parts of this problem, in the order you would build them." placeholder="write your answer, then keep going"></textarea></label><p>There is more than one way to make the bullet travel. Name two, say what each one costs you in components, and say which you picked and why.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:dc1:q2" data-block="decompose" data-question="There is more than one way to make the bullet travel. Name two, say what each one costs you in components, and say which you picked and why." placeholder="write your answer, then keep going"></textarea></label><p>Pick the part above that is the MOST like the coin pickup in 2.1, and say in one line what the two have in common.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:dc1:q3" data-block="decompose" data-question="Pick the part above that is the MOST like the coin pickup in 2.1, and say in one line what the two have in common." placeholder="write your answer, then keep going"></textarea></label><p>The spike lesson in 2.2 ended with a rule: a value that has a limit needs a rule where the value changes. Which part of the projectile is like that, if any?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:dc1:q4" data-block="decompose" data-question="The spike lesson in 2.2 ended with a rule: a value that has a limit needs a rule where the value changes. Which part of the projectile is like that, if any?" placeholder="write your answer, then keep going"></textarea></label><p>One part on that list is genuinely new: nothing before this lesson spawned anything at the moment of firing. Which one is it, and what about it do you not yet know?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:dc1:q5" data-block="decompose" data-question="One part on that list is genuinely new: nothing before this lesson spawned anything at the moment of firing. Which one is it, and what about it do you not yet know?" placeholder="write your answer, then keep going"></textarea></label></div></div>
 
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Read the Docs</span>
-        <span class="activity-time">~15 min</span>
-    </div>
-
-    <p>Firing a projectile means coordinating four separate engine features:</p>
-
-    <table>
-        <tr><th>Sub-problem</th><th>Unity API</th><th>What it does</th></tr>
-        <tr>
-            <td><strong>1. Spawning</strong></td>
-            <td><code>Instantiate(prefab, pos, rot)</code></td>
-            <td>Creates a brand-new clone of a prefab at runtime and drops it into the scene hierarchy.</td>
-        </tr>
-        <tr>
-            <td><strong>2. Aiming</strong></td>
-            <td><code>(target - origin).normalized</code></td>
-            <td>Vector subtraction gives a vector pointing at the target; <code>.normalized</code> shrinks its length to exactly 1 so it describes <em>direction only</em>.</td>
-        </tr>
-        <tr>
-            <td><strong>3. Moving</strong></td>
-            <td><code>Transform</code> or <code>Rigidbody2D</code></td>
-            <td>Advances the projectile every frame. Three different ways — see the table below.</td>
-        </tr>
-        <tr>
-            <td><strong>4. Cleanup</strong></td>
-            <td><code>Destroy(gameObject, delay)</code></td>
-            <td>Destroys the clone after a time delay, so bullets that miss do not fly forever.</td>
-        </tr>
-    </table>
-
-    <div class="socratic">
-        <h3>Socratic: Choosing How Your Bullet Flies</h3>
-        <p>Three legitimate ways to move a projectile. Read the cost column carefully — two of these require a component the prefab does not have:</p>
-        <table>
-            <tr><th>Approach</th><th>How it works</th><th>What it requires</th><th>Pick it when</th></tr>
-            <tr>
-                <td><strong>Translate by a direction vector</strong></td>
-                <td>Keep the aim direction from spawn and offset the position by <code>direction * speed * Time.deltaTime</code> each frame.</td>
-                <td>Nothing. Works with the prefab as it ships.</td>
-                <td>Straight-flying shots that pass over or through everything.</td>
-            </tr>
-            <tr>
-                <td><strong>Rotate, then move along local forward</strong></td>
-                <td>Point the sprite at the target once, then translate along its own right axis each frame.</td>
-                <td>Nothing extra, but more maths.</td>
-                <td>When the sprite should visibly <em>face</em> the way it travels — arrows, spears, missiles.</td>
-            </tr>
-            <tr>
-                <td><strong>Rigidbody2D velocity</strong></td>
-                <td>Set the body's velocity once and let the physics engine carry it.</td>
-                <td><strong>A Rigidbody2D</strong>, which the projectile does not have yet.</td>
-                <td>Bullets that should bounce off walls, or be stopped by them.</td>
-            </tr>
-        </table>
-        <ol>
-            <li>Open <code>Assets/Prefabs/Turret_Projectile</code> and read its Inspector. Which of the three approaches can you build <em>right now</em>, and which one costs you an added component?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:sc1:q1" data-block="socratic" data-question="Open Assets/Prefabs/Turret_Projectile and read its Inspector. Which of the three approaches can you build right now , and which one costs you an added component?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>If you want bullets that ricochet off cave walls like a pinball, which approach is dramatically easier, and what would the other two require you to build yourself?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:sc1:q2" data-block="socratic" data-question="If you want bullets that ricochet off cave walls like a pinball, which approach is dramatically easier, and what would the other two require you to build yourself?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>For a beam or a magic missile that flies straight through scenery, why is the direction-vector approach both simpler <em>and</em> more correct?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:sc1:q3" data-block="socratic" data-question="For a beam or a magic missile that flies straight through scenery, why is the direction-vector approach both simpler and more correct?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Why is <code>Destroy(gameObject, delay)</code> essential? What happens to your frame rate if a player dodges a thousand bullets and nothing ever removes them?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:sc1:q4" data-block="socratic" data-question="Why is Destroy(gameObject, delay) essential? What happens to your frame rate if a player dodges a thousand bullets and nothing ever removes them?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Your turret's range check runs every frame. If you fire from inside that check, how many bullets per second are you creating — and is that a design decision or an accident?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:sc1:q5" data-block="socratic" data-question="Your turret's range check runs every frame. If you fire from inside that check, how many bullets per second are you creating — and is that a design decision or an accident?" placeholder="write your answer, then keep going"></textarea></label></li>
-        </ol>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Read Function-Level Examples</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-label">The Problem</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
     <p>
-        Each snippet in isolation, from a system that is not a video game. Work out what maps onto
-        your projectile.
+        No specification this time, and no API table. You have earned the version of this
+        lesson where you are handed the <em>behaviour</em> and nothing else. Here is what
+        the finished feature does, from the player's seat:
     </p>
 
-    <p><strong>Example 1 — Computing a heading on an aircraft navigation system:</strong></p>
-    <pre><code>// (destination - current) gives direction; .normalized scales the length to 1.0
-Vector3 heading = (waypoint.position - transform.position).normalized;</code></pre>
+    <ol>
+        <li>I walk into the turret's range, and something appears at the <strong>end of the
+            barrel</strong> — not at the turret's centre, and not at the world origin.</li>
+        <li>It flies toward <strong>where I was standing when it was fired</strong>. If I keep
+            moving, it does not follow me — it commits to the shot it took.</li>
+        <li>It travels at <strong>the same speed whether I am standing next to the turret or
+            at the far edge of its range.</strong></li>
+        <li>It <strong>cleans itself up</strong> a few seconds later if it hits nothing.</li>
+    </ol>
 
-    <p><strong>Example 2 — Converting a direction to an angle on a weather vane:</strong></p>
-    <pre><code>// Atan2 turns X/Y components into an angle in radians; Rad2Deg converts to degrees
-float windAngle = Mathf.Atan2(wind.y, wind.x) * Mathf.Rad2Deg;</code></pre>
+    <p>
+        Read those four again with your list of parts next to them. Every one of them is a
+        part you named, and every one of them is testable by playing the game — which is the
+        other half of breaking a problem down. A part you cannot test is not a part yet.
+    </p>
 
-    <p><strong>Example 3 — Building a 2D rotation from that angle:</strong></p>
-    <pre><code>// In 2D, rotation happens around the Z axis - the one pointing out of the screen
-transform.rotation = Quaternion.AngleAxis(windAngle, Vector3.forward);</code></pre>
-
-    <p><strong>Example 4 — Spawning and initialising on a fountain:</strong></p>
-    <pre><code>// Stamp a clone, then reach into it to hand over the data it needs
-GameObject orb = Instantiate(orbPrefab, nozzle.position, Quaternion.identity);
-orb.GetComponent&lt;MagicOrb&gt;().InitializeOrb(targetCoords);</code></pre>
-
-    <p><strong>Example 5 — Timed self-cleanup on a soap bubble:</strong></p>
-    <pre><code>// Schedules this object to be destroyed automatically 4 seconds from now
-Destroy(gameObject, 4.0f);</code></pre>
-
-    <div class="socratic">
-        <h3>Predict Before Building</h3>
-        <ol>
-            <li>In Example 1, what happens if you leave off <code>.normalized</code>? If the waypoint is 20 units away and you multiply that vector by a speed, what goes wrong?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:sc2:q1" data-block="socratic" data-question="In Example 1, what happens if you leave off .normalized ? If the waypoint is 20 units away and you multiply that vector by a speed, what goes wrong?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Why is <code>Vector3.forward</code> — that is, (0, 0, 1) — the axis of rotation for a 2D sprite?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:sc2:q2" data-block="socratic" data-question="Why is Vector3.forward — that is, (0, 0, 1) — the axis of rotation for a 2D sprite?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>In Example 4, why does the fountain reach <em>into the clone</em> to pass data, rather than the clone finding the target on its own? Which approach would you pick for a bullet, and why?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:sc2:q3" data-block="socratic" data-question="In Example 4, why does the fountain reach into the clone to pass data, rather than the clone finding the target on its own? Which approach would you pick for a bullet, and why?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Example 4 uses <code>Quaternion.identity</code> for the spawn rotation. Is that the right choice for a bullet that is about to be aimed? What does <code>identity</code> actually mean?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:sc2:q4" data-block="socratic" data-question="Example 4 uses Quaternion.identity for the spawn rotation. Is that the right choice for a bullet that is about to be aimed? What does identity actually mean?" placeholder="write your answer, then keep going"></textarea></label></li>
-        </ol>
+    <div class="callout">
+        <strong>Architectural constraint (the only thing I will hand you):</strong>
+        you are editing two files, and they do not know about each other's details.
+        <code>TurretController.cs</code> decides <em>when</em> to fire and <em>where</em>
+        the bullet starts. <code>Projectile.cs</code> owns everything about the bullet
+        after that: which way it goes, how fast, and when it dies. If you find yourself
+        writing the bullet's speed into the turret, stop — the turret should not know
+        that number exists.
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: Your Turn</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Build Lab: Alone</span>
+        <span class="activity-time">~35 min</span>
     </div>
 
     <p>
         Open <code>Assets/Prefabs/Turret_Projectile</code>. You will find an empty
-        <code>Projectile</code> component <em>already attached</em> — same pattern as the turret.
-        Your job is to fill it in.
+        <code>Projectile</code> component <em>already attached</em> — the same pattern as the
+        turret and the coin. Nothing new needs creating. Fill it in, then extend the range
+        check you wrote in <a href="3.1.html">3.1</a> so it fires.
     </p>
 
-    <div class="callout">
-        <strong>Architectural specification for <code>Projectile.cs</code>:</strong>
+    <p><strong>When you are stuck, this is the order to reread:</strong></p>
+    <ol>
+        <li><a href="2.4.html">2.4</a> — prefabs, and cloning one at runtime</li>
+        <li><a href="2.1.html">2.1</a> — the whole pickup pattern, including the destroy</li>
+        <li><a href="1.5.html">1.5</a> — vectors and normalizing, where the diagonal bug was fixed</li>
+        <li><a href="2.2.html">2.2</a> — your movement line, and why velocity takes no deltaTime</li>
+        <li><a href="3.1.html">3.1</a> — the range check you are extending</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — when you know the name and need the exact spelling</li>
+    </ol>
 
-        <p><strong>Variables and tuning knobs:</strong></p>
-        <ul>
-            <li>What serialized float knobs should a designer be able to turn? You need at least a speed and a lifetime — are there others your chosen approach implies?</li>
-            <li>What defaults make sense? Think about how big the Overworld is and how far a bullet should reasonably travel before giving up.</li>
-            <li>Your projectile needs to remember its direction (or its target). What type holds that, and where does it get set?</li>
-        </ul>
+    <p>
+        That list is the point of the lesson. When you have forgotten how to clone something,
+        you do not ask a person and you do not guess — you go and read the lesson where you
+        already did it. A working programmer spends most of the day reading, and this list is
+        what "reading the documentation for each part" looks like when the documentation is
+        your own course.
+    </p>
 
-        <p><strong>Being initialised at spawn:</strong></p>
-        <ul>
-            <li>When the turret creates a bullet, it needs to tell that bullet where to go. What <em>public</em> method signature receives that information? Why must it be public?</li>
-            <li>How do you compute a direction from the spawn point to the target? Why normalize it?</li>
-            <li>If you chose the rotate-then-move approach: which trigonometric function gives you an angle from X and Y, and how do you convert radians to degrees?</li>
-            <li>If you chose the rotate-then-move approach: which axis does a 2D sprite rotate around, and which method builds a rotation from an angle and an axis?</li>
-            <li>How do you schedule the bullet's own destruction so it cleans up even if it never hits anything?</li>
-        </ul>
-
-        <p><strong>Flight, every frame:</strong></p>
-        <ul>
-            <li>Which method moves the transform each frame, and how do you keep the speed frame-rate independent?</li>
-            <li>If you rotated the sprite, which local direction is "forward" for a 2D sprite? If you did not rotate it, what do you translate by instead?</li>
-            <li>Why does the direction get computed once at spawn rather than recomputed every frame? What weapon would re-aiming every frame actually give you?</li>
-        </ul>
-    </div>
-
-    <div class="callout">
-        <strong>Architectural specification for <code>TurretController.cs</code>:</strong>
-
-        <p><strong>Inspector slots:</strong></p>
-        <ul>
-            <li>What serialized fields let a designer hand the turret a projectile to fire and a place to fire it from? (Remember the child object you noted in <a href="3.1.html">3.1</a>.)</li>
-            <li>What type holds a reference to a prefab — the asset, not an instance?</li>
-        </ul>
-
-        <p><strong>The firing method:</strong></p>
-        <ul>
-            <li>What guard check stops the method when a designer has left a slot empty?</li>
-            <li>Which method stamps a clone into the scene? What position and rotation should it start with?</li>
-            <li>How do you reach the <code>Projectile</code> component on the clone you just made, and what do you call on it?</li>
-            <li>Which object's position do you pass as the target — and should you pass a <em>position</em>, or the player's Transform?</li>
-        </ul>
-
-        <p><strong>Triggering it:</strong></p>
-        <ul>
-            <li>Where inside your existing range check does the firing method get called?</li>
-            <li>Which slots must be wired in the Inspector before you test?</li>
-        </ul>
+    <div class="callout warn">
+        <strong>Wire the slots before you press Play.</strong> An unassigned prefab or muzzle
+        slot does not complain at startup — it throws at the exact moment you step into range,
+        which looks like a firing bug and is really a setup bug. Assign them, <em>then</em> play.
     </div>
 
     <p>
-        Save, wire the slots, and press Play. Walk into range: a projectile appears at the muzzle
-        and travels. Do not celebrate the fire rate yet — you are currently firing
+        Save, wire the slots, and press Play. Walk into range: a projectile appears at the
+        muzzle and travels. Do not celebrate the fire rate yet — you are currently firing
         <em>every single frame</em>, because your range check runs every frame. That is exactly
         the problem the next lesson solves.
     </p>
@@ -192,11 +98,12 @@ Destroy(gameObject, 4.0f);</code></pre>
     <div class="bug-hunt">
         <h3>Bug Hunt: Projectile Faults</h3>
         <ol>
-            <li>Leave the projectile prefab slot unassigned and step into range. What error appears, and which line of your code is it pointing at?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q1" data-block="bug-hunt" data-question="Leave the projectile prefab slot unassigned and step into range. What error appears, and which line of your code is it pointing at?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Comment out the <code>Destroy</code> line, fire for ten seconds, then look at the Hierarchy in play mode. How many objects are there? What will that do to the game over a five-minute session?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q2" data-block="bug-hunt" data-question="Comment out the Destroy line, fire for ten seconds, then look at the Hierarchy in play mode. How many objects are there? What will that do to the game over a five-minute session?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Remove <code>.normalized</code> from your direction calculation. What happens when the player is far away versus close? Explain the relationship between distance and speed that you just created.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q3" data-block="bug-hunt" data-question="Remove .normalized from your direction calculation. What happens when the player is far away versus close? Explain the relationship between distance and speed that you just created." placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Pass the player's <em>Transform</em> into your spawn method instead of their position, and have the bullet read <code>targetTransform.position</code> every frame. What kind of weapon did you accidentally build?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q4" data-block="bug-hunt" data-question="Pass the player's Transform into your spawn method instead of their position, and have the bullet read targetTransform.position every frame. What kind of weapon did you accidentally build?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>If you chose the rotate-then-move approach, translate by <code>Vector3.up</code> instead of the forward direction. Which way do bullets now travel relative to where the sprite points?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q5" data-block="bug-hunt" data-question="If you chose the rotate-then-move approach, translate by Vector3.up instead of the forward direction. Which way do bullets now travel relative to where the sprite points?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Your bullets appear at the centre of the turret instead of the end of its barrel. The turret has more than one position available to hand over — which object did you actually pass, and which one did you mean?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q1" data-block="bug-hunt" data-question="Your bullets appear at the centre of the turret instead of the end of its barrel. The turret has more than one position available to hand over — which object did you actually pass, and which one did you mean?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Disable your cleanup line and fire for ten seconds, then look at the Hierarchy in play mode. How many objects are there? What does that number look like after a five-minute session?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q2" data-block="bug-hunt" data-question="Disable your cleanup line and fire for ten seconds, then look at the Hierarchy in play mode. How many objects are there? What does that number look like after a five-minute session?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Fire once from right next to the turret, then once from the far edge of its range. The bullets travel at wildly different speeds. Which part of your direction calculation is responsible, and what relationship between distance and speed have you accidentally created?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q3" data-block="bug-hunt" data-question="Fire once from right next to the turret, then once from the far edge of its range. The bullets travel at wildly different speeds. Which part of your direction calculation is responsible, and what relationship between distance and speed have you accidentally created?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Your bullets curve around and follow you after you move. What did you hand the bullet when it spawned — a fixed point, or something that keeps updating itself?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q4" data-block="bug-hunt" data-question="Your bullets curve around and follow you after you move. What did you hand the bullet when it spawned — a fixed point, or something that keeps updating itself?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>If you chose to rotate the sprite and move along its own axis: your bullets fly sideways or downward relative to the way the sprite points. Which direction are you translating by, and what should you translate by instead?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q5" data-block="bug-hunt" data-question="If you chose to rotate the sprite and move along its own axis: your bullets fly sideways or downward relative to the way the sprite points. Which direction are you translating by, and what should you translate by instead?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set the turret's projectile slot to None and step into range. Does the error appear when you press Play, or when you step in range? What does the timing tell you about where your guard check is running?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:bh1:q6" data-block="bug-hunt" data-question="Set the turret's projectile slot to None and step into range. Does the error appear when you press Play, or when you step in range? What does the timing tell you about where your guard check is running?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -213,18 +120,21 @@ Destroy(gameObject, 4.0f);</code></pre>
         <ol>
             <li>Tune your speed knob from something slow and dodgeable to something that feels like a sniper. At what point does the turret stop being a challenge and start being unfair? What else could you change to keep it fair at high speed?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:tk1:q1" data-block="tinker" data-question="Tune your speed knob from something slow and dodgeable to something that feels like a sniper. At what point does the turret stop being a challenge and start being unfair? What else could you change to keep it fair at high speed?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Change the lifetime knob so bullets die almost immediately, then so they live far too long. What is the right lifetime for a bullet that should threaten the player but not wander the whole map?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:tk1:q2" data-block="tinker" data-question="Change the lifetime knob so bullets die almost immediately, then so they live far too long. What is the right lifetime for a bullet that should threaten the player but not wander the whole map?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Your bullets currently fly through everything — walls included. Is that a problem for this game? What would you have to add to a bullet to make a wall stop it, and which of the three movement approaches from the docs would then be the better choice?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:tk1:q3" data-block="tinker" data-question="Your bullets currently fly through everything — walls included. Is that a problem for this game? What would you have to add to a bullet to make a wall stop it, and which of the three movement approaches from the docs would then be the better choice?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Fire one bullet and watch it in the Hierarchy. What is the clone named, and where does it sit in the hierarchy? Does that tell you anything about <code>Instantiate</code> you did not expect?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:tk1:q4" data-block="tinker" data-question="Fire one bullet and watch it in the Hierarchy. What is the clone named, and where does it sit in the hierarchy? Does that tell you anything about Instantiate you did not expect?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Your bullets fly through everything — walls included. Is that a problem for this game? If you wanted a wall to stop a bullet, which of the approaches you named earlier would suddenly become the better choice, and what would the projectile prefab need added to it? (Look back at 2.2 before you answer.)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:tk1:q3" data-block="tinker" data-question="Your bullets fly through everything — walls included. Is that a problem for this game? If you wanted a wall to stop a bullet, which of the approaches you named earlier would suddenly become the better choice, and what would the projectile prefab need added to it? (Look back at 2.2 before you answer.)" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Fire one bullet and watch it in the Hierarchy. What is the clone named, and where does it sit? Anything surprised you about what a clone inherits from its prefab?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:tk1:q4" data-block="tinker" data-question="Fire one bullet and watch it in the Hierarchy. What is the clone named, and where does it sit? Anything surprised you about what a clone inherits from its prefab?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>You now have a bullet that can hit the player and do nothing. What is the smallest change that would make it matter — and which earlier lesson already did that to you with a spike?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.2:tk1:q5" data-block="tinker" data-question="You now have a bullet that can hit the player and do nothing. What is the smallest change that would make it matter — and which earlier lesson already did that to you with a spike?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Break projectile firing into spawning, aiming, moving and cleanup</li>
+            <li>Break a feature into parts small enough to look each one up on its own</li>
+            <li>Name which part of this feature was lifted from a lesson you had already done</li>
+            <li>Say where you would look up a Unity API you have forgotten, without asking a person</li>
             <li>Explain the role of <code>Instantiate</code> in stamping runtime clones</li>
             <li>Explain why a direction vector is normalized, and what goes wrong without it</li>
-            <li>Compare the three ways to move a projectile, and state what each one costs</li>
+            <li>Name two ways to move a projectile and state what each one costs</li>
             <li>Explain why your turret currently fires every frame</li>
             <li>Commit and push</li>
         </ul>
@@ -236,11 +146,12 @@ Destroy(gameObject, 4.0f);</code></pre>
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — every question this course answers, in the words you would search with</li>
         <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — the projectile lifecycle and aiming in depth</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Instantiate, Destroy and Mathf</li>
     </ul>
     <p>Next: <a href="3.3.html">3.3 — Fire Rate: Cooldowns &amp; Time</a>, where you fix the bullet hose you just built.</p>
-</div><div class="lab-bar" data-lesson="3.2" data-lesson-title="Projectiles: Instantiate, Fire, Destroy" data-count="18" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/18 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.2" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.1.html"><span class="dir">&#9664; Previous</span><span class="where">3.1 — The Turret: Distance &amp; the Detection Radius</span></a><a class="foot-next" href="3.3.html"><span class="dir">Next &#9654;</span><span class="where">3.3 — Fire Rate: Cooldowns &amp; Time</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+</div><div class="lab-bar" data-lesson="3.2" data-lesson-title="Projectiles: Instantiate, Fire, Destroy" data-count="16" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/16 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.2" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.1.html"><span class="dir">&#9664; Previous</span><span class="where">3.1 — The Turret: Distance &amp; the Detection Radius</span></a><a class="foot-next" href="3.3.html"><span class="dir">Next &#9654;</span><span class="where">3.3 — Fire Rate: Cooldowns &amp; Time</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
      restores the hidden bridge textareas first, and mc-quiz.js reads those
      restored values to re-check the radios. Swapping the order breaks
      answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

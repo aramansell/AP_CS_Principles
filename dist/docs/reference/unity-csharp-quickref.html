@@ -36,10 +36,12 @@
     <tr><td><code>Input.GetKeyDown(KeyCode.Space)</code></td><td>True only on the frame the key goes down</td><td>Jump (6.1)</td></tr>
     <tr><td><code>Input.GetMouseButtonDown(0)</code></td><td>Left click, that frame</td><td>Attack trigger (1.6)</td></tr>
     <tr><td><code>transform.Translate(v)</code></td><td>Move by vector v, ignoring physics entirely</td><td>Your first movement (1.4) — replaced in 2.2 once it walked through walls</td></tr>
+    <tr><td><code>rb.linearVelocity = v</code></td><td>Set how fast the body travels, and let physics do the moving. Units are <strong>per second</strong>, so it takes <strong>no <code>Time.deltaTime</code></strong>.</td><td>The course's movement method from 2.2 onward. Unity 6 renamed this from <code>velocity</code> — tutorials written before then will not compile.</td></tr>
+    <tr><td><code>rb.MovePosition(rb.position + v)</code></td><td>Drive the body to a target position along the path, rather than at a speed</td><td>Moving platforms and scripted set pieces. Stops at walls <em>only</em> on a <strong>Dynamic</strong> body — the docs recommend Kinematic, which is the one body type it ignores them on.</td></tr>
     <tr><td><code>transform.position</code></td><td>Where in the world (Vector3)</td><td>Distance checks</td></tr>
     <tr><td><code>Vector3.Distance(a, b)</code></td><td>Straight-line distance between points</td><td>Turret radius (3.1), chase (4.3)</td></tr>
     <tr><td><code>(a - b).normalized</code></td><td>Direction from b to a, length exactly 1</td><td>Chase (4.3), aiming a projectile (3.2)</td></tr>
-    <tr><td><code>Time.deltaTime</code></td><td>Seconds since last frame</td><td>Multiply motion by it: per-second, not per-frame</td></tr>
+    <tr><td><code>Time.deltaTime</code></td><td>Seconds since last frame</td><td>Multiply motion by it: per-frame, not per-second</td></tr>
     <tr><td><code>Time.time</code></td><td>Seconds since the scene started</td><td>Cooldowns (3.3, 4.4)</td></tr>
     <tr><td><code>rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse)</code></td><td>Push the rigidbody — one impulse beat</td><td>Jump (6.1)</td></tr>
     <tr><td><code>rb.gravityScale</code></td><td>0 = float, 2 = fall; swap for game modes</td><td>Top-down vs cave (5.3), ladders (7.3)</td></tr>
@@ -69,6 +71,18 @@
     <tr><td><strong>Singleton</strong></td><td>static instance + Awake guard + DontDestroyOnLoad</td><td>StatManager (5.3), GameManager (cards)</td></tr>
 </table>
 <p>If you can rebuild those five from memory, you can rebuild this entire game — which is more or less the point of the semester.</p>
+
+<div class="callout warn">
+    <strong>Body Type decides whether the world can stop you.</strong>
+    Before you debug any movement or collision problem, read the Rigidbody 2D's
+    <strong>Body Type</strong> — not your movement code. Only a <strong>Dynamic</strong>
+    body is stopped by walls and only a Dynamic body produces <code>OnCollision*</code>
+    messages against static colliders. A <strong>Kinematic</strong> body collides with
+    Dynamic bodies only, so it passes through every wall, floor and cave door in silence.
+    <em>Triggers are the exception</em>: a Kinematic body still fires
+    <code>OnTrigger*</code>, which is why coins keep working and the bug is so hard to see.
+    This project's Player is Dynamic all year, with Gravity Scale 0 in the top-down scenes.
+</div>
 
 <div class="callout warn">
     <strong>On the AP exam, read the sheet.</strong> The exam does not test

@@ -7,6 +7,51 @@
 // Two Turret instances exist in the Overworld. The turret has NO Animator, though
 // an unassigned Turret.controller exists in Artwork.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// Level 3 (outline only): the split and the API are given, the code is not.
+// The parts mirror the three sub-problems already named in this lesson's lead
+// paragraph and socratic, so the decomposition is the plan the spec below
+// follows rather than a separate exercise bolted on the front.
+const DECOMPOSE = {
+  big: 'The turret notices me. That is the whole feature, and "how does a turret notice me" has no answer a computer can act on.',
+  parts: [
+    {
+      name: 'Who is my target, and where is it?',
+      does: 'Get a reference to the player from somewhere once at startup, and keep it — rather than searching the whole scene for it every frame.',
+      doc: 'GameObject.FindWithTag against a [SerializeField] reference, both in the quick reference, and compared in the reading below.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'How far away is it right now?',
+      does: 'Measure the straight-line distance between the turret and that target, every frame.',
+      doc: 'Vector3.Distance and sqrMagnitude — quick reference, and the trade-off table below.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Is that distance inside my danger zone?',
+      does: 'Compare the distance against a range value a designer can tune, and act when it is inside. Detection is a condition checked continuously, not an event that happens once.',
+      doc: 'The [SerializeField] tuning knob you have used since 1.4, and the comparison operators you met in 2.2.',
+      href: '2.2.html',
+    },
+  ],
+  why:
+    '"Notice the player" is not something you can write. Each of these three is — and none of them ' +
+    'is about turrets. Finding a tagged object, measuring a distance and comparing a number are ' +
+    'ordinary tools you will reach for all year; the turret is just where they happen to combine.',
+  sizeTest:
+    'The test for a finished split: could you look this part up on its own, right now, in one ' +
+    'search? "Make the turret shoot" cannot be. "Get the distance between two objects" can.',
+  connect: [
+    'In 2.1 you turned "something touched me" into "a coin touched me" by checking a tag. Which part above is that same move — and what is being checked this time instead of a tag?',
+    'The spike lesson in 2.2 came down to a comparison against a value: health against zero. Which part above has that same shape, and which value is being compared now?',
+    'You have now exposed a designer-tunable number three times: move speed, health, and this range. Which attribute makes a private field visible in the Inspector, and why keep it private at all?',
+  ],
+  turns: [
+    'The reading above compares two ways to acquire the target and two ways to measure distance. Say which you picked for each, and what your choice costs you.',
+  ],
+};
 
 const body = `<h1>3.1 — The Turret: Distance &amp; the Detection Radius</h1>
 
@@ -17,6 +62,10 @@ const body = `<h1>3.1 — The Turret: Distance &amp; the Detection Radius</h1>
     functions, and build <code>TurretController.cs</code> from scratch.
 </p>
 
+${renderAskBanner('how do I make a turret notice the player?', 3)}
+
+${renderDecompose('3.1', DECOMPOSE, 3)}
+
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
@@ -25,14 +74,10 @@ const body = `<h1>3.1 — The Turret: Distance &amp; the Detection Radius</h1>
     </div>
 
     <p>
-        Building even simple artificial intelligence starts with breaking a vague idea —
-        "the turret notices you" — into questions a computer can actually answer:
+        The three parts above each have more than one valid tool. Read both sides of each
+        comparison before you choose — you are picking on purpose, and you will be asked to
+        defend the pick.
     </p>
-    <ol>
-        <li><em>Who is my target, and where are they?</em> (target acquisition)</li>
-        <li><em>How far away is that target right now?</em> (distance measurement)</li>
-        <li><em>Is that distance inside my danger zone?</em> (a selection condition)</li>
-    </ol>
 
     <div class="socratic">
         <h3>Socratic: Comparing Targeting &amp; Distance Functions</h3>
@@ -73,43 +118,13 @@ const body = `<h1>3.1 — The Turret: Distance &amp; the Detection Radius</h1>
     </div>
 </div>
 
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Read Function-Level Examples</span>
-        <span class="activity-time">~15 min</span>
-    </div>
-
-    <p>
-        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
-        your turret. None of these is from a video game.
-    </p>
-
-    <p><strong>Example 1 — Caching a tagged object on a rescue helicopter:</strong></p>
-    <pre><code>// Searches the scene hierarchy once at startup to locate a tagged target
-GameObject beacon = GameObject.FindWithTag("EmergencyBeacon");</code></pre>
-
-    <p><strong>Example 2 — Measuring distance on a museum laser tripwire:</strong></p>
-    <pre><code>// Straight-line distance between the emitter and the intruder
-float range = Vector3.Distance(emitter.position, intruder.position);</code></pre>
-
-    <p><strong>Example 3 — A cheaper proximity test on a stadium floodlight bank:</strong></p>
-    <pre><code>// Compares squared distances, so no square root is ever computed
-bool near = (lamp.position - moth.position).sqrMagnitude &lt;= glowRadius * glowRadius;</code></pre>
-
-    <p><strong>Example 4 — A guard clause on an air-traffic radar (comment only):</strong></p>
-    <pre><code>// The radar reports nothing at all until it has locked onto a target.
-// Every reading below this point assumes the lock succeeded.</code></pre>
-
-    <div class="socratic">
-        <h3>Predict Before Building</h3>
-        <ol>
-            <li>Example 1 stores the search result in a variable. Where should that line live, and how many times should it run in a game session?</li>
-            <li>In Example 2, what happens if <code>intruder</code> is null when you call <code>Vector3.Distance</code>? What guard clause must always come first?</li>
-            <li>Example 4 describes a radar that reports nothing until it has a lock. How does that map onto your turret's <code>Update()</code>?</li>
-            <li>If your turret's range is <code>7</code>, what is <code>range * range</code>? Why is comparing that to <code>sqrMagnitude</code> equivalent to comparing <code>7</code> to the real distance?</li>
-        </ol>
-    </div>
+<div class="callout info">
+    <strong>The habit that saves you here: guard first, then read.</strong> A lookup that finds
+    nothing does not stop your script — it hands you a <code>null</code> and carries on to the
+    next line, where you then ask <code>null</code> for its position. Write your code so that
+    <em>every line below the lookup assumes the lookup succeeded</em>, because you checked it
+    did. Two lines at the top of a method beat an afternoon of chasing a
+    <code>NullReferenceException</code> from three methods away.
 </div>
 
 <!-- ============================================================ -->
@@ -207,6 +222,7 @@ bool near = (lamp.position - moth.position).sqrMagnitude &lt;= glowRadius * glow
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
             <li>Break "the turret notices you" into target acquisition, distance measurement, and a selection condition</li>
+            <li>Say, for each of those parts, where you would look it up without asking a person</li>
             <li>Explain why caching a reference in <code>Start()</code> beats searching every frame</li>
             <li>Compare <code>FindWithTag</code> against a serialized reference, and say which you chose and why</li>
             <li>Compare <code>Vector3.Distance</code> against <code>sqrMagnitude</code>, and explain why the squared version compares against <code>range * range</code></li>
@@ -222,6 +238,7 @@ bool near = (lamp.position - moth.position).sqrMagnitude &lt;= glowRadius * glow
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — every question this course answers, in the words you would search with</li>
         <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — distance, targeting, and the projectile lifecycle</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>Vector3.Distance</code> and Transform APIs</li>
     </ul>

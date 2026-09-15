@@ -7,6 +7,10 @@
     functions, and build <code>TurretController.cs</code> from scratch.
 </p>
 
+<div class="ask-banner" data-scaffold="3"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I make a turret notice the player?&rdquo;</span><span class="ask-banner-level">Outline only</span></div>
+
+<div class="activity decompose" data-level="3" data-parts="3" data-given="3" data-docs="3"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Outline only</span></div><p class="dc-big">The turret notices me. That is the whole feature, and "how does a turret notice me" has no answer a computer can act on.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Who is my target, and where is it?</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">GameObject.FindWithTag against a [SerializeField] reference, both in the quick reference, and compared in the reading below.</a></span></li><li class="dc-part"><span class="dc-name">How far away is it right now?</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">Vector3.Distance and sqrMagnitude — quick reference, and the trade-off table below.</a></span></li><li class="dc-part"><span class="dc-name">Is that distance inside my danger zone?</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="2.2.html">The [SerializeField] tuning knob you have used since 1.4, and the comparison operators you met in 2.2.</a></span></li></ol><p class="dc-why">"Notice the player" is not something you can write. Each of these three is — and none of them is about turrets. Finding a tagged object, measuring a distance and comparing a number are ordinary tools you will reach for all year; the turret is just where they happen to combine.</p><p class="dc-size">The test for a finished split: could you look this part up on its own, right now, in one search? "Make the turret shoot" cannot be. "Get the distance between two objects" can.</p><div class="dc-connect"><h4>Connect it to something you already built</h4><p>Very little in this course is new. Most of it is something you have already done, pointed in a different direction — and saying which one out loud is how you stop relearning it every time.</p><p>Pick two of the parts above and say in one line what each one actually does.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1:dc1:q1" data-block="decompose" data-question="Pick two of the parts above and say in one line what each one actually does." placeholder="write your answer, then keep going"></textarea></label><p>The reading above compares two ways to acquire the target and two ways to measure distance. Say which you picked for each, and what your choice costs you.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1:dc1:q2" data-block="decompose" data-question="The reading above compares two ways to acquire the target and two ways to measure distance. Say which you picked for each, and what your choice costs you." placeholder="write your answer, then keep going"></textarea></label><p>In 2.1 you turned "something touched me" into "a coin touched me" by checking a tag. Which part above is that same move — and what is being checked this time instead of a tag?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1:dc1:q3" data-block="decompose" data-question="In 2.1 you turned &quot;something touched me&quot; into &quot;a coin touched me&quot; by checking a tag. Which part above is that same move — and what is being checked this time instead of a tag?" placeholder="write your answer, then keep going"></textarea></label><p>The spike lesson in 2.2 came down to a comparison against a value: health against zero. Which part above has that same shape, and which value is being compared now?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1:dc1:q4" data-block="decompose" data-question="The spike lesson in 2.2 came down to a comparison against a value: health against zero. Which part above has that same shape, and which value is being compared now?" placeholder="write your answer, then keep going"></textarea></label><p>You have now exposed a designer-tunable number three times: move speed, health, and this range. Which attribute makes a private field visible in the Inspector, and why keep it private at all?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1:dc1:q5" data-block="decompose" data-question="You have now exposed a designer-tunable number three times: move speed, health, and this range. Which attribute makes a private field visible in the Inspector, and why keep it private at all?" placeholder="write your answer, then keep going"></textarea></label></div></div>
+
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
@@ -15,14 +19,10 @@
     </div>
 
     <p>
-        Building even simple artificial intelligence starts with breaking a vague idea —
-        "the turret notices you" — into questions a computer can actually answer:
+        The three parts above each have more than one valid tool. Read both sides of each
+        comparison before you choose — you are picking on purpose, and you will be asked to
+        defend the pick.
     </p>
-    <ol>
-        <li><em>Who is my target, and where are they?</em> (target acquisition)</li>
-        <li><em>How far away is that target right now?</em> (distance measurement)</li>
-        <li><em>Is that distance inside my danger zone?</em> (a selection condition)</li>
-    </ol>
 
     <div class="socratic">
         <h3>Socratic: Comparing Targeting &amp; Distance Functions</h3>
@@ -63,43 +63,13 @@
     </div>
 </div>
 
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Read Function-Level Examples</span>
-        <span class="activity-time">~15 min</span>
-    </div>
-
-    <p>
-        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
-        your turret. None of these is from a video game.
-    </p>
-
-    <p><strong>Example 1 — Caching a tagged object on a rescue helicopter:</strong></p>
-    <pre><code>// Searches the scene hierarchy once at startup to locate a tagged target
-GameObject beacon = GameObject.FindWithTag("EmergencyBeacon");</code></pre>
-
-    <p><strong>Example 2 — Measuring distance on a museum laser tripwire:</strong></p>
-    <pre><code>// Straight-line distance between the emitter and the intruder
-float range = Vector3.Distance(emitter.position, intruder.position);</code></pre>
-
-    <p><strong>Example 3 — A cheaper proximity test on a stadium floodlight bank:</strong></p>
-    <pre><code>// Compares squared distances, so no square root is ever computed
-bool near = (lamp.position - moth.position).sqrMagnitude &lt;= glowRadius * glowRadius;</code></pre>
-
-    <p><strong>Example 4 — A guard clause on an air-traffic radar (comment only):</strong></p>
-    <pre><code>// The radar reports nothing at all until it has locked onto a target.
-// Every reading below this point assumes the lock succeeded.</code></pre>
-
-    <div class="socratic">
-        <h3>Predict Before Building</h3>
-        <ol>
-            <li>Example 1 stores the search result in a variable. Where should that line live, and how many times should it run in a game session?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1:sc2:q1" data-block="socratic" data-question="Example 1 stores the search result in a variable. Where should that line live, and how many times should it run in a game session?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>In Example 2, what happens if <code>intruder</code> is null when you call <code>Vector3.Distance</code>? What guard clause must always come first?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1:sc2:q2" data-block="socratic" data-question="In Example 2, what happens if intruder is null when you call Vector3.Distance ? What guard clause must always come first?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Example 4 describes a radar that reports nothing until it has a lock. How does that map onto your turret's <code>Update()</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1:sc2:q3" data-block="socratic" data-question="Example 4 describes a radar that reports nothing until it has a lock. How does that map onto your turret's Update() ?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>If your turret's range is <code>7</code>, what is <code>range * range</code>? Why is comparing that to <code>sqrMagnitude</code> equivalent to comparing <code>7</code> to the real distance?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.1:sc2:q4" data-block="socratic" data-question="If your turret's range is 7 , what is range * range ? Why is comparing that to sqrMagnitude equivalent to comparing 7 to the real distance?" placeholder="write your answer, then keep going"></textarea></label></li>
-        </ol>
-    </div>
+<div class="callout info">
+    <strong>The habit that saves you here: guard first, then read.</strong> A lookup that finds
+    nothing does not stop your script — it hands you a <code>null</code> and carries on to the
+    next line, where you then ask <code>null</code> for its position. Write your code so that
+    <em>every line below the lookup assumes the lookup succeeded</em>, because you checked it
+    did. Two lines at the top of a method beat an afternoon of chasing a
+    <code>NullReferenceException</code> from three methods away.
 </div>
 
 <!-- ============================================================ -->
@@ -197,6 +167,7 @@ bool near = (lamp.position - moth.position).sqrMagnitude &lt;= glowRadius * glow
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
             <li>Break "the turret notices you" into target acquisition, distance measurement, and a selection condition</li>
+            <li>Say, for each of those parts, where you would look it up without asking a person</li>
             <li>Explain why caching a reference in <code>Start()</code> beats searching every frame</li>
             <li>Compare <code>FindWithTag</code> against a serialized reference, and say which you chose and why</li>
             <li>Compare <code>Vector3.Distance</code> against <code>sqrMagnitude</code>, and explain why the squared version compares against <code>range * range</code></li>
@@ -212,11 +183,12 @@ bool near = (lamp.position - moth.position).sqrMagnitude &lt;= glowRadius * glow
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — every question this course answers, in the words you would search with</li>
         <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — distance, targeting, and the projectile lifecycle</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>Vector3.Distance</code> and Transform APIs</li>
     </ul>
     <p>Next: <a href="3.2.html">3.2 — Projectiles: Instantiate, Fire, Destroy</a>, where the turret finally shoots.</p>
-</div><div class="lab-bar" data-lesson="3.1" data-lesson-title="The Turret: Distance &amp; the Detection Radius" data-count="18" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/18 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.1" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="2.4.html"><span class="dir">&#9664; Previous</span><span class="where">2.4 — Prefabs, Spawning &amp; Playtesting</span></a><a class="foot-next" href="3.2.html"><span class="dir">Next &#9654;</span><span class="where">3.2 — Projectiles: Instantiate, Fire, Destroy</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+</div><div class="lab-bar" data-lesson="3.1" data-lesson-title="The Turret: Distance &amp; the Detection Radius" data-count="19" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/19 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.1" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="2.4.html"><span class="dir">&#9664; Previous</span><span class="where">2.4 — Prefabs, Spawning &amp; Playtesting</span></a><a class="foot-next" href="3.2.html"><span class="dir">Next &#9654;</span><span class="where">3.2 — Projectiles: Instantiate, Fire, Destroy</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
      restores the hidden bridge textareas first, and mc-quiz.js reads those
      restored values to re-check the radios. Swapping the order breaks
      answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

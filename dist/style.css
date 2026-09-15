@@ -18,6 +18,9 @@
     --blue: #5cafff;
     --purple: #b98eff;
     --orange: #f0a060;
+    /* Scaffolding accent — marks the "built with you" end of the ladder,
+       so a full walkthrough is visually distinct from a solo build. */
+    --guide: #4fc98a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -556,10 +559,455 @@ th { color: var(--accent); font-weight: 600; }
     border-radius: 2px;
 }
 
+/* ---- Walkthrough ("build it with me") ----
+   The full-scaffold end of the ladder. Every line of code arrives with a
+   plain-English account of what it does and why it has to be there. See
+   src/lib/walkthrough.ts for the authoring contract. */
+.activity.walkthrough {
+    border-left-color: var(--guide);
+    background: rgba(79, 201, 138, 0.035);
+}
+.activity.walkthrough .activity-label {
+    background: rgba(79, 201, 138, 0.14);
+    color: var(--guide);
+}
+
+.wt-ask {
+    font-size: 15px;
+    color: #e8f3ec;
+    background: rgba(79, 201, 138, 0.08);
+    border-radius: 6px;
+    padding: 0.6rem 0.9rem;
+    margin: 0 0 1rem;
+    line-height: 1.5;
+}
+.wt-ask-label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--guide);
+    margin-bottom: 0.2rem;
+}
+.wt-lead { font-size: 14px; line-height: 1.6; }
+.wt-file { margin-bottom: 1.25rem; }
+
+/* each increment of the build */
+.wt-step {
+    border-top: 1px solid var(--border);
+    padding-top: 1.25rem;
+    margin-top: 1.25rem;
+}
+.wt-step:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+.wt-step-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    color: #fff;
+}
+.wt-num {
+    flex: none;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--guide);
+    background: rgba(79, 201, 138, 0.13);
+    border-radius: 4px;
+    padding: 0.15rem 0.45rem;
+}
+
+/* line-numbered code. .wt-line is a block so each line starts a new line
+   without relying on literal newlines; min-height keeps blank spacer lines
+   from collapsing to zero height. */
+.wt-code { margin: 0.5rem 0 0.75rem; }
+.wt-line {
+    display: block;
+    position: relative;
+    padding-left: 2.6rem;
+    min-height: 1.5em;
+    white-space: pre;
+}
+.wt-ln {
+    position: absolute;
+    left: 0;
+    width: 1.9rem;
+    text-align: right;
+    color: #5f5f5f;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.wt-line-why .wt-ln { color: var(--guide); }
+
+/* a line the student writes (level 2 and up). The gap is drawn as a rule the
+   line sits on, so the file still reads as a complete file with one hole in
+   it rather than as missing code. */
+.wt-blank { background: rgba(79, 201, 138, 0.07); }
+.wt-blank .wt-ln { color: var(--guide); font-weight: 700; }
+.wt-gap {
+    color: var(--guide);
+    background: rgba(79, 201, 138, 0.13);
+    border-radius: 3px;
+    padding: 0 0.3rem;
+    font-style: italic;
+}
+
+/* how many gaps the build contains, stated up front */
+.wt-gapcount {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #c8d2ca;
+    border-left: 2px solid var(--guide);
+    padding-left: 0.75rem;
+    margin: 0 0 1.25rem;
+}
+
+/* per-line annotation list */
+.wt-annot { list-style: none; margin: 0 0 1rem; padding: 0; }
+.wt-annot li {
+    display: grid;
+    grid-template-columns: 1.9rem 1fr;
+    gap: 0.7rem;
+    padding: 0.4rem 0;
+    border-top: 1px solid rgba(58, 58, 58, 0.5);
+    font-size: 14px;
+}
+.wt-annot li:first-child { border-top: none; }
+.wt-ref {
+    text-align: right;
+    color: var(--guide);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+    padding-top: 0.15rem;
+}
+.wt-what { line-height: 1.55; }
+
+/* a "your turn" annotation spans both columns: the tag and the prompt read as
+   one instruction, and the tag must not be mistaken for a line number. */
+.wt-annot li.wt-your-turn {
+    grid-template-columns: 5.6rem 1fr;
+    background: rgba(79, 201, 138, 0.06);
+    border-radius: 4px;
+    padding: 0.5rem 0.6rem;
+    border-top: none;
+    margin-top: 0.3rem;
+}
+.wt-turn-tag {
+    grid-column: 1;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--guide);
+    font-weight: 700;
+    padding-top: 0.2rem;
+}
+.wt-annot li.wt-your-turn .wt-ref { display: none; }
+.wt-hint {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #b7c2ba;
+}
+.wt-hint::before {
+    content: "Reach for: ";
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.wt-why {
+    display: block;
+    margin-top: 0.3rem;
+    padding-left: 0.7rem;
+    border-left: 2px solid rgba(79, 201, 138, 0.4);
+    color: #b7c2ba;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* the mistakes this step actually produces */
+.wt-pitfalls {
+    margin-top: 1.5rem;
+    padding: 1rem 1.15rem;
+    border-radius: 6px;
+    border: 1px solid rgba(232, 184, 75, 0.25);
+    background: rgba(232, 184, 75, 0.05);
+}
+.wt-pitfalls h4 { margin: 0 0 0.4rem; color: #fff; font-size: 0.95rem; }
+.wt-pitfalls h4::before { content: "\26A0\FE0E  "; color: var(--warn); }
+.wt-pit-list { list-style: none; margin: 0.75rem 0 0; padding: 0; }
+.wt-pitfall {
+    padding: 0.7rem 0;
+    border-top: 1px solid rgba(232, 184, 75, 0.18);
+}
+.wt-pitfall:first-child { border-top: none; }
+.wt-pit-mistake {
+    margin: 0 0 0.35rem;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    color: #f0c98a;
+}
+.wt-pit-row { margin: 0 0 0.2rem; font-size: 13.5px; line-height: 1.5; }
+.wt-pit-key {
+    display: inline-block;
+    min-width: 5.5rem;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+}
+
+/* check-your-work reference at the very end */
+.wt-final {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+.wt-final h4 { margin: 0 0 0.4rem; color: #fff; font-size: 0.95rem; }
+.wt-code-full { max-height: 34rem; overflow-y: auto; }
+
+/* at level 2 and up the finished file is behind a disclosure — the answer is
+   never removed (a student who missed class must be able to catch up) but it
+   takes a deliberate act to see it. Plain <details>, so no JS is involved and
+   it still works inside a set:html body. */
+details.wt-final { padding-top: 1rem; }
+details.wt-final > summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid rgba(79, 201, 138, 0.3);
+    background: rgba(79, 201, 138, 0.06);
+}
+details.wt-final > summary::-webkit-details-marker { display: none; }
+details.wt-final > summary::before {
+    content: "\25B8";
+    color: var(--guide);
+    font-size: 12px;
+}
+details.wt-final[open] > summary::before { content: "\25BE"; }
+details.wt-final > summary:hover { border-color: rgba(79, 201, 138, 0.55); }
+.wt-gated-title { color: #fff; font-size: 0.95rem; font-weight: 600; }
+.wt-gated-peek { font-size: 12px; color: var(--muted); }
+
+/* wrong-vs-right side by side — for concepts where the whole lesson is
+   "this shape breaks, this shape works" (scope & lifetime in 1.3). */
+.concept-compare {
+    display: grid;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+@media (min-width: 700px) { .concept-compare { grid-template-columns: 1fr 1fr; } }
+.cc-side {
+    border-radius: 6px;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--border);
+}
+.cc-side.bad { border-color: rgba(224, 85, 85, 0.35); background: rgba(224, 85, 85, 0.05); }
+.cc-side.good { border-color: rgba(79, 201, 138, 0.35); background: rgba(79, 201, 138, 0.05); }
+.cc-tag {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.45rem;
+}
+.cc-side.bad .cc-tag { color: var(--trap); }
+.cc-side.good .cc-tag { color: var(--guide); }
+.cc-side pre { margin: 0 0 0.6rem; font-size: 12.5px; }
+.cc-side p { font-size: 13.5px; margin: 0; line-height: 1.55; }
+
+/* ---- Break It Down (the three recurring questions) ----
+   One block, identical in every lesson: split the problem, look each part
+   up, connect it to something already built. Purple, to read as a thinking
+   block rather than as the green "here is the code" of a walkthrough. */
+.activity.decompose { border-left-color: var(--purple); }
+.activity.decompose .activity-label { background: rgba(185, 142, 255, 0.12); color: var(--purple); }
+.dc-level {
+    margin-left: auto;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+}
+/* the problem in its whole, unbroken form */
+.dc-big {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #e8e0f5;
+    border-left: 2px solid var(--purple);
+    padding-left: 0.75rem;
+    margin-bottom: 1rem;
+}
+.dc-ask { font-size: 14px; margin-bottom: 0.75rem; }
+.dc-parts { list-style: none; margin: 0 0 1rem; padding: 0; counter-reset: dc; }
+.dc-part {
+    counter-increment: dc;
+    position: relative;
+    padding: 0.5rem 0 0.5rem 2.1rem;
+    border-top: 1px solid rgba(58, 58, 58, 0.5);
+    font-size: 14px;
+}
+.dc-part:first-child { border-top: none; }
+.dc-part::before {
+    content: counter(dc);
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    width: 1.5rem;
+    text-align: right;
+    color: var(--purple);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+}
+.dc-name { display: block; color: #fff; font-weight: 600; }
+.dc-does { display: block; color: #c8d2ca; font-size: 13.5px; }
+.dc-doc { display: block; font-size: 12.5px; color: var(--muted); margin-top: 0.15rem; }
+.dc-doc a { color: var(--purple); }
+/* a part the student supplies (level 2) or explains (level 3) */
+.dc-gap {
+    display: block;
+    color: var(--purple);
+    background: rgba(185, 142, 255, 0.1);
+    border-radius: 3px;
+    padding: 0 0.3rem;
+    font-style: italic;
+}
+.dc-part-blank .dc-doc { margin-top: 0.3rem; }
+.dc-empty {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #e8e0f5;
+    background: rgba(185, 142, 255, 0.07);
+    border-radius: 4px;
+    padding: 0.6rem 0.8rem;
+}
+.dc-why, .dc-size { font-size: 13.5px; line-height: 1.6; color: #c8d2ca; }
+.dc-size { color: var(--muted); }
+/* beat 3 — never decays, so it is visually set apart from the parts above */
+.dc-connect {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+.dc-connect h4 {
+    margin: 0 0 0.4rem;
+    font-size: 0.95rem;
+    color: var(--purple);
+}
+.dc-connect > p { font-size: 14px; }
+
+/* compact banner for lessons with no walkthrough (solo end of the ladder) */
+.ask-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0 0 1.25rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    border-left: 3px solid var(--guide);
+    background: rgba(79, 201, 138, 0.06);
+    font-size: 14px;
+}
+.ask-banner-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--guide);
+}
+.ask-banner-q { color: #e8f3ec; }
+.ask-banner-level {
+    margin-left: auto;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+}
+
+/* ---- "How do I…?" question index (docs/ask.html) ----
+   The same curriculum indexed by the question a student actually asks. */
+.three-questions { margin: 1rem 0 1.5rem; padding-left: 1.2rem; }
+.three-questions li { font-size: 14.5px; line-height: 1.65; margin-bottom: 0.75rem; }
+.three-questions strong { color: var(--purple); }
+.ask-group { margin: 2rem 0; }
+.ask-group > h2 {
+    font-size: 1.15rem;
+    margin: 0 0 0.25rem;
+}
+.ask-group-blurb {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 0 0 0.75rem;
+}
+.ask-list { list-style: none; margin: 0; padding: 0; }
+.ask-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.15rem 1rem;
+    align-items: baseline;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--border);
+}
+.ask-q { font-size: 15px; color: #fff; line-height: 1.45; }
+.ask-q::before { content: "\201C"; color: var(--muted); }
+.ask-q::after { content: "\201D"; color: var(--muted); }
+.ask-note {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0.15rem 0 0;
+    line-height: 1.5;
+}
+.ask-where { display: flex; align-items: baseline; gap: 0.5rem; white-space: nowrap; }
+.ask-lesson {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12.5px;
+}
+.ask-badge {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+.ask-badge.l1 { color: var(--guide); background: rgba(79, 201, 138, 0.14); }
+.ask-badge.l2 { color: var(--blue); background: rgba(92, 175, 255, 0.14); }
+.ask-badge.l3 { color: var(--orange); background: rgba(240, 160, 96, 0.14); }
+.ask-badge.l4 { color: var(--purple); background: rgba(185, 142, 255, 0.14); }
+
+/* the ladder itself */
+.ladder { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.ladder th, .ladder td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    vertical-align: top;
+}
+.ladder th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.ladder td:first-child { white-space: nowrap; }
+
+@media (max-width: 600px) {
+    .ask-item { grid-template-columns: 1fr; }
+    .ask-where { margin-top: 0.3rem; }
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 600px) {
     .page { padding: 1rem 0.75rem 4rem; font-size: 14px; }
     pre { padding: 0.75rem; font-size: 12px; }
+    .wt-line { padding-left: 2rem; }
+    .wt-ln { width: 1.5rem; }
+    .wt-annot li { grid-template-columns: 1.5rem 1fr; gap: 0.5rem; }
+    .wt-pit-key { min-width: 0; display: block; }
     h1 { font-size: 1.4rem; }
     .top-nav a { padding: 0.6rem 0.75rem; font-size: 13px; }
     .lab-bar-row, .mywork-row { flex-direction: column; align-items: stretch; }
