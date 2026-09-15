@@ -328,6 +328,20 @@ if (!fs.existsSync(askSrcPath)) {
       if (wt) walkthroughLessons.push(id);
       if (wt && !wtLevel) fail(id + ' renders a walkthrough with no data-scaffold level');
 
+      // A lesson may carry MORE THAN ONE walkthrough — 5.3 does, because the
+      // singleton and the HUD are two genuinely new mechanisms and each gets
+      // its own. Reading only the first would let the rest sit at a different
+      // level, or withhold lines the declared level promises, while the badge
+      // and every check above said otherwise. So the level is read from all of
+      // them and they must agree.
+      const allWtLevels = [...html.matchAll(/class="activity walkthrough" data-scaffold="([^"]*)"/g)]
+        .map((m) => m[1]);
+      const disagreeing = allWtLevels.filter((l) => l !== allWtLevels[0]);
+      if (disagreeing.length) {
+        fail(id + ' renders walkthroughs at different scaffold levels (' +
+          allWtLevels.join(', ') + ') — one lesson, one rung');
+      }
+
       const declared = wtLevel ?? bannerLevel;
       if (!/^[1-4]$/.test(declared[1])) {
         fail(id + ' declares an invalid scaffold level: ' + declared[1]);
@@ -357,7 +371,11 @@ if (!fs.existsSync(askSrcPath)) {
       // has to actually leave the student something to write, or "a little
       // less" never happened and the next lesson's leap is back.
       if (wt) {
-        const gaps = Number((html.match(/data-gaps="(\d+)"/) ?? [])[1] ?? 0);
+        // Summed across every walkthrough on the page, not just the first: a
+        // multi-walkthrough lesson is exactly where a withheld line would
+        // otherwise slip past the level-1 rule.
+        const gaps = [...html.matchAll(/data-gaps="(\d+)"/g)]
+          .reduce((n, m) => n + Number(m[1]), 0);
         if (level === 2 && gaps === 0) {
           fail(id + ' declares scaffold level 2 (guided) but leaves no gaps for the student to fill');
         }
@@ -370,6 +388,33 @@ if (!fs.existsSync(askSrcPath)) {
           if (turns !== gaps) {
             fail(id + ' renders ' + gaps + ' gap(s) but ' + turns + ' instruction(s) telling the student what to write');
           }
+        }
+
+        // The answer key is gated at EVERY level. The first cut applied the
+        // gate at level 2 and up, which is backwards: level 1 is the lesson
+        // with no gaps at all, so it is the one where skipping to the bottom
+        // of the page and pasting costs the student least — and it is the
+        // newest student in the course. A block of code lying open under a
+        // "do not paste this in" note is a target, not a warning.
+        if (/<div class="wt-final">/.test(html)) {
+          fail(id + ' renders the finished file in an open block — the answer key must sit behind ' +
+            'a <details> at every level, level 1 included (src/lib/walkthrough.ts)');
+        }
+
+        // Walkthrough lines are separated by real newlines in the markup, so
+        // the file reads as a file to anything that reads TEXT rather than
+        // pixels — a copy, a text extract, a screen reader. Without them the
+        // whole script arrives as "1using UnityEngine;23public class…" on one
+        // line, which is what a student actually reported.
+        if (/<\/span><span class="wt-line/.test(html)) {
+          fail(id + ' joins walkthrough lines with no newline — the code reaches a copy or a ' +
+            'text extract as a single unbroken line (src/lib/walkthrough.ts renderStep)');
+        }
+        // ...and the gutter numbers are drawn by CSS from data-n rather than
+        // written into the text, so a copied step gives code and not "1using".
+        if (/<span class="wt-ln">/.test(html)) {
+          fail(id + ' still writes line numbers into the text — they belong in data-n, drawn ' +
+            'by .wt-line::before (public/style.css)');
         }
       }
 

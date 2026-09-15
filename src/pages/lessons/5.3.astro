@@ -1,26 +1,474 @@
 ---
 // Lesson 5.3 — Into the Cave: Scenes, Persistence & The Refactor
-// The architectural payoff lesson. The student walks into a cave (the scene
-// switch already works, via the Cave Entrance colliders they tripped in 2.1),
-// discovers that every stat they own resets, and refactors stats off
-// PlayerController into the StatManager singleton that has been an empty stub
-// since Unit 2. Then Start becomes the scene the game begins in, with the HUD.
-// GROUND TRUTH: Start (build 0) holds the StatManager object, a Player, a Ground
-// Quad, Cave Exit, Collision tilemaps - but NO Canvas. Overworld (build 1) is
-// the hub: Cave1 Entrance -> Start, Cave2 Entrance -> Platformer. Platformer
-// (build 2) has Cave Exit -> Overworld. SceneSwitch.cs is REAL working code.
-// StatManager.cs is an EMPTY STUB and has no singleton yet.
+// The architectural payoff lesson, and the heaviest page in the course. The
+// student walks into a cave (the switch has worked since they gave the Player
+// a collider in 2.1), discovers that every number they own comes back reset,
+// and refactors coins, health, maxHealth and the axe flag off PlayerController
+// onto the StatManager singleton that has been an empty stub since Unit 2.
+//
+// Scaffolding: FULL WALKTHROUGH (level 1) — and TWO of them, because this
+// lesson introduces two mechanisms with no precedent anywhere in the course.
+// A SINGLETON (a static slot, an Awake that claims it, DontDestroyOnLoad, and
+// a guard against the second copy) and an ON-SCREEN HUD (a Canvas, a TMP text
+// object, and a script that reads the numbers from the manager instead of the
+// player). The ladder is per-CONCEPT, not per-week, so both are level 1 and
+// neither withholds a line. verify-site reads the level from EVERY walkthrough
+// on the page, refuses a page whose walkthroughs disagree, and sums the gaps
+// across all of them — so a second walkthrough that quietly withheld lines
+// fails the build. The DECOMPOSE block is level 1 too: every part named,
+// explained and sourced, because "keep my stats across a scene" has never been
+// built here either.
+//
+// The old "Build Lab: The Refactor" spec callout is replaced by the singleton
+// walkthrough (a level-1 lesson gives the code, not a list of questions about
+// it), and the HUD spec callout by the HUD walkthrough. Two paragraphs from the
+// old page survive deliberately: the trap explaining that a scene load
+// REPLACES your stats rather than losing them, and the info callout explaining
+// that this is a refactor and not a rewrite. The Canvas trap survives too, with
+// the scene object named correctly (CaveSwitch) and the listener identified as
+// an override on the scene INSTANCE rather than on the prefab.
+//
+// GROUND TRUTH (read from the project, not assumed):
+//   - Start (build index 0) holds the StatManager object, a Player, a Ground
+//     Quad, a Cave Exit and Collision tilemaps — and NO Canvas. Overworld
+//     (build 1) is the hub: Player, Coins, Enemies, Turrets, the CaveSwitch
+//     lever and two cave entrances, plus a Canvas, a Text (TMP) and an
+//     EventSystem. Platformer (build 2) has its own tilemaps and a Player,
+//     plus an exit back to the overworld.
+//   - The lever's onLeverOn event — on the CaveSwitch INSTANCE in the Overworld
+//     scene, not on the prefab — drives THREE listeners: the two cave-door
+//     tilemaps ("Collision Door Removed", "No Collision Door Removed") and the
+//     scene's Canvas. So moving that Canvas to Start leaves the lever holding a
+//     Missing reference.
+//   - SceneSwitch.cs holds `[SerializeField] int scene` — an INT BUILD INDEX,
+//     not a scene name. Overworld's two cave mouths hold scene = 0 (Start) and
+//     scene = 2 (Platformer); the exits in Start and Platformer hold scene = 1
+//     (Overworld). It also keeps `static int sceneSwitchedFrom` and `static
+//     RuntimeAnimatorController playerAnimator`, restores the player's animator
+//     controller on every arrival, and sets position/facing from the scene it
+//     came from. It loads with SceneManager.LoadScene(scene). Reordering the
+//     build's scene list silently repoints every serialized index — the bug
+//     hunt's last item tests exactly that failure mode, and it is the one the
+//     real shipped code has.
+//   - StatManager.cs is still an EMPTY STUB (`public class StatManager :
+//     MonoBehaviour { }`) until this lesson. PlayerController.cs is a stub in
+//     the starter project; the student's own file has accumulated `coins`,
+//     `health`, `maxHealth` (with the 2.3 cap) and the 5.1 axe bool over the
+//     year, and 2.2's damage method is `TakeDamage(int amount)` with a positive
+//     amount as the one that hurts.
+//   - Unity 6: `Rigidbody2D.velocity` is `linearVelocity`, and
+//     `Object.FindObjectOfType<T>()` is deprecated in favour of
+//     `Object.FindFirstObjectByType<T>()`. TextMeshPro ships with
+//     com.unity.ugui, so `TMPro` / `TextMeshProUGUI` is available.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The three recurring questions, applied to the cave mouth. Level 1, so every
+// part is given: what it does, and where to read about it. The split falls
+// along one line — the facts that belong to THIS ROOM (position, facing, the
+// animator) and the facts that belong to THIS RUN (coins, health, the ceiling,
+// the axe) — and only part three has no precedent in the whole course. That
+// part is the singleton, which is why the lesson is level 1 and not one rung
+// further down.
+const DECOMPOSE = {
+  big:
+    'The numbers the player earned should still be there after they walk through a cave mouth. ' +
+    'Right now they are not: coins, health, the axe — every one of them comes back at its ' +
+    'starting value, and nothing in the project is built to survive a scene load at all.',
+  parts: [
+    {
+      name: 'Notice that a scene load replaces your objects, not just your view',
+      does: 'When a new scene loads, Unity destroys every GameObject in the old one and builds the next from its file. The Player you were holding is gone; the Player that appears is the new scene\'s copy, starting from whatever its prefab and its fields say. Nothing was lost, and nothing was saved — the numbers were replaced.',
+      doc: 'the `SceneManager.LoadScene(n)` row of the quick reference, and the scene table above it.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Sort the facts: this room, or this run',
+      does: 'Position, facing and the animation controller are facts about *this moment in this room* and must reset — `SceneSwitch.cs` already restores them, which is why walking into a cave does not strand you. Coins, current health, the maximum, and the axe flag are facts about *this run* and must survive.',
+      doc: '`SceneSwitch.cs`, the one file in the project that already saves and restores something across a load — you read it in 5.1.',
+      href: '5.1.html',
+    },
+    {
+      name: 'Build one owner that a scene load is not allowed to destroy',
+      does: 'A singleton: a `public static` field holding the one instance, an `Awake()` that claims it and calls `DontDestroyOnLoad(gameObject)` on the first load, and a second branch that destroys the copy every later load brings with it.',
+      doc: 'the `DontDestroyOnLoad(gameObject)` row and the Singleton pattern row of the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Move the numbers onto that owner — the ceiling with the value it protects',
+      does: 'Coins, health, `maxHealth` and the axe flag leave `PlayerController` and become fields on `StatManager`, with the 2.3 rule written into the one method that can change health, right beside the field it bounds.',
+      doc: 'the damage method you wrote in 2.2 and the cap you added in 2.3.',
+      href: '2.3.html',
+    },
+    {
+      name: 'Repoint every caller, then put the numbers on screen',
+      does: 'Every script that used to read a field on the player goes through `StatManager.Instance` instead, and a HUD in the scene the game begins in displays the values that have been going to the Console since 2.1.',
+      doc: 'the pickup branch you wrote in 2.1, and the Console readouts you have been watching all year.',
+      href: '2.1.html',
+    },
+  ],
+  why:
+    'The whole split falls along one line: what belongs to *this room* and what belongs to *this run*. ' +
+    'Four of the five parts are work you have already done — you moved a number into a method in 2.2, ' +
+    'bounded it in 2.3, added a bool in 5.1, and you have been reading the result in the Console since ' +
+    '2.1. Only part three has no precedent at all in this course: an object that the scene loader is not ' +
+    'allowed to destroy. Everything after it is moving house.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Keep my stats between ' +
+    'scenes" cannot be looked up. "Do not destroy this object when a new scene loads" can — it is one ' +
+    'row of the quick reference, and every other part of this split is a move you have made before.',
+  connect: [
+    'In 2.1 the coin count started life as `[SerializeField] private int coins;` in the class body of `PlayerController`. Which part of today\'s split is that same number changing address — and what is it about a scene load that decided it had to move at all?',
+    'In 2.3 the max-health ceiling had to live inside the method that changes health, so that no future caller could go over it. Which part of today\'s split carries that rule forward — and why must the ceiling travel *with* the value it protects instead of staying behind on the player?',
+    'In 5.1 the axe added a third kind of fact: a `bool` that is not a number at all, and you had to decide where it lived. Which part of today\'s split moves it — and does anything about moving a `bool` differ from moving an `int`?',
+  ],
+  turns: [
+    'The project already contains one thing that survives a scene load: `SceneSwitch.cs` remembers which scene you came from, in a `static` field. Why is that field allowed to be `static` when your coins are not — what is different about the two things being remembered?',
+    'The design you are about to build keeps the numbers alive across a *scene* load. Quit the game and they are gone. Is that a hole in the design or the design itself — and which of the three storage approaches would you have to reach for to change the answer?',
+  ],
+};
+
+const WALK_SINGLETON = {
+  ask: 'how do I keep my coins, my health and my axe when I change scenes?',
+  file: 'Assets/Scripts/StatManager.cs',
+  intro: 'This file has been `public class StatManager : MonoBehaviour { }` since Unit 2 — an empty stub, doing nothing at all. Today every line of it is written: the static slot, the `Awake()` that claims it, the persistence call, the duplicate guard, the four stats moved off the player, and the methods every other script will call. Step 4 is the part people forget.',
+  level: 1,
+  steps: [
+    {
+      title: 'Claim the slot on load, and refuse to be destroyed',
+      lead: 'This is the mechanism the whole lesson exists for: one shared field, and a setup method that decides whether this copy is the original or a newcomer.',
+      lines: [
+        { code: '    public static StatManager Instance;', what: 'The one field every other script will reach for. `public` so they can, `static` so it belongs to the **class** rather than to any object, and typed `StatManager` because what it will hold is *this component*. It starts as `null` — nothing has claimed it yet.' , why: '**Every word of that line is load-bearing.** Drop `static` and the field becomes a fact about one object — and the object is exactly what a scene load destroys, so `Instance` would be empty again the moment you walked through a cave mouth. That is the whole trick of this lesson: a `static` field is stored against the class, and the scene loader has no idea the class exists.' },
+        { code: '', what: '' },
+        { code: '    private void Awake()', what: 'The one lifecycle method that runs **before anything else** when a scene loads: before any `Start()`, before any `Update()`, and before the other objects in the scene have had theirs. Unity finishes every `Awake()` in a scene before it runs the first `Start()`, which is precisely the guarantee a singleton needs — somebody has to be first, and everything else must be able to assume they already were.' , why: '**Not `Start()`.** Unity promises no order between two different scripts\' `Start()` methods, so a script whose `Start()` happens to run before the manager\'s would read `Instance` while it is still `null` and throw a NullReferenceException — pointing at itself, not at the manager. Move this method into `Start()` and the bug shows up only sometimes, which is the worst kind of bug there is.' },
+        { code: '    {', what: '' },
+        { code: '        if (Instance == null)', what: 'The first of two branches: **is the slot still empty?** On the very first scene load it always is, because nothing has run this code before.' },
+        { code: '        {', what: '' },
+        { code: '            Instance = this;', what: '`this` is the component this method is running inside — this very StatManager. Claim the slot with it, so every later caller reaches this object and the numbers on it.' },
+        { code: '            DontDestroyOnLoad(gameObject);', what: 'The one call in Unity that changes what a scene load is allowed to do. `gameObject` is the whole object this component sits on — *the StatManager object in the scene, not the script*. Unity moves it into a scene of its own that never unloads, so it rides along through every load from now on.' , why: '**`gameObject`, not `this`.** `this` is a component, and `DontDestroyOnLoad` is defined for whole objects — and it has to be the whole object anyway, because a component cannot outlive the GameObject that carries it. Notice what is **not** happening here: nothing is being made permanent about the *values*. They are just sitting on an object that a scene load is no longer allowed to delete.' },
+        { code: '        }', what: '' },
+        { code: '        else', what: 'The second branch, and the one people delete because it looks like extra caution. It is not.' },
+        { code: '        {', what: '' },
+        { code: '            Destroy(gameObject);', what: 'You are the **newcomer**: an original is already alive, so this copy must go. Destroy the whole object — the component, its fields, and the fresh `coins = 0` it was about to claim the slot with — before any of it can be used.' , why: '**This branch is genuinely necessary in *this* project, not a textbook exercise.** The `Start` scene contains its own StatManager object, and one of the Overworld\'s two cave mouths leads back to `Start` — so a second copy is a scene you can actually walk into. Without this branch the newcomer overwrites `Instance` with its own default fields, and your coins and health are back at their starting values the instant the scene finishes loading. That is the bug you came here to fix, and this is the line that stops the fix from reintroducing it.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: 'Closes `Awake()`. One branch for the first scene and one for every scene after it — that pair *is* the singleton.' },
+      ],
+    },
+    {
+      title: 'Move the four stats across',
+      lead: 'A move, not a redesign. Same names, same types, same starting values — the only thing that changes is the object they live on.',
+      lines: [
+        { code: '    [SerializeField] private int coins;', what: 'The coin count from 2.1, unchanged: an `int`, private, and still visible in the Inspector so you can watch it move while the game runs.' , why: '**Keep the name.** Every script that mentions `coins` should keep reading the same word and change only *who it is asked of*. Rename it mid-refactor and you double the number of files you have to touch and make "what did I break?" an unanswerable question.' },
+        { code: '    [SerializeField] private int health = 3;', what: 'Current health, with whatever starting value your player shipped with.' },
+        { code: '    [SerializeField] private int maxHealth = 3;', what: 'The ceiling from 2.3.' , why: '**It moves in the same step as `health`, and that is the whole point.** A ceiling is a fact *about the value it bounds*. Leave `maxHealth` behind on the player while `health` lives here and the rule gets enforced across two objects that are free to disagree — and the one that goes stale is always the one nobody is looking at.' },
+        { code: '    [SerializeField] private bool hasAxe;', what: 'The third kind of fact, from 5.1 — not a number at all, just true or false. It moves for exactly the same reason the numbers do: a cave mouth does not care what type a fact is.' },
+        { code: '', what: '' },
+        { code: '    // ...and nothing else. PlayerController keeps its speed, its body', what: 'That is the entire move. `PlayerController` keeps what it is actually for — input, movement, the collision callbacks — and stops being the place the game keeps its numbers.' , why: 'The line between the two is worth saying out loud, because it is the difference between a refactor and a mess: the player is *how you move through the world*, and the manager is *what the world has done to you*. Nothing about the second belongs on the first.' },
+        { code: '    // and its input. The numbers are not the player\'s business.', what: '' },
+      ],
+    },
+    {
+      title: 'Give the rest of the game a way in',
+      lead: 'Those fields are private, which is what you want — and it is why there has to be a public way to read and change them. These are the methods that replace the ones that used to live on the player.',
+      lines: [
+        { code: '    public int GetCoins() { return coins; }', what: 'A public way to **read** the coin count without being able to write it. The field stays private, so the only route to that number is through the methods you are writing here.' },
+        { code: '    public int GetHealth() { return health; }', what: 'The same door for current health.' },
+        { code: '    public int GetMaxHealth() { return maxHealth; }', what: 'And for the ceiling — the HUD shows `health / maxHealth`, so it needs both numbers rather than just the one.' },
+        { code: '    public bool HasAxe() { return hasAxe; }', what: 'And the axe. A `bool` accessor reads a little differently out loud — `HasAxe()` — and that is a feature: a method named for the *question* it answers is easier to read at a call site than a field named for the thing it stores.' },
+        { code: '', what: '' },
+        { code: '    public void AddCoins(int amount)', what: 'Changing the count is a method, not a field assignment, and it takes an **amount** — so a coin is `AddCoins(1)` and a future five-coin bonus needs no new code at all.' , why: '**Why not just make `coins` public?** Because then every script in the project could set it to anything, and the number would only ever be right in the one place somebody remembered to write it correctly. A method is a place where a *rule* can live — and the next method is about to prove that.' },
+        { code: '    {', what: '' },
+        { code: '        coins = coins + amount;', what: 'The line you wrote in 2.1, with the `1` replaced by the parameter.' },
+        { code: '    }', what: '' },
+        { code: '', what: '' },
+        { code: '    public void TakeDamage(int amount)', what: 'This is your 2.2 method, moved — same name, same `int amount`, same meaning: a **signed** amount, where a positive number hurts and a negative one heals. The spike and the potion still call one method with different signs.' , why: '**Same name and same signature on purpose.** Every call site in your project reads `TakeDamage(...)` today, so keeping the name means this refactor changes *who* is called and nothing else. Rename it and you are editing every caller by hand, hoping you found them all — and the compiler will not help you until it is too late.' },
+        { code: '    {', what: '' },
+        { code: '        if (health <= 0)', what: 'The guard you put at the top of this method in 2.2, carried across word for word: a player who is already at zero takes no more damage.' , why: '**This is your line, not mine.** If your 2.2 rule refuses damage at zero some other way, yours is the one that stays — a refactor moves a rule, it does not improve it. The only thing that changes in this whole method is which object holds the health being read.' },
+        { code: '        {', what: '' },
+        { code: '            return;', what: 'Leave the method immediately. Nothing below runs, so an already-dead player cannot be pushed further.' },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        { code: '        health = health - amount;', what: 'The subtraction from 2.2, unchanged. A positive `amount` takes health away; a negative one gives it back.' },
+        { code: '        health = Mathf.Clamp(health, 0, maxHealth);', what: 'The cap from 2.3, now sitting **directly under the field it protects**. Whichever tool you chose in 2.3 moves across here — if you wrote `Mathf.Min`, it works just as well.' , why: '**This line is why the ceiling had to travel with the value.** The rule now lives inside the only method that can change health, on the only object that holds it — so no caller, today or next month, can put health above the maximum. Leave `maxHealth` on the player and this line either does not compile or quietly reads a second, stale copy of the number.' },
+        { code: '        Debug.Log("Health: " + health);', what: 'Your Console readout, exactly as it was. Still worth keeping while you test — the HUD in the next activity will not replace it, it will just mean you no longer *need* it.' },
+        { code: '', what: '' },
+        { code: '        if (health <= 0)', what: 'The other half of your 2.2 rule: what happens when health reaches zero.' },
+        { code: '        {', what: '' },
+        { code: '            Debug.Log("Player died.");', what: 'Whatever you wrote there moves across unchanged — the message, the scene reload, the respawn you designed in 2.2. It still works, because it reads the same field it always read; that field just lives somewhere else now.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: 'Closes `TakeDamage`.' },
+        { code: '', what: '' },
+        { code: '    public void SetHasAxe(bool value)', what: 'The one setter. The axe pickup calls `SetHasAxe(true)` from 5.1\'s branch, and nothing else in the game should ever write that field.' },
+        { code: '    {', what: '' },
+        { code: '        hasAxe = value;', what: 'A `bool` parameter, assigned straight across. `value` is the name C# gives the thing that came in.' },
+        { code: '    }', what: 'One more `}` closes the class.' },
+      ],
+    },
+    {
+      title: 'Repoint the callers — the part people forget',
+      lead: 'The file is finished and the game does not compile yet: every script that used to reach for a field on the player is reaching for something that is no longer there. Search your own code for `coins`, `health`, `maxHealth` and `hasAxe`, and change each one.',
+      lines: [
+        { code: '        if (collision.gameObject.CompareTag("Spikes"))', what: 'Your spike branch from 2.2. The check does not change at all — in this whole step, only the line *inside* it changes.' },
+        { code: '        {', what: '' },
+        { code: '            StatManager.Instance.TakeDamage(1);', what: 'The same call with a new receiver. `player.TakeDamage(1)` becomes `StatManager.Instance.TakeDamage(1)`, and the rule it runs is still one line away in the file you just wrote.' , why: '**And this caller never had anything to do with the player.** Your projectile from 3.4 was handed a reference to the Player for one reason: to call this method. It does not need one now — `StatManager.Instance.TakeDamage(damage);` reaches the same rule from anywhere — so the reference field it used to hold can go. That is what moving a responsibility looks like from the outside: a reference that turns out to have been unnecessary.' },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        { code: '        if (other.CompareTag("Coin"))', what: 'Your pickup branch from 2.1.' },
+        { code: '        {', what: '' },
+        { code: '            StatManager.Instance.AddCoins(1);', what: 'One coin, through the method that counts them.' },
+        { code: '            Destroy(other.gameObject);', what: 'Unchanged — and that is worth noticing. It is still the **coin** that disappears. Only the number moved house.' },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        { code: '            StatManager.Instance.SetHasAxe(true);', what: '5.1\'s axe branch, with its receiver changed in exactly the same way.' },
+        { code: '', what: '' },
+        { code: '        // Nothing else changes: movement, input, the tag checks and the', what: 'That sentence is the definition of a refactor. If you find yourself rewriting a check, renaming a method or "improving" a branch while you are in there, stop — you are rewriting, and now nothing you break is traceable to a single change.' },
+        { code: '        // Destroy calls are all untouched. Only the receivers changed.', what: '' },
+        { code: '', what: '' },
+        { code: '        // No null guard here: if there is no StatManager in the scene, that', what: 'The honest answer to "should every caller check for a manager?" — **no**. `Instance` is `null` only when the scene you pressed Play in has no manager, which means you started the game from the Overworld instead of `Start`. A guard would hide a broken scene and make the Console silent about it. Fix the scene; write the guard only where code can genuinely run without a manager, which the HUD does in the next activity.' , why: 'This is a judgement call worth naming, because the instinct — from learning to write `if (slot != null)` before every Inspector reference in 4.1 — is to guard everywhere. Guarding everywhere converts a loud, traceable failure into a quiet, untraceable one.' },
+      ],
+    },
+  ],
+  pitfalls: [
+    {
+      mistake: 'the instance field declared `private static StatManager Instance;`',
+      symptom: 'Every other script stops compiling with "StatManager.Instance is inaccessible due to its protection level" — including the HUD you are about to write. The manager itself compiles perfectly.',
+      fix: '`public static`. The whole point of the field is that scripts which have never met the manager can reach it; `private` makes it a well-kept secret.',
+    },
+    {
+      mistake: 'the setup written in `Start()` instead of `Awake()`',
+      symptom: 'A NullReferenceException on the first frame, from whichever script read `Instance` in its own `Start()` — and the error points at that innocent script, not at the manager. It happens on some runs and not others.',
+      fix: '`Awake()`. Unity runs every `Awake()` in the scene before the first `Start()`, and promises nothing about the order of two `Start()` methods. The singleton has to be claimed in the one hook that is guaranteed to run first.',
+    },
+    {
+      mistake: 'the `else { Destroy(gameObject); }` branch deleted as "defensive"',
+      symptom: 'Everything works until you walk back into `Start`, where a second StatManager loads and claims the slot — and your coins and health reset to their starting values, exactly as they did before the refactor. The Hierarchy now shows two of them.',
+      fix: 'Keep both branches. The `Start` scene really does contain its own manager object, so the duplicate is a scene you can walk into, not a hypothetical. The newcomer destroys itself; the original keeps the numbers.',
+    },
+    {
+      mistake: 'the stats copied to `StatManager` but left on `PlayerController` as well',
+      symptom: 'The game compiles and runs, and nothing appears to be wrong — except that the HUD never moves. The pickup still increments the player\'s private copy while every reader goes to the manager, so the number on screen is frozen at whatever it started as.',
+      fix: 'Delete the old fields. A refactor is a **move**, not a copy — and a field that exists in two places is not a backup, it is a disagreement waiting for a reader.',
+    },
+  ],
+  finalFile: `using UnityEngine;
+
+// StatManager.cs — the numbers the player earned, on the one object a scene
+// load is not allowed to destroy.
+public class StatManager : MonoBehaviour
+{
+    public static StatManager Instance;
+
+    [SerializeField] private int coins;
+    [SerializeField] private int health = 3;
+    [SerializeField] private int maxHealth = 3;
+    [SerializeField] private bool hasAxe;
+
+    private void Awake()
+    {
+        // Somebody is already alive. This copy is the one that leaves — the
+        // Start scene has its own manager object, and you can walk back to it.
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    public int GetCoins() { return coins; }
+    public int GetHealth() { return health; }
+    public int GetMaxHealth() { return maxHealth; }
+    public bool HasAxe() { return hasAxe; }
+
+    public void AddCoins(int amount)
+    {
+        coins = coins + amount;
+    }
+
+    // One method, one signed amount: the spike calls it positive, the potion
+    // calls it negative. Same name and signature as the one on the player, so
+    // every existing caller changes its receiver and nothing else.
+    public void TakeDamage(int amount)
+    {
+        health = health - amount;
+
+        // The ceiling from 2.3, on the only object that holds the value it
+        // protects. No caller can get above it.
+        health = Mathf.Clamp(health, 0, maxHealth);
+        Debug.Log("Health: " + health);
+
+        // ...and YOUR death rule from 2.2 goes here: the "already at zero"
+        // guard at the top of the method, and whatever should happen when
+        // health reaches zero. Moved across, not rewritten.
+    }
+
+    public void SetHasAxe(bool value)
+    {
+        hasAxe = value;
+    }
+}
+
+// Callers, in PlayerController.cs — the receivers changed, nothing else:
+//   StatManager.Instance.TakeDamage(1);      <- the spike branch (2.2)
+//   StatManager.Instance.AddCoins(1);        <- the coin branch (2.1)
+//   StatManager.Instance.SetHasAxe(true);    <- the axe branch (5.1)
+// ...and in the projectile from 3.4, which no longer needs a reference to the
+// player at all: StatManager.Instance.TakeDamage(damage);`,
+  finalNote:
+    'Compare against your own file rather than copying it. The two things to check hardest: that the duplicate branch is really there — this project loads a second StatManager the moment you walk back into `Start` — and that the fields are gone from `PlayerController` rather than copied. This file writes the guard as an early return (`if (Instance != null && Instance != this)`) where the walkthrough writes it as `if`/`else`; those are the same file on every frame but the one where a duplicate loads, and the only thing that has to match is that the newcomer never survives. Your own damage and death rules move across from 2.2 and 2.3 exactly as you wrote them, and the accessor names — `Instance`, `GetCoins`, `GetHealth`, `GetMaxHealth`, `HasAxe`, `AddCoins`, `TakeDamage`, `SetHasAxe` — are the ones the HUD below calls.',
+};
+
+// The second walkthrough. UI is the other mechanism with no precedent in this
+// course: a Canvas, a TMP text object, a component reference dragged in from
+// the Inspector, and a script that reads its numbers from the manager. Also
+// level 1, and for the same reason — nothing here has been built before.
+//
+// It takes a position on the design question the old page asked and left open
+// (read every frame, or only when the value changes?) and answers it in the
+// `why` on the Update() line: read every frame, because correctness here is
+// free and the "clever" version costs three fields that can go stale. The two
+// real costs are named rather than hidden — a Canvas is scene-local, so the
+// HUD shows in the scene that owns it, and a scene with no StatManager in it
+// leaves the label blank.
+const WALK_HUD = {
+  ask: 'how do I put my coins and my health on the screen?',
+  file: 'Assets/Scripts/HudController.cs',
+  intro: 'A new script, and most of the work is in the Inspector: a Canvas and a text object in the scene the game begins in. The script itself is a handful of lines — a slot for the text, a guard, and one string built from the values `StatManager.Instance` hands you. Every line is given.',
+  level: 1,
+  steps: [
+    {
+      title: 'Build the HUD in the scene the game begins in — no code yet',
+      lead: 'Which scene first, because a Canvas only exists in the scene that contains it. `Start` is build index 0: it is what a built game loads first, and it is where the StatManager object lives.',
+      lines: [
+        { code: 'File ▸ Build Profiles ▸ Scene List   (Start is index 0)', what: 'The list that decides what the game loads first. `Start` is at the top, which is why it is load index 0 — and it is what `SceneSwitch.cs` means when it stores the `int` 0. (Unity 6 renamed this panel: it is **Build Profiles** now, and older tutorials call it Build Settings.)' , why: 'This ordering is the reason the whole design works. The manager object is in `Start`, so the scene that loads first is the scene that claims the singleton slot. Put the manager in the Overworld instead and the numbers only begin existing once you walk there — which is the bug the Bug Hunt asks you to produce on purpose.' },
+        { code: 'Hierarchy (Start) ▸ GameObject ▸ UI ▸ Text - TextMeshPro', what: 'One menu item creates three things: a **Canvas** (the object that draws UI at all), a **Text (TMP)** object parented to it, and an **EventSystem**, which the UI needs to exist even when nothing on it is clickable. The Overworld already contains exactly this trio — that is where the Canvas the lever switches off comes from.' , why: '**TextMeshPro, not the plain `Text`.** TMP ships with the UI package this project already uses, and it is what the Overworld\'s `Text (TMP)` object is. The legacy `Text` still exists and still works, and picking it means your HUD looks nothing like the text object already in your own project.' },
+        { code: 'Text (TMP) ▸ RectTransform ▸ anchor preset → top-left', what: 'Where on the screen the label sits. Choose the top-left anchor and give it a small offset from the corner, so the numbers stay put when the window is resized.' , why: '**A corner, not the centre.** A centre-anchored label sits in the middle of the player\'s view at every resolution — which is where the game is, and where the numbers will be least readable.' },
+        { code: 'Canvas ▸ Add Component ▸ Hud Controller   (after you write it below)', what: 'The script goes on the Canvas. Which object carries it matters less than you think — a component reaches the text through the slot you are about to fill — but the Canvas is the sensible home for anything whose whole job is drawing.' },
+        { code: 'Hud Controller ▸ Stats Text   →  drag the Text (TMP) object in', what: 'Wiring the reference in the Inspector, exactly as you wired the waypoint slots in 4.1 and the lever\'s listeners in 5.2. An empty slot is a `null` reference, and nothing complains until the line that reads it runs.' , why: 'You could search the scene for the text object in code instead. Do not: a search can find the wrong object, it is work repeated for no reason, and an Inspector slot is a reference a human can **see** and fix without opening the script. Same argument as the waypoint slots in 4.1.' },
+      ],
+    },
+    {
+      title: 'Give the script a slot for the text',
+      lead: 'Two lines above the method: one `using` and one field.',
+      lines: [
+        { code: 'using TMPro;', what: 'TextMeshPro\'s types live in a namespace called `TMPro`, and the UI package that ships them does not put them in scope for you. Without this line the compiler cannot find the type on the next line, and reports an error that reads like a typo.' },
+        { code: '', what: '' },
+        { code: '    [SerializeField] private TextMeshProUGUI statsText;', what: 'The text object, wired from the Inspector. One thing here is new: the type is not `GameObject` or `Transform`, it is the **component** — because the component is what owns the `text` property you are about to write to.' , why: '**A slot for the component, not for the object.** You have held component references since 2.2 (`GetComponent<Rigidbody2D>()`), but always by looking them up at runtime. This one is dragged in by hand, which is only possible because `TextMeshProUGUI` is a component type the Inspector can hold.' },
+      ],
+    },
+    {
+      title: 'Read the numbers from the manager, and write them into the text',
+      lead: 'One method, `Update()`, and it takes a position on the design question this lesson asks out loud: read every frame, and do not get clever about it.',
+      lines: [
+        { code: '    void Update()', what: 'Every frame, like your movement and your enemy logic. A number can change at any moment — a coin is collected in a trigger callback, damage arrives from a projectile you never see coming — so a readout that is only correct sometimes is worse than no readout at all.' , why: '**The alternative is "only rewrite the text when a value changes", and here it costs more than it saves.** You would keep the last three values as fields and compare them every frame — three extra fields, and three extra chances for one of them to go stale and freeze the label forever. Reading a value is a method call; the expensive part is building the string, which is exactly what you would be avoiding. At this scale the honest engineering answer is the simple one, and the moment it stops being true the fix is right here: remember the last values, and rebuild the string only when one of them moves.' },
+        { code: '    {', what: '' },
+        { code: '        if (StatManager.Instance == null)', what: 'The guard — and here it genuinely earns its place. This script can run in a scene with no manager at all: the Overworld and the Platformer both contain a Player, and neither contains a StatManager. Press Play from either one and this method runs every frame with nothing to read.' , why: '**Without this line the Console fills with a NullReferenceException sixty times a second.** That does not crash the game; it buries every other message you might need, which is worse. With the line, the label simply keeps whatever it last said. Neither is a *fix* — the real fix is that the game begins in `Start`, where the manager lives — but the guard turns a flood into a blank label, which is a failure you can see.' },
+        { code: '        {', what: '' },
+        { code: '            return;', what: 'Nothing to show, so show nothing. `return` leaves the method immediately — the same early-exit shape as the death rule in your 2.2 damage method.' },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        { code: '        string statsLine = "Coins: " + StatManager.Instance.GetCoins()', what: 'Build the line. The left-hand side is a **local** — a string that exists for this frame only, which is correct: it is thrown away and rebuilt next frame anyway, and a field would just be a place for a stale one to hide.' , why: '**Every value comes from `StatManager.Instance`, not from the player.** The manager is the only object that still has the numbers, and it is the only one that survived the scene change — which is the entire reason the HUD can be trusted at all. Read them off the player and you get a fresh copy of the player\'s starting values in every new scene, which is the bug you spent the last activity fixing.' },
+        { code: '                         + "   Health: " + StatManager.Instance.GetHealth()', what: 'The second number, appended to the same line. Adding two strings gives you one longer string.' },
+        { code: '                         + " / " + StatManager.Instance.GetMaxHealth();', what: 'And the ceiling, so the label reads `2 / 3`. Showing the maximum and not just the current health is a small design decision worth naming: a player can only judge "am I in trouble?" against what full looks like.' },
+        { code: '', what: '' },
+        { code: '        if (StatManager.Instance.HasAxe())', what: 'The third fact from 5.1, added only when it is true — so the label does not spend screen space saying `Axe: no` for the whole game.' },
+        { code: '        {', what: '' },
+        { code: '            statsLine = statsLine + "   Axe: yes";', what: 'Appending to the string you already built. Note the shape: assign back to the same name, because a string cannot be changed in place — this makes a new one and points the name at it.' },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        { code: '        statsText.text = statsLine;', what: 'The write. `statsText` is the component you wired in the Inspector; `.text` is the property holding the characters on screen. Assign to it and the label changes on this frame.' , why: '**Nothing reads the text back, and nothing stores it.** The label is a *view* of the numbers, not a copy of them — it holds no game state of its own. That is what makes it impossible for the HUD and the truth to disagree, which is the whole thing you came here to fix. The moment you cache a number in this script "to save time", you have built a second source of truth, and it will be the wrong one.' },
+        { code: '    }', what: 'Closes `Update()`. One more `}` closes the class.' },
+      ],
+    },
+  ],
+  pitfalls: [
+    {
+      mistake: 'the `using TMPro;` line left out',
+      symptom: 'The field line will not compile: "The type or namespace name \'TextMeshProUGUI\' could not be found". It reads like a typo in a type name that is spelled perfectly well.',
+      fix: 'Add `using TMPro;` at the top, beside `using UnityEngine;`. TMP\'s types live in their own namespace, and nothing puts them in scope for you.',
+    },
+    {
+      mistake: 'the Inspector slot left empty — Stats Text: None',
+      symptom: 'The game runs perfectly and the Console fills with a NullReferenceException every single frame, pointing at the line that writes `statsText.text`. Sixty messages a second, and the label never appears.',
+      fix: 'Drag the Text (TMP) object into the slot. An empty reference is a valid C# value and nothing complains until your code reads it — the identical trap as the empty waypoint slot in 4.1.',
+    },
+    {
+      mistake: 'the text written once in `Start()` instead of every frame',
+      symptom: 'The label shows the numbers you had when the scene loaded and never moves again. You collect a coin, take damage, and the screen says exactly what it said ten minutes ago — while the Console readout from `StatManager` is completely correct.',
+      fix: 'Build the string in `Update()`. The numbers move on their own; a string you built once does not follow them. This is the one bug in the lesson that looks like the HUD is broken when the stats are perfect.',
+    },
+    {
+      mistake: 'expecting the HUD to follow you into the cave',
+      symptom: 'The label is there in `Start`, and gone the moment you walk through a cave mouth — along with the Canvas, the text object and the script. Nothing is broken and nothing warns you; the UI simply is not in that scene.',
+      fix: 'A Canvas is scene-local, like everything else: it dies with the scene that owns it. That is a decision, not an accident — the HUD shows where the game begins. If you want it everywhere, the same `DontDestroyOnLoad` call you wrote in the first walkthrough works on a Canvas too, and it brings the same problem with it: walk back into `Start` and you now have two of them. Decide deliberately, and if you do make it persistent, guard it.',
+    },
+  ],
+  finalFile: `using UnityEngine;
+using TMPro;
+
+// HudController.cs — the numbers, on screen. It owns no state at all: every
+// value is read from the manager each frame and thrown away again.
+public class HudController : MonoBehaviour
+{
+    [SerializeField] private TextMeshProUGUI statsText;
+
+    void Update()
+    {
+        // No manager in this scene (you pressed Play in the Overworld)? There
+        // is nothing to show and nothing to crash over.
+        if (StatManager.Instance == null)
+        {
+            return;
+        }
+
+        int coins = StatManager.Instance.GetCoins();
+        int health = StatManager.Instance.GetHealth();
+        int maxHealth = StatManager.Instance.GetMaxHealth();
+
+        string line;
+
+        if (StatManager.Instance.HasAxe())
+        {
+            line = "Coins: " + coins + "   Health: " + health + " / " + maxHealth + "   Axe: yes";
+        }
+        else
+        {
+            line = "Coins: " + coins + "   Health: " + health + " / " + maxHealth;
+        }
+
+        statsText.text = line;
+
+        // If reading every frame ever shows up as a cost, the fix is not to
+        // stop reading. Remember the last values and rebuild the string only
+        // when one of them changes.
+    }
+}
+
+// Inspector, in the Start scene (build index 0 — the scene the game loads
+// first, and the scene that holds the StatManager object):
+//   Canvas            created by GameObject ▸ UI ▸ Text - TextMeshPro, which
+//                     also makes the Text (TMP) child and an EventSystem
+//   Text (TMP)        RectTransform anchored top-left, small offset
+//   Canvas            + HudController, with the Text (TMP) in Stats Text`,
+  finalNote:
+    'Compare against your own file rather than copying it. Three things to check: the `using TMPro;` line is there, the string is built inside `Update()` rather than once in `Start()`, and every value is read from `StatManager.Instance` rather than from the player. This file reads the three values into locals and assigns the whole string in an `if`/`else`, where the walkthrough builds it in one expression and appends the axe line; both write the same characters to the same property, and either is correct. Your label text, your placement and your choice of what to display are yours — the shape is what has to match, and the shape is: a slot for the text, a guard, and a rebuild in `Update()`.',
+};
 
 const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor</h1>
 
 <p class="lesson-lead">
-    You break the door, you walk in — and everything you have built breaks with it. Your coins
-    are gone. Your health is back to full. Your axe has vanished. Nothing is wrong with your
-    code: you have just left one scene and entered another, and nothing you stored was ever
-    built to survive that. Today you fix it properly, and in doing so you meet the most
-    important refactor of the year.
+    You break the door, you walk in — and everything you own breaks with it. Your coins are gone.
+    Your health is back to full. Your axe has vanished. Nothing is wrong with your code: you have
+    left one scene and entered another, and nothing you were carrying was ever built to survive
+    that. Today you fix it properly, and in doing so you meet the biggest refactor of the year.
 </p>
+
+${renderAskBanner('how do I keep my health when I change scenes?', 1)}
+
+${renderDecompose('5.3', DECOMPOSE, 1)}
 
 <!-- ============================================================ -->
 <div class="activity discovery">
@@ -41,7 +489,7 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
             <li>Look at your coins, your health and your axe. What are they now? Write down each one's value before and after.</li>
             <li>Go back through the cave's exit. Are your coins restored, or are they still reset? What does that tell you about where the numbers were living?</li>
             <li>You have been tripping these cave entrances since <a href="2.1.html">2.1</a>, when you gave the Player a collider. What code has been running every time — and why did it start working only then?</li>
-            <li>Open <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code> and read it. Which method loads the scene, and what does it deliberately <em>restore</em> about the player when you arrive?</li>
+            <li>Open <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code> and read it. Which method loads the scene — and what does it deliberately <em>restore</em> about the player when you arrive? What does that list tell you the person who wrote it already knew?</li>
         </ol>
     </div>
 
@@ -82,7 +530,7 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
             <td><code>Overworld</code></td>
             <td>1</td>
             <td>The top-down hub you have been building in all year</td>
-            <td>The Player, your coins, enemies, turrets, the lever — and entrances to both caves. Also a Canvas, a text object, and an EventSystem. The EventSystem is genuinely idle, but the <strong>Canvas is wired</strong>: the lever's on-lever-on event drives three objects — the two cave doors <em>and</em> that Canvas. Do not move it without reading its wiring first.</td>
+            <td>The Player, your coins, enemies, turrets, the <code>CaveSwitch</code> lever — and entrances to both caves. Also a Canvas, a <code>Text (TMP)</code> object and an EventSystem. The EventSystem is genuinely idle, but the <strong>Canvas is wired</strong>: the lever's on-lever-on event drives three objects — the two cave doors <em>and</em> that Canvas. Do not move it without reading its wiring first.</td>
         </tr>
         <tr>
             <td><code>Platformer</code></td>
@@ -95,8 +543,13 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
     <p>
         So the topology is: the game starts in <strong>Start</strong>, its exit takes you to the
         <strong>Overworld</strong>, and two cave mouths lead to <strong>Start</strong> again and
-        to the <strong>Platformer</strong> cave. You have been walking this map since 2.1 without
-        knowing it.
+        to the <strong>Platformer</strong> cave. You have been walking this map since
+        <a href="2.1.html">2.1</a> without knowing it — and now read
+        <code>SceneSwitch.cs</code> one more time with the table in front of you. That
+        <code>scene</code> field is an <strong><code>int</code></strong>, and its value is a
+        position in the build's scene list, not a name. The cave mouth in the Overworld holds
+        <code>0</code> and the other holds <code>2</code>. Nothing in that file says "Start"
+        anywhere, and nothing checks that index <code>0</code> is still the scene you think it is.
     </p>
 
     <div class="socratic">
@@ -132,6 +585,67 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
+        <span class="activity-label">Read the Docs: The API for a Stat That Outlives Its Scene</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        The mechanism you are about to build has no precedent in this course, so read it here
+        first. Six rows, and one of them is the whole idea.
+    </p>
+
+    <table>
+        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>public static StatManager Instance;</code></td>
+            <td>A field that belongs to the <strong>class</strong> rather than to an object — so any script can reach it without a reference, a search, or even knowing whether an object exists.</td>
+            <td>There is exactly one, and it starts as <code>null</code>. Nothing claims it for you, and while it is <code>null</code> every caller that reads it throws.</td>
+        </tr>
+        <tr>
+            <td><code>private void Awake()</code></td>
+            <td>Unity's earliest hook: it runs once per object, and every <code>Awake()</code> in a scene finishes before the first <code>Start()</code> runs.</td>
+            <td>It is early, not omniscient — you cannot assume another object's <code>Start()</code> has run, and other objects cannot assume yours has either. The order between two objects' <code>Awake()</code> methods is still not promised.</td>
+        </tr>
+        <tr>
+            <td><code>DontDestroyOnLoad(gameObject)</code></td>
+            <td>The one call that changes what a scene load is allowed to do. It moves the object into a scene of its own that never unloads, so it survives every load from then on.</td>
+            <td>It takes a whole <strong>GameObject</strong>, not a component. And it survives everything — including a return to the scene it came from, where the scene's own copy will be waiting for it.</td>
+        </tr>
+        <tr>
+            <td><code>Destroy(gameObject)</code></td>
+            <td>Removes an object — how the newcomer copy takes itself out of the game.</td>
+            <td>The removal is deferred to the end of the frame, not instant. It is gone in every practical sense, but a line that runs later in the same frame can still reach it.</td>
+        </tr>
+        <tr>
+            <td><code>SceneManager.LoadScene(int buildIndex)</code></td>
+            <td>What <code>SceneSwitch.cs</code> calls every time you touch a cave mouth — the line that is destroying your stats, in the shipped code of your own project.</td>
+            <td>Hand it an <code>int</code> and it loads whatever scene sits at that <em>position</em> in the build list. Reorder the list and every serialized index silently points somewhere else, with no error to warn you.</td>
+        </tr>
+        <tr>
+            <td><code>Object.FindFirstObjectByType&lt;T&gt;()</code></td>
+            <td>How you would find the manager on demand, with no instance field at all — and the current name for it, because Unity 6 <strong>deprecated</strong> the older <code>FindObjectOfType</code> that most tutorials still use.</td>
+            <td>A scene-wide search every time you call it. That search is exactly the cost the <code>static</code> field removes, which is why nothing in this lesson searches for anything.</td>
+        </tr>
+        <tr>
+            <td><code>TextMeshProUGUI.text</code></td>
+            <td>The property that holds the characters a UI label is displaying. Assign a string to it and the screen changes.</td>
+            <td>Every assignment builds a new string, so doing it every frame costs something; and the component lives in the <code>TMPro</code> namespace, so the file needs <code>using TMPro;</code> or the type cannot be found.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>You have already seen persistence in this project — done the wrong way.</strong>
+        <code>SceneSwitch.cs</code> remembers which scene you came from in a
+        <code>static</code> field, and the player's animator controller in another one. That is
+        the static-field row of the table above, being used exactly as advertised: it works, it
+        survives, and nothing owns it. By the end of this lesson you will be able to say what is
+        wrong with it — and why the cave does not strand you despite it.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
         <span class="activity-label">Build Lab: The Refactor</span>
         <span class="activity-time">~30 min</span>
     </div>
@@ -139,36 +653,10 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
     <p>
         <code>StatManager.cs</code> has been sitting empty in <code>Assets/Scripts</code> since
         Unit 2, doing nothing. You were told then that you would have a real reason to fill it in
-        later, and that the reason would come from a scene change rather than from tidiness.
-        This is that reason. <strong>Open it and fill it in.</strong>
+        later, and that the reason would come from a scene change rather than from tidiness. This
+        is that reason. <strong>Open it and fill it in</strong> — the walkthrough below writes
+        every line of the file, in the order it appears in the file.
     </p>
-
-    <div class="callout">
-        <strong>Architectural specification: <code>StatManager.cs</code>.</strong>
-
-        <p><strong>Being the one and only:</strong></p>
-        <ul>
-            <li>How does a script let other scripts reach a single shared instance without searching the scene? What kind of field makes a value belong to the class rather than to an object?</li>
-            <li>Which lifecycle method runs <em>before</em> everything else on scene load, and is therefore the right place to establish a singleton?</li>
-            <li>What call tells Unity to keep this object alive when a new scene loads?</li>
-            <li>When you return to a scene that contains its own copy of this object, you get a second one. What must happen to the newcomer, and how do you detect it?</li>
-            <li>What happens on the very first scene load, when there is no instance yet? Describe the two branches your setup code needs.</li>
-        </ul>
-
-        <p><strong>Holding the stats:</strong></p>
-        <ul>
-            <li>Move across everything you were storing on the player: the coin count, current and maximum health, and the inventory flag. What type is each one, and which should be Inspector-visible?</li>
-            <li>What public methods replace the ones you had on <code>PlayerController</code>? Keep the same shape — a signed amount for health — so your existing callers need the smallest possible change.</li>
-            <li>Where does the max-health rule you built in <a href="2.3.html">2.3</a> now live? It should move with the field it protects.</li>
-        </ul>
-
-        <p><strong>Updating the callers — the part people forget:</strong></p>
-        <ul>
-            <li>Every place that used to read or write those fields on the player must now go through the manager. Search your own code for each one. How many files do you touch?</li>
-            <li>What guard do the callers need, in case the manager does not exist yet when they run? When could that actually happen?</li>
-            <li>Where in the scene hierarchy must the manager live, and <em>why that scene specifically</em>? Look back at the load index in the table above.</li>
-        </ul>
-    </div>
 
     <div class="callout info">
         <strong>This is a refactor, not a rewrite.</strong> Nothing about what your game
@@ -179,11 +667,16 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
     </div>
 
     <p>
-        Test it the only way that matters: collect coins, take damage, grab the axe, then walk
-        into a cave. Come back. Everything should still be there. If it is, you have just solved
-        a problem that professional developers solve on every project they ever ship.
+        One habit makes the whole thing survivable: <strong>move it, then compile</strong>. The
+        compiler is the only complete list of the places that used to reach for a field on the
+        player, and it will hand it to you one error at a time. Delete the fields from
+        <code>PlayerController</code> first, on purpose, and let the Console tell you every caller
+        you had forgotten exists.
     </p>
 </div>
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK_SINGLETON)}
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
@@ -198,39 +691,77 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
         place that survives everything, they can be displayed properly.
     </p>
     <p>
-        There is a design decision hiding in this: <strong>which scene should the game actually
-        begin in?</strong> You have been pressing Play with the Overworld open all year. But the
-        <code>Start</code> scene is load index 0 — it is the scene the game loads first when it
-        is built and run for real.
+        There is a design decision hiding in this, and you have to make it before you touch the
+        Hierarchy: <strong>which scene should the game actually begin in?</strong> You have been
+        pressing Play with the Overworld open all year. But <code>Start</code> is load index 0 —
+        it is the scene a built game loads first, and it is where the StatManager object lives.
+        A Canvas is <em>not</em> persistent: it exists only in the scene that contains it.
     </p>
 
-    <div class="callout">
-        <strong>Architectural specification: the HUD.</strong>
-        <ul>
-            <li>Which scene must the Canvas live in, given that the game begins there? Does a Canvas survive a scene load on its own?</li>
-            <li>Look at the Overworld's Hierarchy — a Canvas, a text object and an EventSystem. Before you move anything: select the <strong>lever</strong> and expand its <code>onLeverOn</code> event. It drives three objects — the two cave doors and <em>that Canvas</em>. Drag the Canvas into <code>Start</code> and that slot goes <code>Missing</code>, and the lever quietly stops doing one of its jobs. So: move it and repair the event, or leave the Overworld's Canvas alone and build a fresh one in <code>Start</code>? Which is less work, and which teaches you more?</li>
-            <li>Which UI component displays a line of text, and which one makes it visible on screen?</li>
-            <li>How does the HUD get the values it displays? Should it read them every frame, or only when they change — and what does your answer cost?</li>
-            <li>Which script should own the reference to the text component: the HUD itself, or the StatManager?</li>
-        </ul>
+    <div class="callout trap">
+        <strong>The Overworld's Canvas is wired to the lever, and the wiring is on the instance.</strong>
+        Select the <code>CaveSwitch</code> object <em>in the Overworld scene</em> — not the prefab
+        in <code>Assets/Prefabs</code>, whose event list is empty — and expand
+        <strong>On Lever On</strong>. It drives three things: the two cave-door tilemaps, and the
+        scene's <code>Canvas</code>. Drag that Canvas into <code>Start</code> and the third slot
+        reads <em>Missing</em>, and the lever quietly stops doing one of its three jobs. Unity
+        will not warn you; you find out by noticing that something which used to happen stopped
+        happening.
     </div>
 
     <p>
-        When it works, set your Build Settings so the game launches into <code>Start</code>, press
-        Play <em>from that scene</em>, and walk your whole loop: out of the cave, into the
-        overworld, collect, take damage, come back. The HUD should never once disagree with
-        reality.
+        So there are two honest ways to get a HUD, and they cost different things:
+    </p>
+
+    <table>
+        <tr><th>Approach</th><th>What you do</th><th>What it costs</th></tr>
+        <tr>
+            <td><strong>Move the Overworld's Canvas into <code>Start</code></strong></td>
+            <td>Drag the Canvas and its <code>Text (TMP)</code> child across, then repair the lever's third listener so it stops pointing at nothing.</td>
+            <td>Less setup, and you inherit an object somebody already built — including the fact that the lever was switching it off for reasons nothing in the project explains. You also have to decide what the listener should target now that its Canvas is in another scene.</td>
+        </tr>
+        <tr>
+            <td><strong>Leave it alone and build a fresh Canvas in <code>Start</code></strong></td>
+            <td>One menu item: <code>GameObject ▸ UI ▸ Text - TextMeshPro</code>, which makes the Canvas, the text object and an EventSystem in one go.</td>
+            <td>A second Canvas exists in the project, and the Overworld's still switches off when the lever fires — harmlessly, because nothing is drawn on it. You lose nothing and break nothing you did not write.</td>
+        </tr>
+    </table>
+
+    <p>
+        Either is defensible. The walkthrough below builds a fresh one in <code>Start</code>,
+        because that path leaves the wiring you inherited exactly as you found it — and because
+        the lever's third listener is a question about somebody else's intent, which is not the
+        thing this lesson is teaching. Whichever you choose, write down your reason before you
+        start: you will be asked for it.
+    </p>
+</div>
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK_HUD)}
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: Persistence Faults</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        Test it the only way that matters first: collect coins, take damage, grab the axe, walk
+        into a cave, and come back. Everything should still be there. Then do the opposite — every
+        fault below is a way to bring the old bug back, and each one has a different symptom,
+        which is the part worth learning.
     </p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Persistence Faults</h3>
         <ol>
-            <li>Walk from <code>Start</code> to the Overworld and back to <code>Start</code>. How many StatManager objects exist now? If you forgot the duplicate guard, what happens to your stats on the second one?</li>
+            <li>Walk from <code>Start</code> into the Overworld, then take the cave mouth that leads back to <code>Start</code>. How many StatManager objects exist now? If you forgot the duplicate guard, what happens to your stats on the second one — and what would the Hierarchy show you?</li>
             <li>Remove the "do not destroy" call. Everything looks fine until you change scenes. What exactly resets, and why did the bug hide until then?</li>
-            <li>Delete the manager's GameObject from <code>Start</code> but keep the script. What does the first caller that reaches for it do — and is the error loud or silent?</li>
-            <li>Put the StatManager object in the <em>Overworld</em> instead of <code>Start</code>. Press Play from <code>Start</code>. What happens, and what does that tell you about load order?</li>
-            <li>Give the manager a <code>static</code> coin field <em>as well as</em> an instance field, and update only one of them. Which one does your HUD read, and why is having both a design smell?</li>
-            <li>Rename the <code>Platformer</code> scene but leave the string in <code>SceneSwitch.cs</code> alone. Describe every symptom, then find it. How long did the silent-string hunt take?</li>
+            <li>Delete the manager's GameObject from <code>Start</code> but keep the script. What does the first caller that reaches for it do — and is the error loud or silent? Which of the two callers is silent, and why?</li>
+            <li>Put the StatManager object in the <em>Overworld</em> instead of <code>Start</code>, and take it out of <code>Start</code>. Press Play from <code>Start</code>. What happens — and what does that tell you about which scene has to own the manager?</li>
+            <li>Give the manager a <code>static</code> coin field <em>as well as</em> an instance field, and update only one of them. Which one does your HUD read, and why is having both a design smell rather than a safety net?</li>
+            <li>Read <code>SceneSwitch.cs</code> again: its <code>scene</code> field is an <code>int</code>, not a name. Now open the build's scene list (<strong>File ▸ Build Profiles ▸ Scene List</strong> in Unity 6 — the panel older tutorials call Build Settings) and drag <code>Overworld</code> above <code>Start</code> so <code>Start</code> is no longer index 0. Press Play in <code>Overworld</code> and walk into the cave mouth that used to lead back to <code>Start</code>. Which scene loads, and why did nothing warn you? Say what the <code>int</code> actually stores.</li>
         </ol>
     </div>
 </div>
@@ -239,7 +770,7 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
 <div class="activity basic-app">
     <div class="activity-header">
         <span class="activity-label">Tinker</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <div class="tinker">
@@ -247,8 +778,8 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
         <ol>
             <li>Design the respawn contract now that you control it: if you die in the cave, where do you wake up, and what do you keep? Write it as a rule a player could understand in one sentence.</li>
             <li>Add a persistent <em>high score</em> that outlives a play session. Which of the three storage approaches needs to change, and why can the singleton no longer do the job alone?</li>
-            <li>The manager currently holds coins, health and inventory. At what point does it hold too much? Sketch how you would split it if it grew to ten values, and name the principle you are applying.</li>
-            <li>Read your own commit history from 5.1 to now. Which commit made the biggest change to the <em>shape</em> of the code rather than its behaviour? That is the mark of a refactor.</li>
+            <li>The manager currently holds coins, health, the maximum and the axe flag. At what point does it hold too much? Sketch how you would split it if it grew to ten values, and name the principle you are applying.</li>
+            <li>Read your own commit history from 5.1 to now. Which commit made the biggest change to the <em>shape</em> of the code rather than its behaviour? That is the mark of a refactor — and this lesson's commit should be the biggest one yet.</li>
             <li>Commit and push: <code>"5.3: stats persist across scenes + HUD"</code>.</li>
         </ol>
     </div>
@@ -256,13 +787,13 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>Explain why a scene load destroys your stats, and why that is correct behaviour rather than a bug</li>
+            <li>Explain why a scene load <em>replaces</em> your stats rather than losing them, and why that is correct behaviour rather than a bug</li>
             <li>Name all three scenes, their load indices, and how they are wired together</li>
             <li>Compare static fields, a persistent singleton and a ScriptableObject, and defend your choice</li>
-            <li>Build a singleton with a setup hook, a persistence call and a duplicate guard</li>
+            <li>Build a singleton with a setup hook, a persistence call and a duplicate guard — and say what runs first, and why it has to</li>
             <li>Explain why the duplicate guard is genuinely necessary in <em>this</em> project</li>
             <li>Describe what a refactor is, and name what changed and what did not</li>
-            <li>Put the HUD in the scene where the game begins, and say why there</li>
+            <li>Put the HUD in the scene where the game begins, say why there, and say what it costs you</li>
             <li>Commit and push</li>
         </ul>
     </div>
@@ -273,8 +804,9 @@ const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor<
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — every question this course answers, in the words you would search with</li>
         <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — the scene-switch reference</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — SceneManager and object lifetime</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — SceneManager, DontDestroyOnLoad and the singleton pattern</li>
     </ul>
     <p>Next: <a href="6.1.html">6.1 — Gravity &amp; Jump</a> — Unit 6 begins, and now that you have one object holding all your state, it is finally safe to add physics that could kill you.</p>
 </div>`;

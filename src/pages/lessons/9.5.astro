@@ -1,18 +1,137 @@
 ---
 // Lesson 9.5 — Datasets: Insights from Playtest Data
-// expand-app: the playtests.csv dataset; aggregates, patterns, decisions.
+// expand-app CSP concept: variables and records, filtering, aggregation, and
+// the questions a table of numbers cannot answer.
+//
+// SHAPE: this is a Unit 9 concept lesson — there is no script to hand over, so
+// it uses the `concept` frame (src/lib/walkthrough.ts). The banner and the
+// decompose block both carry data-scaffold="3" so the verifier still holds the
+// page to the rung, and both drop the visible code chip, because "Outline only"
+// is a claim about a file this lesson does not have. Level 3 is the only
+// reachable rung for a lesson with no walkthrough (check 7).
+//
+// The decompose block is ADDED, not substituted: it opens a new answer-id
+// namespace (9.5:dc1:qN) and leaves every protected block in the counts and
+// positions it already had. Two items inside bug-hunt 1 were REWORDED — never
+// reordered, renumbered, added or removed — because the claims they made about
+// the dataset were false. See GROUND TRUTH below.
+//
+// GROUND TRUTH — read out of public/data/playtests.csv (shipped to
+// dist/data/playtests.csv) on 2026-09-14, never inferred from lesson text:
+//   32 rows, 8 testers (P01-P08), sections 1-6 with 4/4/6/6/6/6 rows.
+//   52 deaths in the file: 21 by spikes, 18 by enemy, 13 by fall. Spikes are
+//   40% of deaths, NOT the 62% the old lead claimed, and no section reaches
+//   62% of the file's deaths — section 3 is the deadliest at 12 (23%).
+//   25 of the 32 runs set completed_boss = TRUE.
+//   Three rows carry an empty comment (R019, R025, R028) — three testers.
+//   Only two testers repeat a section, and nobody repeats one more than twice:
+//   P07 on section 3 (R012 = 271s / 5 deaths / FALSE / rating 2, then R014 =
+//   148s / 1 death / TRUE / rating 4) and P08 on section 4 (R015, R018). The
+//   old bug-hunt item 1 ("one tester ran section 3 four times") was false.
+//   No row pairs rating 5 with a high death count — the highest rating on any
+//   run with more than two deaths is 4 (R015). The old bug-hunt item 2 ("a row
+//   shows rating 5, deaths 7") was false, and the file's maximum death count is
+//   5 (R012). It is now the real cross-tab: section 3 has the most deaths (12)
+//   at average rating 3.5; section 4 has 10 deaths at average rating 4.0.
+//   distance_to_boss_start is CONSTANT within a section (7.5, 9.1, 6.4, 8.8,
+//   10.2, 11.5) — it never varies between the rows of one section, so it cannot
+//   be a per-run measurement. The old gloss ("how far into section 6 they died
+//   or gave up") was false. It is now taught as the column that cannot answer a
+//   question about a run, and it carries a turn in the decompose block.
+//   Section 2's four times are 172, 133, 228, 199 — total 732, average 183.0.
+//   The six CSV sections are NOT the five named sections of the student's own
+//   gauntlet (6.5), so the lesson now says so instead of implying a mapping.
+//
+// AP PSEUDOCODE GROUND TRUTH — src/pages/exam/reference-sheet.astro is this
+// course's transcription of the College Board sheet, and it has NO AVERAGE
+// function and NO list-comprehension form. The old Step 3 wrote
+// `[row.time_seconds FOR row IN runs IF row.section = 2]` followed by
+// `AVERAGE(times)`, which is neither one. It is now the accumulator loop the
+// sheet does give (FOR EACH + IF + two counters + a division), with the sheet's
+// own 1-indexed columns named. `/` is REAL division on the exam even between
+// two integers, while C# truncates — the same verified fact the reference sheet
+// states, and the reason the answer is 183.0 rather than 183.
+//
+// No claim is made anywhere in this lesson about the Unity starter project: 9.5
+// is a dataset lesson, and the only machine-readable data it uses is the CSV.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+const DECOMPOSE: DecomposeSpec = {
+  big: 'Find a pattern in 32 rows of playtest numbers — and be able to say which of your questions the file can actually answer.',
+  frame: 'concept',
+  parts: [
+    {
+      name: 'Say what a row is and what a column is, before you read a number',
+      does:
+        'A column is a variable — one thing that was measured; a row is one record — one run by one tester. Nothing in the file means anything until you have decided which is which.',
+      doc:
+        'the numbered column table in the Concept Lab below, and the beat-granular table you filled in for 7.7',
+      href: '7.7.html',
+    },
+    {
+      name: 'Turn the hunch into a question that names its columns',
+      does:
+        '"Which section is deadliest?" is a question about `deaths`. "Which section frustrates?" needs `time_seconds` and `rating` together. Pick the columns first and the file gets small.',
+      doc: 'the Socratic prompt in the Concept Lab below',
+    },
+    {
+      name: 'Filter: keep only the rows your question is about',
+      does:
+        'The average time for section 2 is not the average of all 32 rows — it is the average of the four rows where `section` is 2. Filtering is what makes one number mean one thing.',
+      doc:
+        'Step 3 of the Build Lab below, and the 1-indexed list rules on the Exam Reference Sheet',
+      href: '../exam/reference-sheet.html',
+    },
+    {
+      name: 'Aggregate: total the filtered rows, count them, divide',
+      does:
+        'An average is two counters and a division — one adds the column up, one counts the rows. There is no `AVERAGE` on the exam sheet; you write that loop yourself every time.',
+      doc: 'the pseudocode block in Step 3 of the Build Lab below',
+    },
+    {
+      name: 'Say what the number leaves out, before you act on it',
+      does:
+        'A blank comment, a section somebody ran twice, and a column that is the same on every row are all things this file cannot tell you. The insight is only as good as the column you did not read.',
+      doc: 'the Bug Hunt below, and the missing-column question in the Tinker',
+    },
+  ],
+  why:
+    'The order is the whole method: say what a row is, name the columns your question needs, filter to the rows that answer it, ' +
+    'aggregate them into one number, then say what that number leaves out. None of the five is hard alone, and the last one is the ' +
+    'one the exam keeps asking. A dataset only ever answers a question its columns were built to answer, and no amount of arithmetic ' +
+    'gets around a column that was never recorded.',
+  sizeTest:
+    'The test of a finished split: can you write your hunch down as a filter and a total before you open the file? ' +
+    '"Section 3 feels unfair" is a feeling. "Total deaths, and total seconds, for the rows where section is 3" is a question a ' +
+    'column can answer — and if you cannot write it that way, the file is not going to settle it either.',
+  turns: [
+    'Section 3 takes the most deaths of any section, and the column that says so is `deaths`. Before you act on that number: which single other column would you read next, and what would it change about the fix you chose?',
+    'The `distance_to_boss_start` column holds one value per section and never varies between the rows of a section. What can a column that never varies tell you about the runs inside that section — and what does that say about the question its name seems to promise?',
+  ],
+  connect: [
+    'In 6.5 you filled the section table in by hand — deaths, time, and the tester\'s words, one row per section. This file is that same table with 32 rows and three more causes of death in it. Name one question the afternoon of notes could answer that the file cannot, and one the file answers that no single afternoon ever could.',
+    'In 7.7 the whole argument was about the unit of analysis: one row per beat rather than one row per session, because the beat is the thing you fix. These rows are one per section, per run. What does that make fixable, and what does it hide?',
+    'In 2.1 a coin was collected and a counter went up by one. An average is two of those counters and a division — say what each counter is doing before you write either of them.',
+  ],
+};
 
 const body = `<h1>9.5 — Datasets: Insights from Playtest Data</h1>
 
 <p class="lesson-lead">
-    All semester you have written playtest numbers in tables
-    (<a href="6.5.html">6.5</a>, <a href="7.7.html">7.7</a>).
-    Today those habits become DATA SCIENCE: one shared dataset of
-    32 playtest runs, real questions, and the move from "I feel like
-    the spike room is hard" to "the spike room is where 62% of deaths
-    happen."
+    All semester you have written playtest numbers into tables by hand —
+    one row per section in <a href="6.5.html">6.5</a>, one row per beat in
+    <a href="7.7.html">7.7</a>. Today the same table arrives as a file of
+    32 rows, and the habit becomes DATA SCIENCE: the move from "section 3
+    feels brutal" to "section 3 takes 12 of this file's 52 deaths, and the
+    second run through it took 148 seconds where the first took 271."
 </p>
+
+${renderAskBanner('how do I find a pattern in a pile of data?', 3, 'concept')}
+
+${renderDecompose('9.5', DECOMPOSE, 3)}
 
 <!-- ============================================================ -->
 <div class="activity expand-app">
@@ -22,22 +141,49 @@ const body = `<h1>9.5 — Datasets: Insights from Playtest Data</h1>
     </div>
 
     <p><strong>Download the dataset.</strong> Grab
-    <a href="../data/playtests.csv">playtests.csv</a> — 32 runs, 6
-    sections, one row per playtester per run. Each column is a
-    <em>variable</em>; each row is one <em>record</em>. The
-    columns:</p>
+    <a href="../data/playtests.csv">playtests.csv</a> — 32 rows and 14
+    columns. Every column is a <em>variable</em>: one thing somebody
+    measured. Every row is one <em>record</em>: one run, by one tester.
+    Open it in a spreadsheet and the row numbers down the left margin
+    are the same ones the exam's 1-indexed lists use, so the file and
+    the reference sheet count the same way.</p>
+
     <table>
-        <tr><th>Column</th><th>Meaning</th></tr>
-        <tr><td>section</td><td>Which part of the cave (1=entrance … 6=boss door)</td></tr>
-        <tr><td>run_id, player_id</td><td>Which run, which tester</td></tr>
-        <tr><td>deaths, deaths_by_spikes, deaths_by_enemy, deaths_by_fall</td><td>Death counts BY CAUSE</td></tr>
-        <tr><td>time_seconds</td><td>Time in that section</td></tr>
-        <tr><td>coins_missed</td><td>Coins the tester saw but did not get</td></tr>
-        <tr><td>jumps</td><td>Jump inputs pressed (activity!)</td></tr>
-        <tr><td>distance_to_boss_start</td><td>How far into section 6 they died/gave up</td></tr>
-        <tr><td>completed_boss</td><td>TRUE = won the fight, FALSE = did not</td></tr>
-        <tr><td>rating (1–5), comment</td><td>Felt experience, in their words</td></tr>
+        <tr><th>#</th><th>Column</th><th>What it holds</th></tr>
+        <tr><td>1</td><td>section</td><td>Which part of the cave, 1 to 6. Six of them here — and the six are NOT the five named sections of your own gauntlet</td></tr>
+        <tr><td>2</td><td>run_id</td><td>Which run: R001 to R032, one row each</td></tr>
+        <tr><td>3</td><td>player_id</td><td>Which tester: P01 to P08</td></tr>
+        <tr><td>4</td><td>deaths</td><td>Deaths on this run, every cause added together — the column "which section is deadliest?" is really about</td></tr>
+        <tr><td>5</td><td>deaths_by_spikes</td><td>Deaths on this run caused by spikes</td></tr>
+        <tr><td>6</td><td>deaths_by_enemy</td><td>Deaths on this run caused by an enemy</td></tr>
+        <tr><td>7</td><td>deaths_by_fall</td><td>Deaths on this run caused by falling</td></tr>
+        <tr><td>8</td><td>time_seconds</td><td>Seconds spent in that section on that run</td></tr>
+        <tr><td>9</td><td>coins_missed</td><td>Coins the tester saw and did not get</td></tr>
+        <tr><td>10</td><td>jumps</td><td>Jump inputs pressed — how busy the section kept them</td></tr>
+        <tr><td>11</td><td>distance_to_boss_start</td><td>The same number on every row of a section, and never a different one. Check it</td></tr>
+        <tr><td>12</td><td>completed_boss</td><td>TRUE if the run finished, FALSE if it did not</td></tr>
+        <tr><td>13</td><td>rating</td><td>The tester's score for the run, 1 to 5</td></tr>
+        <tr><td>14</td><td>comment</td><td>The tester's own words. Three rows have none</td></tr>
     </table>
+
+    <p><strong>Five things that are true of the whole file, before you
+    compute anything.</strong> There are 52 deaths in it: 21 by spikes,
+    18 by enemies, 13 by falls. So spikes are 40% of the deaths — the
+    loudest cause in the comments, but not the landslide they sound
+    like, and no section reaches anything like a majority. 25 of the 32
+    runs finished the boss. Section 3 takes the most deaths of any
+    section (12), and half of those are spikes. Three rows leave the
+    comment column empty, which is a fact about the data rather than a
+    hole in it — a blank is a value you have to decide what to do
+    with.</p>
+
+    <p><strong>And one warning before you compare this with your own
+    notes.</strong> The six sections here are not the five sections your
+    gauntlet had. Yours were named in <a href="6.5.html">6.5</a> — the
+    gap, the climb, the spike run, the soft gate, the end. This file
+    numbers six parts of a whole cave and names none of them. Decide
+    what a row is a row <em>of</em> before you average it, or you will
+    average two different things and call the result a pattern.</p>
 
     <div class="socratic">
         <h3>Socratic</h3>
@@ -62,45 +208,77 @@ const body = `<h1>9.5 — Datasets: Insights from Playtest Data</h1>
     <p><strong>Step 1 — eyeball then compute.</strong> Open the CSV
     in any spreadsheet tool (Numbers, Google Sheets). Predict three
     things from eyeballing, THEN compute them: total deaths per
-    section (sort/sum), average time per section, and the
-    completion rate (completed_boss column: what fraction is TRUE?). A
-    prediction next to a result is the whole scientific method in
-    one spreadsheet.</p>
+    section (sort or sum), average time per section, and the
+    completion rate (the completed_boss column: what fraction of the
+    rows are TRUE?). A prediction next to a result is the whole
+    scientific method in one spreadsheet — and the prediction is what
+    makes a surprise visible instead of just a number.</p>
 
     <p><strong>Step 2 — cross-tab questions.</strong> The interesting
     questions join columns:</p>
     <ol>
-        <li>Do high-jump sections have more fall deaths? (jumps vs.
-            deaths_by_fall, per row)</li>
-        <li>Do testers who miss more coins rate lower? (coins_missed
-            vs. rating)</li>
-        <li>Which section has the WORST time-per-death ratio (slow
-            AND deadly = the frustration zone)?</li>
-        <li>Of testers who died to the enemy, what fraction still
-            beat the boss? (deaths_by_enemy &gt; 0, then
-            completed_boss)</li>
+        <li>Do the sections with the most jumps also have the most
+            fall deaths? (jumps beside deaths_by_fall, section by
+            section)</li>
+        <li>Do the rows that miss more coins rate lower? (coins_missed
+            beside rating)</li>
+        <li>Which section is slowest per death — the section's TOTAL
+            time_seconds divided by its TOTAL deaths? Add up both
+            columns for a section, then divide. A high ratio means
+            people spent a long time there and rarely died: is that a
+            good section or a boring one? Argue it.</li>
+        <li>Of the runs that died to an enemy at least once, what
+            fraction still finished the boss? (deaths_by_enemy above
+            zero, then completed_boss)</li>
     </ol>
 
-    <p><strong>Step 3 — aggregate like the exam.</strong> AP
-    pseudocode loves AVERAGE and SUM over filtered lists. Do the
-    section-2 average time BY HAND as a filtered list:
-    keep rows where section == 2, average time_seconds. Write it in
-    exam pseudocode next to your spreadsheet answer:</p>
-    <pre><code>times ← [row.time_seconds FOR row IN runs IF row.section = 2]
-AVERAGE(times)</code></pre>
+    <p><strong>Step 3 — aggregate like the exam.</strong> Work out the
+    average time for section 2 the way the reference sheet makes you
+    write it: a loop, a test inside it, and two counters. Two things
+    the sheet does NOT give you: there is no AVERAGE function to call,
+    and no one-line way to filter — you write the loop and the counters
+    yourself, every time. And the sheet's lists start at 1, so column 1
+    is section and column 8 is time_seconds:</p>
+    <pre><code>total ← 0
+count ← 0
+FOR EACH row IN runs
+{
+    IF (row[1] = 2)
+    {
+        total ← total + row[8]
+        count ← count + 1
+    }
+}
+average ← total / count</code></pre>
+
+    <p>Check the loop against your spreadsheet: the four section-2
+    times are 172, 133, 228 and 199, so count should finish at 4 and
+    total at 732, and the average is 183.0 seconds. Now read the last
+    line carefully, because it is the one line here that behaves
+    differently on paper and in your game: on the exam <code>/</code>
+    is <strong>real</strong> division even between two integers, so
+    total / count gives 183.0 and not 183-with-the-remainder-thrown
+    away. C# is the opposite — two ints divide and truncate — which is
+    why your Unity code casts one side to a double.</p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Data traps</h3>
         <ol>
-            <li>One tester ran section 3 four times (four rows).
-                Compare their 4 times: why is the FIRST run's time
-                a different KIND of number than the fourth
-                (learning effect — what does that mean for
-                "average difficulty")?</li>
-            <li>A row shows rating 5, deaths 7. What is that row
-                telling you — and why does "hard but loved" exist
-                (see <a href="7.5.html">7.5</a>: hard-but-fair
-                vs easy-but-random)?</li>
+            <li>Two testers ran the same section twice, and nobody ran
+                one more often than that. P07's first section-3 run
+                took 271 seconds and ended in five deaths; the second
+                took 148 and one. Why is the second number a different
+                KIND of number from the first — and what does that do
+                to a section average that has been reported as
+                "average difficulty"?</li>
+            <li>No row in this file pairs a 5 rating with a bad death
+                count — the highest rating on any run with more than
+                two deaths is a 4. So compare sections instead: section
+                3 has the most deaths (12) and an average rating of
+                3.5, while section 4 has 10 deaths and an average
+                rating of 4.0. What are those two sections telling you
+                differently (see <a href="7.5.html">7.5</a>:
+                hard-but-fair vs easy-but-random)?</li>
             <li>Sort by deaths descending. The top row: what should
                 you READ before you act — deaths, time, OR the
                 comment? Why is the comment the only column that
@@ -137,9 +315,12 @@ AVERAGE(times)</code></pre>
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
             <li>Name variable vs record and read a CSV fluently</li>
-            <li>Answer cross-column questions with spreadsheet filters/aggregates</li>
-            <li>Express a filtered average in AP pseudocode</li>
+            <li>Answer cross-column questions with spreadsheet filters and aggregates</li>
+            <li>Express a filtered average in exam pseudocode — loop, counter, divide — and say why there is no AVERAGE to call</li>
+            <li>Say why the sheet's 1-indexed columns matter when you write row[8]</li>
             <li>Turn one dataset insight into one design change</li>
+            <li>Break "find a pattern in a pile of data" into parts small enough to look each one up, and say in one line what each part does</li>
+            <li>Name one question this file cannot answer, and the column you would have to add to ask it</li>
         </ul>
     </div>
 </div>
@@ -150,6 +331,7 @@ AVERAGE(times)</code></pre>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../data/playtests.csv">Playtest dataset (CSV)</a> — the data itself</li>
+        <li><a href="../exam/reference-sheet.html">Exam Reference Sheet</a> — the pseudocode for lists, loops and the 1-indexed rule</li>
         <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — datasets in the CED</li>
     </ul>
     <p>Next: <a href="9.6.html">9.6 — Bias, Filtering &amp; Fair Data</a></p>

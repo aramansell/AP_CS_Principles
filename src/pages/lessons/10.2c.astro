@@ -1,37 +1,499 @@
 ---
 // Lesson 10.2c — Decks: Shuffle, Draw & Traverse
-// rpg jam: implement Shuffle() (the empty method); Fisher-Yates + AP swap.
+// rpg jam: implement Shuffle() (the two empty overloads); Fisher-Yates + AP swap.
+//
+// WHICH PROJECT — this lesson does NOT run on AP_CS_P_Starter_Project (Units
+// 1-9, Unity 6000.6.0f1). The Unit 10 card jam runs on
+// Card-Game-Template-main (Unity 6000.4.0f1), and that project is the only one
+// with a GameManager.cs, a Card_data.cs or a Shuffle() in it at all. Verified by
+// reading Card-Game-Template-main/Assets/Scripts/, which holds exactly four real
+// scripts: GameManager.cs (81 lines), Card_data.cs (16), Card.cs (54),
+// DraggableUI.cs (31).
+//
+// GROUND TRUTH (re-read before every edit to this page):
+//   - GameManager.cs: singleton `public static GameManager gm;` set in Awake()
+//     with a duplicate guard + DontDestroyOnLoad. SIX List<> fields, and they
+//     are TWO different element types: player_deck / ai_deck are
+//     List<Card_data> (the ScriptableObject assets from 10.2b);
+//     player_hand / ai_hand / player_discard_pile / ai_discard_pile are
+//     List<Card> (the components on screen). That split is the reason Shuffle
+//     needs two overloads, and it is taught, not hidden.
+//   - `Shuffle` has TWO overloads — void Shuffle(List<Card_data> data_hand) and
+//     void Shuffle(List<Card> card_hand) — and BOTH BODIES ARE EMPTY in the
+//     starter. `AI_Turn()` is empty too (10.2d's business).
+//   - `Deal()` is real working code: it calls Shuffle(player_deck);
+//     Shuffle(ai_deck);, then Instantiates blank_card into the canvas at
+//     player_hand_location / ai_hand_location, assigns
+//     GetComponent<Card>().data = player_deck[0] / ai_deck[0], and disables
+//     DraggableUI on the player's card. It deals exactly ONE card to each side,
+//     from index [0].
+//   - `Deal()` as shipped NEVER puts anything into player_hand or ai_hand — it
+//     instantiates a visual and drops the reference. So the hands are empty
+//     lists and any loop over one renders nothing. This page says so out loud
+//     (step 6) rather than telling a student to traverse a list that is always
+//     empty. Draw() is what makes the hand a real list for the first time.
+//   - `Card_data.cs`: the ScriptableObject — [CreateAssetMenu(...)], fields
+//     card_name, description, health, cost, damage, sprite, int fontSize = 36.
+//   - `Card.cs`: holds `public Card_data data;`, copies data.* into TMP text
+//     fields in Start(), and ends with a hardcoded
+//     `if (card_name == "Orc") background.color = Color.chocolate;`. Because
+//     Start() dereferences `data`, a card visual instantiated without an
+//     assigned Card_data throws a NullReferenceException in Card.Start() — a
+//     real pitfall, and one of the pitfalls listed below.
+//   - `DraggableUI.cs`: the drag behaviour; disabled on the player's dealt card.
+//
+// THE COMPILE DEFECT THIS LESSON HAS TO FIX (and turns into the teaching moment)
+//   GameManager.cs line 3 is `using Unity.Mathematics;`, and `com.unity.mathematics`
+//   1.3.3 IS installed in this template — not in Packages/manifest.json directly,
+//   but pinned in Packages/packages-lock.json at depth 2 (verified), and it
+//   defines Unity.Mathematics.Random. UnityEngine also defines Random. So inside
+//   GameManager.cs a bare `Random.Range(...)` is CS0104: "'Random' is an ambiguous
+//   reference" and the file does not compile.
+//   The AP/C# side-by-side in the Concept Lab therefore prints the QUALIFIED call,
+//   `UnityEngine.Random.Range(0, i + 1)`, and the one blank line in the walkthrough
+//   is that call — so the ambiguity is the lesson, not an unexplained error a
+//   student hits after pasting. It is in `pitfalls` and in bug-hunt item 1.
+//
+// THE ALGORITHM, VERIFIED BEFORE TEACHING IT
+//   AP:  FOR i FROM LENGTH(list) TO 2 / r <- RANDOM(1, i) / SWAP(list[i], list[r])
+//   C#:  for (int i = list.Count - 1; i > 0; i--) / int r = Random.Range(0, i + 1);
+//   - AP lists are 1-indexed, C# lists are 0-indexed, so AP's i runs LENGTH..2 and
+//     C#'s runs (Count-1)..1. The two ranges are the same slots.
+//   - Random.Range(int, int) is MAX-EXCLUSIVE, so Range(0, i + 1) yields 0..i
+//     inclusive — which is what Fisher-Yates needs. Range(0, i) yields 0..i-1 and
+//     the slot at i can never be picked, so the last card never moves: a shuffle
+//     that is wrong in a way that still LOOKS shuffled. The reference sheet's
+//     RANDOM(a, b) row already prints this AP/Unity difference; this page says it
+//     in a `why` as well.
+//   - Deal() reads deck[0] after calling Shuffle, so a broken shuffle shows up as
+//     "the same card is always dealt first" — named in pitfalls as the observable
+//     symptom.
+//
+// Scaffolding: GUIDED (level 2), and asks.ts agrees ("how do I shuffle a deck and
+// draw from it?", level 2). The file's shape is fully given; exactly TWO lines are
+// gaps, and both carry this lesson's genuinely new idea: the random-slot call (which
+// is also where the namespace ambiguity lives) and the empty-deck guard. Everything
+// around them — the loop, the swap, the Add/RemoveAt, the index traverse — is
+// 10.2a's list vocabulary and 10.2b's assets, used for real.
+//
+// PROTECTED BLOCKS — answer ids are POSITIONAL (lessonId:shortCode:N:qN, see
+// src/lib/formify.ts), so nothing here is reordered, renumbered, added or removed.
+// Document order, item counts and REGISTERED-field counts are all as they were
+// before this lesson was put on the ladder:
+//   socratic  one <p>                 1 item  / 1 field  (10.2c:sc1:q1)
+//   bug-hunt  four <li>               4 items / 4 fields (10.2c:bh1:q1..q4)
+//   tinker    two <li>                2 items / 1 field  (10.2c:tk1:q1 — the
+//                                     second item ends in a full stop, so
+//                                     formify's isQuestion leaves it alone)
+// Only wording changed, and only where the old text contradicted the project.
+// checklist is not harvested and is the one block that was extended. No nested
+// <div> inside any of the three.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+// The three recurring questions, applied to the shuffle. Level 2, so exactly one
+// part is withheld — the random-slot line, which is the new idea and the one place
+// the C# and the AP pseudocode genuinely differ. Five parts: the overload pair is
+// "read the file", the three middle parts are the algorithm, and the last is the
+// loop that turns list positions into screen positions.
+const DECOMPOSE: DecomposeSpec = {
+  big:
+    'The starter hands you a card game whose `Shuffle` is empty twice over, whose deck can never ' +
+    'reach a hand, and whose hands are therefore always empty lists. "How do I shuffle a deck and ' +
+    'draw from it?" is not one problem. It is five: two methods sharing a name and answering to ' +
+    'different list types, an algorithm that has to be exactly right or the game is quietly ' +
+    'rigged, a swap written in the one order that does not lose a card, a move between two lists ' +
+    'that has to survive an empty deck, and a loop that turns list positions into screen positions.',
+  parts: [
+    {
+      name: 'Notice the same method name is written twice, for two different list types',
+      does:
+        '`Shuffle` has two overloads in the starter — one taking `List<Card_data>`, the deck of ScriptableObject assets from 10.2b, and one taking `List<Card>`, the components on screen. C# picks between them from the type of the argument at the call site, and `Deal()` decides which one it reaches by what it passes.',
+      doc:
+        'the two `Shuffle` signatures in `Assets/Scripts/GameManager.cs`, the two calls to them inside `Deal()`, and the `List<Card_data>` / `List<Card>` split in the field list at the top of that file — the same six Lists you counted in 10.2a.',
+    },
+    {
+      name: 'Walk the list from the end and pick a random earlier-or-equal slot',
+      doc:
+        'the `RANDOM(a, b)` row of the exam reference sheet, which prints the C# translation and warns that Unity is exclusive at the top for ints — and pattern 4, "Swap (the shuffle\'s spine)", in the Lists & Arrays reference, which names Fisher-Yates and says what makes it fair.',
+      href: '../exam/reference-sheet.html',
+      blank: true,
+    },
+    {
+      name: 'Swap the two slots through a temp, in the order that does not lose a card',
+      does:
+        'Three statements, and the order is the whole of it: copy `list[i]` into `temp` first, then write `list[r]` into `list[i]`, then write `temp` into `list[r]`. The AP pseudocode writes exactly the same three lines — `temp <- aList[i]`, `aList[i] <- aList[r]`, `aList[r] <- temp`.',
+      doc:
+        'pattern 4, "Swap (the shuffle\'s spine)", in the Lists & Arrays reference — the AP and C# columns side by side — and the same page\'s warning about which statement has to come first.',
+      href: '../docs/unit-10/lists-arrays.html',
+    },
+    {
+      name: 'Move the top card out of the deck and into the hand, and refuse when there is none',
+      does:
+        'Read `deck[0]`, hand the data to a card component, `Add` that component to the hand, and `RemoveAt(0)` from the deck — in that order, because removing first changes what index 0 even is. The guard in front of all of it is the boundary case: `deck[0]` on an empty list is the crash 10.2a\'s socratic asked you to imagine at draw #31.',
+      doc:
+        'the `APPEND(aList, item)` and `REMOVE(aList, i)` rows of the Lists & Arrays reference, that page\'s "Bug 2 — the bounds", and the socratic in 10.2a that asked what breaks at draw #31 if you never remove.',
+      href: '10.2a.html',
+    },
+    {
+      name: 'Traverse the hand by index to place every card',
+      does:
+        'A `for` loop from 0 to `Count - 1`, and the loop counter IS the screen position: `i` multiplies the spacing. The hand literally spreads because of a counter. A `foreach` visits the same cards and can do nothing with their places, because it never has an `i`.',
+      doc:
+        'the `FOR i FROM 1 TO LENGTH` row of the Lists & Arrays reference, and patterns 1 and 2 on the same page — traverse to total, and traverse with a filter — which are the same loop with a different body.',
+      href: '../docs/unit-10/lists-arrays.html',
+    },
+  ],
+  why:
+    'Three of those five parts are things you have already typed. Reading the file to see which ' +
+    'overload a call reaches is the two-minute read that opens every jam day; the three swap ' +
+    'statements are pattern 4 from 10.2a\'s lists; and moving a card from one list to another is ' +
+    '`RemoveAt` plus `Add`, which is the AP\'s `REMOVE` plus `APPEND` and which 10.2a already made ' +
+    'you translate on sight. What is left is the random slot and the empty-deck guard — and the ' +
+    'random slot is the reason this is a guided build rather than a full walkthrough. It is one ' +
+    'line, and it carries three separate things at once: AP counts list slots from 1 and C# from ' +
+    '0, the exam\'s `RANDOM(a, b)` is inclusive at both ends and Unity\'s int version is not, and ' +
+    'the word `Random` in this template names two different classes, so the call has to say which.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Shuffle a deck" ' +
+    'cannot — it is an algorithm, a list operation and a boundary case wearing one name. "How does ' +
+    'C# Remove an item from a List" can, and you have already read the row that answers it.',
+  connect: [
+    'In 10.2a you counted the starter\'s six Lists and translated APPEND, REMOVE and LENGTH on sight. Four of today\'s five parts are that table used for real. Which parts — and which row of it does the empty-deck guard stand on?',
+    'In 10.2b each card became a ScriptableObject asset, and the point was that a card dragged into three lists is still one card. Today the deck holds `Card_data` and the hand holds `Card`. Which part of the split breaks if you make the hand hold `Card_data` too — and what does the screen lose?',
+    'In 2.1 the coin count moved onto a `StatManager` singleton written in `Awake()`, which is the same pattern GameManager is running in this file — and in 8.3 a `foreach` walked every collider an area query handed back. Today\'s traverse is that loop pointed at your own hand. What does an index loop let you do that 8.3\'s `foreach` could not, and which part of the split is that?',
+  ],
+  turns: [
+    'The shuffle is the one algorithm in this unit whose bug is invisible in a single play: a silently biased deck deals the same card first again and again and still looks random. How would you test for that — and what did 9.5 teach you about believing a claim about randomness?',
+    'Your hand is a `List<Card>` and your deck is a `List<Card_data>`. If you build the discard pile the starter already declares a field for, which overload does reshuffling it need, and what does your answer say about where a shuffle method belongs?',
+  ],
+};
+
+const WALK = {
+  ask: 'how do I shuffle a deck and draw from it?',
+  file: 'Assets/Scripts/GameManager.cs',
+  intro:
+    'This is the card game template\'s own script — the one with the two empty `Shuffle` methods and the working `Deal()`. You fill both overloads with Fisher-Yates, add the draw that carries a card from the deck to the hand, and add the loop that lays the hand out by index. `Deal()` gets rewired at the end. Exactly two lines are yours to write, and both of them are the new idea.',
+  level: 2,
+  steps: [
+    {
+      title: 'Read the caller, then count the methods it can reach',
+      lead:
+        'Two minutes of reading, no writing. `Deal()` is real working code, and it already tells you which list types this file deals in — read it before you touch anything.',
+      lines: [
+        { code: '    void Deal()', what: 'The starter\'s own method. It is already written, it already runs, and it already calls the method you are about to fill in.' },
+        { code: '    {', what: '' },
+        { code: '        Shuffle(player_deck);', what: 'The first call. `player_deck` is declared as `List<Card_data>` — the ScriptableObject assets from 10.2b — so C# resolves this call to the overload that takes a `List<Card_data>` and not the other one.' , why: '**C# chooses an overload from the argument\'s type, at the call site.** That is the whole of overloading: one name, several signatures, and the compiler picks by what you pass. It means the two empty methods below are not duplicates — they are two different jobs sharing a word, and only one of them is reachable from this line.' },
+        { code: '        Shuffle(ai_deck);', what: 'The second call, and it is the same overload: `ai_deck` is a `List<Card_data>` as well. So Deal() today reaches exactly one of the two empty methods.' },
+        { code: '    }', what: '' },
+        { code: '', what: '' },
+        { code: '    void Shuffle(List<Card_data> data_hand)', what: '**Overload (a)** — the deck, empty in the starter. This is the one Deal() calls.' },
+        { code: '    {', what: '' },
+        { code: '    }', what: '' },
+        { code: '    void Shuffle(List<Card> card_hand)', what: '**Overload (b)** — the hand, also empty. Nothing in the starter calls it yet, because `player_hand` and `ai_hand` are `List<Card>` and nothing shuffles a hand today.' , why: '**Implement one and leave the other, and the other call is a silent no-op.** No error, no warning, no message in the Console: the list comes back in exactly the order it went in. C# does not warn about an unused parameter, so an empty method body is a legal method that does nothing. That is the shape of this bug — a `Shuffle(player_hand)` later in the unit that compiles, runs, and shuffles nothing, while the deck beside it works perfectly.' },
+      ],
+    },
+    {
+      title: 'Fisher-Yates, walking from the end — and the one line you write',
+      lead:
+        'The algorithm the exam prints, in C#. Walk the list from the end; at each slot, pick a random earlier-or-equal slot; swap. One line is yours — the random pick — and it is the line where the AP and C# genuinely disagree.',
+      lines: [
+        { code: '    void Shuffle(List<Card_data> data_hand)', what: 'Overload (a) again, now with a body. The parameter is the list the caller passed, so this method never needs to know it is `player_deck` rather than `ai_deck`.' },
+        { code: '    {', what: '' },
+        { code: '        for (int i = data_hand.Count - 1; i > 0; i--)', what: 'The loop, and it runs **backwards**: `i` starts at the last valid index (`Count - 1`) and stops when it reaches `1`. Read it next to the AP\'s `FOR i FROM LENGTH(list) TO 2` — AP\'s slot 1 is C#\'s slot 0, so AP\'s range `LENGTH..2` is C#\'s `(Count-1)..1`, and the two loops visit the same slots in the same order.' , why: '**Why from the end, and why stop before 0.** Working backwards means the slots behind `i` are still unshuffled and the slots ahead of it are already settled, which is what makes every ordering equally likely. And the loop stops at `1`, not `0`: when one card is left there is nothing to swap it with, because a single card is already in the only slot it can occupy. Swapping slot 0 with slot 0 would be a no-op — the AP writes that same stopping point as `TO 2` in 1-indexed slots.' },
+        { code: '        {', what: '' },
+        { code: '            int r = ______________________________________;', blank: true, what: '**Your line — the whole right-hand side.** It picks the slot to swap with: a random index from the start of the list up to and including `i`. The declaration on the left is fixed — `r` is the name the three lines below read, so do not rename it — and everything from the `=` onward is yours to work out.', hint: 'Two numbers and a class name go into it. The first number is the bottom of the range: the first slot in the list, and C# counts slots from 0 while the AP counts from 1. The second is the top, written as `i` plus one — because the exam\'s `RANDOM(a, b)` includes both ends and Unity\'s int version does not, which the `RANDOM(a, b)` row of the exam reference sheet spells out. The class name is the one the `using` lines at the top of GameManager.cs have made ambiguous: `Random` is defined by both `UnityEngine` and `Unity.Mathematics` in this template, so the call has to say which one it means. The `RANDOM(a, b)` row and the `LENGTH(aList)` row of the Lists & Arrays reference give you the indexing rule.', why: '**`UnityEngine.Random.Range(0, i + 1)` — and both halves of that matter.** The `i + 1` is the max-exclusive correction: Unity\'s int overload never returns its upper bound, so `Range(0, i)` returns `0..i-1` and the slot at `i` could never be its own partner on this pass. The last card in the list would then never move at all — a shuffle that is wrong in a way that still looks shuffled. The `UnityEngine.` is the second half. `com.unity.mathematics` is installed in this template (transitively — it is not in `Packages/manifest.json`, but `Packages/packages-lock.json` pins it at depth 2), and it defines `Unity.Mathematics.Random`; `UnityEngine` defines `Random` too. A bare `Random.Range(...)` in this file is therefore `error CS0104: \'Random\' is an ambiguous reference` and the script does not build. Qualifying the call is the fix that survives somebody adding that `using` back; deleting `using Unity.Mathematics;` from the top of the file is the other legal fix, and it is one line you would have to explain to the next person.' },
+        { code: '', what: '' },
+        { code: '            Card_data temp = data_hand[i];', what: 'The swap begins by copying the card at `i` somewhere safe. This is pattern 4 from the Lists & Arrays reference, in this file\'s own names — and it is `Card_data`, because that is what this list holds.' , why: '**The temp is not optional and the order is not optional.** Overwrite `data_hand[i]` before you have saved it and the card that was there is gone from the list entirely — the two statements below then write the same card into both slots.' },
+        { code: '            data_hand[i] = data_hand[r];', what: 'The random slot\'s card moves into slot `i`. Read it as the AP\'s `aList[i] <- aList[r]`.' },
+        { code: '            data_hand[r] = temp;', what: 'And the saved card goes into the random slot. Read it as `aList[r] <- temp`. The pair is `SWAP(list[i], list[r])` spread over three statements, exactly as the reference sheet prints it.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: 'Closes overload (a), which now shuffles. Overload (b) is still an empty body — step 3 fills it in.' },
+      ],
+    },
+    {
+      title: 'The same six lines for the other overload',
+      lead:
+        'Nothing new happens here, and that is the point: overload (b) is the loop and the swap again, with `Card` in place of `Card_data`. Type it out rather than copying, and notice that not one of the six lines changes shape.',
+      lines: [
+        { code: '    void Shuffle(List<Card> card_hand)', what: 'Overload (b) — the hand. `List<Card>` is the components, not the assets: the thing that is on screen.' , why: '**Both overloads are needed because the starter has two kinds of list, and it is not an accident.** The deck is `List<Card_data>` because a deck is data you have not played yet; the hand is `List<Card>` because a hand is something you can see and drag. The moment a later lesson reshuffles a hand — or a discard pile back into a deck — it will call this overload, and until you fill it in that call does nothing at all. It will not tell you.' },
+        { code: '    {', what: '' },
+        { code: '        for (int i = card_hand.Count - 1; i > 0; i--)', what: 'The identical loop. The only difference from overload (a) is the parameter name, which is the one thing that has to change: `data_hand` and `card_hand` are separate lists of separate types.' },
+        { code: '        {', what: '' },
+        { code: '            int r = UnityEngine.Random.Range(0, i + 1);', what: 'The line you wrote in step 2, unchanged — and here it is printed, because the shape is worth seeing twice. If your version in step 2 compiles and this one does not, the two are not the same line.' , why: '**A generic `Shuffle<T>` would remove this duplication, and this is not the lesson for it.** Generics are real C# and the exam never asks for one; two short methods are the honest version at this point in the year. If you want the exercise, it is in the Tinker.' },
+        { code: '            Card temp = card_hand[i];', what: 'The swap again, and the only other word that changes: `Card`, not `Card_data`. If you wrote `Card_data` here the file will not compile, and the error will point at this line rather than at the list it came from.' },
+        { code: '            card_hand[i] = card_hand[r];', what: 'Identical to overload (a).' },
+        { code: '            card_hand[r] = temp;', what: 'Identical to overload (a). Both overloads are now real, and a call to either one shuffles.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: '' },
+      ],
+    },
+    {
+      title: 'Draw: carry the top card from the deck into the hand',
+      lead:
+        'The starter has no draw at all — which is why its hands stay empty. Four statements and one guard, and the guard is the second line you write.',
+      lines: [
+        { code: '    void Draw(List<Card_data> deck, List<Card> hand, Vector3 where)', what: '**Three parameters, and every one of them is load-bearing.** `deck` is the `List<Card_data>` to draw from, `hand` is the `List<Card>` to draw into, and `where` is the screen position the new card appears at. The method takes them as parameters instead of reaching for `player_deck` and `player_hand` because the starter has two of each, and a draw that only worked for the player would have to be written twice.' },
+        { code: '    {', what: '' },
+        { code: '        if (________________________________) return;', blank: true, what: '**Your line — the guard, and the whole condition inside the parentheses.** It answers one question: when is there nothing left to draw? The `if`, the `return;` and the shape are given; what you write is the condition between the parentheses.', hint: 'Two pieces go inside. The first is the C# half of the `LENGTH(aList)` row in the Lists & Arrays reference — the property that answers "how many items", read off the `deck` parameter this method was handed. The second is the question you are asking of it, and the same page\'s "Bug 2 — the bounds" is about reading an index a list does not have: this line is how you refuse before you get there. `=` is the wrong operator here and the file will not build with it — one `=` assigns, and you are asking.', why: '**`deck[0]` on an empty list is not a card and not a null — it throws.** Which exception it throws is worth reading off your own Console once: the guard clause is the entire difference between a jam build and a jam crash, and the same four lines are why a real card game can survive a player who discards everything and then draws. It also keeps the shuffle honest: the deck is empty exactly when every card has been drawn, which is the state 10.2a asked you to imagine at draw #31.' },
+        { code: '', what: '' },
+        { code: '        GameObject new_card = Instantiate(blank_card, where, Quaternion.identity, canvas.transform);', what: 'The starter\'s own Instantiate line, moved here from `Deal()` verbatim — the blank card prefab, cloned at `where`, no rotation, parented to the canvas. `Deal()` no longer needs it, because it will call this method instead.' , why: '**This is why the card has to be created here and not later.** `Card.Start()` reads `data.card_name` and the rest on the first frame after the object exists, so a visual that is instantiated and left with an empty `data` throws a `NullReferenceException` in `Card.Start()` — from a line in a different file, which is why it is worth knowing about before you see it.' },
+        { code: '        new_card.GetComponent<Card>().data = deck[0];', what: 'Hand the drawn card its data. `deck[0]` is the **top** of the deck, and the top of a shuffled deck is a random card — which is the whole reason the shuffle had to be right.' , why: '**The hand holds `Card`, so the new visual has to be one.** A `Card_data` is an asset on disk; a `Card` is a component on a GameObject. `GetComponent<Card>()` is how you get from the clone you just made to the component that will be in the list.' },
+        { code: '        hand.Add(new_card.GetComponent<Card>());', what: 'The card joins the hand. This is the AP\'s `APPEND(hand, topCard)` — and it is the line the starter never had, which is why `player_hand.Count` is 0 in the template as shipped.' },
+        { code: '        deck.RemoveAt(0);', what: 'And the deck gives it up. This is the AP\'s `REMOVE(deck, 1)` — **index 1 in exam-speak**, because the exam counts list slots from 1 and C# counts from 0.' , why: '**Remove LAST, never first.** `RemoveAt(0)` shifts every remaining card down one slot, so doing it before the three lines above would leave `deck[0]` pointing at the second card — you would draw the second card and quietly lose the first. The order in this method is not style; it is the difference between a draw and a bug.' },
+        { code: '    }', what: '' },
+      ],
+    },
+    {
+      title: 'Traverse the hand by index to lay it out',
+      lead:
+        'The hand is a list, so showing it means visiting every element — and because the loop counter is also the position, this is the loop that has to be an index loop rather than a `foreach`.',
+      lines: [
+        { code: '    void LayoutHand(List<Card> hand, Vector3 origin)', what: 'A separate method, so that laying the hand out is one named thing that can be called again whenever the hand changes. Same shape as `Draw`: take the list as a parameter, do not reach for a field.' },
+        { code: '    {', what: '' },
+        { code: '        for (int i = 0; i < hand.Count; i++)', what: 'The index loop — the `FOR i FROM 1 TO LENGTH` row of the Lists & Arrays reference, written the C# way. It runs **forward** and **includes** the last card, which is the opposite of the shuffle\'s loop, and it is safe here because nothing is being removed.' , why: '**Why this one cannot be a `foreach`.** The loop counter `i` is the only thing that knows which position this card occupies, and the next line needs exactly that. A `foreach (Card c in hand)` visits the same cards in the same order and never tells you where any of them is — the loop you met in 8.3, and the right tool when the body only cares about the element.' },
+        { code: '        {', what: '' },
+        { code: '            hand[i].transform.position = origin + new Vector3(i * 160f, 0f, 0f);', what: 'Position comes straight out of the counter: card 0 sits at `origin`, card 1 one step to the right, card 2 two steps. The 160 is a number somebody chose — the card\'s width plus a gap — which is why it is a literal here and a real knob in a polished game.' , why: '**This is the line that makes the hand spread**, and it is the same "position is the index" idea the exam\'s index-loop questions are really testing. Change 160 and the fan tightens; make it negative and the hand runs off the other way. Nothing about the list changed.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: '' },
+        { code: '', what: '' },
+        { code: '        // ... and when you only need each card, not its place:', what: 'The other traversal, for contrast. This is the shape the AP calls `FOR EACH item IN aList`.' },
+        { code: '        int total = 0;', what: 'An accumulator, seeded at zero — pattern 1 in the Lists & Arrays reference, traverse to total.' },
+        { code: '        foreach (Card c in hand)', what: 'A `foreach` over the hand. No index anywhere, because this loop has nothing to say about positions.' },
+        { code: '        {', what: '' },
+        { code: '            total += c.data.cost;', what: 'Notice the `.data`: `c` is a `Card` component, and the cost lives on the `Card_data` asset it points at. `Card.cs` also copies the value into its own `cost` field in `Start()`, so `c.cost` would work too — but the asset is the source of truth, and reading it there cannot go stale.', why: '**This is the traverse-with-a-filter question from the exam, in your own game.** "Sum the cost of every card in hand" is this loop with a `+` in it; "sum the cost of the cards you can afford" is the same loop with an `if` inside — pattern 2 on that reference page. Write both in AP pseudocode with these names before you write them in C#.' },
+        { code: '        }', what: '' },
+      ],
+    },
+    {
+      title: 'Rewire Deal() and prove the shuffle is real',
+      lead:
+        'The starter\'s `Deal()` did its own instantiating and never touched the hands. Now that `Draw` does that work, `Deal()` gets shorter — and the game gets a real hand for the first time.',
+      lines: [
+        { code: '    void Deal()', what: 'The method you read in step 1, with its body replaced.' },
+        { code: '    {', what: '' },
+        { code: '        Shuffle(player_deck);', what: 'Unchanged from the starter — and it matters that this runs **before** the draws. `Draw` takes `deck[0]`, so whatever card the shuffle left at the top is the card that gets dealt.' },
+        { code: '        Shuffle(ai_deck);', what: 'Unchanged. Both decks are shuffled before either is drawn from, and neither shuffle can reach the other deck, because each call passes one list.' },
+        { code: '', what: '' },
+        { code: '        Draw(player_deck, player_hand, player_hand_location);', what: 'One card from the player\'s deck onto the player\'s hand, at the player\'s position. The two `Instantiate` blocks the starter had here are gone — `Draw` does that work now, and it does it into the hand instead of into thin air.' },
+        { code: '        Draw(ai_deck, ai_hand, ai_hand_location);', what: 'The same line for the other side. `ai_hand_location` is computed in `Start()` as the player\'s position plus 350 up, and that line is untouched.' },
+        { code: '', what: '' },
+        { code: '        player_hand[0].GetComponent<DraggableUI>().enabled = false;', what: 'The starter\'s own line, and it still works: `player_hand[0]` is now a `Card` component, so `GetComponent<DraggableUI>()` finds the drag behaviour on the same GameObject. The player\'s drawn card is not draggable — for now.' , why: '**What actually changed here, and it is the biggest thing on this page.** The starter\'s `Deal()` instantiated a visual, assigned its data, and then dropped the reference — so `player_hand` and `ai_hand` stayed **empty** no matter how many cards were on screen. Every loop over a hand therefore did nothing, silently. `Draw` puts the card into the list as well as onto the canvas, so from today the hand is a real list you can traverse, count and lay out. That is what makes any of the turn logic possible at all.' },
+        { code: '    }', what: '' },
+        { code: '', what: '' },
+        { code: '// Prove it in the Console, then delete the proof:', what: 'One run with a `Debug.Log(player_hand.Count + " in hand, " + player_deck.Count + " left in deck");` at the end of `Deal()` should print `1 in hand, 29 left in deck` if your deck is thirty cards. Then **delete the log** — a print that survives into the next lesson is noise you will read past.' },
+        { code: '// Prove the shuffle is not rigged:', what: 'Play the scene ten times and watch which card is dealt first. Ten identical first cards is not luck — it is the off-by-one in `Range(0, i)` (see the pitfalls). Ten different ones is a shuffle you can trust. The Tinker asks you to make this a real count rather than ten glances.' },
+      ],
+    },
+  ],
+  pitfalls: [
+    { mistake: '`Random.Range(0, i)` written instead of `UnityEngine.Random.Range(0, i + 1)`', symptom: 'The deck comes back shuffled, and one card never moves. Play the scene a few times and the same card is dealt first again and again — the shuffle looks random and is not.', fix: 'Unity\'s int overload is **max-exclusive**, so `Range(0, i)` returns `0..i-1` and the slot at `i` can never be chosen on that pass. The AP\'s `RANDOM(a, b)` includes both ends, so the translation is `Range(a, b + 1)` — the same row the exam reference sheet prints, with the warning attached.' },
+    { mistake: 'a bare `Random.Range(...)` inside GameManager.cs', symptom: 'The project does not compile: `error CS0104: \'Random\' is an ambiguous reference between \'UnityEngine.Random\' and \'Unity.Mathematics.Random\'`, pointing at the random-pick line.', fix: 'This template has `com.unity.mathematics` installed (transitively — `Packages/packages-lock.json` pins it at depth 2) and `GameManager.cs` has `using Unity.Mathematics;` at the top, so the short name genuinely names two classes. Write `UnityEngine.Random.Range(0, i + 1)`, or delete the `using Unity.Mathematics;` line. Qualifying the one call is the habit that survives somebody adding the `using` back.' },
+    { mistake: 'only one of the two `Shuffle` overloads implemented', symptom: 'Everything looks right, and a `Shuffle(player_hand)` somewhere later does nothing at all. No error, no warning, no Console message — the list comes back in the order it went in, and only the deck is ever actually shuffled.', fix: 'Fill in both. C# picks the overload from the argument\'s type at the call site, and an empty method body with an unused parameter is entirely legal C# — which is exactly why this one is invisible. If your deck shuffles and your hand does not, this is why.' },
+    { mistake: '`Draw` written with no guard against an empty deck', symptom: '`ArgumentOutOfRangeException` from the line that reads `deck[0]`, the moment somebody draws from a deck that has run out — a crash rather than a rule.', fix: 'Check the count and return before you touch index 0. The guard is the only reason a player who discards everything can still press draw without killing the game, and the same check is what a reshuffle-the-discard-pile feature will hang off later.' },
+    { mistake: '`deck.RemoveAt(0)` written before `deck[0]` is read', symptom: 'The draw works, the counts are right, and the cards are subtly wrong: you are drawing the **second** card every time and silently dropping the top one. Nothing errors, and the missing card only shows up when the deck is empty early.', fix: 'Read `deck[0]` first, use it, and remove last. `RemoveAt(0)` shifts every remaining card down a slot, so the order of these statements decides which card index 0 refers to.' },
+    { mistake: 'a card visual instantiated without its `Card_data` assigned', symptom: '`NullReferenceException` in `Card.Start()`, from a file you were not editing — the new card exists on screen and never gets a name, a cost or a sprite.', fix: '`Card.Start()` reads `data.card_name` on the first frame, so `data` has to be set before then. `Draw` sets it on the line right after the `Instantiate`, in the same frame — which is why `Instantiate` and the assignment belong in the same method and in that order.' },
+  ],
+  finalFile: `using System.Collections;
+using System.Collections.Generic;
+using Unity.Mathematics;
+using UnityEngine;
+
+public class GameManager : MonoBehaviour
+{
+    public static GameManager gm;
+
+    // The decks are Card_data (the 10.2b assets); the hands and the piles are
+    // Card (the components on screen). Two element types, so two Shuffle overloads.
+    public List<Card_data> player_deck = new List<Card_data>();
+    public List<Card_data> ai_deck = new List<Card_data>();
+    public List<Card> player_hand = new List<Card>();
+    public List<Card> ai_hand = new List<Card>();
+    public List<Card> player_discard_pile = new List<Card>();
+    public List<Card> ai_discard_pile = new List<Card>();
+
+    public Canvas canvas;
+    public GameObject blank_card;
+    public Vector3 player_hand_location;
+    public Vector3 ai_hand_location;
+
+    private void Awake()
+    {
+        if (gm != null && gm != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            gm = this;
+            DontDestroyOnLoad(this.gameObject);
+        }
+    }
+
+    void Start()
+    {
+        canvas = FindAnyObjectByType<Canvas>();
+        ai_hand_location = player_hand_location + new Vector3(0, 350, 0);
+
+        Deal();
+    }
+
+    void Deal()
+    {
+        // Shuffle both decks BEFORE anything is drawn: Draw takes deck[0],
+        // so whoever the shuffle left on top is who gets dealt.
+        Shuffle(player_deck);
+        Shuffle(ai_deck);
+
+        Draw(player_deck, player_hand, player_hand_location);
+        Draw(ai_deck, ai_hand, ai_hand_location);
+
+        // The starter's own line, now reading the hand Draw just filled.
+        player_hand[0].GetComponent<DraggableUI>().enabled = false;
+    }
+
+    // Fisher-Yates, overload (a) — the decks. Walk from the end; at each slot
+    // pick a random earlier-or-equal slot; swap through a temp.
+    // AP: FOR i FROM LENGTH TO 2 / r <- RANDOM(1, i) / SWAP(list[i], list[r])
+    void Shuffle(List<Card_data> data_hand)
+    {
+        for (int i = data_hand.Count - 1; i > 0; i--)
+        {
+            // Range is MAX-EXCLUSIVE for ints, so i + 1 makes the range 0..i —
+            // and UnityEngine. is required: Unity.Mathematics.Random is also
+            // in scope in this file (see the pitfalls).
+            int r = UnityEngine.Random.Range(0, i + 1);
+
+            Card_data temp = data_hand[i];
+            data_hand[i] = data_hand[r];
+            data_hand[r] = temp;
+        }
+    }
+
+    // The same six lines, for the hands and piles. Copy, do not guess: an empty
+    // body here is a silent no-op, and nothing in C# will warn you about it.
+    void Shuffle(List<Card> card_hand)
+    {
+        for (int i = card_hand.Count - 1; i > 0; i--)
+        {
+            int r = UnityEngine.Random.Range(0, i + 1);
+
+            Card temp = card_hand[i];
+            card_hand[i] = card_hand[r];
+            card_hand[r] = temp;
+        }
+    }
+
+    // Move the top of a deck into a hand, and put it on screen while you do it.
+    void Draw(List<Card_data> deck, List<Card> hand, Vector3 where)
+    {
+        // The boundary: deck[0] on an empty list is a crash, not a null.
+        if (deck.Count == 0) return;
+
+        GameObject new_card = Instantiate(blank_card, where, Quaternion.identity, canvas.transform);
+
+        // Read the top FIRST — RemoveAt(0) below would shift a different card
+        // into index 0.
+        new_card.GetComponent<Card>().data = deck[0];
+        hand.Add(new_card.GetComponent<Card>());
+        deck.RemoveAt(0);
+    }
+
+    // Position IS the index: the hand spreads because of a loop counter.
+    // This one cannot be a foreach — a foreach has no i.
+    void LayoutHand(List<Card> hand, Vector3 origin)
+    {
+        for (int i = 0; i < hand.Count; i++)
+        {
+            hand[i].transform.position = origin + new Vector3(i * 160f, 0f, 0f);
+        }
+    }
+
+    void AI_Turn()
+    {
+        // The next lesson's problem.
+    }
+}
+
+// The two loops side by side, for reference:
+//
+//   index loop  — you NEED i for positions:
+//     for (int i = 0; i < hand.Count; i++) { Layout(hand[i], i); }
+//
+//   foreach     — you only need each card:
+//     int total = 0;
+//     foreach (Card c in hand) { total += c.data.cost; }`,
+  finalNote:
+    'Compare against your own file rather than copying it. Three things have to match and nothing else does: **both** `Shuffle` overloads are filled in, the random pick is `UnityEngine.Random.Range(0, i + 1)` with the max-exclusive `+ 1` and the qualified class name, and `Draw` reads `deck[0]` **before** it removes it, behind the empty-deck guard. Your parameter names, your spacing constant, your deck size and everything `Deal()` does after the two draws are yours. The gap line is the one that carries the whole lesson: it is the only place the AP pseudocode and C# genuinely disagree, in three ways at once.',
+};
 
 const body = `<h1>10.2c — Decks: Shuffle, Draw &amp; Traverse</h1>
 
 <p class="lesson-lead">
-    The starter's <code>Shuffle()</code> is EMPTY — check your copy.
-    That emptiness is a gift: the single most exam-famous algorithm
-    of the year, left in the seat where you sit. Today you implement
-    the shuffle, wire the draw, and traverse a hand to render it.
+    The starter's <code>Shuffle()</code> is EMPTY — check your copy, and
+    count the methods while you are there, because there are two of them.
+    That emptiness is a gift: the single most exam-famous algorithm of the
+    year, left in the seat where you sit. Today you implement the shuffle,
+    wire the draw the starter never had, and traverse a hand to render it.
 </p>
+
+${renderAskBanner('how do I shuffle a deck and draw from it?', 2)}
+
+${renderDecompose('10.2c', DECOMPOSE, 2)}
 
 <!-- ============================================================ -->
 <div class="activity rpg">
     <div class="activity-header">
         <span class="activity-label">Concept Lab</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <p><strong>Fisher-Yates, in exam language.</strong> The AP
     pseudocode for a shuffle (know BOTH languages):</p>
     <pre><code>AP:                                C#:
 FOR i FROM LENGTH(list) TO 2     for (int i = list.Count - 1; i &gt; 0; i--)
-    r ← RANDOM(1, i)                 int r = Random.Range(0, i + 1);
-    SWAP(list[i], list[r])           (card temp = list[i];
+    r ← RANDOM(1, i)                 int r = UnityEngine.Random.Range(0, i + 1);
+    SWAP(list[i], list[r])           Card_data temp = list[i];
                                      list[i] = list[r];
-                                     list[r] = temp;)</code></pre>
+                                     list[r] = temp;</code></pre>
     <p>Read it as a story: walk the list from the END; at each
     position, pick a random EARLIER-or-equal position; swap. Every
     card gets exactly one chance at every slot — that fairness
     (uniform distribution) is why this is THE textbook shuffle, not
     a vibe shuffle.</p>
+
+    <p><strong>Two translations, and both bite.</strong> AP lists
+    are <strong>1-indexed</strong> and C# lists are
+    <strong>0-indexed</strong>, so AP's slots <code>LENGTH..2</code>
+    are C#'s <code>(Count-1)..1</code> — the same slots, written two
+    ways. And AP's <code>RANDOM(a, b)</code> includes BOTH ends
+    while Unity's <code>Random.Range(a, b)</code> for ints excludes
+    the top, which is why the C# column says <code>i + 1</code>.
+    Write <code>Range(0, i)</code> and the slot at <code>i</code>
+    can never be picked, the last card never moves, and the deck
+    still <em>looks</em> shuffled. The
+    <a href="../exam/reference-sheet.html">exam reference sheet</a>'s
+    RANDOM row prints this same AP-to-C# difference; the
+    <a href="../docs/unit-10/lists-arrays.html">Lists &amp; Arrays</a>
+    reference prints the swap as pattern 4.</p>
+
+    <div class="callout trap">
+        <strong>Why the call says <code>UnityEngine.</code> out loud.</strong>
+        This template installs <code>com.unity.mathematics</code> —
+        not directly, but pinned in <code>Packages/packages-lock.json</code>
+        as a dependency of something else — and <code>GameManager.cs</code>
+        has <code>using Unity.Mathematics;</code> at the top. That
+        package defines <code>Unity.Mathematics.Random</code>;
+        <code>UnityEngine</code> defines <code>Random</code> too. So a
+        bare <code>Random.Range(...)</code> in that one file is
+        <code>CS0104: 'Random' is an ambiguous reference</code> and the
+        game will not build. Two legal fixes: fully qualify the call, or
+        delete the <code>using Unity.Mathematics;</code> line. The AP
+        exam never tests namespace resolution. Every real C# codebase
+        does.
+    </div>
 
     <div class="socratic">
         <h3>Socratic</h3>
@@ -47,61 +509,32 @@ FOR i FROM LENGTH(list) TO 2     for (int i = list.Count - 1; i &gt; 0; i--)
 </div>
 
 <!-- ============================================================ -->
+${renderWalkthrough(WALK)}
+
+<!-- ============================================================ -->
 <div class="activity rpg">
     <div class="activity-header">
         <span class="activity-label">Build Lab</span>
         <span class="activity-time">~35 min</span>
     </div>
 
-    <p><strong>Step 1 — fill the empty method.</strong> In
-    GameManager, implement Shuffle() with the C# above (rename to
-    your list's name — read the starter's Deal() first: it is
-    PARTIALLY implemented, and it shows you the intended list
-    names and the card flow).</p>
-
-    <p><strong>Step 2 — the draw, in the starter's voice:</strong></p>
-    <pre><code>public void Draw()
-{
-    if (deck.Count == 0)
-    {
-        // reshuffle the discard pile into the deck — the loop of loops
-        return;
-    }
-    Card topCard = deck[0];
-    deck.RemoveAt(0);      // AP: REMOVE(deck, 1)  — index 1 in exam-speak!
-    hand.Add(topCard);    // AP: APPEND(hand, topCard)
-}</code></pre>
-    <p>Check the boundary: draw from an EMPTY deck crashes
-    (deck[0] does not exist). The guard clause is the whole
-    difference between a jam build and a jam crash.</p>
-
-    <p><strong>Step 3 — traverse to render.</strong> A hand is a
-    list; showing it means visiting every element. Two traversal
-    styles, both in the exam:</p>
-    <pre><code>// index loop — you NEED i for positions:
-for (int i = 0; i &lt; hand.Count; i++)
-{
-    SpawnCardVisual(hand[i], i);
-}
-
-// foreach — you only need each card:
-foreach (Card c in hand) { Debug.Log(c.cardName); }</code></pre>
-    <p>Spawn your card prefabs across the screen by index (i sets
-    the x position — the hand literally spreads because of a
-    loop counter). Why does the index loop earn its extra ceremony
-    here? Because position IS the index.</p>
-
-    <p><strong>Step 4 — the AP traverse question, answered by
-    your own game:</strong> "sum the cost of all cards in hand" —
-    write it in exam pseudocode with your game's real names, then
-    prove the answer with a Debug.Log total.</p>
+    <p><strong>Build it, then break it on purpose.</strong> The
+    walkthrough above leaves you a working shuffle, a working draw
+    and a hand that finally holds something. Everything below is what
+    goes wrong next — and every one of these four is a bug somebody
+    in this room will actually write.</p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: The shuffle bugs</h3>
         <ol>
-            <li>Random.Range(0, i) instead of (0, i + 1). Which
-                card can NEVER move? (The last one! Why — trace
-                i's first value.)</li>
+            <li><code>Random.Range(0, i)</code> instead of
+                <code>(0, i + 1)</code>. Trace <code>i</code>'s
+                first value: which slot is never chosen on that
+                pass, and which single card can therefore NEVER
+                move at all? And while you are in that line — why
+                does a bare <code>Random.Range</code> not compile
+                in this file, when it compiles fine everywhere
+                else in the course?</li>
             <li>Swapping with a temp VARIABLE FORGOTTEN: list[i] =
                 list[r]; list[r] = list[i]; — what does the deck
                 become, and why does it LOOK shuffled at a
@@ -141,8 +574,11 @@ foreach (Card c in hand) { Debug.Log(c.cardName); }</code></pre>
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
             <li>Implement Fisher-Yates in C# and match it line by line to AP pseudocode</li>
-            <li>Draw safely with the empty-deck guard</li>
-            <li>Render a hand by index loop (position = index)</li>
+            <li>Explain why the C# range is <code>(0, i + 1)</code> and not <code>(0, i)</code></li>
+            <li>Say why <code>UnityEngine.Random</code> has to be spelled out in this file</li>
+            <li>Implement BOTH <code>Shuffle</code> overloads, and say what breaks if you skip one</li>
+            <li>Draw safely with the empty-deck guard, reading the top card before removing it</li>
+            <li>Render a hand by index loop (position = index), and say why a foreach cannot</li>
             <li>Explain remove-while-traversing and its backward fix</li>
         </ul>
     </div>
@@ -155,6 +591,9 @@ foreach (Card c in hand) { Debug.Log(c.cardName); }</code></pre>
     <ul>
         <li><a href="../docs/unit-10/lists-arrays.html">Lists &amp; Arrays</a> — shuffles, traversals, the works</li>
         <li><a href="../exam/reference-sheet.html">Exam Reference Sheet</a> — RANDOM, SWAP, traversals</li>
+        <li><a href="10.2a.html">10.2a — Card Jam Kickoff</a> — the starter's six Lists, and the AP-to-C# table these methods use</li>
+        <li><a href="10.2b.html">10.2b — ScriptableObjects</a> — the card assets the deck is made of</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
     </ul>
     <p>Next: <a href="10.2d.html">10.2d — Turn Logic: Selection + Iteration</a></p>
 </div>`;

@@ -4,7 +4,493 @@
 // CORRECTED: Physics2D.queriesHitTriggers defaults to TRUE, so raycasts and
 // overlaps DO return trigger colliders. A layer mask is the real tool, not
 // the hope that triggers are invisible to queries.
+//
+// RUNG: 2 (guided build). The new mechanism here is a query about an AREA that
+// comes back with a LIST — every query in the course before this one (the
+// ground check in 6.2, the turret's range check in 3.1, the pickups in 2.1)
+// asked about a point or a line and got one answer. So the shape of the file
+// is given in full and exactly one line is left for the student: the overlap
+// call itself. Everything around it is prior work — a trigger collider (2.1),
+// a `LayerMask` (6.2, 7.2), the `Time.time` cooldown (3.3), a signed damage
+// method (5.3) called on the boss's health (8.2).
+//
+// GROUND TRUTH (verified by reading AP_CS_P_Starter_Project, Unity 6000.6.0f1,
+// and the earlier lessons — not by trusting this page's earlier draft):
+//
+//   ProjectSettings/Physics2DSettings.asset
+//     m_QueriesHitTriggers: 1  — queries DO return trigger colliders, so the
+//       whole first activity is load-bearing and correct. It is the Unity
+//       default, not a local setting.
+//     m_QueriesStartInColliders: 1 — a query that STARTS inside a collider can
+//       report that collider, which is why the hitbox's own overlap of the
+//       Player's CircleCollider2D is a real concern and the mask is not
+//       optional.
+//
+//   Layers — CORRECTED. The draft of this page said "This project has no
+//     custom physics layers yet". That is FALSE by Unit 8: 6.2 has the student
+//     create `Ground`, and 7.2 says "You already created Ground back in 6.2"
+//     and adds `Player`, `Enemy`, `Projectile` and `Decoration`. The cell now
+//     says the buckets exist and the mask is what has to name them.
+//
+//   Docs — CORRECTED. The resources line described
+//     ../docs/reference/unity-csharp-quickref.html as "the Physics2D query
+//     family and layer masks". That page has NO Physics2D query rows and NO
+//     layer-mask rows; its rows are vars, loops, input, transform, Time,
+//     Instantiate/Destroy, collision callbacks, Animator, Mathf, List — plus
+//     the `if (Time.time >= last + cooldown)` pattern and the sprite-mirror
+//     line this script actually uses. The description now says that.
+//
+//   Player.prefab — root: Transform + PlayerController, tag `Player`, layer 0.
+//     NO Rigidbody2D and NO Collider2D (both are the student's work in 2.1).
+//     The only child is `Sprite` at local position (0, 0.6, -1), localScale 2
+//     — which is why the hitbox must be parented to the ROOT and not to
+//     `Sprite`, and why `flipX` (a render mirror) moves no collider.
+//
+//   The damage convention is `TakeDamage(int amount)` with a SIGNED amount:
+//     positive hurts, negative heals (2.2 → moved onto StatManager in 5.3).
+//     8.2 has the student write the same shape on the boss, so the walkthrough
+//     passes a positive `attackDamage`. The boss health script's NAME is the
+//     student's own, from 8.2 — the walkthrough says so rather than asserting
+//     one.
+//
+// PROTECTED BLOCKS (formify.ts harvests bug-hunt / tinker / socratic; the
+// answer ids are POSITIONAL, so the item count, the document order and the set
+// of items that receive a box are what fix every saved answer). Baseline taken
+// before this edit and preserved byte-for-byte:
+//
+//   socratic  "Sensors and the Questions They Answer"   6 <li>, 6 boxes
+//   socratic  "Predict Before Building"                 5 <li>, 5 boxes
+//   bug-hunt  "What the Hitbox Touches That It Should Not" 6 <li>, 6 boxes
+//   tinker    "Combat Feel and One Optional Upgrade"    5 <li>, 4 boxes
+//             (item 5 is the commit-and-push instruction — statement-shaped,
+//              no box — exactly as in 6.2)
+//   checklist NOT a formify target (7 <li>, kept for continuity)
+//
+// No nested <div> inside any protected block — formify's regex is non-greedy
+// and a nested div truncates the block.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+// The three recurring questions, applied to the swing. Level 2, so exactly one
+// part is withheld — the one with no precedent anywhere earlier in the course.
+// A trigger shape is 2.1, a mask is 6.2 and 7.2, a rate limit plus a window is
+// 3.3, and calling a signed damage method on something you found is 5.3 and
+// 8.2. The gap is the part that asks about an AREA and gets back a list.
+const DECOMPOSE: DecomposeSpec = {
+  big:
+    'You have a swing animation, an axe sprite, and — since 8.2 — a boss whose health goes ' +
+    'down when something subtracts from it. Nothing joins them up. "Make my swing hurt ' +
+    'something" is really four smaller questions: where is the blade, who is allowed to be ' +
+    'in the answer, when is the swing live, and what do you do with the collider you found? ' +
+    'Three of those you have built before. One you have not.',
+  parts: [
+    {
+      name: 'Stand a shape where the blade is',
+      does:
+        'An empty child of the Player called `AttackHitbox` carrying a `BoxCollider2D` with **Is Trigger** ticked, about one tile in front and parented to the root. A trigger reports overlaps instead of pushing things — the coin\'s collider from 2.1 doing a new job.',
+      doc:
+        'the trigger collider you added to the coin in 2.1 — the same component, on an object that exists for a fifth of a second instead of forever',
+      href: '2.1.html',
+    },
+    {
+      name: 'Decide who the question may notice',
+      does:
+        'A `LayerMask` on the query rather than on the shape. The buckets are already in the project — `Ground` from 6.2, and `Player`, `Enemy`, `Projectile` and `Decoration` from 7.2 — so this part is a decision about which one the boss is really in, plus a mask that names it and nothing else.',
+      doc:
+        'the layers you made in 7.2, and the four-tool table in the first activity on this page — the argument for narrowing the question instead of the world',
+      href: '7.2.html',
+    },
+    {
+      name: 'Open a window and let it close itself',
+      does:
+        'Two floats and two comparisons: one that stops a swing happening sixty times a second, and one that keeps the shape live for a moment longer than the single frame you clicked on. The turret\'s fire rate from 3.3 is the same mechanism under a different name.',
+      doc:
+        'the cooldown you built in 3.3 — `cooldown`, `lastAttackTime`, and the seeded first value that means "there has been no last shot"',
+      href: '3.3.html',
+    },
+    {
+      name: 'Ask the engine what is inside the shape',
+      doc:
+        'the `Physics2D.OverlapBoxAll` page in the Unity scripting reference — a point, a size, an angle and a `LayerMask`, handing back an **array** of colliders — and the third architectural specification in the build lab on this page',
+      blank: true,
+    },
+    {
+      name: 'Turn what you found into a number going down',
+      does:
+        'From each collider the query handed back to the script that owns the boss\'s health, then one call to its signed-amount method. A positive amount hurts and a negative one heals — the rule from 5.3, and the method 8.2 had you write.',
+      doc:
+        'the boss health method you wrote in 8.2, and the signed-amount rule that moved onto `StatManager` in 5.3',
+      href: '8.2.html',
+    },
+  ],
+  why:
+    'Four of those five parts are work you have already done or already read. Only one has no ' +
+    'precedent in this course, and it is a small change with a large consequence: every query ' +
+    'you have written so far — the ground check from 6.2, the turret\'s range check from 3.1, ' +
+    'the pickups in 2.1 — asks about a **point** or a **line**, and the answer is always one ' +
+    'thing. This query asks about an **area**, and the answer is a list. That is why the part ' +
+    'after it is a loop and not an `if`, and why those two parts are separate problems rather ' +
+    'than one.',
+  sizeTest:
+    'The test: could you look this part up on your own, right now, in one search? "Make the ' +
+    'swing hurt the boss" cannot be looked up. "Give me every collider inside a box, on one ' +
+    'layer" can — and the page you land on hands you four arguments in a fixed order and a ' +
+    'result type that is already an array.',
+  connect: [
+    'In 2.1 you ticked **Is Trigger** on the coin so it would report a contact instead of shoving the player, and in 8.2 you gave the boss a collider of its own. Which part above is that same trigger again — and what is different about a shape that exists for a moment and then closes?',
+    'In 3.3 you built a fire rate out of two floats, and you wrote the first value as one interval in the past so that "there has been no last shot" needed no special case. Which part above is that mechanism again, and why does a swing need it as much as a turret did?',
+    'In 5.3 the damage method took a signed amount, where a positive number hurts and a negative one heals. Which part above carries that sign, and what would the fight look like if you got it backwards?',
+    'In 8.2 you wrote the method that subtracts from the boss\'s health and watched it fall in the Console. Which part above is the thing that finally calls it — and what did that lesson deliberately leave for this one?',
+  ],
+  turns: [
+    'Your ground check from 6.2 and today\'s swing query both ask the physics engine about colliders. Say which of the two can come back with more than one answer, and what each one does with the answer it gets.',
+    'The window is what stops a swing being decided by a single frame. Name one other place in this project where state exists for a short time and then closes — and say what would break if it never did.',
+  ],
+};
+
+const WALK = {
+  ask: 'how do I make my swing actually hurt something?',
+  file: 'Assets/Scripts/PlayerController.cs',
+  intro:
+    'One empty child object carrying a trigger box, six Inspector fields, a branch you already ' +
+    'wrote in 1.6 with three lines added to it, and one new method. The only line here with no ' +
+    'precedent in the course is the query itself: every question you have asked the physics ' +
+    'engine until now has come back with a single answer, and this one comes back with a list.',
+  level: 2,
+  steps: [
+    {
+      title: 'Build the shape the question is asked about — this step is not code',
+      lead: 'Every physics question in Unity is asked about a shape, and this is the only thing in the lesson you place by hand.',
+      lines: [
+        {
+          code: '// Assets/Prefabs/Player ▸ right-click ▸ Create Empty     rename it  AttackHitbox',
+          what: 'Make it a **child of the Player root**, not of the child called `Sprite`. It is a `Transform` and nothing else — no renderer, no script — exactly like the `GroundCheck` empty you made in 6.2.',
+          why: '**Where you parent it decides what its position means.** `Sprite` is scaled to 2 on this prefab, and a child of a scaled object is scaled with it — so a box you size as one tile would arrive as two. Parented to the root, one unit is one unit. Read the `Sprite` child\'s Transform while you are there; 6.2 had you look at the same numbers for the same reason.',
+        },
+        {
+          code: '// AttackHitbox ▸ Add Component ▸ Box Collider 2D     ▸ Is Trigger ticked     ▸ Size about (1.2, 1)',
+          what: 'A `BoxCollider2D` a little wider than one tile and one tile tall, with **Is Trigger** ticked. A trigger reports overlaps instead of pushing things, which is the coin\'s collider from 2.1 wearing a new job.',
+          why: '**Ticking Is Trigger is what makes this shape harmless — and it is also what leaves it visible to every query in the game.** This project ships `Queries Hit Triggers` ticked, which is the fact the first activity on this page is built on. A trigger is a full participant in every physics question anyone asks, and that is exactly why the mask in the next step is not optional.',
+        },
+        {
+          code: '// AttackHitbox ▸ Transform ▸ Position about (0.6, 0, 0)   // one tile in front, on +x',
+          what: 'Put it in front of the player, on the right. Step 3 moves it from code when the player faces the other way, so this is a starting position rather than a fixed one.',
+          why: '**Look at what the box covers: it runs from the player\'s centre outward.** That is deliberate — a blade that only reaches where the player is not is a blade that misses. It also means the box overlaps the Player\'s own `CircleCollider2D` from 2.1, and this project also ships `Queries Start In Colliders` ticked, so a query that starts inside your own body can report your own body. Two reasons the mask is doing real work here.',
+        },
+        { code: '', what: '' },
+        {
+          code: '// AttackHitbox ▸ Layer stays Default',
+          what: '**The layer decision lives on the query, not on the shape.** The four-tool table at the top of this page priced all four options; you are choosing the first one — narrow the question rather than the world.',
+          why: '**You already own the buckets, so there is nothing new to create.** `Ground` came from 6.2, and `Player`, `Enemy`, `Projectile` and `Decoration` came from 7.2. What has never happened yet is a query naming one of them. Check which layer your boss is actually on while you are here: it was assembled from an enemy prefab in 8.2, so it should be `Enemy` — and "should be" is not a reading. Open its Inspector and look.',
+        },
+      ],
+    },
+    {
+      title: 'Declare the shape, the reach, the damage, the filter and two clocks',
+      lead: 'Eight lines in the class body, beside `moveSpeed` and the ground-check fields from 6.2. Six are `[SerializeField]` knobs — the pattern from 1.3 — and two are the state that makes a swing a moment rather than a frame.',
+      lines: [
+        {
+          code: '    [SerializeField] private Transform attackHitbox;',
+          what: 'The slot that holds the empty child from step 1. The same kind of slot as `groundCheck` in 6.2: a reference to another object, wired from the Inspector instead of looked up in code.',
+          why: '**Wire it before you press Play, not after.** An empty slot says nothing when the scene loads and throws a `NullReferenceException` on the first line that reads it — and step 3 reads this one every time you click.',
+        },
+        {
+          code: '    [SerializeField] private Vector2 hitboxSize = new Vector2(1.2f, 1f);',
+          what: 'The size of the box the query will ask about — the same two numbers you typed into the collider in step 1. A `Vector2` is a pair of floats: you have been building them since 1.4.',
+          why: '**The query takes a size, not a collider**, so these numbers now exist twice in your project: once on the shape you can see, once on the question you ask. Keep them equal — and know which one the physics engine actually reads. It is this one, not the collider\'s.',
+        },
+        {
+          code: '    [SerializeField] private int attackDamage = 1;',
+          what: 'How much one landed swing takes off the boss. An `int`, because the method you call in step 4 takes an `int`.',
+          why: '**And a positive number, because that amount is signed.** 5.3 made the rule explicit when the method moved onto `StatManager`: a positive amount hurts and a negative one heals. Pass `-1` here and your attack becomes a healing spell the boss will thank you for.',
+        },
+        {
+          code: '    [SerializeField] private LayerMask bossLayer;',
+          what: '**What the query is allowed to notice.** The same type as `groundLayer` in 6.2, drawn in the Inspector as a dropdown of layer names rather than a number.',
+          why: '**Leave it empty and the query reports nothing, with no error at all.** That is a mask\'s failure mode, and it is why 6.2 had you test the ground check with a deliberately empty one. Point it at the layer the boss is on — and at nothing else, unless you have decided a swing should also hit scenery.',
+        },
+        { code: '', what: '' },
+        {
+          code: '    [SerializeField] private float attackCooldown = 0.5f;',
+          what: 'The shortest gap between two swings — your turret\'s fire rate from 3.3, moved onto a melee attack. The value is a starting guess you tune against the animation.',
+        },
+        {
+          code: '    [SerializeField] private float damageWindow = 0.2f;',
+          what: 'How long the shape stays live after a click. A fifth of a second, which is also a starting guess rather than a measurement.',
+        },
+        {
+          code: '    private float nextAttackTime;',
+          what: 'The earliest `Time.time` at which another swing may start. `Time.time` is the seconds since the game started — the clock from 3.3.',
+          why: '**It needs no seed, and that is worth noticing.** 3.3 wrote its first value as one cooldown *before* the clock started, because a turret could otherwise fire on frame one. A `float` field already starts at `0`, and `Time.time` is past zero on the first frame you could possibly click — so `0` is a time in the past, which is exactly what "there has been no last swing" means.',
+        },
+        {
+          code: '    private float windowClosesAt;',
+          what: 'The `Time.time` value at which the damage window shuts. While the clock is below it, the swing is live.',
+          why: '**A deadline, not a `bool`.** `isAttacking = true` has to be set back to `false` by something, and that something is always a second place that has to remember to do it. A deadline needs nothing to switch it off: it arrives. The only place you write this field is the click that opens it and the hit that closes it early.',
+        },
+      ],
+    },
+    {
+      title: 'Open the window inside the click branch you already wrote',
+      lead: '`CheckAttack()` in your file already reads mouse button 0 and fires the `Attack` trigger — that is 1.6. Today it gets a gate in front of it and three lines inside it.',
+      lines: [
+        {
+          code: '        if (Input.GetMouseButtonDown(0) && Time.time >= nextAttackTime)',
+          what: 'The click from 1.6 with one term added: the clock must have passed the earliest time the next swing is allowed. Two questions in one `if` — the same folded `&&` guard you built into the lever in 5.2 and the jump in 6.2.',
+          why: '**`GetMouseButtonDown` is true on exactly one frame, so this gate is not protecting against the click — it is protecting against the player clicking again.** Hold the button down and `Down` fires once; tap it as fast as you like and the clock is what refuses. 3.3 gave you both halves of that: the one-frame read, and the comparison against a stored time.',
+        },
+        { code: '        {', what: '' },
+        {
+          code: '            animator.SetTrigger("Attack");',
+          what: 'The line from 1.6, unchanged. It plays the swing, and it still knows nothing about damage — a trigger is a request to play frames.',
+        },
+        {
+          code: '            nextAttackTime = Time.time + attackCooldown;',
+          what: 'Write the next allowed time into the clock: **now, plus the cooldown**. Exactly the line you wrote for the turret in 3.3.',
+          why: '**"Now plus the cooldown" — both halves matter.** Store `Time.time` on its own and the gate never closes. Store the cooldown on its own and you are comparing a duration against a timestamp, which is a comparison that means nothing and gives the same answer forever.',
+        },
+        {
+          code: '            windowClosesAt = Time.time + damageWindow;',
+          what: '**Open the damage window**: the moment of the swing, plus how long it stays live. This one line is the whole of "the swing is a moment rather than a frame", and without it the swing would be a single instant.',
+          why: '**This is what stops a hit depending on one frame.** The click lands on one frame, and the animation, the physics step and your frame rate do not have to agree about which one. A window gives the shape time to still be there when the query looks, which is the difference a player feels between "my swing missed" and "my swing connected" — and it is a difference they will never be able to explain to you.',
+        },
+        {
+          code: '            attackHitbox.localPosition = spriteRenderer.flipX ? new Vector3(-0.6f, 0f, 0f) : new Vector3(0.6f, 0f, 0f);',
+          what: 'Move the shape to the side the player faces. `spriteRenderer.flipX` is the flag you set from the input in 1.6 and cached in `Start()` back then — and `true` means the sprite is mirrored, which means **facing left**. The `? :` is the conditional expression from 6.2\'s gizmo: a yes/no branch written as a value.',
+          why: '**`flipX` mirrors the picture and moves nothing else.** It is a rendering instruction, so no collider, no child object and no transform follows it. That is precisely why the hitbox has to be placed by hand, and why a swing that damages things *behind* you is the first bug a playtester will report — usually while insisting the animation looks fine, because it does.',
+        },
+        { code: '        }', what: 'Closes the click block.' },
+      ],
+    },
+    {
+      title: 'Ask what is inside the shape',
+      lead: 'One method, one question, one call. Everything above this step exists to give it something to ask with.',
+      lines: [
+        {
+          code: '    void TryHitBoss()',
+          what: 'A method whose whole job is one question and one call. Same shape as `CheckGround()` in 6.2: empty parameter list, `void`, and everything it needs is already a field.',
+        },
+        { code: '    {', what: '' },
+        {
+          code: '        Collider2D[] hits = ____;',
+          blank: true,
+          what: 'Ask the engine what is inside the shape, and keep **everything** it hands back. The question is about a box that sits where the `attackHitbox` child is, is as big as `hitboxSize`, is not rotated at all, and is allowed to notice only the layers in `bossLayer` — and the answer is every collider in that box, not the first one it meets. Four arguments, and they are the same four inputs this page has been pricing since the table at the top: where, how big, at what angle, and what may it see. Store the result in `hits`; the loop below is what reads it.',
+          hint: 'You want the `Physics2D` query whose name ends in `All` — the one that hands back an **array** of every collider inside a box, where the raycast you wrote in 6.2 handed back only the first thing along a line. Pass the four arguments in the order the third architectural specification in the build lab lists them: the centre point (the hitbox child\'s `position` — a `Vector3` is accepted where a `Vector2` is asked for, exactly as it was for the raycast), then the size field, then the angle (`0f`, an unrotated box), then the mask. Read the Unity page for it before you write it; the argument order on that page is the order the method wants.',
+          why: '**Two things are new in this line.** It asks about an **area** rather than a point or a line, which is the only reason a swing can hit something the player is not standing exactly on top of. And an area can contain more than one thing, so the answer is an **array** rather than a single collider — which is why the next line is a `foreach`, and why this cannot be assigned into a `bool` the way 6.2\'s raycast was. Notice also what the line still does not do: it finds colliders and touches nothing. The damage is the next statement, and it is a separate part because "what is there" and "what to do about it" are two different problems.',
+        },
+        {
+          code: '        foreach (Collider2D hit in hits)',
+          what: 'A `foreach` over the array — the loop you met in Unit 3. It runs once for **every** collider the query found, in whatever order the physics engine felt like handing them over.',
+          why: '**A loop and not an `if`, and that is the difference this whole lesson exists to show you.** `Physics2D.Raycast` reports the first collider along a line, so 6.2 could assign its answer straight into a `bool`. An area query reports everything inside the area, so the answer is a list — and the only way to look at a list is one item at a time.',
+        },
+        { code: '        {', what: '' },
+        {
+          code: '            BossHealth boss = hit.GetComponentInParent<BossHealth>();',
+          what: 'From the collider to the script that owns the boss\'s number. `GetComponentInParent` walks **up** from the object it found, which matters because a collider and a script do not have to sit on the same object — 2.1 taught you that about the coin\'s renderer. The type name here is whatever you called your boss health script in 8.2.',
+          why: '**This can come back as nothing, and that is a normal case rather than an error.** The query found a collider of the *kind* you asked for, and it tells you nothing about what is attached to it. The next line skips those, and silence is also the honest response to a swing that lands on a wall.',
+        },
+        {
+          code: '            if (boss == null) { continue; }',
+          what: '`continue` skips to the next collider in the loop without running the rest of the body — the same early-guard shape as the null check in front of 6.2\'s ground-check gizmo.',
+        },
+        {
+          code: '            boss.TakeDamage(attackDamage);',
+          what: 'The call that makes the swing hurt: a positive `attackDamage`, taken off the boss\'s health. The sign rule is 5.3\'s, and the method itself is the one 8.2 had you write.',
+        },
+        {
+          code: '            windowClosesAt = Time.time;',
+          what: '**Close the window**, by writing a deadline that has already passed so the next frame reads it as shut.',
+          why: '**Without this line one swing deals damage on every frame the window is open** — a dozen hits from a single click, and the fight is over before the swing animation finishes. This is the "one swing, one hit" rule, and a deadline is how you say it. It sits inside the loop but the `break` below ends the loop, so it is written exactly once per swing.',
+        },
+        { code: '            break;', what: 'Stop looking. One swing hits one boss.' },
+        { code: '        }', what: 'Closes the loop.' },
+        {
+          code: '    }',
+          what: 'Closes `TryHitBoss()`. Nothing calls it yet — press Play now and the swing still does nothing at all.',
+        },
+      ],
+    },
+    {
+      title: 'Run the question while the window is open',
+      lead: 'Four lines in `Update()`, beside the ground check from 6.2. This is what turns the method above from a script into an attack.',
+      lines: [
+        {
+          code: '        if (Time.time < windowClosesAt)',
+          what: 'The window, read once per frame: **is the deadline still ahead of me?** `Time.time` is the clock from 3.3. Nothing sets a flag and nothing clears one — the comparison answers itself, and it goes back to false on its own the moment the clock passes the deadline.',
+          why: '**Notice how different this is from the cooldown in step 3.** That gate is checked on a *click*, because a click is when a swing is asked for. This one is checked on every *frame*, because "is the swing live right now?" is a fact about right now — the same distinction 6.2 drew between an event and a standing fact. It also means a click that opens the window is read on the same frame that opens it, so the earliest a hit can land is the frame you clicked.',
+        },
+        { code: '        {', what: '' },
+        {
+          code: '            TryHitBoss();',
+          what: 'The call — one question asked per frame for as long as the window is open, and each one asks the physics engine the same thing again.',
+          why: '**A method you write yourself does nothing until something calls it**, which is the rule 1.6 taught the hard way. Put this call **after** the input is read in `Update()`: `CheckAttack()` opens the window and this reads it, in that order, on the same frame. Swap them and the first frame of every window is spent before it is open.',
+        },
+        { code: '        }', what: 'Closes the window check. One more `}` closes the class.' },
+      ],
+    },
+  ],
+  pitfalls: [
+    {
+      mistake: 'the Boss Layer mask left at Nothing — or left at Everything',
+      symptom:
+        'Nothing: you can stand inside the boss and swing all day. The animation plays, the Console is clean, and the health never moves — the query found nothing because the mask named nothing. Everything: the first swing also collects the Coin beside you, because the hitbox is a trigger and the Player\'s own `OnTriggerEnter2D` from 2.1 is still listening for one.',
+      fix:
+        'Point the mask at the single layer your boss is on — `Enemy`, if you assembled it from an enemy prefab in 8.2 — and then open the boss\'s Inspector and confirm that is true. A mask that names a bucket nothing is in returns nothing, silently, forever, and no error will ever tell you.',
+    },
+    {
+      mistake: '`hit.GetComponent<BossHealth>()` when the collider and the health sit on different objects in the boss',
+      symptom:
+        'The query clearly finds the boss — put a `Debug.Log` on `hits.Length` and it says 1 — and the health still never moves. No exception, nothing red in the Console. Every swing is being thrown away by the `continue`.',
+      fix:
+        'Use `GetComponentInParent<BossHealth>()`, which walks up from the collider to the object that owns the number. 2.1 established that a collider and a renderer can live on different objects in the same hierarchy; the rule covers every component, and this is the first time it costs you a hit.',
+    },
+    {
+      mistake: 'the window left open — set forward on every frame, or never closed on a hit',
+      symptom:
+        'One click and the boss\'s health drops to nothing while the swing animation plays once. Hold the mouse button and the whole fight is over in about a second, with the hitbox still live long after the animation has finished.',
+      fix:
+        'Close it when a hit lands (`windowClosesAt = Time.time;`), and read the click with `GetMouseButtonDown` rather than `GetMouseButton` — the `Down` is what makes one press one swing, and it is the rule 1.6 already gave you.',
+    },
+    {
+      mistake: 'the hitbox parked at `+0.6` on x and never moved',
+      symptom:
+        'You face left, swing, and hit nothing — while the enemy standing in front of you takes damage from a swing aimed the other way. It works perfectly for anyone who only ever walks right, which is why it survives your first five minutes of testing.',
+      fix:
+        'Set `attackHitbox.localPosition` from `spriteRenderer.flipX` at the moment the swing opens. That flag is the one you set from the movement input in 1.6 and cached in `Start()`, and `true` means facing left.',
+    },
+    {
+      mistake: 'the `AttackHitbox` collider with **Is Trigger** left unticked',
+      symptom:
+        'Swinging next to the boss shoves it — or shoves *you*, because the box overlaps your own collider — and the damage still lands, which is what makes it confusing. A solid collider is a real object and the physics engine resolves the overlap by pushing something out of the way.',
+      fix:
+        'Tick **Is Trigger**. The shape is not meant to be a thing in the world; it is meant to be a question. Note that this changes nothing about what queries can find — `Queries Hit Triggers` is ticked in this project, so a trigger is found by every query anyway. That is the point the first activity makes.',
+    },
+  ],
+  finalFile: `using UnityEngine;
+
+// PlayerController.cs at the end of 8.3 — everything from 1.4 through 8.2,
+// plus the first question this project has ever asked about an AREA. Every
+// query before it came back with a single answer: the ground check in 6.2
+// assigns its result straight into a bool. This one comes back with a list,
+// which is the entire reason the loop below exists.
+public class PlayerController : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float jumpForce = 7f;              // yours, from 6.1
+
+    // From 6.2 — the ground check.
+    [SerializeField] private Transform groundCheck;
+    [SerializeField] private float groundCheckDistance = 0.1f;
+    [SerializeField] private LayerMask groundLayer;
+
+    // Today's knobs, all visible in the Inspector (1.3).
+    [SerializeField] private Transform attackHitbox;              // the empty child on the Player ROOT
+    [SerializeField] private Vector2 hitboxSize = new Vector2(1.2f, 1f);
+    [SerializeField] private int attackDamage = 1;                // POSITIVE hurts — 5.3
+    [SerializeField] private LayerMask bossLayer;                 // what the query may notice
+    [SerializeField] private float attackCooldown = 0.5f;         // the fire rate from 3.3
+    [SerializeField] private float damageWindow = 0.2f;           // how long a swing stays live
+
+    private Rigidbody2D body;
+    private Animator animator;
+    private SpriteRenderer spriteRenderer;
+
+    private bool isGrounded;
+
+    // Two clocks, both compared against Time.time. Neither needs a flag,
+    // because a deadline switches itself off by arriving.
+    private float nextAttackTime;      // 0 is already a time in the past
+    private float windowClosesAt;
+
+    void Start()
+    {
+        body = GetComponent<Rigidbody2D>();
+        animator = GetComponentInChildren<Animator>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+    }
+
+    void Update()
+    {
+        // ... your input, movement, gravity, animation and ground-check
+        // lines from 1.4, 1.6, 2.2, 6.1 and 6.2, unchanged and left out ...
+
+        CheckAttack();   // a click may open the window
+        CheckGround();
+
+        // Is the swing live right now? This is a fact about now, so it is
+        // re-read every frame rather than remembered from the click.
+        if (Time.time < windowClosesAt)
+        {
+            TryHitBoss();
+        }
+    }
+
+    void CheckGround()
+    {
+        isGrounded = Physics2D.Raycast(groundCheck.position, Vector2.down, groundCheckDistance, groundLayer);
+    }
+
+    // The click from 1.6, with a gate in front of it and three lines inside.
+    void CheckAttack()
+    {
+        if (Input.GetMouseButtonDown(0) && Time.time >= nextAttackTime)
+        {
+            animator.SetTrigger("Attack");
+            nextAttackTime = Time.time + attackCooldown;
+
+            // Open the window. The click lasts one frame; the hit does not
+            // have to be decided by which one.
+            windowClosesAt = Time.time + damageWindow;
+
+            // flipX is a render mirror and moves no collider, so the shape is
+            // placed by hand. true means facing LEFT.
+            attackHitbox.localPosition = spriteRenderer.flipX
+                ? new Vector3(-0.6f, 0f, 0f)
+                : new Vector3(0.6f, 0f, 0f);
+        }
+    }
+
+    // The only question in this file about an area rather than a point, and
+    // the only one whose answer is a list. OverlapBoxAll reports EVERY
+    // collider inside the box on the layers the mask names — which is why the
+    // answer is an array, and why what follows is a loop rather than an if.
+    void TryHitBoss()
+    {
+        Collider2D[] hits = Physics2D.OverlapBoxAll(attackHitbox.position, hitboxSize, 0f, bossLayer);
+
+        foreach (Collider2D hit in hits)
+        {
+            // InParent, because the collider and the health do not have to be
+            // on the same object. <- whatever you named the boss's health
+            // script in 8.2
+            BossHealth boss = hit.GetComponentInParent<BossHealth>();
+            if (boss == null) { continue; }
+
+            boss.TakeDamage(attackDamage);   // positive hurts
+            windowClosesAt = Time.time;      // one swing, one hit
+            break;
+        }
+    }
+
+    // ... your jump, your pickups and your animation, unchanged ...
+}
+
+// Assets/Prefabs/Player ▸ AttackHitbox
+//   a child of the PLAYER ROOT, not of the Sprite child
+//   BoxCollider2D, Is Trigger ticked, Size (1.2, 1), Layer Default
+//
+// Inspector, on Assets/Prefabs/Player ▸ PlayerController:
+//   Attack Hitbox    =  AttackHitbox    <- the empty child from step 1
+//   Hitbox Size      =  (1.2, 1)        <- the same numbers as the collider
+//   Attack Damage    =  1               <- positive hurts
+//   Boss Layer       =  Enemy           <- the layer the boss is ACTUALLY on
+//   Attack Cooldown  =  0.5
+//   Damage Window    =  0.2`,
+  finalNote:
+    'Compare against your own file rather than copying it. The gap is the query, and it is the one line here with nothing earlier in the course to copy: a point, a size, an angle and a mask, in that order, handing back an **array** instead of one collider — which is exactly why it is not assigned into a `bool` the way 6.2\'s raycast was. Everything around it is yours: where you placed the hitbox, which of the four tools from the table you used for the layer problem, whether damage lands on the click or partway through the swing, and every number. What has to match is the shape, not the text: one shape in front of the player, one mask naming what it may notice, one window that closes itself, and one call to the boss\'s signed-amount method with a positive number in it.',
+};
 
 const body = `<h1>8.3 — Player Attack: Fight Back</h1>
 
@@ -16,6 +502,10 @@ const body = `<h1>8.3 — Player Attack: Fight Back</h1>
     small. The reason this lesson is long is that the shape you use to ask that question has a
     side effect most people get wrong, and it will quietly break the jump you wrote in Unit 6.
 </p>
+
+${renderAskBanner('how do I make my swing actually hurt something?', 2)}
+
+${renderDecompose('8.3', DECOMPOSE, 2)}
 
 <!-- ============================================================ -->
 <div class="activity discovery">
@@ -67,7 +557,7 @@ const body = `<h1>8.3 — Player Attack: Fight Back</h1>
         <tr>
             <td><strong>(a) A layer mask on the query</strong></td>
             <td><code>Physics2D.Raycast(origin, direction, distance, groundLayer)</code> names the layers the query is allowed to see. Anything outside the mask does not exist as far as that call is concerned.</td>
-            <td>You must create the layers. <strong>This project has no custom physics layers yet</strong> — they are yours to add in Project Settings, and every query you already wrote that wants to see the new object needs the mask added too.</td>
+            <td>The layers are yours to name, and yours to keep honest. <strong>The buckets already exist in this project</strong> — <code>Ground</code> from <a href="6.2.html">6.2</a>, and <code>Player</code>, <code>Enemy</code>, <code>Projectile</code> and <code>Decoration</code> from <a href="7.2.html">7.2</a> — but a mask only works if the object you are looking for is actually <em>in</em> the bucket it names, and every query you wrote earlier that needs to see a newly layered object needs its mask widened too.</td>
         </tr>
         <tr>
             <td><strong>(b) The built-in <code>Ignore Raycast</code> layer</strong></td>
@@ -158,44 +648,33 @@ const body = `<h1>8.3 — Player Attack: Fight Back</h1>
 </div>
 
 <!-- ============================================================ -->
+${renderWalkthrough(WALK)}
+
+<!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: The Hitbox, the Window, the Query</span>
+        <span class="activity-label">Build Lab: The Decisions the Walkthrough Made for You</span>
         <span class="activity-time">~30 min</span>
     </div>
 
     <p>
-        <strong>Step 1 — build the hitbox object.</strong> Create a child of your Player named
-        <code>AttackHitbox</code>. Give it a BoxCollider2D with <strong>Is Trigger</strong>
-        ticked, sized to reach roughly one tile in front — about 1.2 wide by 1 tall. No
-        SpriteRenderer (add one temporarily in a bright colour while you are debugging, then
-        remove it). Then answer the layer question from the table above and act on it. This is
-        not a detail: it is the decision this lesson exists to teach.
+        The walkthrough above gives you one working version of every part — and it makes a dozen
+        decisions on your behalf along the way. A decision you did not make yourself is a
+        decision you cannot defend, and defending it is the exam task. So the build is finished;
+        what is left is the argument. Work through the three specifications below, answer every
+        question <em>in writing</em>, and change the build wherever your answer disagrees with
+        the one above. The specification is the work; the code is an opinion about the
+        specification.
     </p>
 
     <p>
-        <strong>Step 2 — find the branch you already wrote.</strong> In
-        <a href="1.6.html">1.6</a> you wired mouse button 0 to your attack animation. That code
-        is already in your <code>PlayerController</code> — the branch that calls the Attack
-        trigger. Note two things about it before you touch it: the Animator is not on the Player
-        root, it is on the child named <code>Sprite</code> (which is why you reached it with
-        <code>GetComponentInChildren</code>), and the trigger is a <em>request to play frames</em>
-        — it has no idea a hitbox exists.
-    </p>
-
-    <p>
-        <strong>Step 3 — the window and the cooldown.</strong> Decide when damage happens and how
-        often it may happen, then add exactly two things to that existing branch: a time gate, and
-        a call that opens the damage window. Shape only — you write the body:
-    </p>
-    <pre><code>private void TryHitBoss()   // one window, one query, one damage call
-{
-    // query what is in front of me, then damage what owns boss health
-}</code></pre>
-
-    <p>
-        <strong>Step 4 — point it somewhere.</strong> The hitbox has to be placed on the side you
-        are facing. Read the table below and decide where that direction comes from.
+        <strong>Start with the shape you actually built.</strong> Re-read the four-tool table at
+        the top of this page with a hitbox now sitting in front of you, and write down which of
+        the four you used and what it cost you. Then check the two things the walkthrough had to
+        assume: that <code>AttackHitbox</code> is parented to the Player <em>root</em> rather
+        than to the scaled <code>Sprite</code> child, and that the boss's collider is genuinely
+        on the layer your mask names. Both are Inspector readings, not opinions — if either one
+        is wrong, the mask is filtering for something that is not there.
     </p>
 
     <div class="callout">
@@ -224,6 +703,7 @@ const body = `<h1>8.3 — Player Attack: Fight Back</h1>
         <strong>Architectural specification: how does the hitbox find the boss?</strong>
         <ul>
             <li><code>Physics2D.OverlapBoxAll</code> at an offset, with a layer mask — what are its arguments, and which of them is the layer mask?</li>
+            <li>Does the query hand you back one collider or a list — and if it is a list, what does your code do with a result it cannot use?</li>
             <li><code>OnTriggerEnter2D</code> on the hitbox itself, with a small script of its own — what does that cost you in objects and scripts?</li>
             <li><code>OnTriggerStay2D</code> plus a record of what this swing has already hit — how do you stop one swing dealing twenty frames of damage, and what data structure holds "already hit"?</li>
             <li>Whichever you choose, how do you get from the <em>thing you found</em> to the boss's health component? What method do you call on it, and what sign does its argument carry?</li>
@@ -279,6 +759,7 @@ const body = `<h1>8.3 — Player Attack: Fight Back</h1>
             <li>Explain how you get from a collider your query returned to the boss's health, and what sign the argument carries</li>
             <li>Explain why a coin can be collected by a swing that never touches it</li>
             <li>State when damage lands inside the swing, and what stops it landing every frame</li>
+            <li>Explain why this query hands back a list when the ground check from 6.2 handed back a single answer, and what your code does with each result</li>
             <li>Commit and push</li>
         </ul>
     </div>
@@ -291,7 +772,7 @@ const body = `<h1>8.3 — Player Attack: Fight Back</h1>
     <ul>
         <li><a href="../docs/unit-08/index.html">Unit 8: Boss Fight</a> — the player-attack reference</li>
         <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — what a trigger is, and every message it sends</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the <code>Physics2D</code> query family and layer masks</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the <code>Time.time</code> cooldown pattern, the one-frame mouse click, and the sprite-mirror line this script already uses</li>
     </ul>
     <p>Next: <a href="8.4.html">8.4 — Boss Attacks: Patterns &amp; Phases</a>, where the thing you are hitting starts hitting back.</p>
 </div>`;

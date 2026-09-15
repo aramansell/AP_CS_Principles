@@ -4,7 +4,87 @@
 // the student wrote themselves in Unit 3. Nothing in this project is a
 // shockwave; Turret_Projectile.prefab has no collider; no projectile speed
 // exists anywhere in the starter. Phase numbers live in a table.
+//
+// Scaffolding: OUTLINE ONLY (level 3). The banner and the decompose block are
+// the level markers — a level-3 lesson must not render a walkthrough, and
+// scripts/verify-site.mjs fails one that does. The student built a projectile
+// in 3.2, gave it damage in 3.4, wrote a chase direction in 4.3 and a state
+// machine in 4.5, and guarded a phase entry in 8.2 — so every part of an attack
+// is something they have already written once, pointed at a new target. The
+// spec, the API and this lesson's three tables are given; the code is not.
+//
+// GROUND TRUTH corrected in this pass (both were links to the wrong lesson):
+//   - the player's apex was credited to 6.3. 6.3 is fall speed, coyote time and
+//     the jump buffer, and its own build says "your launch from 6.1 ... is not
+//     touched". The apex is 6.1's, where jumpForce and gravity are tuned.
+//   - the turret projectile's SPEED was credited to 3.3. 3.3 is the fire-rate
+//     cooldown and nothing else; 3.4's own knob table names the projectile speed
+//     as "the field on Projectile.cs from 3.2", and 3.2's Tinker is "Bullet
+//     tuning". 3.2 is the right place to reread it.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+// The recurring three-beat block: split the problem, look each part up, connect
+// it to something already built. Level 3, so the renderer withholds what each
+// part DOES and asks the student to say it — the parts and their doc pointers
+// are the level-3 bargain. Every doc pointer is either a lesson the student has
+// finished (3.2, 3.4, 4.3, 4.4, 4.5, 5.3, 8.1, 8.2) or a table inside this
+// lesson, and nothing here points later than today.
+const DECOMPOSE: DecomposeSpec = {
+  big: 'The boss can be hurt and it does not answer back. Give it two attacks — one that travels across the arena and one that is its own body — and hold every timing number in a phase table, so Phase 3 is a change of values rather than a rewrite. As one problem it is not startable: an attack is three timed beats, and neither attack exists in this project yet.',
+  parts: [
+    {
+      name: 'Name the three beats, and give each one a number',
+      does: 'Telegraph, strike, recovery, each as seconds on the clock. Recovery is the player\'s damage window, so it is the number that decides whether the fight can be won at all — and the telegraph is the one that must never shrink below a human reaction time.',
+      doc: 'the three-beat table in this lesson\'s first activity, and the fight arithmetic you wrote in 8.1',
+      href: '8.1.html',
+    },
+    {
+      name: 'Build the travelling attack as a prefab of its own',
+      does: 'A brand-new prefab, spawned at an offset in front of the boss rather than at its centre, that travels in a heading handed to it at spawn, damages what it touches, and destroys itself on contact or after a lifetime. The `Turret_Projectile` prefab in this project carries no collider and its script is an empty stub, so your own working projectile is the better starting point.',
+      doc: '3.2 — Projectiles: Instantiate, Fire, Destroy, and its Tinker on bullet tuning: the muzzle offset, the heading, the speed knob and the lifetime',
+      href: '3.2.html',
+    },
+    {
+      name: 'Re-point the damage at the player',
+      does: 'The attack has to hurt the player and not the boss, and the route is one tag check plus one call: the signed-amount method you moved onto `StatManager.Instance` in 5.3, reached with a positive number. The `Turret_Projectile` prefab ships tagged `Enemy`, so read the check rather than assuming it.',
+      doc: 'the damage knob you declared on the projectile in 3.4, and the refactor that moved `TakeDamage` onto `StatManager.Instance` in 5.3',
+      href: '5.3.html',
+    },
+    {
+      name: 'Build the body attack out of the chase comparison you already own',
+      does: 'The boss\'s own collider is the weapon: it picks a direction, commits, moves fast for a short time, then stands helpless while it recovers. The direction is the same position comparison your enemy makes to chase you, flattened to one axis because the arena is flat.',
+      doc: '4.3 — Chase: The Aggro Radius (the comparison that names a direction), and 4.4 for the contact damage the charge deals',
+      href: '4.3.html',
+    },
+    {
+      name: 'Decide what schedules the attack — and what stops it',
+      does: 'Three legitimate mechanisms, each with a failure it is known for: a float compared against `Time.time`, a coroutine that reads like the timeline, or the enum-and-one-state-per-frame machine from 4.5. Whichever you pick still needs a guard, or the boss keeps attacking after it dies.',
+      doc: 'the scheduling table in this lesson, and the state machine you built in 4.5',
+      href: '4.5.html',
+    },
+    {
+      name: 'Hold the numbers in a phase table, and read the row on phase entry',
+      does: 'One row per phase, one column per number, and a single reader that looks up the current phase\'s row. The read belongs on the guarded phase entry from 8.2, which fires once per crossing — not in the frame loop.',
+      doc: 'the phase-value table in this lesson, and the guarded phase entry you wrote in 8.2',
+      href: '8.2.html',
+    },
+  ],
+  why: 'Every part above is a problem you have already solved once, pointed at a new target: part two is your own bullet, part four is your own chase, part five is your own state machine, and part six is 8.2\'s guard with a table behind it. The genuinely new part is the first one — deciding the numbers before writing them — because the player experiences an attack as a length of time, not as a line of code. Get the split right and the code is transcription.',
+  sizeTest: 'The test for a finished split: does the part name something you could point at — a prefab, a field, a method, a row of a table? "Make the boss attack" points at nothing. "Where the travelling attack is spawned" points at one line in one method, and that is a part.',
+  turns: [
+    'Both attacks need a telegraph and a recovery, and only one of them needs a heading. Which part above carries the difference between them — and what does that tell you about how much of the second attack is genuinely new?',
+    'Pick one number from your table that must never change between phases, and say what the fight stops being if it does.',
+  ],
+  connect: [
+    'In 3.2 you spawned a bullet at the muzzle, gave it a heading, a speed and a lifetime, and in 3.4 you gave it a damage number. Which part above is that same bullet — and what changes about it when the shooter is the boss instead of a turret?',
+    'In 4.3 your enemy compared its position with the player\'s and walked the difference, and in 4.4 that contact hurt. Which part above is that comparison again — and what does a flat arena let you throw away from it?',
+    'In 4.5 you wrote an enum, one state per frame, and transitions on conditions; in 6.3 you wrote the same timestamp comparison twice for the coyote window and the jump buffer. Which part above wants the machine, and which part is really a timestamp?',
+    'In 8.2 the phase entry is guarded so it fires once, and in 8.3 the swing opens a damage window and closes it. Which part above has to be guarded the same way — and what would the player see if it were not?',
+  ],
+};
 
 const body = `<h1>8.4 — Boss Attacks: Patterns &amp; Phases</h1>
 
@@ -16,6 +96,10 @@ const body = `<h1>8.4 — Boss Attacks: Patterns &amp; Phases</h1>
     project yet, and no projectile of its own — everything here is assembled from the pieces you
     have already built once.
 </p>
+
+${renderAskBanner('how do I give a boss two attacks and a phase table?', 3)}
+
+${renderDecompose('8.4', DECOMPOSE, 3)}
 
 <!-- ============================================================ -->
 <div class="activity discovery">
@@ -236,9 +320,9 @@ const body = `<h1>8.4 — Boss Attacks: Patterns &amp; Phases</h1>
     <p>
         <strong>Choose the speed from your own numbers.</strong> There is no projectile speed to
         copy in this project — read the value you chose for your turret's projectile in
-        <a href="3.3.html">3.3</a>. Your boss's attack should be <em>slower</em>, because it is a
+        <a href="3.2.html">3.2</a>. Your boss's attack should be <em>slower</em>, because it is a
         rhythm the player has to step out of, not a bullet they have to already be clear of. Then
-        check the height against your jump: the player's apex, from <a href="6.3.html">6.3</a>,
+        check the height against your jump: the player's apex, from <a href="6.1.html">6.1</a>,
         has to clear the attack's collider with room to spare. If it does not, one of those two
         numbers is wrong.
     </p>
@@ -329,6 +413,8 @@ const body = `<h1>8.4 — Boss Attacks: Patterns &amp; Phases</h1>
             <li>Say the counterplay sentence for each attack with real numbers in it, including your own jump height and walk speed</li>
             <li>Explain what the phase table changes and what it must never change</li>
             <li>Beat your own boss, and quote the fight time</li>
+            <li>Break this feature into parts small enough to look each one up on its own, and say in one line what each part does</li>
+            <li>Say which earlier lesson each part of this feature came from, and where you would reread it</li>
             <li>Commit and push</li>
         </ul>
     </div>

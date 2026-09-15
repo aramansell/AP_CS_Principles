@@ -1,17 +1,117 @@
 ---
 // Lesson 9.9 — Encryption: Keys, TLS & Public Key
-// expand-app: symmetric vs asymmetric, TLS handshake, HTTPS for GitHub.
+// concept frame: symmetric vs asymmetric, the TLS handshake, what a certificate proves.
+//
+// SHAPE: like 9.1, this lesson has no code in it — nothing is built and no file is
+// handed over — so it carries the `concept` frame (src/lib/walkthrough.ts). The banner
+// and the decompose block both carry data-scaffold="3", and both drop the visible code
+// chip, because "Outline only" is a claim about a file this lesson does not have. Level 3
+// is the only reachable rung for a lesson with no walkthrough (check 7).
+//
+// The decompose block is ADDED, not substituted: it opens a new answer-id namespace
+// (9.9:dc1:qN) and leaves every protected block untouched. The five harvested fields
+// (9.9:sc1:q1, 9.9:bh1:q1-q4, 9.9:tk1:q1-q3) keep the ids they already had — one bug-hunt
+// item was reworded for accuracy and nothing was added, removed or moved.
+//
+// GROUND TRUTH
+// - The site this page lives on is https://aramansell.github.io/AP_CS_Principles/ —
+//   `site` + `base` in astro.config.mjs, and there is no CNAME anywhere in the repo, so
+//   it is a GitHub Pages project site. Verified live 2026-09-14: HTTP 200 over TLS 1.3.
+//   That is the hook: the padlock the students look at every day is their own course site,
+//   not somebody else's example, and every field in Build Lab Step 2 is a field they can
+//   open and read themselves.
+// - Verified certificate on that host (checked 2026-09-14): subject CN=*.github.io — a
+//   WILDCARD, not the site's name — issued by O=Let's Encrypt, valid 2 Aug -> 31 Oct 2026.
+//   The dates and the issuer ROTATE (Let's Encrypt certificates are ~90 days), so the
+//   lesson text says what was seen and tells the student to read their own rather than
+//   copying a value that will be stale by the time they read it.
+// - Bad-certificate demonstration: the old text sent students to a host under `.example`,
+//   which is a reserved TLD (RFC 2606) that never resolves — that produces a DNS failure,
+//   not a certificate refusal, so the promised "which step failed" lesson did not happen.
+//   Replaced with self-signed.badssl.com, verified to present a genuinely self-signed
+//   certificate ("SSL certificate problem: self signed certificate"), and expired.badssl.com.
+// - RSA-2048 is a 617-digit modulus built from two primes of about 309 digits each. The old
+//   text said "two 600-digit prime factors", which would be a ~1200-digit modulus — no
+//   deployed key is that size.
+// - TLS protects the channel, not the endpoints; a certificate asserts a name-to-key
+//   binding and nothing about the site's honesty. Both are stated explicitly in the
+//   callout, because they are the two the exam writes wrong options from.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+const DECOMPOSE: DecomposeSpec = {
+  big: 'A message has to cross a network anybody can listen to, and arrive readable by exactly one person. "Keep it secret" is a wish; the work is the five decisions underneath it.',
+  frame: 'concept',
+  parts: [
+    {
+      name: 'Choose the kind of lock: one shared key, or a pair',
+      does: 'Symmetric is fast and needs both ends to already hold the same secret; asymmetric is slow and needs only that you published half of a pair. Real traffic uses both, for different jobs.',
+      doc: 'the symmetric-versus-asymmetric table in this lesson\'s Concept Lab, and the two matching sections of the Encryption reference page',
+      href: '../docs/unit-09/encryption.html',
+    },
+    {
+      name: 'Get the right public key into the other machine\'s hands',
+      does: 'A public key on its own proves nothing — anybody can hand you a key and claim it belongs to the site. The certificate is the third party that says whose key this is.',
+      doc: 'the certificate fields you read off your own site in Step 2 of the Build Lab below, and "What does a certificate prove?" on the Encryption reference page',
+      href: '../docs/unit-09/encryption.html',
+    },
+    {
+      name: 'Trade one round of slow work for a whole session of fast work',
+      does: 'The handshake: asymmetric to agree on a session key and to prove identity, symmetric for everything after it. One slow exchange buys the rest of the conversation at full speed.',
+      doc: 'the six-step handshake in the Concept Lab above',
+    },
+    {
+      name: 'Decide how many bits the key has to be',
+      does: 'Key length is the whole cost of the attack. A 2048-bit RSA key is a 617-digit number built from two primes of about 309 digits: multiplying them is instant, pulling them back apart is not.',
+      doc: 'the bit-width discussion in 9.1, and the RSA paragraph on the Encryption reference page',
+      href: '9.1.html',
+    },
+    {
+      name: 'Say what the padlock protects, and what it leaves exposed',
+      does: 'It protects the channel — the bytes between two machines — and not the endpoints. The server still reads everything you send it, and a hash is still not encryption.',
+      doc: 'the packet journey in 9.8, and the Hashing section of the Encryption reference page',
+      href: '9.8.html',
+    },
+  ],
+  why:
+    'The split is the whole lesson, because "keep it secret" is a wish and these five are decisions. ' +
+    'Three of them are choices you make before a single byte moves — which lock, how many bits, what the ' +
+    'certificate has to prove — and they are the three the exam asks about. The last one is the one ' +
+    'everybody skips: knowing what the mechanism does NOT cover is what stops you trusting a green ' +
+    'padlock further than it can carry you.',
+  sizeTest:
+    'The test: could you answer this part out loud, in one sentence, with no computer in front of you? ' +
+    '"Use encryption" points at nothing. "Find out whose public key this is" points at a certificate you ' +
+    'can open and read field by field.',
+  connect: [
+    'In 9.1 you counted in bits and worked out that a 32-bit `int` stops just past two billion. A 2048-bit key is a number from the same family, just far past anything you could write down — so why is its SIZE the whole security of the thing, and what would a 64-bit key mean for the attacker?',
+    'In 9.3 the exam trap was calling encryption a kind of compression. Encryption is lossless — every bit comes back — but it does not make the file smaller either. Say in one line each what compression and encryption are actually promising you.',
+    'In 9.8 your push crossed strangers\' machines as packets, and the honest conclusion was that any router on the path can read what it forwards. What does the handshake change about that — and what about the journey stays exactly the same?',
+    'In 9.4 you opened a scene file and found plain text you could read and edit, because your whole project is data all the way down. Your private key is a file on a disk too. What does that tell you about where the security of the whole system actually lives?',
+  ],
+  turns: [
+    'Your own course site is served over HTTPS, and the subject of its certificate is not the address you typed. What is the browser actually matching against the host name — and does that certificate tell you anything about whether the site is honest?',
+    'TLS protects the channel, not the endpoints. Your game sends a high score to a leaderboard over HTTPS: name two things an attacker can still do even though the padlock is green.',
+  ],
+};
 
 const body = `<h1>9.9 — Encryption: Keys, TLS &amp; Public Key</h1>
 
 <p class="lesson-lead">
     When you pushed to GitHub, the URL said https — and your repo
     crossed the public internet unread by every router along the
-    way. Today: how a secret can cross an open network twice, why
+    way. The page you are reading right now is served the same way,
+    and the padlock in your address bar is the thing this lesson
+    explains. Today: how a secret crosses an open network twice, why
     two keys are better than one, and the one math fact protecting
     everything you own.
 </p>
+
+${renderAskBanner('how do I keep a message secret in transit?', 3, 'concept')}
+
+${renderDecompose('9.9', DECOMPOSE, 3)}
 
 <!-- ============================================================ -->
 <div class="activity expand-app">
@@ -24,22 +124,28 @@ const body = `<h1>9.9 — Encryption: Keys, TLS &amp; Public Key</h1>
     cipher you probably did in elementary school: shift letters by
     a key (3: CAT → FDW). Same key encrypts and decrypts. Fast,
     simple, and cursed by one problem: to agree on the key, you must
-    already have a secure channel. The internet never had one.</p>
+    already have a secure channel. The internet never had one, and
+    that is the whole reason symmetric encryption could not be the
+    answer on its own.</p>
 
     <p><strong>Asymmetric — two keys, a public pair.</strong> In
     the 1970s, math (huge prime numbers) delivered the miracle: you
     publish a PUBLIC key anyone can use to lock messages to you,
     and keep a PRIVATE key that is the only thing that unlocks
-    them. Publishing the lock does not reveal the key — that is
-    the fact everything rides on. RSA: factoring a number with two
-    600-digit prime factors would take the world's computers
-    longer than your lifetime; the exam wants the IDEA, not the
-    factoring.</p>
+    them. Publishing the lock does not reveal the key — and that is
+    not a slogan, it is the shape of the pair. One half can only
+    lock and the other half can only open, so publishing the locking
+    half costs you nothing. That is why "public key encryption" is
+    not a contradiction. RSA-2048: the public number is 617 digits
+    long and was built by multiplying two primes of about 309 digits
+    each. Multiplying them takes a microsecond; pulling them back
+    apart would take the world's computers longer than your
+    lifetime. The exam wants the IDEA, not the factoring.</p>
     <table>
         <tr><th></th><th>Symmetric (AES)</th><th>Asymmetric (RSA)</th></tr>
         <tr><td>Keys</td><td>One shared secret</td><td>Public + private pair</td></tr>
         <tr><td>Speed</td><td>Very fast</td><td>Slow</td></tr>
-        <tr><td>Perfect at</td><td>Bulk data — encrypting the actual packets</td><td>Proving identity — the handshake</td></tr>
+        <tr><td>Perfect at</td><td>Bulk data — the bytes you actually send</td><td>Proving identity and handing over a key — the handshake</td></tr>
     </table>
 
     <p><strong>TLS — the handshake (https).</strong> The web uses
@@ -56,6 +162,32 @@ const body = `<h1>9.9 — Encryption: Keys, TLS &amp; Public Key</h1>
     that this public key really belongs to github.com. Without it,
     anyone on your wifi could impersonate the site and hand you
     THEIR key (a man-in-the-middle attack).</p>
+
+    <div class="callout info">
+        <strong>Four sentences the exam writes its wrong answers from.</strong>
+        <ul>
+            <li><strong>"Public key encryption" is not a contradiction.</strong> The
+            pair is not one secret written down twice. One half can only lock; only
+            the other half opens. So publishing the locking half gives nothing away —
+            and the public key <em>cannot</em> decrypt what it encrypted. That single
+            fact is a whole exam question.</li>
+            <li><strong>A certificate asserts exactly one thing:</strong> that the
+            public key inside it belongs to the name inside it, according to the
+            authority that signed it. It does not assert that the site is honest,
+            careful, or run by the company you think it is. A green padlock says your
+            bytes are going to the machine named in the certificate. It says nothing
+            else, and it is not a safety rating.</li>
+            <li><strong>TLS protects the channel, not the endpoints.</strong> The
+            routers in between cannot read your push — but the server at the far end
+            reads every byte of it, and so does anything downstream of that server.
+            Nor is the connection invisible: somebody watching still sees which
+            machine you contacted, when, and how much you sent.</li>
+            <li><strong>A hash is not encryption.</strong> No key, no way back — a
+            fingerprint rather than a lockbox. That is why a stolen password database
+            is a different size of disaster from a stolen key, and why the fix is a
+            salt rather than a longer key.</li>
+        </ul>
+    </div>
 
     <div class="socratic">
         <h3>Socratic</h3>
@@ -83,14 +215,31 @@ const body = `<h1>9.9 — Encryption: Keys, TLS &amp; Public Key</h1>
     knowing the key at all? Weak ciphers die to the STATISTICS of
     language, not to brute force.</p>
 
-    <p><strong>Step 2 — see your own TLS.</strong> In a browser:
-    open github.com, click the padlock → view certificate. Read
-    the fields: issuer (a trusted authority), public key info,
-    valid dates, and the subject (github.com). This document is
-    Step 3 of the handshake, sitting still. Now try
-    <code>https://your-teacher-does-not-own-this-site.example</code>
-    or any bad cert page and READ the browser's refusal — you now
-    know exactly which step failed.</p>
+    <p><strong>Step 2 — read a real certificate.</strong> You do not
+    have to go far for one: the page you are reading now is served
+    over HTTPS, from <code>aramansell.github.io</code>. Click the
+    padlock in the address bar and open the certificate. Then read
+    its fields and say what each one is for: the <em>subject</em>,
+    the <em>issuer</em>, the <em>valid dates</em>, and the public
+    key info. Two of them will surprise you. The subject is not the
+    address you typed — it reads <code>*.github.io</code>, a single
+    wildcard certificate covering every GitHub Pages site — and the
+    browser accepts it because the certificate's list of names
+    matches the host you asked for. And the lifetime is short: the
+    day this page was last checked the certificate ran from
+    2 August to 31 October and was issued by Let's Encrypt, which
+    are values you should expect to differ from yours. Read your
+    own; do not copy mine.</p>
+
+    <p>Then go and look at two that are deliberately broken.
+    <a href="https://self-signed.badssl.com/">self-signed.badssl.com</a>
+    presents a certificate signed by nobody at all, and
+    <a href="https://expired.badssl.com/">expired.badssl.com</a>
+    presents one whose dates have run out. Read the browser's
+    refusal on each and find the field it names: that field is
+    step 3 of the handshake above, failing in front of you. Do not
+    click through either one — a certificate warning is the browser
+    telling you step 3 did not pass.</p>
 
     <p><strong>Step 3 — your git connection.</strong>
     <code>git remote -v</code> in your project. Is it an https or an
@@ -109,10 +258,10 @@ const body = `<h1>9.9 — Encryption: Keys, TLS &amp; Public Key</h1>
                 actually build (obfuscation, not security) — and
                 why does every "DRM cracked" headline follow from
                 this exact design?</li>
-            <li>The exam classic: a site uses the same key for
-                public and private. What breaks FIRST — and why
-                is "key distribution" the sentence that answers
-                it?</li>
+            <li>The exam classic: a site gives every visitor the
+                same secret key and encrypts all of their traffic
+                with it. What breaks first — and why is "key
+                distribution" the sentence that answers it?</li>
             <li>Your password vault uses one hash for every user's
                 same password "password123." Why does a SALT (a
                 random per-user value mixed in) change the
@@ -161,6 +310,9 @@ const body = `<h1>9.9 — Encryption: Keys, TLS &amp; Public Key</h1>
             <li>Narrate the TLS handshake's six steps and where certificates fit</li>
             <li>Read a real certificate and name what its fields prove</li>
             <li>Explain why hashing is not encryption, and what a salt buys</li>
+            <li>Name the parts of keeping a message secret, in the order they are decided, and say where each one is written down</li>
+            <li>Say what a certificate proves and what it does not, and why the public key cannot undo its own lock</li>
+            <li>Explain why TLS protects the channel and not the endpoints</li>
         </ul>
     </div>
 </div>
@@ -172,6 +324,7 @@ const body = `<h1>9.9 — Encryption: Keys, TLS &amp; Public Key</h1>
     <ul>
         <li><a href="../docs/unit-09/encryption.html">Encryption</a> — the full reference</li>
         <li><a href="../docs/unit-09/the-internet.html">The Internet</a> — where TLS rides</li>
+        <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — the whole map</li>
     </ul>
     <p>Next: <a href="9.10.html">9.10 — Impact, Ethics &amp; Licenses (Your Fork!)</a></p>
 </div>`;

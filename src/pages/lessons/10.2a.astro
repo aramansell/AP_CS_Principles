@@ -2,6 +2,114 @@
 // Lesson 10.2a — Card Jam Kickoff: Lists & Arrays
 // rpg jam kickoff: the card game jam begins; Lists in the starter.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+// The recurring three-beat block: split the problem, look each part up, connect
+// it to something already built. Level 3 is the only rung this lesson can reach
+// — it writes no code and renders no walkthrough, and check 7 refuses a lesson
+// that declares level 1 or 2 without one — and the `concept` frame is what keeps
+// a code-scaffolding chip off a page that has no code (src/lib/decompose.ts;
+// 9.8 is the same shape).
+//
+// Every `doc` here points at one of three places: a section of the Unit 10 Lists
+// & Arrays reference, the starter file this lesson already asks the student to
+// open, or 8.3 — the one earlier lesson that walks a collection with a `foreach`.
+// There is no earlier CODE lesson to point at, and that is not an oversight: the
+// C# `List` first appears in this course on this page. Check 8 fails a lesson
+// whose `docs` and `parts` counts disagree, so all six parts carry one.
+//
+// Every pointer in `connect` is BACKWARDS (10.1a, 2.1, 5.1, 5.3, 8.3, 9.5) — the
+// beat is about prior knowledge, and check 8 fails a lesson that aims it at one
+// the student has not reached.
+const DECOMPOSE: DecomposeSpec = {
+  big:
+    'The starter\'s `GameManager.cs` declares six lists and hands you a deal that is only half a ' +
+    'deal: `Shuffle` has two empty overloads, and `Deal()` reads `player_deck[0]` and ' +
+    '`ai_deck[0]` and never once calls `Add` on `player_hand` or `ai_hand`. So the moment a deal ' +
+    'finishes, both hands are still empty lists — and a loop over an empty list runs zero times ' +
+    'and reports nothing at all. "How do I hold a hand of cards?" is not one problem. It is six, ' +
+    'and each one is a single line: make the list exist, put a card in, read one back by index, ' +
+    'take one out, ask how many are left, and walk the lot with a loop.',
+  frame: 'concept',
+  parts: [
+    {
+      name: 'Make the list exist: empty, before anything goes into it',
+      does:
+        '`List<Card> player_hand = new List<Card>();` — declared once at the top of the class, and it starts with zero items. Zero is a legal state, not a broken one: an empty list answers `Count` with 0, and a loop over it simply runs no times, in silence.',
+      doc:
+        'the "Array vs List — same idea, one difference that matters" section of the Lists & Arrays reference, and the six list fields declared at the top of `Assets/Scripts/GameManager.cs`',
+      href: '../docs/unit-10/lists-arrays.html',
+    },
+    {
+      name: 'Put a card into it: APPEND',
+      does:
+        '`player_hand.Add(card)` puts one card on the end and makes the list one longer. AP writes the same operation `APPEND(aList, item)` — one item, one end, no index to get wrong and nothing to resize by hand.',
+      doc:
+        'the APPEND row of the AP-pseudocode-versus-C# table in the Lists & Arrays reference',
+      href: '../docs/unit-10/lists-arrays.html',
+    },
+    {
+      name: 'Read one card back out: the index',
+      does:
+        '`player_hand[0]` is the first card and `player_hand[Count - 1]` is the last. C# counts from 0 and the exam counts from 1, so the same card is `hand[3]` to you and item 4 to the exam — write both numbers down.',
+      doc:
+        'the `aList[i]` row of that table, and "Bug 2 — the bounds", which is the crash that comes from reading one index too far',
+      href: '../docs/unit-10/lists-arrays.html',
+    },
+    {
+      name: 'Take a card back out: REMOVE',
+      does:
+        '`player_hand.RemoveAt(i)` deletes the card at index i and shifts every later card down one. AP calls it `REMOVE(aList, i)`. That shift is the whole reason removing while looping forward skips a card.',
+      doc:
+        'the REMOVE row of that table, and "Bug 1 — remove while traversing forward", the bug the shift causes',
+      href: '../docs/unit-10/lists-arrays.html',
+    },
+    {
+      name: 'Ask how many are left: LENGTH',
+      does:
+        '`player_hand.Count` is a property rather than a method, and it is the number of cards right now rather than a total you have to remember to keep updated. AP writes it `LENGTH(aList)`, and it is the bound the exam puts in every list loop.',
+      doc:
+        'the LENGTH row of that table, and the `Count` bound in "Bug 2 — the bounds"',
+      href: '../docs/unit-10/lists-arrays.html',
+    },
+    {
+      name: 'Walk the whole hand: a loop over the list',
+      does:
+        '`foreach (Card c in player_hand)` runs the body once per card, in order, with no index to keep. That is "traverse to total" and "traverse with a filter" from the reference, pointed at a hand instead of a spreadsheet column.',
+      doc:
+        'patterns 1 and 2, "Traverse to total" and "Traverse with a filter", in the Lists & Arrays reference, and the `foreach` you ran over an area query in 8.3',
+      href: '8.3.html',
+    },
+  ],
+  why:
+    'The split is the lesson, and its shape is the giveaway: five of these six parts are a single ' +
+    'line of C#. "Hold a hand of cards" sounds like a system; it is four list operations, one ' +
+    'index and one loop, and the Unit 10 reference prints every one of them with its AP pseudocode ' +
+    'beside it. The reason to write the split down anyway is what the starter has not done: the ' +
+    'fields are declared, `Shuffle` is empty, and nothing has ever been added to a hand — so the ' +
+    'honest answer to "where is my hand" is "nowhere yet", and knowing which of the six small ' +
+    'things is missing is the whole job today.',
+  sizeTest:
+    'The test for a finished split: can you look one part up in a single search, right now, and ' +
+    'write it in one line? "How do I add a card to a list" can — the reference sheet prints the C# ' +
+    'and the AP side by side. "How do I hold a hand of cards" cannot, because it is six of those ' +
+    'questions wearing one name. A part that needs you to design something before you can write it ' +
+    'is not a part of this problem; it is the next one.',
+  turns: [
+    '`Deal()` shuffles both decks, instantiates a card visual for each side and reads `player_deck[0]` and `ai_deck[0]` — and never once calls `Add` on `player_hand` or `ai_hand`. So the moment a deal finishes, both hands are still empty lists, and a loop over either one runs zero times and prints nothing. Where does the first `Add` go in your copy, and what would you print to prove the hand is no longer empty?',
+    'The decks and the hands do not hold the same type: `player_deck` and `ai_deck` are `List<Card_data>` — an asset, the card\'s numbers — while the hands and the two discard piles are `List<Card>`, the component sitting on a card object in the scene. Why does the deck want the asset type rather than the scene type, and what would you lose if you shuffled the visual objects instead?',
+    'This jam has five classes to ship and six lists to fill. Which of the six parts above would you write first if you wanted a card visible on screen inside ten minutes — and which one can wait until you have decided the rules of your game?',
+  ],
+  connect: [
+    'In 10.1a you pitched a whole game under a constraint and shipped it. This jam\'s constraint is a data structure instead of a control scheme: every system your game owns turns out to be one of six lists. Which of your 10.1a habits — scope it small, pitch it in one sentence, cut a feature rather than a corner — carries over unchanged, and what is new about a jam whose subject is a list?',
+    'In 2.1 a coin count was ONE number living on the player, and in 5.1 your inventory was a handful of `bool`s. A hand of cards is neither: it is many things in order, and the order is the game. What can a `bool` tell you about your third card, and what does a list know that no pile of flags ever could?',
+    'In 5.3 you refactored your stats into a single manager with a `public static` field claimed in `Awake()`, behind a duplicate guard and a `DontDestroyOnLoad`. `GameManager.cs` opens with that exact shape. Which line of the card template would break first if `gm` were an ordinary field on one object instead of a `static` one — and why is a game manager the thing that goes static?',
+    'In 8.3 an area query handed you back an array of colliders and you walked it with a `foreach`: the answer was many things, so the only way to read it was one item at a time. Which part of today\'s split is that same loop pointed at a hand, and what does the loop body do to each card that it did not do to each collider?',
+    'In 9.5 you filtered and aggregated rows of the playtest sheet in Sheets — count, mean, min, max. `LENGTH(aList)` and `.Count` are that same counting question asked in code, and "traverse with a filter" is the filter you dragged across a column. Which part of today\'s split is a count, and which part is a filter?',
+  ],
+};
 
 const body = `<h1>10.2a — Card Jam Kickoff: Lists &amp; Arrays</h1>
 
@@ -12,6 +120,10 @@ const body = `<h1>10.2a — Card Jam Kickoff: Lists &amp; Arrays</h1>
     skeleton (GameManager.cs) with a secret: two of its methods are
     EMPTY, waiting for you.
 </p>
+
+${renderAskBanner('how do I use lists to hold a hand of cards?', 3, 'concept')}
+
+${renderDecompose('10.2a', DECOMPOSE, 3)}
 
 <!-- ============================================================ -->
 <div class="activity rpg">
@@ -25,13 +137,21 @@ const body = `<h1>10.2a — Card Jam Kickoff: Lists &amp; Arrays</h1>
     your own eyes:</p>
     <ol>
         <li>It is a singleton — <code>public static GameManager gm;</code>
-            set in Awake — the same pattern your StatManager has
-            used since <a href="2.1.html">2.1</a>. The game
-            manager is THE manager; everything finds it.</li>
-        <li>It holds about SIX Lists. Count them: the deck, the
-            hand(s), maybe a discard pile, a play field. Every one
-            is a <code>List&lt;Card&gt;</code> or similar. THE WHOLE
-            GAME IS LISTS.</li>
+            set in Awake, behind a duplicate guard and a
+            <code>DontDestroyOnLoad</code>. That is the shape you
+            built yourself in <a href="5.3.html">5.3</a>; the
+            <code>StatManager</code> stub you met in
+            <a href="2.1.html">2.1</a> was left empty on purpose and
+            only got filled in during that refactor, so this pattern
+            is yours. The game manager is THE manager; everything
+            finds it.</li>
+        <li>It holds exactly SIX Lists, and they are not all the same
+            kind. Count them: TWO decks — <code>List&lt;Card_data&gt;</code>,
+            the asset, the card's numbers — and TWO hands plus TWO
+            discard piles, all <code>List&lt;Card&gt;</code>, the
+            component on a card object. There is no play field and no
+            score list; six is the whole inventory. THE WHOLE GAME IS
+            LISTS.</li>
     </ol>
 
     <p><strong>List vocabulary (the exam's, exactly):</strong></p>
@@ -109,6 +229,8 @@ const body = `<h1>10.2a — Card Jam Kickoff: Lists &amp; Arrays</h1>
             <li>Translate AP pseudocode list ops to C# on sight</li>
             <li>Explain why draw = REMOVE from deck + APPEND to hand</li>
             <li>Pitch a card game with a loop, a twist, and an AI</li>
+            <li>Break "hold a hand of cards" into parts small enough to look up one at a time, and say in one line what each part does</li>
+            <li>Say which reference page or earlier lesson each part came from, and where you would reread it</li>
         </ul>
     </div>
 </div>

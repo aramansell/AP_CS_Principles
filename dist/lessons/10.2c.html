@@ -1,32 +1,68 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>10.2c Decks: Shuffle, Draw &amp; Traverse — AP CS Principles</title><meta name="description" content="Lesson 10.2c Decks: Shuffle, Draw &amp; Traverse — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="10.2c Decks: Shuffle, Draw &amp; Traverse — AP CS Principles"><meta property="og:description" content="Lesson 10.2c Decks: Shuffle, Draw &amp; Traverse — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="10.2b.html">&#9664; 10.2b</a><span class="lesson-id">10.2c</span><a href="10.2d.html">10.2d &#9654;</a></div><h1>10.2c — Decks: Shuffle, Draw &amp; Traverse</h1>
 
 <p class="lesson-lead">
-    The starter's <code>Shuffle()</code> is EMPTY — check your copy.
-    That emptiness is a gift: the single most exam-famous algorithm
-    of the year, left in the seat where you sit. Today you implement
-    the shuffle, wire the draw, and traverse a hand to render it.
+    The starter's <code>Shuffle()</code> is EMPTY — check your copy, and
+    count the methods while you are there, because there are two of them.
+    That emptiness is a gift: the single most exam-famous algorithm of the
+    year, left in the seat where you sit. Today you implement the shuffle,
+    wire the draw the starter never had, and traverse a hand to render it.
 </p>
+
+<div class="ask-banner" data-scaffold="2"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I shuffle a deck and draw from it?&rdquo;</span><span class="ask-banner-level">Guided build</span></div>
+
+<div class="activity decompose" data-level="2" data-parts="5" data-given="4" data-docs="5"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Guided build</span></div><p class="dc-big">The starter hands you a card game whose <code>Shuffle</code> is empty twice over, whose deck can never reach a hand, and whose hands are therefore always empty lists. "How do I shuffle a deck and draw from it?" is not one problem. It is five: two methods sharing a name and answering to different list types, an algorithm that has to be exactly right or the game is quietly rigged, a swap written in the one order that does not lose a card, a move between two lists that has to survive an empty deck, and a loop that turns list positions into screen positions.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Notice the same method name is written twice, for two different list types</span><span class="dc-does"><code>Shuffle</code> has two overloads in the starter — one taking <code>List&lt;Card_data&gt;</code>, the deck of ScriptableObject assets from 10.2b, and one taking <code>List&lt;Card&gt;</code>, the components on screen. C# picks between them from the type of the argument at the call site, and <code>Deal()</code> decides which one it reaches by what it passes.</span><span class="dc-doc">Read: the two <code>Shuffle</code> signatures in <code>Assets/Scripts/GameManager.cs</code>, the two calls to them inside <code>Deal()</code>, and the <code>List&lt;Card_data&gt;</code> / <code>List&lt;Card&gt;</code> split in the field list at the top of that file — the same six Lists you counted in 10.2a.</span></li><li class="dc-part dc-part-blank"><span class="dc-gap">write this part</span><span class="dc-doc">Read: <a href="../exam/reference-sheet.html">the <code>RANDOM(a, b)</code> row of the exam reference sheet, which prints the C# translation and warns that Unity is exclusive at the top for ints — and pattern 4, "Swap (the shuffle's spine)", in the Lists &amp; Arrays reference, which names Fisher-Yates and says what makes it fair.</a></span></li><li class="dc-part"><span class="dc-name">Swap the two slots through a temp, in the order that does not lose a card</span><span class="dc-does">Three statements, and the order is the whole of it: copy <code>list[i]</code> into <code>temp</code> first, then write <code>list[r]</code> into <code>list[i]</code>, then write <code>temp</code> into <code>list[r]</code>. The AP pseudocode writes exactly the same three lines — <code>temp &lt;- aList[i]</code>, <code>aList[i] &lt;- aList[r]</code>, <code>aList[r] &lt;- temp</code>.</span><span class="dc-doc">Read: <a href="../docs/unit-10/lists-arrays.html">pattern 4, "Swap (the shuffle's spine)", in the Lists &amp; Arrays reference — the AP and C# columns side by side — and the same page's warning about which statement has to come first.</a></span></li><li class="dc-part"><span class="dc-name">Move the top card out of the deck and into the hand, and refuse when there is none</span><span class="dc-does">Read <code>deck[0]</code>, hand the data to a card component, <code>Add</code> that component to the hand, and <code>RemoveAt(0)</code> from the deck — in that order, because removing first changes what index 0 even is. The guard in front of all of it is the boundary case: <code>deck[0]</code> on an empty list is the crash 10.2a's socratic asked you to imagine at draw #31.</span><span class="dc-doc">Read: <a href="10.2a.html">the <code>APPEND(aList, item)</code> and <code>REMOVE(aList, i)</code> rows of the Lists &amp; Arrays reference, that page's "Bug 2 — the bounds", and the socratic in 10.2a that asked what breaks at draw #31 if you never remove.</a></span></li><li class="dc-part"><span class="dc-name">Traverse the hand by index to place every card</span><span class="dc-does">A <code>for</code> loop from 0 to <code>Count - 1</code>, and the loop counter IS the screen position: <code>i</code> multiplies the spacing. The hand literally spreads because of a counter. A <code>foreach</code> visits the same cards and can do nothing with their places, because it never has an <code>i</code>.</span><span class="dc-doc">Read: <a href="../docs/unit-10/lists-arrays.html">the <code>FOR i FROM 1 TO LENGTH</code> row of the Lists &amp; Arrays reference, and patterns 1 and 2 on the same page — traverse to total, and traverse with a filter — which are the same loop with a different body.</a></span></li></ol><p class="dc-why">Three of those five parts are things you have already typed. Reading the file to see which overload a call reaches is the two-minute read that opens every jam day; the three swap statements are pattern 4 from 10.2a's lists; and moving a card from one list to another is <code>RemoveAt</code> plus <code>Add</code>, which is the AP's <code>REMOVE</code> plus <code>APPEND</code> and which 10.2a already made you translate on sight. What is left is the random slot and the empty-deck guard — and the random slot is the reason this is a guided build rather than a full walkthrough. It is one line, and it carries three separate things at once: AP counts list slots from 1 and C# from 0, the exam's <code>RANDOM(a, b)</code> is inclusive at both ends and Unity's int version is not, and the word <code>Random</code> in this template names two different classes, so the call has to say which.</p><p class="dc-size">The test: could you look this part up on its own, right now, in one search? "Shuffle a deck" cannot — it is an algorithm, a list operation and a boundary case wearing one name. "How does C# Remove an item from a List" can, and you have already read the row that answers it.</p><div class="dc-connect"><h4>Connect it to something you already built</h4><p>Very little in this course is new. Most of it is something you have already done, pointed in a different direction — and saying which one out loud is how you stop relearning it every time.</p><p>The shuffle is the one algorithm in this unit whose bug is invisible in a single play: a silently biased deck deals the same card first again and again and still looks random. How would you test for that — and what did 9.5 teach you about believing a claim about randomness?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2c:dc1:q1" data-block="decompose" data-question="The shuffle is the one algorithm in this unit whose bug is invisible in a single play: a silently biased deck deals the same card first again and again and still looks random. How would you test for that — and what did 9.5 teach you about believing a claim about randomness?" placeholder="write your answer, then keep going"></textarea></label><p>Your hand is a <code>List&lt;Card&gt;</code> and your deck is a <code>List&lt;Card_data&gt;</code>. If you build the discard pile the starter already declares a field for, which overload does reshuffling it need, and what does your answer say about where a shuffle method belongs?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2c:dc1:q2" data-block="decompose" data-question="Your hand is a `List&lt;Card&gt;` and your deck is a `List&lt;Card_data&gt;`. If you build the discard pile the starter already declares a field for, which overload does reshuffling it need, and what does your answer say about where a shuffle method belongs?" placeholder="write your answer, then keep going"></textarea></label><p>In 10.2a you counted the starter's six Lists and translated APPEND, REMOVE and LENGTH on sight. Four of today's five parts are that table used for real. Which parts — and which row of it does the empty-deck guard stand on?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2c:dc1:q3" data-block="decompose" data-question="In 10.2a you counted the starter's six Lists and translated APPEND, REMOVE and LENGTH on sight. Four of today's five parts are that table used for real. Which parts — and which row of it does the empty-deck guard stand on?" placeholder="write your answer, then keep going"></textarea></label><p>In 10.2b each card became a ScriptableObject asset, and the point was that a card dragged into three lists is still one card. Today the deck holds <code>Card_data</code> and the hand holds <code>Card</code>. Which part of the split breaks if you make the hand hold <code>Card_data</code> too — and what does the screen lose?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2c:dc1:q4" data-block="decompose" data-question="In 10.2b each card became a ScriptableObject asset, and the point was that a card dragged into three lists is still one card. Today the deck holds `Card_data` and the hand holds `Card`. Which part of the split breaks if you make the hand hold `Card_data` too — and what does the screen lose?" placeholder="write your answer, then keep going"></textarea></label><p>In 2.1 the coin count moved onto a <code>StatManager</code> singleton written in <code>Awake()</code>, which is the same pattern GameManager is running in this file — and in 8.3 a <code>foreach</code> walked every collider an area query handed back. Today's traverse is that loop pointed at your own hand. What does an index loop let you do that 8.3's <code>foreach</code> could not, and which part of the split is that?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2c:dc1:q5" data-block="decompose" data-question="In 2.1 the coin count moved onto a `StatManager` singleton written in `Awake()`, which is the same pattern GameManager is running in this file — and in 8.3 a `foreach` walked every collider an area query handed back. Today's traverse is that loop pointed at your own hand. What does an index loop let you do that 8.3's `foreach` could not, and which part of the split is that?" placeholder="write your answer, then keep going"></textarea></label></div></div>
 
 <!-- ============================================================ -->
 <div class="activity rpg">
     <div class="activity-header">
         <span class="activity-label">Concept Lab</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <p><strong>Fisher-Yates, in exam language.</strong> The AP
     pseudocode for a shuffle (know BOTH languages):</p>
     <pre><code>AP:                                C#:
 FOR i FROM LENGTH(list) TO 2     for (int i = list.Count - 1; i &gt; 0; i--)
-    r ← RANDOM(1, i)                 int r = Random.Range(0, i + 1);
-    SWAP(list[i], list[r])           (card temp = list[i];
+    r ← RANDOM(1, i)                 int r = UnityEngine.Random.Range(0, i + 1);
+    SWAP(list[i], list[r])           Card_data temp = list[i];
                                      list[i] = list[r];
-                                     list[r] = temp;)</code></pre>
+                                     list[r] = temp;</code></pre>
     <p>Read it as a story: walk the list from the END; at each
     position, pick a random EARLIER-or-equal position; swap. Every
     card gets exactly one chance at every slot — that fairness
     (uniform distribution) is why this is THE textbook shuffle, not
     a vibe shuffle.</p>
+
+    <p><strong>Two translations, and both bite.</strong> AP lists
+    are <strong>1-indexed</strong> and C# lists are
+    <strong>0-indexed</strong>, so AP's slots <code>LENGTH..2</code>
+    are C#'s <code>(Count-1)..1</code> — the same slots, written two
+    ways. And AP's <code>RANDOM(a, b)</code> includes BOTH ends
+    while Unity's <code>Random.Range(a, b)</code> for ints excludes
+    the top, which is why the C# column says <code>i + 1</code>.
+    Write <code>Range(0, i)</code> and the slot at <code>i</code>
+    can never be picked, the last card never moves, and the deck
+    still <em>looks</em> shuffled. The
+    <a href="../exam/reference-sheet.html">exam reference sheet</a>'s
+    RANDOM row prints this same AP-to-C# difference; the
+    <a href="../docs/unit-10/lists-arrays.html">Lists &amp; Arrays</a>
+    reference prints the swap as pattern 4.</p>
+
+    <div class="callout trap">
+        <strong>Why the call says <code>UnityEngine.</code> out loud.</strong>
+        This template installs <code>com.unity.mathematics</code> —
+        not directly, but pinned in <code>Packages/packages-lock.json</code>
+        as a dependency of something else — and <code>GameManager.cs</code>
+        has <code>using Unity.Mathematics;</code> at the top. That
+        package defines <code>Unity.Mathematics.Random</code>;
+        <code>UnityEngine</code> defines <code>Random</code> too. So a
+        bare <code>Random.Range(...)</code> in that one file is
+        <code>CS0104: 'Random' is an ambiguous reference</code> and the
+        game will not build. Two legal fixes: fully qualify the call, or
+        delete the <code>using Unity.Mathematics;</code> line. The AP
+        exam never tests namespace resolution. Every real C# codebase
+        does.
+    </div>
 
     <div class="socratic">
         <h3>Socratic</h3>
@@ -42,61 +78,261 @@ FOR i FROM LENGTH(list) TO 2     for (int i = list.Count - 1; i &gt; 0; i--)
 </div>
 
 <!-- ============================================================ -->
+<div class="activity walkthrough" data-scaffold="2" data-gaps="2"><div class="activity-header"><span class="activity-label">Build It With Me</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I shuffle a deck and draw from it?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/GameManager.cs</code>. This is the card game template's own script — the one with the two empty <code>Shuffle</code> methods and the working <code>Deal()</code>. You fill both overloads with Fisher-Yates, add the draw that carries a card from the deck to the hand, and add the loop that lays the hand out by index. <code>Deal()</code> gets rewired at the end. Exactly two lines are yours to write, and both of them are the new idea.</p><p class="wt-gapcount">This build leaves <strong>2 lines</strong> for you to write. Everything around them is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Read the caller, then count the methods it can reach</h4><p class="wt-lead">Two minutes of reading, no writing. <code>Deal()</code> is real working code, and it already tells you which list types this file deals in — read it before you touch anything.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    void Deal()</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line wt-line-why" data-n="3">        Shuffle(player_deck);</span>
+<span class="wt-line" data-n="4">        Shuffle(ai_deck);</span>
+<span class="wt-line" data-n="5">    }</span>
+<span class="wt-line" data-n="6"></span>
+<span class="wt-line" data-n="7">    void Shuffle(List&lt;Card_data&gt; data_hand)</span>
+<span class="wt-line" data-n="8">    {</span>
+<span class="wt-line" data-n="9">    }</span>
+<span class="wt-line wt-line-why" data-n="10">    void Shuffle(List&lt;Card&gt; card_hand)</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The starter's own method. It is already written, it already runs, and it already calls the method you are about to fill in.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The first call. <code>player_deck</code> is declared as <code>List&lt;Card_data&gt;</code> — the ScriptableObject assets from 10.2b — so C# resolves this call to the overload that takes a <code>List&lt;Card_data&gt;</code> and not the other one.</span><span class="wt-why"><strong>C# chooses an overload from the argument's type, at the call site.</strong> That is the whole of overloading: one name, several signatures, and the compiler picks by what you pass. It means the two empty methods below are not duplicates — they are two different jobs sharing a word, and only one of them is reachable from this line.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">The second call, and it is the same overload: <code>ai_deck</code> is a <code>List&lt;Card_data&gt;</code> as well. So Deal() today reaches exactly one of the two empty methods.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what"><strong>Overload (a)</strong> — the deck, empty in the starter. This is the one Deal() calls.</span></li>
+<li><span class="wt-ref">10</span><span class="wt-what"><strong>Overload (b)</strong> — the hand, also empty. Nothing in the starter calls it yet, because <code>player_hand</code> and <code>ai_hand</code> are <code>List&lt;Card&gt;</code> and nothing shuffles a hand today.</span><span class="wt-why"><strong>Implement one and leave the other, and the other call is a silent no-op.</strong> No error, no warning, no message in the Console: the list comes back in exactly the order it went in. C# does not warn about an unused parameter, so an empty method body is a legal method that does nothing. That is the shape of this bug — a <code>Shuffle(player_hand)</code> later in the unit that compiles, runs, and shuffles nothing, while the deck beside it works perfectly.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Fisher-Yates, walking from the end — and the one line you write</h4><p class="wt-lead">The algorithm the exam prints, in C#. Walk the list from the end; at each slot, pick a random earlier-or-equal slot; swap. One line is yours — the random pick — and it is the line where the AP and C# genuinely disagree.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    void Shuffle(List&lt;Card_data&gt; data_hand)</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line wt-line-why" data-n="3">        for (int i = data_hand.Count - 1; i &gt; 0; i--)</span>
+<span class="wt-line" data-n="4">        {</span>
+<span class="wt-line wt-line-why wt-blank" data-n="5"><span class="wt-gap">            int r = ______________________________________;</span></span>
+<span class="wt-line" data-n="6"></span>
+<span class="wt-line wt-line-why" data-n="7">            Card_data temp = data_hand[i];</span>
+<span class="wt-line" data-n="8">            data_hand[i] = data_hand[r];</span>
+<span class="wt-line" data-n="9">            data_hand[r] = temp;</span>
+<span class="wt-line" data-n="10">        }</span>
+<span class="wt-line" data-n="11">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Overload (a) again, now with a body. The parameter is the list the caller passed, so this method never needs to know it is <code>player_deck</code> rather than <code>ai_deck</code>.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The loop, and it runs <strong>backwards</strong>: <code>i</code> starts at the last valid index (<code>Count - 1</code>) and stops when it reaches <code>1</code>. Read it next to the AP's <code>FOR i FROM LENGTH(list) TO 2</code> — AP's slot 1 is C#'s slot 0, so AP's range <code>LENGTH..2</code> is C#'s <code>(Count-1)..1</code>, and the two loops visit the same slots in the same order.</span><span class="wt-why"><strong>Why from the end, and why stop before 0.</strong> Working backwards means the slots behind <code>i</code> are still unshuffled and the slots ahead of it are already settled, which is what makes every ordering equally likely. And the loop stops at <code>1</code>, not <code>0</code>: when one card is left there is nothing to swap it with, because a single card is already in the only slot it can occupy. Swapping slot 0 with slot 0 would be a no-op — the AP writes that same stopping point as <code>TO 2</code> in 1-indexed slots.</span></li>
+<li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">5</span><span class="wt-what"><strong>Your line — the whole right-hand side.</strong> It picks the slot to swap with: a random index from the start of the list up to and including <code>i</code>. The declaration on the left is fixed — <code>r</code> is the name the three lines below read, so do not rename it — and everything from the <code>=</code> onward is yours to work out.</span><span class="wt-hint">Two numbers and a class name go into it. The first number is the bottom of the range: the first slot in the list, and C# counts slots from 0 while the AP counts from 1. The second is the top, written as <code>i</code> plus one — because the exam's <code>RANDOM(a, b)</code> includes both ends and Unity's int version does not, which the <code>RANDOM(a, b)</code> row of the exam reference sheet spells out. The class name is the one the <code>using</code> lines at the top of GameManager.cs have made ambiguous: <code>Random</code> is defined by both <code>UnityEngine</code> and <code>Unity.Mathematics</code> in this template, so the call has to say which one it means. The <code>RANDOM(a, b)</code> row and the <code>LENGTH(aList)</code> row of the Lists &amp; Arrays reference give you the indexing rule.</span><span class="wt-why"><strong><code>UnityEngine.Random.Range(0, i + 1)</code> — and both halves of that matter.</strong> The <code>i + 1</code> is the max-exclusive correction: Unity's int overload never returns its upper bound, so <code>Range(0, i)</code> returns <code>0..i-1</code> and the slot at <code>i</code> could never be its own partner on this pass. The last card in the list would then never move at all — a shuffle that is wrong in a way that still looks shuffled. The <code>UnityEngine.</code> is the second half. <code>com.unity.mathematics</code> is installed in this template (transitively — it is not in <code>Packages/manifest.json</code>, but <code>Packages/packages-lock.json</code> pins it at depth 2), and it defines <code>Unity.Mathematics.Random</code>; <code>UnityEngine</code> defines <code>Random</code> too. A bare <code>Random.Range(...)</code> in this file is therefore <code>error CS0104: 'Random' is an ambiguous reference</code> and the script does not build. Qualifying the call is the fix that survives somebody adding that <code>using</code> back; deleting <code>using Unity.Mathematics;</code> from the top of the file is the other legal fix, and it is one line you would have to explain to the next person.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what">The swap begins by copying the card at <code>i</code> somewhere safe. This is pattern 4 from the Lists &amp; Arrays reference, in this file's own names — and it is <code>Card_data</code>, because that is what this list holds.</span><span class="wt-why"><strong>The temp is not optional and the order is not optional.</strong> Overwrite <code>data_hand[i]</code> before you have saved it and the card that was there is gone from the list entirely — the two statements below then write the same card into both slots.</span></li>
+<li><span class="wt-ref">8</span><span class="wt-what">The random slot's card moves into slot <code>i</code>. Read it as the AP's <code>aList[i] &lt;- aList[r]</code>.</span></li>
+<li><span class="wt-ref">9</span><span class="wt-what">And the saved card goes into the random slot. Read it as <code>aList[r] &lt;- temp</code>. The pair is <code>SWAP(list[i], list[r])</code> spread over three statements, exactly as the reference sheet prints it.</span></li>
+<li><span class="wt-ref">11</span><span class="wt-what">Closes overload (a), which now shuffles. Overload (b) is still an empty body — step 3 fills it in.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>The same six lines for the other overload</h4><p class="wt-lead">Nothing new happens here, and that is the point: overload (b) is the loop and the swap again, with <code>Card</code> in place of <code>Card_data</code>. Type it out rather than copying, and notice that not one of the six lines changes shape.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    void Shuffle(List&lt;Card&gt; card_hand)</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line" data-n="3">        for (int i = card_hand.Count - 1; i &gt; 0; i--)</span>
+<span class="wt-line" data-n="4">        {</span>
+<span class="wt-line wt-line-why" data-n="5">            int r = UnityEngine.Random.Range(0, i + 1);</span>
+<span class="wt-line" data-n="6">            Card temp = card_hand[i];</span>
+<span class="wt-line" data-n="7">            card_hand[i] = card_hand[r];</span>
+<span class="wt-line" data-n="8">            card_hand[r] = temp;</span>
+<span class="wt-line" data-n="9">        }</span>
+<span class="wt-line" data-n="10">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Overload (b) — the hand. <code>List&lt;Card&gt;</code> is the components, not the assets: the thing that is on screen.</span><span class="wt-why"><strong>Both overloads are needed because the starter has two kinds of list, and it is not an accident.</strong> The deck is <code>List&lt;Card_data&gt;</code> because a deck is data you have not played yet; the hand is <code>List&lt;Card&gt;</code> because a hand is something you can see and drag. The moment a later lesson reshuffles a hand — or a discard pile back into a deck — it will call this overload, and until you fill it in that call does nothing at all. It will not tell you.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The identical loop. The only difference from overload (a) is the parameter name, which is the one thing that has to change: <code>data_hand</code> and <code>card_hand</code> are separate lists of separate types.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">The line you wrote in step 2, unchanged — and here it is printed, because the shape is worth seeing twice. If your version in step 2 compiles and this one does not, the two are not the same line.</span><span class="wt-why"><strong>A generic <code>Shuffle&lt;T&gt;</code> would remove this duplication, and this is not the lesson for it.</strong> Generics are real C# and the exam never asks for one; two short methods are the honest version at this point in the year. If you want the exercise, it is in the Tinker.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what">The swap again, and the only other word that changes: <code>Card</code>, not <code>Card_data</code>. If you wrote <code>Card_data</code> here the file will not compile, and the error will point at this line rather than at the list it came from.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what">Identical to overload (a).</span></li>
+<li><span class="wt-ref">8</span><span class="wt-what">Identical to overload (a). Both overloads are now real, and a call to either one shuffles.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Draw: carry the top card from the deck into the hand</h4><p class="wt-lead">The starter has no draw at all — which is why its hands stay empty. Four statements and one guard, and the guard is the second line you write.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    void Draw(List&lt;Card_data&gt; deck, List&lt;Card&gt; hand, Vector3 where)</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line wt-line-why wt-blank" data-n="3"><span class="wt-gap">        if (________________________________) return;</span></span>
+<span class="wt-line" data-n="4"></span>
+<span class="wt-line wt-line-why" data-n="5">        GameObject new_card = Instantiate(blank_card, where, Quaternion.identity, canvas.transform);</span>
+<span class="wt-line wt-line-why" data-n="6">        new_card.GetComponent&lt;Card&gt;().data = deck[0];</span>
+<span class="wt-line" data-n="7">        hand.Add(new_card.GetComponent&lt;Card&gt;());</span>
+<span class="wt-line wt-line-why" data-n="8">        deck.RemoveAt(0);</span>
+<span class="wt-line" data-n="9">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what"><strong>Three parameters, and every one of them is load-bearing.</strong> <code>deck</code> is the <code>List&lt;Card_data&gt;</code> to draw from, <code>hand</code> is the <code>List&lt;Card&gt;</code> to draw into, and <code>where</code> is the screen position the new card appears at. The method takes them as parameters instead of reaching for <code>player_deck</code> and <code>player_hand</code> because the starter has two of each, and a draw that only worked for the player would have to be written twice.</span></li>
+<li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">3</span><span class="wt-what"><strong>Your line — the guard, and the whole condition inside the parentheses.</strong> It answers one question: when is there nothing left to draw? The <code>if</code>, the <code>return;</code> and the shape are given; what you write is the condition between the parentheses.</span><span class="wt-hint">Two pieces go inside. The first is the C# half of the <code>LENGTH(aList)</code> row in the Lists &amp; Arrays reference — the property that answers "how many items", read off the <code>deck</code> parameter this method was handed. The second is the question you are asking of it, and the same page's "Bug 2 — the bounds" is about reading an index a list does not have: this line is how you refuse before you get there. <code>=</code> is the wrong operator here and the file will not build with it — one <code>=</code> assigns, and you are asking.</span><span class="wt-why"><strong><code>deck[0]</code> on an empty list is not a card and not a null — it throws.</strong> Which exception it throws is worth reading off your own Console once: the guard clause is the entire difference between a jam build and a jam crash, and the same four lines are why a real card game can survive a player who discards everything and then draws. It also keeps the shuffle honest: the deck is empty exactly when every card has been drawn, which is the state 10.2a asked you to imagine at draw #31.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">The starter's own Instantiate line, moved here from <code>Deal()</code> verbatim — the blank card prefab, cloned at <code>where</code>, no rotation, parented to the canvas. <code>Deal()</code> no longer needs it, because it will call this method instead.</span><span class="wt-why"><strong>This is why the card has to be created here and not later.</strong> <code>Card.Start()</code> reads <code>data.card_name</code> and the rest on the first frame after the object exists, so a visual that is instantiated and left with an empty <code>data</code> throws a <code>NullReferenceException</code> in <code>Card.Start()</code> — from a line in a different file, which is why it is worth knowing about before you see it.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what">Hand the drawn card its data. <code>deck[0]</code> is the <strong>top</strong> of the deck, and the top of a shuffled deck is a random card — which is the whole reason the shuffle had to be right.</span><span class="wt-why"><strong>The hand holds <code>Card</code>, so the new visual has to be one.</strong> A <code>Card_data</code> is an asset on disk; a <code>Card</code> is a component on a GameObject. <code>GetComponent&lt;Card&gt;()</code> is how you get from the clone you just made to the component that will be in the list.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what">The card joins the hand. This is the AP's <code>APPEND(hand, topCard)</code> — and it is the line the starter never had, which is why <code>player_hand.Count</code> is 0 in the template as shipped.</span></li>
+<li><span class="wt-ref">8</span><span class="wt-what">And the deck gives it up. This is the AP's <code>REMOVE(deck, 1)</code> — <strong>index 1 in exam-speak</strong>, because the exam counts list slots from 1 and C# counts from 0.</span><span class="wt-why"><strong>Remove LAST, never first.</strong> <code>RemoveAt(0)</code> shifts every remaining card down one slot, so doing it before the three lines above would leave <code>deck[0]</code> pointing at the second card — you would draw the second card and quietly lose the first. The order in this method is not style; it is the difference between a draw and a bug.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 5</span>Traverse the hand by index to lay it out</h4><p class="wt-lead">The hand is a list, so showing it means visiting every element — and because the loop counter is also the position, this is the loop that has to be an index loop rather than a <code>foreach</code>.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    void LayoutHand(List&lt;Card&gt; hand, Vector3 origin)</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line wt-line-why" data-n="3">        for (int i = 0; i &lt; hand.Count; i++)</span>
+<span class="wt-line" data-n="4">        {</span>
+<span class="wt-line wt-line-why" data-n="5">            hand[i].transform.position = origin + new Vector3(i * 160f, 0f, 0f);</span>
+<span class="wt-line" data-n="6">        }</span>
+<span class="wt-line" data-n="7">    }</span>
+<span class="wt-line" data-n="8"></span>
+<span class="wt-line" data-n="9">        // ... and when you only need each card, not its place:</span>
+<span class="wt-line" data-n="10">        int total = 0;</span>
+<span class="wt-line" data-n="11">        foreach (Card c in hand)</span>
+<span class="wt-line" data-n="12">        {</span>
+<span class="wt-line wt-line-why" data-n="13">            total += c.data.cost;</span>
+<span class="wt-line" data-n="14">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">A separate method, so that laying the hand out is one named thing that can be called again whenever the hand changes. Same shape as <code>Draw</code>: take the list as a parameter, do not reach for a field.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The index loop — the <code>FOR i FROM 1 TO LENGTH</code> row of the Lists &amp; Arrays reference, written the C# way. It runs <strong>forward</strong> and <strong>includes</strong> the last card, which is the opposite of the shuffle's loop, and it is safe here because nothing is being removed.</span><span class="wt-why"><strong>Why this one cannot be a <code>foreach</code>.</strong> The loop counter <code>i</code> is the only thing that knows which position this card occupies, and the next line needs exactly that. A <code>foreach (Card c in hand)</code> visits the same cards in the same order and never tells you where any of them is — the loop you met in 8.3, and the right tool when the body only cares about the element.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">Position comes straight out of the counter: card 0 sits at <code>origin</code>, card 1 one step to the right, card 2 two steps. The 160 is a number somebody chose — the card's width plus a gap — which is why it is a literal here and a real knob in a polished game.</span><span class="wt-why"><strong>This is the line that makes the hand spread</strong>, and it is the same "position is the index" idea the exam's index-loop questions are really testing. Change 160 and the fan tightens; make it negative and the hand runs off the other way. Nothing about the list changed.</span></li>
+<li><span class="wt-ref">9</span><span class="wt-what">The other traversal, for contrast. This is the shape the AP calls <code>FOR EACH item IN aList</code>.</span></li>
+<li><span class="wt-ref">10</span><span class="wt-what">An accumulator, seeded at zero — pattern 1 in the Lists &amp; Arrays reference, traverse to total.</span></li>
+<li><span class="wt-ref">11</span><span class="wt-what">A <code>foreach</code> over the hand. No index anywhere, because this loop has nothing to say about positions.</span></li>
+<li><span class="wt-ref">13</span><span class="wt-what">Notice the <code>.data</code>: <code>c</code> is a <code>Card</code> component, and the cost lives on the <code>Card_data</code> asset it points at. <code>Card.cs</code> also copies the value into its own <code>cost</code> field in <code>Start()</code>, so <code>c.cost</code> would work too — but the asset is the source of truth, and reading it there cannot go stale.</span><span class="wt-why"><strong>This is the traverse-with-a-filter question from the exam, in your own game.</strong> "Sum the cost of every card in hand" is this loop with a <code>+</code> in it; "sum the cost of the cards you can afford" is the same loop with an <code>if</code> inside — pattern 2 on that reference page. Write both in AP pseudocode with these names before you write them in C#.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 6</span>Rewire Deal() and prove the shuffle is real</h4><p class="wt-lead">The starter's <code>Deal()</code> did its own instantiating and never touched the hands. Now that <code>Draw</code> does that work, <code>Deal()</code> gets shorter — and the game gets a real hand for the first time.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    void Deal()</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line" data-n="3">        Shuffle(player_deck);</span>
+<span class="wt-line" data-n="4">        Shuffle(ai_deck);</span>
+<span class="wt-line" data-n="5"></span>
+<span class="wt-line" data-n="6">        Draw(player_deck, player_hand, player_hand_location);</span>
+<span class="wt-line" data-n="7">        Draw(ai_deck, ai_hand, ai_hand_location);</span>
+<span class="wt-line" data-n="8"></span>
+<span class="wt-line wt-line-why" data-n="9">        player_hand[0].GetComponent&lt;DraggableUI&gt;().enabled = false;</span>
+<span class="wt-line" data-n="10">    }</span>
+<span class="wt-line" data-n="11"></span>
+<span class="wt-line" data-n="12">// Prove it in the Console, then delete the proof:</span>
+<span class="wt-line" data-n="13">// Prove the shuffle is not rigged:</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The method you read in step 1, with its body replaced.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Unchanged from the starter — and it matters that this runs <strong>before</strong> the draws. <code>Draw</code> takes <code>deck[0]</code>, so whatever card the shuffle left at the top is the card that gets dealt.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Unchanged. Both decks are shuffled before either is drawn from, and neither shuffle can reach the other deck, because each call passes one list.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what">One card from the player's deck onto the player's hand, at the player's position. The two <code>Instantiate</code> blocks the starter had here are gone — <code>Draw</code> does that work now, and it does it into the hand instead of into thin air.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what">The same line for the other side. <code>ai_hand_location</code> is computed in <code>Start()</code> as the player's position plus 350 up, and that line is untouched.</span></li>
+<li><span class="wt-ref">9</span><span class="wt-what">The starter's own line, and it still works: <code>player_hand[0]</code> is now a <code>Card</code> component, so <code>GetComponent&lt;DraggableUI&gt;()</code> finds the drag behaviour on the same GameObject. The player's drawn card is not draggable — for now.</span><span class="wt-why"><strong>What actually changed here, and it is the biggest thing on this page.</strong> The starter's <code>Deal()</code> instantiated a visual, assigned its data, and then dropped the reference — so <code>player_hand</code> and <code>ai_hand</code> stayed <strong>empty</strong> no matter how many cards were on screen. Every loop over a hand therefore did nothing, silently. <code>Draw</code> puts the card into the list as well as onto the canvas, so from today the hand is a real list you can traverse, count and lay out. That is what makes any of the turn logic possible at all.</span></li>
+<li><span class="wt-ref">12</span><span class="wt-what">One run with a <code>Debug.Log(player_hand.Count + " in hand, " + player_deck.Count + " left in deck");</code> at the end of <code>Deal()</code> should print <code>1 in hand, 29 left in deck</code> if your deck is thirty cards. Then <strong>delete the log</strong> — a print that survives into the next lesson is noise you will read past.</span></li>
+<li><span class="wt-ref">13</span><span class="wt-what">Play the scene ten times and watch which card is dealt first. Ten identical first cards is not luck — it is the off-by-one in <code>Range(0, i)</code> (see the pitfalls). Ten different ones is a shuffle you can trust. The Tinker asks you to make this a real count rather than ten glances.</span></li></ol></div><div class="wt-pitfalls"><h4>Where this goes wrong</h4><p class="wt-lead">These are the mistakes this step actually produces. Read them before you are surprised by one.</p><ul class="wt-pit-list"><li class="wt-pitfall"><p class="wt-pit-mistake"><code>Random.Range(0, i)</code> written instead of <code>UnityEngine.Random.Range(0, i + 1)</code></p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>The deck comes back shuffled, and one card never moves. Play the scene a few times and the same card is dealt first again and again — the shuffle looks random and is not.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>Unity's int overload is <strong>max-exclusive</strong>, so <code>Range(0, i)</code> returns <code>0..i-1</code> and the slot at <code>i</code> can never be chosen on that pass. The AP's <code>RANDOM(a, b)</code> includes both ends, so the translation is <code>Range(a, b + 1)</code> — the same row the exam reference sheet prints, with the warning attached.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake">a bare <code>Random.Range(...)</code> inside GameManager.cs</p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>The project does not compile: <code>error CS0104: 'Random' is an ambiguous reference between 'UnityEngine.Random' and 'Unity.Mathematics.Random'</code>, pointing at the random-pick line.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>This template has <code>com.unity.mathematics</code> installed (transitively — <code>Packages/packages-lock.json</code> pins it at depth 2) and <code>GameManager.cs</code> has <code>using Unity.Mathematics;</code> at the top, so the short name genuinely names two classes. Write <code>UnityEngine.Random.Range(0, i + 1)</code>, or delete the <code>using Unity.Mathematics;</code> line. Qualifying the one call is the habit that survives somebody adding the <code>using</code> back.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake">only one of the two <code>Shuffle</code> overloads implemented</p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>Everything looks right, and a <code>Shuffle(player_hand)</code> somewhere later does nothing at all. No error, no warning, no Console message — the list comes back in the order it went in, and only the deck is ever actually shuffled.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>Fill in both. C# picks the overload from the argument's type at the call site, and an empty method body with an unused parameter is entirely legal C# — which is exactly why this one is invisible. If your deck shuffles and your hand does not, this is why.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake"><code>Draw</code> written with no guard against an empty deck</p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span><code>ArgumentOutOfRangeException</code> from the line that reads <code>deck[0]</code>, the moment somebody draws from a deck that has run out — a crash rather than a rule.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>Check the count and return before you touch index 0. The guard is the only reason a player who discards everything can still press draw without killing the game, and the same check is what a reshuffle-the-discard-pile feature will hang off later.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake"><code>deck.RemoveAt(0)</code> written before <code>deck[0]</code> is read</p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>The draw works, the counts are right, and the cards are subtly wrong: you are drawing the <strong>second</strong> card every time and silently dropping the top one. Nothing errors, and the missing card only shows up when the deck is empty early.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>Read <code>deck[0]</code> first, use it, and remove last. <code>RemoveAt(0)</code> shifts every remaining card down a slot, so the order of these statements decides which card index 0 refers to.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake">a card visual instantiated without its <code>Card_data</code> assigned</p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span><code>NullReferenceException</code> in <code>Card.Start()</code>, from a file you were not editing — the new card exists on screen and never gets a name, a cost or a sprite.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span><code>Card.Start()</code> reads <code>data.card_name</code> on the first frame, so <code>data</code> has to be set before then. <code>Draw</code> sets it on the line right after the <code>Instantiate</code>, in the same frame — which is why <code>Instantiate</code> and the assignment belong in the same method and in that order.</p></li></ul></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things have to match and nothing else does: <strong>both</strong> <code>Shuffle</code> overloads are filled in, the random pick is <code>UnityEngine.Random.Range(0, i + 1)</code> with the max-exclusive <code>+ 1</code> and the qualified class name, and <code>Draw</code> reads <code>deck[0]</code> <strong>before</strong> it removes it, behind the empty-deck guard. Your parameter names, your spacing constant, your deck size and everything <code>Deal()</code> does after the two draws are yours. The gap line is the one that carries the whole lesson: it is the only place the AP pseudocode and C# genuinely disagree, in three ways at once.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
+//  REFERENCE FILE — Assets/Scripts/GameManager.cs
+//  Written to be read, not pasted. Build it with the walkthrough
+//  above, one step at a time, then open this and compare.
+//  If it is sitting in your project unchanged, that is the thing
+//  to go and do now — the walkthrough is still above you.
+// ------------------------------------------------------------------
+using System.Collections;
+using System.Collections.Generic;
+using Unity.Mathematics;
+using UnityEngine;
+
+public class GameManager : MonoBehaviour
+{
+    public static GameManager gm;
+
+    // The decks are Card_data (the 10.2b assets); the hands and the piles are
+    // Card (the components on screen). Two element types, so two Shuffle overloads.
+    public List&lt;Card_data&gt; player_deck = new List&lt;Card_data&gt;();
+    public List&lt;Card_data&gt; ai_deck = new List&lt;Card_data&gt;();
+    public List&lt;Card&gt; player_hand = new List&lt;Card&gt;();
+    public List&lt;Card&gt; ai_hand = new List&lt;Card&gt;();
+    public List&lt;Card&gt; player_discard_pile = new List&lt;Card&gt;();
+    public List&lt;Card&gt; ai_discard_pile = new List&lt;Card&gt;();
+
+    public Canvas canvas;
+    public GameObject blank_card;
+    public Vector3 player_hand_location;
+    public Vector3 ai_hand_location;
+
+    private void Awake()
+    {
+        if (gm != null &amp;&amp; gm != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            gm = this;
+            DontDestroyOnLoad(this.gameObject);
+        }
+    }
+
+    void Start()
+    {
+        canvas = FindAnyObjectByType&lt;Canvas&gt;();
+        ai_hand_location = player_hand_location + new Vector3(0, 350, 0);
+
+        Deal();
+    }
+
+    void Deal()
+    {
+        // Shuffle both decks BEFORE anything is drawn: Draw takes deck[0],
+        // so whoever the shuffle left on top is who gets dealt.
+        Shuffle(player_deck);
+        Shuffle(ai_deck);
+
+        Draw(player_deck, player_hand, player_hand_location);
+        Draw(ai_deck, ai_hand, ai_hand_location);
+
+        // The starter's own line, now reading the hand Draw just filled.
+        player_hand[0].GetComponent&lt;DraggableUI&gt;().enabled = false;
+    }
+
+    // Fisher-Yates, overload (a) — the decks. Walk from the end; at each slot
+    // pick a random earlier-or-equal slot; swap through a temp.
+    // AP: FOR i FROM LENGTH TO 2 / r &lt;- RANDOM(1, i) / SWAP(list[i], list[r])
+    void Shuffle(List&lt;Card_data&gt; data_hand)
+    {
+        for (int i = data_hand.Count - 1; i &gt; 0; i--)
+        {
+            // Range is MAX-EXCLUSIVE for ints, so i + 1 makes the range 0..i —
+            // and UnityEngine. is required: Unity.Mathematics.Random is also
+            // in scope in this file (see the pitfalls).
+            int r = UnityEngine.Random.Range(0, i + 1);
+
+            Card_data temp = data_hand[i];
+            data_hand[i] = data_hand[r];
+            data_hand[r] = temp;
+        }
+    }
+
+    // The same six lines, for the hands and piles. Copy, do not guess: an empty
+    // body here is a silent no-op, and nothing in C# will warn you about it.
+    void Shuffle(List&lt;Card&gt; card_hand)
+    {
+        for (int i = card_hand.Count - 1; i &gt; 0; i--)
+        {
+            int r = UnityEngine.Random.Range(0, i + 1);
+
+            Card temp = card_hand[i];
+            card_hand[i] = card_hand[r];
+            card_hand[r] = temp;
+        }
+    }
+
+    // Move the top of a deck into a hand, and put it on screen while you do it.
+    void Draw(List&lt;Card_data&gt; deck, List&lt;Card&gt; hand, Vector3 where)
+    {
+        // The boundary: deck[0] on an empty list is a crash, not a null.
+        if (deck.Count == 0) return;
+
+        GameObject new_card = Instantiate(blank_card, where, Quaternion.identity, canvas.transform);
+
+        // Read the top FIRST — RemoveAt(0) below would shift a different card
+        // into index 0.
+        new_card.GetComponent&lt;Card&gt;().data = deck[0];
+        hand.Add(new_card.GetComponent&lt;Card&gt;());
+        deck.RemoveAt(0);
+    }
+
+    // Position IS the index: the hand spreads because of a loop counter.
+    // This one cannot be a foreach — a foreach has no i.
+    void LayoutHand(List&lt;Card&gt; hand, Vector3 origin)
+    {
+        for (int i = 0; i &lt; hand.Count; i++)
+        {
+            hand[i].transform.position = origin + new Vector3(i * 160f, 0f, 0f);
+        }
+    }
+
+    void AI_Turn()
+    {
+        // The next lesson's problem.
+    }
+}
+
+// The two loops side by side, for reference:
+//
+//   index loop  — you NEED i for positions:
+//     for (int i = 0; i &lt; hand.Count; i++) { Layout(hand[i], i); }
+//
+//   foreach     — you only need each card:
+//     int total = 0;
+//     foreach (Card c in hand) { total += c.data.cost; }</code></pre></details></div>
+
+<!-- ============================================================ -->
 <div class="activity rpg">
     <div class="activity-header">
         <span class="activity-label">Build Lab</span>
         <span class="activity-time">~35 min</span>
     </div>
 
-    <p><strong>Step 1 — fill the empty method.</strong> In
-    GameManager, implement Shuffle() with the C# above (rename to
-    your list's name — read the starter's Deal() first: it is
-    PARTIALLY implemented, and it shows you the intended list
-    names and the card flow).</p>
-
-    <p><strong>Step 2 — the draw, in the starter's voice:</strong></p>
-    <pre><code>public void Draw()
-{
-    if (deck.Count == 0)
-    {
-        // reshuffle the discard pile into the deck — the loop of loops
-        return;
-    }
-    Card topCard = deck[0];
-    deck.RemoveAt(0);      // AP: REMOVE(deck, 1)  — index 1 in exam-speak!
-    hand.Add(topCard);    // AP: APPEND(hand, topCard)
-}</code></pre>
-    <p>Check the boundary: draw from an EMPTY deck crashes
-    (deck[0] does not exist). The guard clause is the whole
-    difference between a jam build and a jam crash.</p>
-
-    <p><strong>Step 3 — traverse to render.</strong> A hand is a
-    list; showing it means visiting every element. Two traversal
-    styles, both in the exam:</p>
-    <pre><code>// index loop — you NEED i for positions:
-for (int i = 0; i &lt; hand.Count; i++)
-{
-    SpawnCardVisual(hand[i], i);
-}
-
-// foreach — you only need each card:
-foreach (Card c in hand) { Debug.Log(c.cardName); }</code></pre>
-    <p>Spawn your card prefabs across the screen by index (i sets
-    the x position — the hand literally spreads because of a
-    loop counter). Why does the index loop earn its extra ceremony
-    here? Because position IS the index.</p>
-
-    <p><strong>Step 4 — the AP traverse question, answered by
-    your own game:</strong> "sum the cost of all cards in hand" —
-    write it in exam pseudocode with your game's real names, then
-    prove the answer with a Debug.Log total.</p>
+    <p><strong>Build it, then break it on purpose.</strong> The
+    walkthrough above leaves you a working shuffle, a working draw
+    and a hand that finally holds something. Everything below is what
+    goes wrong next — and every one of these four is a bug somebody
+    in this room will actually write.</p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: The shuffle bugs</h3>
         <ol>
-            <li>Random.Range(0, i) instead of (0, i + 1). Which
-                card can NEVER move? (The last one! Why — trace
-                i's first value.)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2c:bh1:q1" data-block="bug-hunt" data-question="Random.Range(0, i) instead of (0, i + 1). Which card can NEVER move? (The last one! Why — trace i's first value.)" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li><code>Random.Range(0, i)</code> instead of
+                <code>(0, i + 1)</code>. Trace <code>i</code>'s
+                first value: which slot is never chosen on that
+                pass, and which single card can therefore NEVER
+                move at all? And while you are in that line — why
+                does a bare <code>Random.Range</code> not compile
+                in this file, when it compiles fine everywhere
+                else in the course?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2c:bh1:q1" data-block="bug-hunt" data-question="Random.Range(0, i) instead of (0, i + 1) . Trace i 's first value: which slot is never chosen on that pass, and which single card can therefore NEVER move at all? And while you are in that line — why does a bare Random.Range not compile in this file, when it compiles fine everywhere else in the course?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Swapping with a temp VARIABLE FORGOTTEN: list[i] =
                 list[r]; list[r] = list[i]; — what does the deck
                 become, and why does it LOOK shuffled at a
@@ -136,8 +372,11 @@ foreach (Card c in hand) { Debug.Log(c.cardName); }</code></pre>
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
             <li>Implement Fisher-Yates in C# and match it line by line to AP pseudocode</li>
-            <li>Draw safely with the empty-deck guard</li>
-            <li>Render a hand by index loop (position = index)</li>
+            <li>Explain why the C# range is <code>(0, i + 1)</code> and not <code>(0, i)</code></li>
+            <li>Say why <code>UnityEngine.Random</code> has to be spelled out in this file</li>
+            <li>Implement BOTH <code>Shuffle</code> overloads, and say what breaks if you skip one</li>
+            <li>Draw safely with the empty-deck guard, reading the top card before removing it</li>
+            <li>Render a hand by index loop (position = index), and say why a foreach cannot</li>
             <li>Explain remove-while-traversing and its backward fix</li>
         </ul>
     </div>
@@ -150,9 +389,12 @@ foreach (Card c in hand) { Debug.Log(c.cardName); }</code></pre>
     <ul>
         <li><a href="../docs/unit-10/lists-arrays.html">Lists &amp; Arrays</a> — shuffles, traversals, the works</li>
         <li><a href="../exam/reference-sheet.html">Exam Reference Sheet</a> — RANDOM, SWAP, traversals</li>
+        <li><a href="10.2a.html">10.2a — Card Jam Kickoff</a> — the starter's six Lists, and the AP-to-C# table these methods use</li>
+        <li><a href="10.2b.html">10.2b — ScriptableObjects</a> — the card assets the deck is made of</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
     </ul>
     <p>Next: <a href="10.2d.html">10.2d — Turn Logic: Selection + Iteration</a></p>
-</div><div class="lab-bar" data-lesson="10.2c" data-lesson-title="Decks: Shuffle, Draw &amp; Traverse" data-count="6" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/6 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="10.2c" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="10.2b.html"><span class="dir">&#9664; Previous</span><span class="where">10.2b — ScriptableObjects: Card Data as Assets</span></a><a class="foot-next" href="10.2d.html"><span class="dir">Next &#9654;</span><span class="where">10.2d — Turn Logic: Selection + Iteration</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+</div><div class="lab-bar" data-lesson="10.2c" data-lesson-title="Decks: Shuffle, Draw &amp; Traverse" data-count="11" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/11 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="10.2c" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="10.2b.html"><span class="dir">&#9664; Previous</span><span class="where">10.2b — ScriptableObjects: Card Data as Assets</span></a><a class="foot-next" href="10.2d.html"><span class="dir">Next &#9654;</span><span class="where">10.2d — Turn Logic: Selection + Iteration</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
      restores the hidden bridge textareas first, and mc-quiz.js reads those
      restored values to re-check the radios. Swapping the order breaks
      answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

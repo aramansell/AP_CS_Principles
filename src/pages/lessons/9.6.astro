@@ -1,7 +1,104 @@
 ---
 // Lesson 9.6 — Bias, Filtering & Fair Data
-// expand-app: sampling bias, filtering consequences, your playtest pool.
+// concept-frame CSP lesson: sampling bias, filtering consequences, scoped claims.
+//
+// GROUND TRUTH — read out of public/data/playtests.csv, not out of this lesson:
+//   32 rows, 8 distinct testers (P01–P08), 6 sections. So "who is in the
+//   sample" is eight people recorded four times each, not thirty-two opinions.
+//   completed_boss = FALSE on exactly 7 rows (R003, R007, R012, R013, R018,
+//   R024, R029) — quitters DO leave rows; the players with no row at all are
+//   the ones who stopped mid-cave. The survivorship row of the bias table and
+//   Build Lab Step 2 now say that, and they used to contradict each other.
+//   Mean rating over all 32 runs is 3.81 (the 3.8 quoted in the socratic);
+//   over the 25 finishers only it is 4.16 — the survivorship trap, in numbers.
+//   Bug Hunt item 2's "average drops 20%" holds for section 5 (167.7s → 133.7s
+//   when its three slowest runs are dropped), which is the section it names.
+//   NO C# FILE IS REFERENCED IN THIS LESSON. The ".cs" a sweep reported in the
+//   Build Lab is playtests.csv, matched on its first three characters — it is
+//   the unit's dataset, it lives at public/data/playtests.csv, and the link
+//   resolves. The only code-shaped thing here is the AP-pseudocode fix in Step
+//   3 (arrow + DISPLAY notation, the same shape 9.5 Step 3 uses); its lead-in
+//   now says outright that it does not compile or run.
+//
+// SHAPE: concept frame (src/lib/walkthrough.ts). There is no file to hand over
+// in Unit 9, so the banner and the decompose block both carry data-scaffold="3"
+// and drop the visible code chip — "Outline only" is a claim about a file this
+// lesson does not have. Level 3 is the only reachable rung for a lesson with no
+// walkthrough (verify-site check 7).
+//
+// The decompose block is ADDED, not substituted: it opens a new answer-id
+// namespace (9.6:dc1:qN) and leaves socratic, bug-hunt and tinker in their
+// document positions with their item counts unchanged (1, 3, 2), so every
+// saved answer keeps the id it already had. Reworded in place, same count and
+// same position: the socratic (it quoted a sample size and an average that the
+// dataset does not support) and the survivorship row of the bias table.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+const DECOMPOSE: DecomposeSpec = {
+  big:
+    'Decide whether your playtest data is fair. The answer is not in the numbers — it is in who is ' +
+    'missing from the table, and in what you quietly removed before you looked at it.',
+  frame: 'concept',
+  parts: [
+    {
+      name: 'Name who is actually in the table',
+      does:
+        'Count the `player_id` column rather than the rows: 32 rows in this dataset came from eight ' +
+        'people, so a "sample of 32" is really eight opinions recorded four times each.',
+      doc: 'the `player_id` and `run_id` columns of the dataset you read in 9.5, and the pool audit in Step 1 of the Build Lab below',
+      href: '9.5.html',
+    },
+    {
+      name: 'Say what population that sample stands in for',
+      does:
+        'Write the scope sentence — "this data represents ___, and does not represent ___" — because ' +
+        'every claim you make afterwards inherits the population you name here.',
+      doc: 'the scope sentence you write in Step 1 of the Build Lab below',
+    },
+    {
+      name: 'Find the players the table has no row for',
+      does:
+        'A row with `completed_boss` = FALSE is a player who quit and still left data; the players who ' +
+        'stopped mid-cave left nothing at all, and that absence is what makes the averages look friendly.',
+      doc: 'the `completed_boss` column of the dataset, and the absences you list in Step 2 of the Build Lab below',
+    },
+    {
+      name: 'Watch what a filter removes before you look at what it keeps',
+      does:
+        'Dropping "outliers" is a decision about people, so an average has to be reported next to the ' +
+        'count it threw away.',
+      doc: 'the filtered average in Step 3 of the Build Lab below, and the same move in 9.5',
+      href: '9.5.html',
+    },
+    {
+      name: 'Write the claim at the strength the data can carry',
+      does:
+        'The exam asks which claim is BEST supported, and the winner is always the one whose scope ' +
+        'clause matches the sample you actually have.',
+      doc: 'the "which claim is BEST supported" practice in the Concept Lab above',
+    },
+  ],
+  why:
+    'The split is the whole lesson. "Is this data fair?" is one question you can only answer by feel; ' +
+    'these five are five checks you can run in order, and each one has somewhere to read about it. ' +
+    'Nothing here needs a program — fairness lives in the sample and in what you chose to drop, which ' +
+    'is why the exam asks about claims rather than about code.',
+  sizeTest:
+    'The test: could you defend the claim with only the table in front of you? A part that needs your ' +
+    'memory of who playtested, rather than a column you can point at, is not part of the data problem.',
+  connect: [
+    'In 9.5 you read the dataset as variables and records, where one column answers one question. Point at the two columns that decide fairness here — who is in the sample, and who finished it — and say what each one silently leaves out.',
+    'In 7.7 you gathered cross-playtest numbers into a table of your own, and in 6.5 you ran the gauntlet with whoever happened to be in the room. Which of those two tables could a stranger audit, and what would they find missing from it?',
+    'In 2.4 you sat silently behind the tester so that watching would not change what they did. Filtering is the same worry one step later: which is easier to notice you are doing — changing the run while it happens, or changing the table afterwards?',
+  ],
+  turns: [
+    'Thirty-two rows is not thirty-two opinions. Rewrite one of yesterday\'s insights with its scope clause attached, and say which half of the sentence got weaker and which half got honest.',
+    'Name one filter on this dataset that would raise the average rating, and say what a report would have to print next to that average to keep it honest.',
+  ],
+};
 
 const body = `<h1>9.6 — Bias, Filtering &amp; Fair Data</h1>
 
@@ -12,6 +109,10 @@ const body = `<h1>9.6 — Bias, Filtering &amp; Fair Data</h1>
     the IOC-1 core idea on the exam, and it starts with your own
     playtest pool.
 </p>
+
+${renderAskBanner('how do I tell whether data is fair?', 3, 'concept')}
+
+${renderDecompose('9.6', DECOMPOSE, 3)}
 
 <!-- ============================================================ -->
 <div class="activity expand-app">
@@ -30,7 +131,7 @@ const body = `<h1>9.6 — Bias, Filtering &amp; Fair Data</h1>
     <table>
         <tr><th>Bias</th><th>In your project</th></tr>
         <tr><td><strong>Selection bias</strong></td><td>Playtesters who volunteered are more forgiving (self-selection)</td></tr>
-        <tr><td><strong>Survivorship bias</strong></td><td>The dataset only has rows for testers who FINISHED — quitters left no data</td></tr>
+        <tr><td><strong>Survivorship bias</strong></td><td>You count the players who stayed to the end. The ones who quit mid-cave left no row at all</td></tr>
         <tr><td><strong>Observer effect</strong></td><td>Testers play differently when the designer watches (<a href="2.4.html">2.4</a> — why we sit silently)</td></tr>
         <tr><td><strong>Confirmation bias</strong></td><td>You tune what you already suspected was broken</td></tr>
     </table>
@@ -46,11 +147,13 @@ const body = `<h1>9.6 — Bias, Filtering &amp; Fair Data</h1>
     <div class="socratic">
         <h3>Socratic</h3>
         <p>
-            Your class has 30 students; 6 playtested the cave. The
-            dataset says 4.1/5 fun. The exam asks: "Which claim is
-            BEST supported?" — write the cautious version AND the
-            overreaching version of the claim, and say why the exam
-            always wants the first.
+            The dataset holds 32 runs from 8 testers, and the runs
+            that never beat the boss are still sitting in it — which
+            is why the whole table averages 3.8 out of 5. Somebody
+            wants to publish "players gave the cave 4 out of 5." The
+            exam asks: "Which claim is BEST supported?" — write the
+            cautious version AND the overreaching version of that
+            sentence, and say why the exam always wants the first.
         </p>
     </div>
 </div>
@@ -77,8 +180,10 @@ const body = `<h1>9.6 — Bias, Filtering &amp; Fair Data</h1>
     difficulty curve too flat).</p>
 
     <p><strong>Step 3 — a fair-data fix, in pseudocode.</strong>
-    Design the fix the way the exam wants — a filtered average that
-    also REPORTS what it excluded:</p>
+    Nothing here compiles or runs: this is the exam's arrow-and-DISPLAY
+    notation used to write down what happens to the rows. It is data
+    reasoning, not a program. Design the fix the exam wants — a
+    filtered average that also REPORTS what it excluded:</p>
     <pre><code>kept ← [row FOR row IN runs IF row.completed_boss = TRUE]
 dropped ← [row FOR row IN runs IF row.completed_boss = FALSE]
 DISPLAY("avg win time: " + AVERAGE([row.time_seconds FOR row IN kept]))
@@ -139,6 +244,8 @@ DISPLAY("excluded: " + LENGTH(dropped) + " runs")</code></pre>
             <li>Explain how filtering can silently change a conclusion</li>
             <li>Write a scoped claim: what the data does and does not represent</li>
             <li>Pseudocode an aggregate that reports its own exclusions</li>
+            <li>Break "is this data fair?" into parts small enough to check one at a time, and say in one line what each part does</li>
+            <li>Say which earlier lesson each of those checks came from, and where you would reread it</li>
         </ul>
     </div>
 </div>
@@ -150,6 +257,7 @@ DISPLAY("excluded: " + LENGTH(dropped) + " runs")</code></pre>
     <ul>
         <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — bias and fair data in the CED</li>
         <li><a href="../data/playtests.csv">Playtest dataset (CSV)</a> — audit it yourself</li>
+        <li><a href="9.5.html">9.5 Datasets: Insights from Playtest Data</a> — the lesson that taught you to read it</li>
     </ul>
     <p>Next: <a href="9.7.html">9.7 — Computer Systems: What Runs Your Game</a></p>
 </div>`;

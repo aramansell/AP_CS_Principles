@@ -1,7 +1,93 @@
 ---
 // Lesson 9.2 — Hex, RGB & Data Abstraction
-// expand-app: hexadecimal, Color32 as 4 bytes, RGBA in Inspector.
+// expand-app CSP concept: hexadecimal, Color32 as 4 bytes, RGBA in the Inspector.
+//
+// GROUND TRUTH — read out of AP_CS_P_Starter_Project, not out of the old text:
+//   * Every SpriteRenderer in every prefab (Coin, Player, Spikes, Turret,
+//     Turret_Projectile, MobileEnemy, AxeItem, Switch) is still on its default
+//     tint, m_Color: {r: 1, g: 1, b: 1, a: 1}. Nothing in the game is tinted
+//     from code — the colour you see is the artwork, not a value anybody typed.
+//   * Coin.prefab draws guid 411fce3e…, which is Coin_Animation.png. Its
+//     busiest pixel is #FFE681 = (255, 230, 129): that IS the coin's colour.
+//   * Turret_Projectile.prefab draws Turret_Bullet.png, busiest pixel #008DF0.
+//   * The stone ground tileset sliced into WallsTileSet/ is a desaturated grey:
+//     busiest pixel #878579.
+//   * All three scenes carry Unity's DEFAULT camera background, never edited:
+//     (0.19215687, 0.3019608, 0.4745098) = (49, 77, 121) as bytes = #314D79.
+//     The scene file stores it as a Color — four floats — which is the same
+//     colour in the other struct, and why the Inspector offers you both.
+//   * There is NO shockwave prefab anywhere in this project, and 8.4's own
+//     header says so (attacks are prefabs the student builds). The old Step 3
+//     sent the student to "your shockwave prefab", which does not exist; it now
+//     uses Turret_Projectile.prefab, which does.
+//   * Color32's constructor takes four bytes (Unity 6000.x docs), so
+//     new Color32(300, 0, 0, 255) does not compile at all. The old bug hunt
+//     asked what happened to the 300 as though it were clamped or wrapped.
+//
+// SHAPE: this is a `concept` lesson, so it carries the three recurring
+// questions with frame: 'concept' (src/lib/walkthrough.ts) and renders NO
+// walkthrough — Unit 9 has no code in it, so the code-scaffolding vocabulary
+// would be a claim about a file this lesson does not have. Level 3 both ways:
+// the banner and the block declare data-scaffold="3" and data-level="3", and
+// level 3 is the only reachable rung for a lesson with no walkthrough (check 7).
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+// The recurring three-beat block: split the problem, look each part up, connect
+// it to something already built. Level 3, so the renderer withholds what each
+// part DOES and asks the student to say it — the parts and their doc pointers
+// are the level-3 bargain, and here the pointers do the work the code used to.
+// Every reference points backwards: 9.1, and the pages that came before it.
+const DECOMPOSE: DecomposeSpec = {
+  big: 'Read one colour out of your own game — from the swatch in the Inspector, down to the four bytes it is really made of, and back again — without a converter open.',
+  frame: 'concept',
+  parts: [
+    {
+      name: 'Cut the hex string into bytes',
+      does: 'Every two hex digits is exactly one byte, so `#FFE681` is three bytes and `#FFE681FF` is four. The `#` is a label, not part of the number.',
+      doc: 'the Dec/Hex/Bin table in this lesson\'s Concept Lab, and the hex section of Binary & Hex',
+      href: '../docs/unit-09/binary-and-hex.html',
+    },
+    {
+      name: 'Read one byte as a channel value',
+      does: 'One hex digit covers four bits and two of them cover eight, so a channel runs 0 to 255: `e6` is 230, `81` is 129, and neither of them is a letter with a value.',
+      doc: 'the eight-bits-stop-at-255 rule from 9.1, read against the same table',
+      href: '9.1.html',
+    },
+    {
+      name: 'Say what the fourth byte is',
+      does: 'Alpha: `ff` is solid, `80` is half-visible, `00` is invisible. A stored colour is four bytes rather than three because the web writes transparency somewhere else.',
+      doc: 'the `Color32` paragraph of the Binary & Hex reference',
+      href: '../docs/unit-09/binary-and-hex.html',
+    },
+    {
+      name: 'Count what the channels can express',
+      does: '256 values per channel, three channels, so 256³ = 16,777,216 colours — and four bits per channel, as old hardware used, buys only 4,096.',
+      doc: 'the colour-count socratic in this lesson\'s Concept Lab, argued from 9.1\'s bits-to-range law',
+      href: '9.1.html',
+    },
+    {
+      name: 'Put the colour somewhere you can change it once',
+      does: 'A colour named in one place and used everywhere is the exam\'s word for a data abstraction — one edit instead of forty, and the reason a palette is data rather than decoration.',
+      doc: 'Step 2 of the Build Lab below, and the palette class it builds',
+    },
+  ],
+  why:
+    'The split is the whole lesson. "What colour is #FFE681?" is one question, and with a converter open it is a lookup; these five are five moves you can make on paper, and the last one is the move the exam grades as abstraction. A colour is not a picture and not a name — it is four numbers you chose, each with a range somebody else fixed at 0 to 255, and every colour bug in this unit is one of those four numbers being something you did not expect.',
+  sizeTest:
+    'The test: could you decode a colour with a pencil and the table on this page? If a step needs the eyedropper open, it is not part of reading a colour — it is part of finding one.',
+  connect: [
+    'In 9.1 you converted `health = 3` into eight bits. A colour channel is that same eight-bit number wearing a shorter coat: what is `e6` in decimal, and why can a channel never hold 256?',
+    'In 6.2 you wrote `Gizmos.color = isGrounded ? Color.green : Color.red;` and named two colours instead of typing two triples. What did the name buy you there, and what would you have to look up in order to write that same green by hand?',
+    'In 8.3 the tinker asks you to flash the boss\'s colour for a tenth of a second when a hit lands. If that flash is written as four numbers copied out of the Inspector, what breaks the day the boss is re-coloured — and which of the five parts above is the one that stops it?',
+  ],
+  turns: [
+    'The coin you collect is drawn from `Coin_Animation.png`, whose busiest colour is `#FFE681`. Write it as three decimal bytes, then as a `Color32` call — and say which of those two spellings you would rather review in somebody else\'s code, and why.',
+    'All three scenes in this project have the same camera background — the float triple (0.192, 0.302, 0.475) — because nobody ever changed Unity\'s default. Convert it to bytes, then to hex, then say which struct the scene file is actually storing and what changes if you move it into a `Color32`.',
+  ],
+};
 
 const body = `<h1>9.2 — Hex, RGB &amp; Data Abstraction</h1>
 
@@ -11,6 +97,10 @@ const body = `<h1>9.2 — Hex, RGB &amp; Data Abstraction</h1>
     bytes, written in hex, and the hex is just binary with better
     handwriting. Today you read the Inspector's secret language.
 </p>
+
+${renderAskBanner('how do I read a colour as a number?', 3, 'concept')}
+
+${renderDecompose('9.2', DECOMPOSE, 3)}
 
 <!-- ============================================================ -->
 <div class="activity expand-app">
@@ -31,15 +121,27 @@ const body = `<h1>9.2 — Hex, RGB &amp; Data Abstraction</h1>
 
     <p><strong>A color is four bytes.</strong> Unity's
     <code>Color32</code> is R, G, B, A — one byte each, 0–255, so a
-    color is literally a hex number like <code>FF6600FF</code>
-    (full red, strong orange-green mix, no blue, full alpha). When
-    you type <code>new Color32(255, 102, 0, 255)</code> you are
-    writing <code>FF6600FF</code> in decimal cosplay:</p>
-    <pre><code>// The site you are reading right now is themed blue:
-// #6cb2ff → R=6c=108, G=b2=178, B=ff=255  → (108, 178, 255)</code></pre>
-    <p>That IS your theme color, decoded by hand. The # in CSS means
-    "hex follows," and web colors are 6 hex digits because web alpha
-    is separate.</p>
+    color is literally a hex number like <code>FFE681FF</code> (full
+    red, a strong green, a little blue, full alpha). When you type
+    <code>new Color32(255, 230, 129, 255)</code> you are writing
+    <code>FFE681FF</code> in decimal cosplay. Here are three colours
+    from your own project and from this page, decoded by hand:</p>
+    <pre><code>// The coin you collect is drawn from Coin_Animation.png.
+// Its busiest colour is #FFE681 → R=ff=255, G=e6=230, B=81=129
+
+// The site you are reading right now is themed blue:
+// #6cb2ff → R=6c=108, G=b2=178, B=ff=255  → (108, 178, 255)
+
+// All three of your scenes still carry Unity's default camera
+// background, because nobody ever chose anything else:
+// (0.192, 0.302, 0.475) as floats → (49, 77, 121) as bytes → #314D79</code></pre>
+    <p>That last one is worth a second look. The camera shows you a
+    Color — four floats between 0 and 1 — and the machine's idea of
+    the same colour is three bytes. Multiply each float by 255 and
+    round: 0.192 × 255 = 49, which is <code>0x31</code>. Same colour,
+    two spellings, and the byte one is the one you can count with.
+    The # in CSS means "hex follows," and web colors are 6 hex digits
+    because web alpha is written separately.</p>
 
     <div class="socratic">
         <h3>Socratic</h3>
@@ -61,44 +163,73 @@ const body = `<h1>9.2 — Hex, RGB &amp; Data Abstraction</h1>
         <span class="activity-time">~20 min</span>
     </div>
 
-    <p><strong>Step 1 — decode your game's palette.</strong> Pick
-    three colors from your sprites/UI (use the eyedropper in the
-    Sprite Editor or any color picker). For each, write the hex AND
-    the decimal triple. Your cave should have a palette story — dark
-    rock (low RGB values), bright coin (high R and G) — and now you
-    can QUOTE it.</p>
+    <p><strong>Step 1 — decode your game's palette.</strong> Every
+    Sprite Renderer in this project is still on its default tint —
+    <code>(1, 1, 1, 1)</code>, which is <code>#FFFFFF</code> — so no
+    object in the game is tinted from code. What you see on screen is
+    the artwork and nothing else, which means the art IS the palette.
+    Read three colours out of it with an eyedropper (the Sprite
+    Editor has one, and so does any image editor), and write the hex
+    AND the decimal triple for each:</p>
+    <ul>
+        <li>the stone ground tileset your cave walls are cut from →
+            <code>#878579</code>, a desaturated grey</li>
+        <li>the coin sheet, <code>Coin_Animation.png</code> →
+            <code>#FFE681</code>, a bright gold</li>
+        <li>the blood on the axe blade → <code>#8A2000</code>, a very
+            dark red</li>
+    </ul>
+    <p>Then pick a fourth colour of your own and do the same. Notice
+    what the hex made visible in one glance: the stone is high in all
+    three channels and low in saturation, the gold is high in R and
+    G with almost no B, and the blood is almost all R. Now you can
+    QUOTE that instead of gesturing at it.</p>
 
     <p><strong>Step 2 — program a palette.</strong> Colors as data —
-    the abstraction, in code:</p>
+    the abstraction, in code. These are the three you just read, with
+    the byte values the eyedropper gave you:</p>
     <pre><code>public static class Palette
 {
-    //              name        hex        Color32
-    public static readonly Color32 CAVE_ROCK = new Color32(0x4a, 0x4a, 0x55, 0xff);
-    public static readonly Color32 COIN_GOLD = new Color32(0xff, 0xc4, 0x3d, 0xff);
-    public static readonly Color32 DANGER    = new Color32(0xff, 0x33, 0x33, 0xff);
+    //              what the eyedropper found    hex        Color32
+    public static readonly Color32 CAVE_ROCK = new Color32(0x87, 0x85, 0x79, 0xff);
+    public static readonly Color32 COIN_GOLD = new Color32(0xff, 0xe6, 0x81, 0xff);
+    public static readonly Color32 BLOOD     = new Color32(0x8a, 0x20, 0x00, 0xff);
 }
 
-// your 8.3 hit flash, upgraded:
-sr.color = new Color32(0xff, 0xff, 0xff, 0xff); // white for 0.1s
+// the hit flash 8.3 asks you to build, written out:
+spriteRenderer.color = new Color32(0xff, 0xff, 0xff, 0xff); // white for 0.1s
 // phase 3 boss tint:
-sr.color = Palette.DANGER;</code></pre>
+spriteRenderer.color = Palette.BLOOD;</code></pre>
     <p>Why a palette class beats per-object color picking: change ONE
-    line, the whole game's mood shifts. That is
-    <strong>abstraction</strong> — the exam's word, in your repo.</p>
+    line, the whole game's mood shifts — and every object that was
+    reading it changes at the same time, with no object-by-object
+    hunting. That is <strong>abstraction</strong> — the exam's word,
+    in your repo. It is also the reason the numbers above had to be
+    read off the art rather than guessed: a palette is only worth
+    anything if it is the same colour the artist drew.</p>
 
     <p><strong>Step 3 — the alpha byte.</strong> The fourth byte is
     transparency. <code>0xff</code> = solid; <code>0x80</code> =
-    half-visible (your hit flash could EASE from 0x80 to 0xff).
-    Change your shockwave prefab's sprite alpha to 0x80 and note the
-    readability change: transparent threats read as "avoidable" —
-    alpha is communication, not decoration.</p>
+    half-visible (the hit flash above could EASE from 0x80 to 0xff
+    instead of snapping). Every prefab in this project is currently
+    <code>#FFFFFFFF</code> — fully opaque — so pick one and change
+    only the fourth byte. <code>Turret_Projectile.prefab</code> is
+    the clearest to watch: it draws <code>Turret_Bullet.png</code>,
+    whose busiest colour is <code>#008DF0</code>, and dropping its
+    alpha to <code>0x80</code> turns that solid blue bullet into a
+    suggestion of one. Note the readability change: transparent
+    threats read as "avoidable" — alpha is communication, not
+    decoration.</p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Byte bugs</h3>
         <ol>
-            <li>new Color32(300, 0, 0, 255) — what happens to the
-                300? (Bytes CLAMP or wrap — which one, and why is
-                silent clamping a design risk?)</li>
+            <li>new Color32(300, 0, 0, 255) — read the constructor's
+                parameter type and say why the compiler refuses the
+                300 outright rather than storing it. Then: what would
+                you have to change to store a value above 255, and
+                why is a channel that cannot silently wrap a design
+                win?</li>
             <li>0x1F vs 0xF1 — a transposed hex pair. What color
                 difference did that make? Why is hex the FASTEST
                 way to catch a digit-swap bug in colors?</li>
@@ -134,7 +265,7 @@ sr.color = Palette.DANGER;</code></pre>
                 reason — then tell your neighbor why old-school
                 games looked "chunky."</li>
             <li>Hard: your own Color32 parser — read a string like
-                "FF6600" with int.Parse(s, NumberStyles.HexNumber).
+                "FFE681" with int.Parse(s, NumberStyles.HexNumber).
                 Which two lines of code does this save in a
                 data-driven palette file?</li>
         </ol>
@@ -147,6 +278,8 @@ sr.color = Palette.DANGER;</code></pre>
             <li>Explain a color as four bytes and decode #RRGGBB by hand</li>
             <li>Build a palette class as a data abstraction</li>
             <li>Do the 256³ color-count argument from bits</li>
+            <li>Break "read a colour as a number" into parts small enough to look each one up on its own, and say in one line what each part does</li>
+            <li>Say which earlier lesson each part came from, and where you would reread it</li>
         </ul>
     </div>
 </div>
@@ -158,6 +291,7 @@ sr.color = Palette.DANGER;</code></pre>
     <ul>
         <li><a href="../docs/unit-09/binary-and-hex.html">Binary &amp; Hex</a> — hex tables and practice</li>
         <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — where this unit goes</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
     </ul>
     <p>Next: <a href="9.3.html">9.3 — Compression: Lossy vs Lossless</a></p>
 </div>`;

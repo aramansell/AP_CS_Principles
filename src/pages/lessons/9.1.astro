@@ -1,7 +1,72 @@
 ---
 // Lesson 9.1 — Binary: How Numbers Live in Memory
 // expand-app CSP concept: bits, powers of two, counting in base 2.
+//
+// SHAPE: this is the first lesson on the ladder with NO code in it, so it uses
+// the `concept` frame (src/lib/walkthrough.ts). The banner and the decompose
+// block both carry data-scaffold="3" so the verifier still holds the page to
+// the rung, and both drop the visible code chip — "Outline only" is a claim
+// about a file that this lesson does not have. Level 3 is the only reachable
+// rung for a lesson with no walkthrough (check 7).
+//
+// The decompose block is ADDED, not substituted: it opens a new answer-id
+// namespace (9.1:dc1:qN) and leaves every protected block untouched, so the
+// socratic, bug-hunt and tinker fields keep the ids they already had.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+const DECOMPOSE: DecomposeSpec = {
+  big: 'Read the number 13 as eight bits of memory — and be able to say what every single bit is worth.',
+  frame: 'concept',
+  parts: [
+    {
+      name: 'Name the place values',
+      does: 'Every position is worth twice the one to its right: 1, 2, 4, 8, 16, 32, 64, 128.',
+      doc: 'the place-value table in this lesson, in the Concept Lab',
+    },
+    {
+      name: 'Walk the places from largest to smallest',
+      does: 'If a place fits, that bit is 1 and you subtract it; if it does not, the bit is 0.',
+      doc: 'Step 2 of the Build Lab below',
+    },
+    {
+      name: 'Say why the hardware counts in twos and not tens',
+      does: 'A wire holds HIGH or LOW — on or off — so two symbols is what the machine already has.',
+      doc: 'Binary & Hex, the unit reference page',
+      href: '../docs/unit-09/binary-and-hex.html',
+    },
+    {
+      name: 'Work out how far a fixed width can reach',
+      does: 'Eight bits stop at 255; a 32-bit int reaches about 2.1 billion.',
+      doc: 'the byte-vs-int range discussion in the Concept Lab',
+    },
+    {
+      name: 'Recognise the edge',
+      does: 'One past the maximum does not grow the number — it wraps to the most negative value.',
+      doc: 'the overflow practice on the Exam Reference Sheet',
+      href: '../exam/reference-sheet.html',
+    },
+  ],
+  why:
+    'The split is the whole lesson. "Convert 13 to binary" is one task you can only memorise; ' +
+    'these five are five things you can look up, and the last two are the ones the exam actually ' +
+    'asks about. Nothing here needs a variable — a bit width is a *design* decision you make once, ' +
+    'and every later bug in this unit is that decision meeting a number that grew past it.',
+  sizeTest:
+    'The test: could you explain this part to somebody using only a piece of paper? If a part needs ' +
+    'Unity open to explain, it is not a part of this problem — it is a part of a coding problem.',
+  connect: [
+    'In 2.1 your coin count was an `int` that only ever went up. Now that you know an int is 32 bits wide, that counter has a ceiling nobody chose out loud — what is it, and what happens one step past it?',
+    'In 2.3 you put a cap on health so it could not climb forever. A bit width is the same idea, imposed by hardware instead of by you. Which of those two caps can you change, and which one can you not?',
+    'In 4.1, `direction = direction * -1` reversed your enemy. In binary, negation is a pattern operation on the bits rather than arithmetic on the number. Which of the two explanations is the real one?',
+  ],
+  turns: [
+    'You want to store the number of lessons in the year, 81. Does it fit in 7 bits? Name the power of two that decides it, and say what that tells you about picking a width.',
+    'Unity spends a whole byte on a `bool` even though a bool is one bit. Is that waste a mistake? Argue one sentence for each side.',
+  ],
+};
 
 const body = `<h1>9.1 — Binary: How Numbers Live in Memory</h1>
 
@@ -12,6 +77,10 @@ const body = `<h1>9.1 — Binary: How Numbers Live in Memory</h1>
     bits — and once you can READ them, half the AP exam's data
     questions become easy points.
 </p>
+
+${renderAskBanner('how do I read a number as bits?', 3, 'concept')}
+
+${renderDecompose('9.1', DECOMPOSE, 3)}
 
 <!-- ============================================================ -->
 <div class="activity expand-app">
@@ -96,9 +165,13 @@ const body = `<h1>9.1 — Binary: How Numbers Live in Memory</h1>
             <li>10000000₂ + 10000000₂ = ? (Warning: in 8 bits, the
                 answer OVERFLOWS. What happens to the ninth bit —
                 and what does your int do when it overflows?)</li>
-            <li>Debug.Log(int.MaxValue + 1); — run it. What number
-                printed, and why is the biggest positive suddenly
-                the most negative?</li>
+            <li>Write <code>int max = int.MaxValue;</code> then
+                <code>Debug.Log(max + 1);</code> — run it. What
+                number printed, and why is the biggest positive
+                suddenly the most negative? Then try the one-liner
+                <code>int.MaxValue + 1</code>: it will not even
+                compile. Why does the compiler refuse arithmetic the
+                running program does without complaint?</li>
             <li>Your coins count past 2,147,483,647 (impossible on
                 foot — but a cheat could). What is the smallest
                 code change that prevents the overflow?</li>

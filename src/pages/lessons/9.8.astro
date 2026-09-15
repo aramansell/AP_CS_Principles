@@ -1,17 +1,155 @@
 ---
 // Lesson 9.8 — The Internet: Packets, Routing & DNS
-// expand-app: packets, TCP/UDP, routers, DNS; your GitHub push.
+// expand-app CSP concept: packets, headers, TCP/UDP, routing, DNS.
+//
+// SHAPE: this is a Unit 9 concept lesson — there is no script to hand over and
+// nothing is built — so it uses the `concept` frame (src/lib/walkthrough.ts).
+// The banner and the decompose block both carry data-scaffold="3" so the
+// verifier still holds the page to the rung, and both drop the visible code
+// chip, because "Outline only" is a claim about a file this lesson does not
+// have. Level 3 is the only reachable rung for a lesson with no walkthrough
+// (check 7). It renders no walkthrough, for that reason.
+//
+// The decompose block is ADDED, not substituted: it opens a new answer-id
+// namespace (9.8:dc1:qN) and leaves every protected block in the count and the
+// document position it already had — socratic 1, bug-hunt 4, tinker 3. Items
+// inside those blocks were REWORDED where the old text asserted something the
+// project or the network does not say; none was reordered, renumbered, added
+// or removed. Every one of the eight still ends inside a question, so every one
+// still receives the same answer box it received before (formify.ts only
+// increments its counter for an item it gives a box to, so a lost '?' would
+// silently renumber every id after it). See GROUND TRUTH for what was false.
+//
+// GROUND TRUTH — measured live on 2026-09-15, never inferred from the old
+// lesson text. Commands and the answers they actually returned:
+//   * THE HOOK: the students' own guide is fetched over the internet. This site
+//     is https://aramansell.github.io/AP_CS_Principles/ — `site` and `base` in
+//     astro.config.mjs — and there is no CNAME anywhere in the repo, so it is a
+//     GitHub Pages PROJECT site on GitHub's own hostname.
+//   * `dig +noall +answer aramansell.github.io` returns FOUR A records and no
+//     CNAME: 185.199.108.153, .109.153, .110.153, .111.153. `ping` picks the
+//     first of them (185.199.108.153) and got a reply in 4.5 ms.
+//   * `curl -I https://aramansell.github.io/AP_CS_Principles/lessons/9.8.html`
+//     answers HTTP/2 200 with `server: GitHub.com` and
+//     `cache-control: max-age=600` — the far end naming itself, and the caching
+//     policy written down where a student can read it. NOTE FOR A FUTURE
+//     EDITOR: the site's own page size is deliberately NOT quoted anywhere in
+//     this lesson, because this rewrite changes it. `x-proxy-cache` stayed MISS
+//     across three requests, so no "second fetch is a cache HIT" claim is made.
+//   * `dig +trace aramansell.github.io` walks root -> .io -> github.io and is
+//     the live demonstration of the hierarchy. Measured on this machine: the
+//     root servers answered in 25 ms, a0.nic.io in 103 ms, GitHub's nameservers
+//     (dns3.p05.nsone.net) in 7 ms, against ~10 ms for the same answer cached.
+//     The lesson quotes those numbers AS measurements and tells the student
+//     theirs will differ — they are machine- and moment-specific.
+//   * `nslookup aramansell.github.io` prints "Non-authoritative answer:" — the
+//     cache admitting it did not ask anyone. That wording is quoted, and it is
+//     the cache demonstration. The old Step 2 used `sudo dscacheutil
+//     -flushcache` alone, which has not flushed the macOS resolver since 10.14;
+//     it was replaced with the observation above, which needs no sudo and is
+//     true on every platform.
+//   * `gihub.io` RESOLVES — to 104.247.81.99, an address in neither GitHub
+//     Pages block. So the old bug-hunt item 2's premise was half wrong: the
+//     typo does not fail at DNS, it succeeds and lands somewhere else.
+//   * IPv4 AS A 32-BIT NUMBER, verified: 185.199.108.153 =
+//     185*2^24 + 199*2^16 + 108*2^8 + 153 = 3,116,854,425. That EXCEEDS C#'s
+//     `int.MaxValue` (2,147,483,647) and fits `uint` (4,294,967,295) — the 9.1
+//     overflow width lesson, arrived at from a real address.
+//   * PACKET ARITHMETIC, from real file sizes in AP_CS_P_Starter_Project. MTU
+//     1500 minus 20 bytes IP plus 20 bytes TCP = 1,460 bytes of payload:
+//       Assets/_Scenes/Overworld.unity  2,377,344 bytes -> 1,629 packets
+//         (the old lesson said "~1,500" and called it a 2 MB file)
+//       the whole Assets/ folder       20,185,356 bytes -> 13,826 packets
+//         over 4,967 files (the old Step 3 called the project "2 MB" — it is
+//         ten times that, and that tenfold error is why it is recomputed here)
+//       Artwork/Platformer/OriginalFiles/mainlevbuild.png 654,657 bytes
+//         -> 449 packets, the last of which uses 577 of its 1,460 bytes
+//     `Assets/_Scenes/Overworld.unity` is confirmed the biggest file in Assets/
+//     by `stat`, which agrees with 9.3's independent measurement.
+//   * The old tinker item 1 designed a "2-player co-op turret-defense for the
+//     jam era". There is no turret-defense game in this course, and the jam is
+//     10.1a — a CARD game, in Unit 10, which a student at 9.8 has not reached.
+//     Overworld.unity holds exactly TWO instances of Turret.prefab (counted out
+//     of the `!u!1001` blocks by source guid 54f2fe71921990e48b811a0b3b35835f —
+//     a naive GameObject scan finds only the `Turrets` parent), and the course
+//     game is a single-player platformer. The item now says that instead.
+//   * 9.7's "four organs" are CPU, GPU, RAM and Storage. A network is NOT one
+//     of them, which is what makes it the right prior lesson for "resolving
+//     deltas" — that wait is local, not a network wait.
+//   * Both `traceroute` and `dig`/`nslookup`/`curl` ship with macOS
+//     (/usr/sbin/traceroute, /usr/bin/nslookup, /usr/bin/dig, /usr/bin/curl).
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+// The recurring three-beat block: split the problem, look each part up, connect
+// it to something already built. Level 3, so the renderer withholds what each
+// part DOES and asks the student to say it — the parts and their doc pointers
+// are the level-3 bargain. Every reference points BACKWARDS: 9.4, 9.3, 9.1, 9.7.
+const DECOMPOSE: DecomposeSpec = {
+  big: 'The page you are reading came to you across the internet. Between your finger and this sentence there is a name that had to become a number, a file that had to be cut into pieces, a path that no single machine knows, and a rule deciding whether a missing piece is worth waiting for. "The internet" is not one system. It is five, and each one can be checked from the machine in front of you.',
+  frame: 'concept',
+  parts: [
+    {
+      name: 'Turn a name into a number',
+      does: 'A name is for you; a router only moves numbers. The lookup walks a hierarchy — the root servers, then the `.io` servers, then GitHub\'s own — and each level keeps the answer it just gave so the next asker does not have to climb the whole tree.',
+      doc: 'the DNS section of the Unit 9 Internet reference, and the guid-versus-filename trade you made in 9.4',
+      href: '9.4.html',
+    },
+    {
+      name: 'Cut the message into pieces that each fit',
+      does: 'A packet carries 1,460 bytes of your file once the 40 bytes of IP and TCP headers are subtracted. A file is never sent as a file: it is divided into as many pieces as the arithmetic demands, and the last piece is mostly empty.',
+      doc: 'Step 4 of this lesson\'s Build Lab, and the size arithmetic you ran on pictures in 9.3',
+      href: '9.3.html',
+    },
+    {
+      name: 'Address every piece so it can travel alone',
+      does: 'Every packet repeats four facts in its own header — where it came from, where it is going, where it sits in the sequence, and a checksum. That repetition is what lets the pieces take different routes and still be put back in the right order.',
+      doc: 'the header table in this lesson\'s Concept Lab, and the "Packets, not streams" section of the Unit 9 Internet reference',
+    },
+    {
+      name: 'Let a machine with no map make one local decision',
+      does: 'No router knows the path. Each one holds a table saying which neighbour is closer to a given network and hands the packet on, which is why two packets of the same file can cross different countries and still arrive.',
+      doc: 'the routing-and-latency section of the Unit 9 Internet reference, and the trace you run in Step 3 of this lesson\'s Build Lab',
+      href: '../docs/unit-09/the-internet.html',
+    },
+    {
+      name: 'Decide whether a missing piece is worth waiting for',
+      does: 'TCP numbers every packet, waits for an acknowledgement and resends, so nothing is lost and nothing arrives out of order. UDP does none of that, which makes it faster and lossy — the right trade for a position that will be stale before it lands.',
+      doc: 'the TCP-versus-UDP table in this lesson\'s Concept Lab, and the "TCP vs UDP" section of the Unit 9 Internet reference',
+    },
+  ],
+  why:
+    'The split is the whole lesson. "How does the internet work" is a question you can only answer by waving your hands. These five are five things you can settle from the machine in front of you: the first is a command you type and a hierarchy you watch answer, the second and the fourth are arithmetic on your own files, and the last is the tradeoff the exam asks about in every form it owns. Nothing here needs Unity open, because nothing here is a game — it is the network the game will one day have to talk over.',
+  sizeTest:
+    'The test for a finished split: could you settle the part from a terminal and a file listing? The lookup gives you four numbers back, the packet part gives you a division, and the routing part gives you a list of hops with milliseconds beside them. A part that needs a server of your own before you can check it is not a part of this problem — it is a project.',
+  connect: [
+    'In 9.4 a guid was the identity of a file and the filename was only a label on a folder listing. DNS is that same trade played on the whole planet: `aramansell.github.io` is the label and 185.199.108.153 is the identity. Which one did your browser open a connection to — and what did the name buy you that the number cannot?',
+    'In 9.1 a signed 32-bit `int` stops at 2,147,483,647 and one step past it wraps to the most negative value. An IPv4 address is a 32-bit number too, and the address above is 3,116,854,425 written out. Which C# type holds that without overflowing, and what does your answer say about a width the internet chose before either of us was born?',
+    'In 9.3 you turned a picture into bytes with `width × height × 4` and compared that to the size on disk. A packet is the same arithmetic run the other way: a fixed number of bytes per unit, and a division that tells you how many units. Your biggest scene file is 2,377,344 bytes and one packet carries 1,460 of them. How many packets is that, and why is the answer never a whole number?',
+    'In 9.7 you learned four organs and what each one costs, and a network was not one of them. So when a push sits at "resolving deltas" for eight seconds before anything leaves the machine, which of those four organs is busy? Answer that first, and then say why reaching for the wifi is the wrong first instinct.',
+  ],
+  turns: [
+    'The name this page is served under has four addresses and your browser used one of them. A classmate in the same room may have used a different one and still received the same bytes. What does that tell you about which machine served you — and what would have to change about the reply before the answer was different?',
+    'One packet carries 1,460 bytes and your whole `Assets/` folder is 20,185,356 bytes over 4,967 files. Work out the packet count, then say what the very last packet carries that none of the others does, and why the count must always round up rather than down.',
+  ],
+};
 
 const body = `<h1>9.8 — The Internet: Packets, Routing &amp; DNS</h1>
 
 <p class="lesson-lead">
-    Every <code>git push</code> this semester split your work into
-    packets, addressed them, and let strangers' machines forward
-    them across the planet. Today: what actually happens in those
-    two seconds — the exam's CSN-1 family, told through the command
-    you have typed a hundred times.
+    The page you are reading crossed the internet to get here, and it did
+    that before you finished the first sentence. Your browser turned the
+    name <code>aramansell.github.io</code> into one of four numbers, cut
+    this file into pieces small enough for the wire, and let machines that
+    have never seen a map carry them. Today you do all of it on purpose,
+    and read the answers back.
 </p>
+
+${renderAskBanner('how does a message find its way across the internet?', 3, 'concept')}
+
+${renderDecompose('9.8', DECOMPOSE, 3)}
 
 <!-- ============================================================ -->
 <div class="activity expand-app">
@@ -20,42 +158,83 @@ const body = `<h1>9.8 — The Internet: Packets, Routing &amp; DNS</h1>
         <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Packets, not streams.</strong> Nothing crosses the
-    internet whole. Your 2 MB scene file becomes ~1,500 chunks
-    (packets), each with a header: FROM address, TO address,
-    sequence number, checksum. They may take DIFFERENT ROUTES; the
-    receiving machine reassembles by sequence number. If a packet
-    dies, only it is resent. This is why "the internet routes
-    around damage" — a design with no single point of failure:</p>
-    <pre><code>your laptop → campus router → ISP → [unknown path] → github.com
-                 packet 1 ─────────────────→ arrives
-                 packet 2 ─────→ lost → resent, different path → arrives
-                 packet 3 ────────────────────────→ arrives</code></pre>
+    <p><strong>Nothing crosses the internet whole.</strong> A packet
+    carries at most <strong>1,460 bytes</strong> of your file. The limit is
+    the MTU — the largest frame a link will carry, 1,500 bytes on Ethernet
+    — and the IP and TCP headers take 40 of those bytes before your data
+    gets any of them. So a file is never sent as a file. It is divided into
+    as many 1,460-byte pieces as the arithmetic demands, and the last piece
+    is mostly empty. Your biggest scene file is
+    <code>Assets/_Scenes/Overworld.unity</code> at 2,377,344 bytes:
+    <strong>1,629 packets</strong>, and the 1,629th carries the leftovers.</p>
+
+    <p>Each packet carries its own header, repeated in full on every single
+    one of them:</p>
+    <table>
+        <tr><th>Field</th><th>What it is for</th></tr>
+        <tr><td>FROM address</td><td>Where the packet started, so the reply knows where to go.</td></tr>
+        <tr><td>TO address</td><td>Where it is going — a number, never a name.</td></tr>
+        <tr><td>Sequence number</td><td>Where this piece sits in the file, so order survives the trip.</td></tr>
+        <tr><td>Checksum</td><td>A sum of the packet's own bytes, so a garbled one is caught rather than assembled.</td></tr>
+    </table>
+
+    <p>That repetition is the design, not the overhead. Because every packet
+    can be addressed and ordered on its own, the packets do not have to
+    travel together — they can take different routes and still be put back
+    in the right order at the far end. If one dies, only that one is resent,
+    and the rest of the file never knows. This is what "the internet routes
+    around damage" means: a design with no single point of failure.</p>
 
     <p><strong>TCP vs UDP — the reliability trade.</strong></p>
     <table>
         <tr><th></th><th>TCP</th><th>UDP</th></tr>
         <tr><td>Guarantee</td><td>All packets, in order, or none</td><td>Best effort; drops are fine</td></tr>
         <tr><td>Speed cost</td><td>Handshake, receipts, resends</td><td>Fire and forget</td></tr>
-        <tr><td>Used for</td><td>git push, web pages, email</td><td>Game packets, video calls, voice</td></tr>
-        <tr><td>Your world</td><td>Your repo arrives intact, always</td><td>A shooter's bullet 10 ms late is DROPPED, never awaited</td></tr>
+        <tr><td>Used for</td><td>Web pages, file transfer, email</td><td>Game packets, video calls, voice</td></tr>
+        <tr><td>Your world</td><td>This page arrived whole and you never saw a gap</td><td>A position 10 ms late is DROPPED, never awaited</td></tr>
     </table>
-    <p>That game-vs-git split is the exam's favorite tradeoff: a
-    game would rather LOSE a packet than WAIT for one.</p>
+    <p>That split is the exam's favourite tradeoff: a game would rather LOSE
+    a packet than WAIT for one, and a page reader would rather wait.</p>
 
-    <p><strong>DNS — the phone book.</strong>
-    github.com is a name for humans; machines route to IP addresses
-    (like 140.82.112.3). DNS is the lookup system that converts,
-    hierarchically, with caching at every level. Trace it yourself:</p>
+    <p><strong>DNS — names to numbers.</strong>
+    <code>aramansell.github.io</code> is a name for humans. Routers move
+    numbers, and this name has four of them:</p>
+    <pre><code>185.199.108.153   185.199.109.153   185.199.110.153   185.199.111.153</code></pre>
+    <p>DNS is the lookup that converts, hierarchically, with caching at
+    every level. Hierarchically, because no single machine on earth holds
+    every name: the root servers know who runs <code>.io</code>, the
+    <code>.io</code> servers know who runs <code>github.io</code>, and
+    GitHub's nameservers know the four addresses. With caching, because
+    climbing that tree costs about a tenth of a second, and repeating it
+    for every image on every page would be unbearable — so every level
+    keeps the answer it just gave, and hands it straight back next time.</p>
+
+    <div class="callout info">
+        <strong>The site you are reading is a GitHub Pages project
+        site.</strong> <code>astro.config.mjs</code> sets
+        <code>site: 'https://aramansell.github.io'</code> and
+        <code>base: '/AP_CS_Principles'</code>, and there is no
+        <code>CNAME</code> file anywhere in the repository — which is why
+        the hostname is <code>aramansell.github.io</code> and not a domain
+        the course owns. Ask that host for its certificate and it will not
+        name this site back to you: it names <code>*.github.io</code>, one
+        wildcard certificate covering every Pages site there is. All of
+        that was checked live while this lesson was written, and all of it
+        is two commands away from you in Step 1.
+    </div>
 
     <div class="socratic">
         <h3>Socratic</h3>
         <p>
-            Your git push KNOWS github.com but sends to an IP. Walk
-            the lookup: your machine → its cache → the campus DNS →
-            the root hierarchy → answer cached again. Where is the
-            latency (why is the FIRST push slower than the
-            second), and why do systems cache aggressively?
+            Your browser knows <code>aramansell.github.io</code> and
+            connects to a number. Walk the lookup — your machine's cache,
+            then the school's resolver, then the root servers, then the
+            <code>.io</code> servers, then GitHub's own — and say where
+            the hundred milliseconds go. The resolver's answer comes back
+            marked <em>non-authoritative</em>, which means it did not ask
+            anyone just now. What does that word promise you, and why is
+            caching the difference between a page that loads and one that
+            does not?
         </p>
     </div>
 </div>
@@ -67,50 +246,95 @@ const body = `<h1>9.8 — The Internet: Packets, Routing &amp; DNS</h1>
         <span class="activity-time">~20 min</span>
     </div>
 
-    <p><strong>Step 1 — see the route.</strong> In Terminal:</p>
-    <pre><code>ping github.com        # DNS happens HERE: name → IP, shown back to you
-traceroute github.com  # every router your packets cross (mac: traceroute)</code></pre>
-    <p>Count the hops; identify your ISP's boundary (where
-    milliseconds jump). Each line is a ROUTER making a local
-    decision with no map of the whole path — the "distributed"
-    in the exam's phrasing.</p>
+    <p><strong>Step 1 — resolve this site's own name.</strong> You are
+    reading a page that had to be fetched by name. Ask what that name
+    means, in Terminal:</p>
+    <pre><code>nslookup aramansell.github.io</code></pre>
+    <p>Read the answer twice. The first reading is the four addresses
+    above, one of which — <code>185.199.108.153</code> — is the one
+    <code>ping aramansell.github.io</code> picks out. The second reading is
+    the line sitting above them: <strong>Non-authoritative answer</strong>.
+    That phrase is the whole of caching in two words. Your machine asked
+    its resolver, and the resolver answered from something it already
+    remembered instead of going and asking. It is telling you, honestly,
+    that it did not check.</p>
 
-    <p><strong>Step 2 — feel the DNS cache.</strong> Ping a site
-    twice. First is slower (lookup); second is cached. Now
-    <code>sudo dscacheutil -flushcache</code> (or your OS's
-    equivalent) and ping again. You just watched cache
-    invalidation — the reason "have you tried turning it off and
-    on" is real engineering.</p>
+    <p><strong>Step 2 — climb the hierarchy yourself.</strong> The cached
+    answer is what you get in normal life. This is what it cost the first
+    time, and it is the only way to see the shape:</p>
+    <pre><code>dig +trace aramansell.github.io</code></pre>
+    <p>Read it top to bottom. It starts at the root servers — thirteen of
+    them, <code>a.root-servers.net</code> through
+    <code>m.root-servers.net</code> — asks which machines run
+    <code>.io</code>, asks those which machines run <code>github.io</code>,
+    and asks those for the four addresses. Four questions, four different
+    organisations, and not one of the machines involved knew the answer
+    when it started. On the machine this lesson was written on, the climb
+    cost 25 ms to a root server, 103 ms to the <code>.io</code> servers and
+    7 ms for the final answer — against roughly 10 ms for the whole cached
+    lookup in Step 1. <em>Your milliseconds will differ; the shape will
+    not.</em> That gap is what caching buys, and it is why the first visit
+    to a site is the slow one.</p>
 
-    <p><strong>Step 3 — packets, sized right.</strong>
-    The exam loves "why ~1,500 bytes?" (the MTU — the largest
-    frame most links carry; bigger risks fragmentation everywhere,
-    smaller wastes header overhead per byte). Your 2 MB project at
-    1,500 bytes ≈ 1,400 packets for a push — count them with
-    paper arithmetic. Every push you have made was this exact
-    operation.</p>
+    <p><strong>Step 3 — see a route, and read the server's own
+    header.</strong> Every line of a trace is one router making one local
+    decision:</p>
+    <pre><code>traceroute aramansell.github.io</code></pre>
+    <p>The milliseconds jump where your traffic leaves one network and
+    enters another — usually the boundary between your school and the open
+    internet. Many school and hotel networks drop the probes
+    <code>traceroute</code> sends, so a row of asterisks is a fact about
+    the network rather than a broken command. Then ask the far end who it
+    is:</p>
+    <pre><code>curl -I https://aramansell.github.io/AP_CS_Principles/lessons/9.8.html</code></pre>
+    <p>Among the headers is <code>server: GitHub.com</code> — the machine
+    naming itself — and <code>cache-control: max-age=600</code>, which is
+    GitHub telling your browser it may keep its copy for ten minutes before
+    asking again. That is the same caching decision you just watched DNS
+    make, written down as policy instead of left as a habit.</p>
+
+    <p><strong>Step 4 — price the trip in packets.</strong> One packet
+    carries 1,460 bytes of your file, so a packet count is a division and a
+    rounding up. Do these three on paper:</p>
+    <ol>
+        <li><code>Assets/_Scenes/Overworld.unity</code>, 2,377,344 bytes
+        — <strong>1,629 packets</strong>.</li>
+        <li>Your whole <code>Assets/</code> folder: 4,967 files,
+        20,185,356 bytes. How many packets?</li>
+        <li>The biggest picture in the project,
+        <code>mainlevbuild.png</code>, 654,657 bytes. How many packets,
+        and how much of the last one is actually used?</li>
+    </ol>
+    <p>Not one of those answers is a whole number of anything, and the
+    leftover on the final packet is why the count always rounds up instead
+    of down. It is the same arithmetic you ran on pictures in
+    <a href="9.3.html">9.3</a>, pointed the other way.</p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Network failure modes</h3>
         <ol>
-            <li>git push hangs at "resolving deltas." Deltas = the
-                packets that changed. Why does a push of ONE
-                changed file still involve the WHOLE project's
-                history (what is the pack file — and which
-                organ's job, network or disk, does the waiting
-                happen on)?</li>
-            <li>You type gihub.com. What did DNS do — and what did
-                your browser do instead (search guess)? Where
-                should the typo have failed, and why did it
-                not?</li>
-            <li>On school wifi your push is fine; at home it times
-                out. Which TWO layers do you check first
-                (DNS? router? ISP? the site?) — justify the
-                order with traceroute evidence.</li>
-            <li>The exam classic: "Why is UDP appropriate for a
-                multiplayer game but TCP appropriate for
-                downloading the game?" Answer with the
-                drop-vs-wait trade in one sentence each.</li>
+            <li>Your push sits at "resolving deltas" for eight seconds
+                before a single byte leaves the machine. A delta is a
+                difference between two versions of the same object,
+                computed on YOUR side. Which of the four organs from
+                <a href="9.7.html">9.7</a> is busy — and what does that
+                say about blaming the wifi when a push feels slow?</li>
+            <li>You mean to type <code>github.io</code> and your fingers
+                produce <code>gihub.io</code>. Ask DNS about that name: it
+                answers, with an address nobody at GitHub owns. Why is
+                "the name resolved" not the same claim as "you reached
+                the right machine?"</li>
+            <li>Your push works on school wifi and times out at home.
+                Which TWO layers do you check first — DNS, your router,
+                your ISP, or GitHub — and which command settles the
+                question? Remember that a row of asterisks from
+                <code>traceroute</code> is an answer too.</li>
+            <li>The exam classic: why is UDP appropriate for a
+                multiplayer game but TCP appropriate for downloading the
+                game? Answer in one sentence each with the drop-versus-wait
+                trade, then say which one you would choose for the final
+                score a run posts, and why that is not the same question
+                as the positions sent while the run is happening.</li>
         </ol>
     </div>
 </div>
@@ -125,21 +349,24 @@ traceroute github.com  # every router your packets cross (mac: traceroute)</code
     <div class="tinker">
         <h3>Tinker: Design for the network</h3>
         <ol>
-            <li>Design a 2-player co-op turret-defense for the jam
-                era: which messages are UDP-worthy (position
-                updates — old ones are worthless) and which are
-                TCP-worthy (match results)? Label five
-                messages.</li>
-            <li>What is the LAG-TOLERANT alternative to waiting
-                for the server? (Client-side prediction: your
-                player moves NOW, server corrects later — why
-                does this make your game FEEL 0-lag even at
-                80 ms?)</li>
-            <li>Hard: your game's leaderboard (someday) posts a
-                score of 999999. What must the SERVER do — and
-                why is "the client can lie" the single sentence
-                of network security (<a href="9.9.html">9.9</a>
-                bridges here)?</li>
+            <li>Your platformer has two turrets in the Overworld and no
+                network code at all. Design the messages a two-player
+                version would need — list five, and for each one say
+                whether it is UDP-worthy (an old position is worthless by
+                the time it lands) or TCP-worthy (a result that must
+                arrive exactly once). Which of your five would you cut
+                first if the connection got bad?</li>
+            <li>Making the player wait for the server before every jump
+                would make the game feel broken. What is the lag-tolerant
+                alternative, and why does letting the player move NOW and
+                correcting later feel instant even at 80 ms? Name the one
+                thing that has to be true of the correction for it to be
+                fair.</li>
+            <li>Hard: your game's leaderboard (someday) posts a score of
+                999999. What must the SERVER do before it believes that
+                number, and why is "the client can lie" the single
+                sentence of network security? (<a href="9.9.html">9.9</a>
+                bridges here.)</li>
         </ol>
     </div>
 
@@ -148,8 +375,12 @@ traceroute github.com  # every router your packets cross (mac: traceroute)</code
         <ul>
             <li>Explain packets, headers, sequence numbers, and reassembly</li>
             <li>Choose TCP vs UDP for a given application with reasons</li>
-            <li>Trace DNS resolution and demonstrate the cache</li>
-            <li>Read a traceroute and locate a slowdown's layer</li>
+            <li>Resolve a real name and read the answer, cached and uncached</li>
+            <li>Read the DNS hierarchy out of a <code>+trace</code> and say what each level knows</li>
+            <li>Turn a file size into a packet count, and explain the leftover</li>
+            <li>Tell DNS, the network and the server apart when something fails</li>
+            <li>Break this topic into parts small enough to check each one on its own, and say in one line what each part does</li>
+            <li>Say which earlier lesson each part came from, and where you would reread it</li>
         </ul>
     </div>
 </div>
@@ -159,7 +390,7 @@ traceroute github.com  # every router your packets cross (mac: traceroute)</code
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-09/the-internet.html">The Internet</a> — the full reference</li>
+        <li><a href="../docs/unit-09/the-internet.html">The Internet</a> — the full reference: packets, TCP vs UDP, DNS and routing</li>
         <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — networks in the CED</li>
     </ul>
     <p>Next: <a href="9.9.html">9.9 — Encryption: Keys, TLS &amp; Public Key</a></p>

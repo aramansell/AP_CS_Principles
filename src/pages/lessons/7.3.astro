@@ -1,47 +1,202 @@
 ---
 // Lesson 7.3 — Ladders I: The Climbing State
-// THERE IS NO LADDER ART IN THIS PROJECT. No sprite, no tile, no prefab, no
-// animation clip. The ladder's LOOK must be assembled by the student from the
-// cave tileset (Assets/Artwork/Platformer/Sliced/CavesTileSet).
-// The Player's controller (Player_Shovel.controller) has exactly Idle / Walk /
-// Shovel_Swing x Up / Horiz / Down. There are NO climb states or climb frames.
-// Gravity: 6.3 introduced `baseGravity` cached in Start and re-assigns
-// rb.gravityScale every frame from vertical velocity - the climb state must
-// win that argument. Movement: the student chose a method in 2.2; the climb
-// must use THAT, not transform.Translate.
+//
+// GROUND TRUTH (read out of AP_CS_P_Starter_Project, Unity 6000.6.0f1, by
+// reading the assets themselves — the atlas's .meta, the Tile .asset files
+// and the palette prefab — not by trusting an earlier draft):
+//
+//   THE LADDER ART IS IN THE PROJECT, AND IT IS NOT CALLED A LADDER.
+//   `Assets/Artwork/Platformer/Sliced/MainLev2.0.png` (1632x1536) is sliced
+//   into 1,829 Tile assets named `MainLev2.0_0` .. `MainLev2.0_1828`, so a
+//   Project-window search for "ladder" finds nothing at all. Resolve the
+//   sprite rects in MainLev2.0.png.meta against the atlas and the ladder is
+//   unmistakable: a four-tile vertical rung column at x = 1504 —
+//       _1375 (the head, y 1088)  _1422 (1120)  _1468 (1152)  _1514 (1184)
+//   — hanging beneath the horizontal beam row at y 1056 (`_1322`..`_1328`),
+//   with `_1374` / `_1376` as the posts on either side. The previous version
+//   of this file asserted "THERE IS NO LADDER ART IN THIS PROJECT". That was
+//   false, and every claim built on it was false with it. The honest version
+//   is stronger: the LOOK is one drag and one paint stroke, and the MECHANIC
+//   is the whole lesson.
+//   PALETTE MEMBERSHIP, checked by guid inside `Caves.prefab` (which 7.1
+//   established is a Tile Palette saved as a prefab): `_1375` IS in the tray,
+//   `_1328` (the beam) IS, `_1374` IS — and `_1422`, `_1468`, `_1514` and
+//   `_1376` are on NEITHER palette. So the student's first move is to drag
+//   the rung tiles onto the palette, which is exactly what 7.1 taught.
+//
+//   Verified ABSENT, and this is the part the lesson is actually about: any
+//   ladder PREFAB (the project ships eight — Player, Coin, Spikes, Axe Item,
+//   Switch, Turret, Turret Projectile, Mobile Enemy); any climb state or
+//   climb clip (`Player_Shovel.controller` holds exactly Idle / Walk /
+//   Shovel_Swing x Up / Horiz / Down, and no character sheet has a climb
+//   pose); and any `Ladder` tag (the tags are Coin, Enemy, Axe, Spikes,
+//   Ground, GroundCheck).
+//
+//   Gravity: 6.3 caches `baseGravity` in `Start()` (read LAST, after any
+//   earlier line has had its say about the number) and re-writes
+//   `rb.gravityScale` inside `FixedUpdate()` — once per physics step, NOT
+//   "every single frame", which is what an earlier draft of this page
+//   claimed. The distinction is load-bearing here: a climb branch written in
+//   `Update()` loses the argument, because 6.3's assignment runs on the
+//   physics clock afterwards and puts the fall multiplier straight back.
+//   Movement: the student chose a method in 2.2 (`linearVelocity` on the
+//   Dynamic body, and no `Time.deltaTime`); the climb must use THAT, not
+//   `transform.Translate`.
+//   Scene facts relied on below: the Platformer scene has three tilemaps
+//   under its Grid and NO Canvas — the HUD from 5.3 lives in `Start` — and
+//   `No Collision` carries no collider of any kind, so it is paint.
+//
+// SCAFFOLDING: OUTLINE (level 3), build frame, and asks.ts agrees. The
+// student does write a climbing script here — a state flag, two trigger
+// callbacks, a climb lane and a gravity hand-off — so level 2 was argued for
+// and is written out in the report that delivered this file; the rung this
+// page sits on is 3. What that means concretely: the spec and the API are
+// given, the code is not, and NO walkthrough is rendered (check 7 fails a
+// level-3 page that renders one). The decompose block therefore authors both
+// `does` and `doc` for every part — the renderer withholds `does` at level 3
+// and the student supplies it in writing — and the Build Lab's five steps
+// name what to write without printing it.
+//
+// PROTECTED BLOCKS — ids are POSITIONAL (src/lib/formify.ts), so nothing here
+// is reordered, renumbered or re-counted. Baseline captured BEFORE this edit
+// and re-checked after it, unchanged:
+//   socratic  "What Kind of Thing Is a Ladder?"   6 <li>, 5 boxes
+//                                                 (7.3:sc1:q1..q5 — item 3 is
+//                                                 statement-shaped, no box)
+//   bug-hunt  "Bug Hunt"                          6 <li>, 6 boxes (7.3:bh1:q1..q6)
+//   tinker    "Tinker: Climb Design"              4 <li>, 4 boxes (7.3:tk1:q1..q4)
+// Exactly one of those items was touched, and only because the corrected
+// ground truth made the old wording false: socratic item 1 said "the ladder
+// has no art". Nothing else inside a protected block changed. No item was
+// added, removed, moved or renumbered, and none gained or lost its box.
+// `checklist` is not a formify target; it is the one block that was extended.
+// No nested <div> inside any protected block.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+// The three recurring questions, asked of a climb. Level 3, so every part is
+// named and sourced and what each one DOES is the student's to work out — the
+// renderer withholds `does` and asks for it in writing, which is why both
+// fields are authored here.
+//
+// Five parts, because that is what a ladder honestly is: a zone, the flag the
+// zone writes, the rule the flag changes, the input that only means something
+// inside the state, and the argument with 6.3's gravity branch that decides
+// whether any of the rest of it works. Four of the five are shapes this
+// student has already typed somewhere in Units 1-7.
+const DECOMPOSE: DecomposeSpec = {
+  big:
+    'Make the character climb. A ladder is not a thing you collide with — it is a place where the ' +
+    'normal rules stop applying for a while. So the whole feature is: build a volume that knows you ' +
+    'are inside it, let that knowledge change what gravity and your input mean, and then put ' +
+    'everything back exactly as it was the moment you step off.',
+  parts: [
+    {
+      name: 'Cut a zone the trigger can see',
+      does:
+        'An empty GameObject over the ladder strip with a **Box Collider 2D** and **Is Trigger** ticked, tall enough to cover the whole climb, carrying a tag of its own. A trigger is a volume the physics engine reports to you without pushing anything out of it — you get the message and keep your momentum.',
+      doc:
+        'the trigger-versus-collision split from 2.1, and the tag ritual you performed on the potion in 2.3',
+      href: '2.3.html',
+    },
+    {
+      name: 'Turn the zone\'s two messages into one flag',
+      does:
+        '`OnTriggerEnter2D` sets the flag, `OnTriggerExit2D` clears it, and one `bool` at class scope is the whole of the memory. Nothing else in the project is allowed to write it — the flag is a fact about where you are standing, not a decision you get to make.',
+      doc:
+        'the coin\'s `OnTriggerEnter2D` in 2.1, and the `bool` you declared for the first time in 5.1',
+      href: '2.1.html',
+    },
+    {
+      name: 'Take gravity away while the flag is up',
+      does:
+        'One branch on the flag that sets `gravityScale` to `0f`, and — the half that is easy to get wrong — hands the number back to the value 6.3 cached when the flag drops, rather than to a literal you typed. A typed literal is a fact about today; the cached value is a fact about this body.',
+      doc:
+        'the `gravityScale` branch in 6.3, and the `rb.gravityScale` row of the Unity + C# Quick Reference',
+      href: '6.3.html',
+    },
+    {
+      name: 'Read the vertical stick and ignore the sideways one',
+      does:
+        'While the flag is up, the vertical axis drives `linearVelocity` directly and the horizontal axis is not read at all. One set of keys, a second meaning, chosen by where the character is standing — and the movement method is the one you picked in 2.2, not a new one.',
+      doc: 'the movement method you settled on in 2.2, and the input axes from 1.4',
+      href: '2.2.html',
+    },
+    {
+      name: 'Decide which gravity rule gets to win',
+      does:
+        '6.3 already writes `gravityScale` on the physics clock, from your vertical velocity. The climb has to be the branch that runs **instead of** that one — not a second line beside it — or the fall multiplier is put back before the frame is ever drawn, and the ladder becomes a slow slide.',
+      doc:
+        'the `FixedUpdate()` gravity branch in 6.3, and the frame-versus-physics-step split from 1.3',
+      href: '6.3.html',
+    },
+  ],
+  why:
+    'The split is not five equal problems. Four of them are shapes you have already typed: a trigger ' +
+    'that reports a tagged object (2.1), a `bool` that remembers something (5.1), a movement line ' +
+    'that writes `linearVelocity` (2.2), and a gravity branch (6.3). Only one idea here is new, and ' +
+    'it is the reason the lesson exists. Until today every value in your script described **how ' +
+    'much** — a speed, a force, a fall multiplier. The climb flag describes **which rules apply**, ' +
+    'and it changes the meaning of two numbers you already own without touching either of them. That ' +
+    'is what a state is, and it is why the last part of the split is an argument about order rather ' +
+    'than a line of code.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Make the player ' +
+    'climb a ladder" cannot be looked up. "Set gravityScale to zero while a bool is true" can — and ' +
+    'the page you land on also tells you which body type it applies to, and what a Static body does ' +
+    'with the number instead. If a part is small enough to search for, the split is finished.',
+  connect: [
+    'In 2.1 the coin\'s `OnTriggerEnter2D` did one thing: destroy the coin. Which part of today is that same callback — and what does it change now, if not the object the message was about?',
+    'In 5.2 the lever flipped a value and kept it forever, and the door read it long afterwards. Which part of today is that same remembered value — and what is different about how long yours is supposed to live?',
+    'In 6.3 you cached the body\'s gravity in `Start()` and rewrote `gravityScale` from your vertical velocity. Which part of today has to agree with that branch — and which of the two has to step aside for the other?',
+    'In 7.1 you painted a level out of tiles and in 7.2 you gave those tiles colliders, layers and a sort order. Which part of today is still editor work rather than code — and why does it have to be finished before the trigger can ever fire?',
+  ],
+  turns: [
+    'Name the single number the climb and the fall-speed rule both want to own, and say which piece of code is allowed to write it last. Then say what the player actually sees when you get that order wrong.',
+    'The climb throws the sideways input away. Name a moment in your own level where that would be the wrong call, and say what the player would feel instead.',
+    'Your jump uses an impulse — one flick of force — and the climb writes a velocity. Say why an impulse is the wrong tool on a ladder: what would holding W do to a character you flicked upward sixty times a second?',
+  ],
+};
 
 const body = `<h1>7.3 — Ladders I: The Climbing State</h1>
 
 <p class="lesson-lead">
-    Go and look for a ladder. Search the project for one — a sprite, a tile, a prefab, an
-    animation clip. You will not find one, because there is no ladder anywhere in this
-    project. You are about to build the first one, and it is two separate inventions: a
-    <em>look</em> you will assemble from the cave tiles you learned to paint in
-    <a href="7.1.html">7.1</a>, and a <em>mechanic</em> — a zone that tells your character it
-    is allowed to ignore gravity. The mechanic is the real work.
+    Go and look for a ladder. Search the project for a sprite, a tile, a prefab, an animation
+    clip — search the word itself. The word finds nothing, and that is the trap: there is no
+    ladder <em>prefab</em>, no <em>climb animation</em> and no <code>Ladder</code> tag anywhere
+    in this project, and there <em>is</em> ladder art, sliced into the cave tileset and filed
+    under a number. So the ladder splits in two, and only half of it is art: a <em>look</em>
+    you paint from tiles you already know how to paint (<a href="7.1.html">7.1</a>), and a
+    <em>mechanic</em> — a state in which your character is allowed to ignore gravity. The
+    mechanic is the real work.
 </p>
+
+${renderAskBanner('how do I climb a ladder?', 3)}
+
+${renderDecompose('7.3', DECOMPOSE, 3)}
 
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">The Problem: Nothing to Climb</span>
+        <span class="activity-label">The Problem: A Ladder Nobody Can Find</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
         Confirm the situation before you design around it. In the Project window, search
         <code>ladder</code>, and search <code>climb</code>. Look in
-        <code>Assets/Artwork/Character/Player/</code> and in the cave tileset. Then open the
-        Player's Animator controller and read its states. Here is what you will find, and it
-        matters:
+        <code>Assets/Artwork/Character/Player/</code> and under the cave tileset. Then open the
+        Player's Animator controller and read its states. You are checking four things, and the
+        answer to the first one is the reason this page has a trap in it at all:
     </p>
 
     <table>
         <tr><th>What you might expect to find</th><th>What is actually there</th></tr>
         <tr>
             <td>A ladder sprite or tile</td>
-            <td>Nothing. The cave tileset has rock, wall, vine and floor pieces — no ladder.</td>
+            <td><strong>It is there, and it is numbered.</strong> <code>Assets/Artwork/Platformer/Sliced/MainLev2.0.png</code> is sliced into 1,829 tiles called <code>MainLev2.0_0</code> through <code>MainLev2.0_1828</code>, so the word "ladder" is printed on none of them and a search for it finds nothing. The rung column is <code>MainLev2.0_1375</code> (the head) with <code>_1422</code>, <code>_1468</code> and <code>_1514</code> below it, hanging from a beam. This is <a href="7.1.html">7.1</a>'s lesson in one search: the art exists, the <em>name</em> does not.</td>
         </tr>
         <tr>
             <td>A ladder prefab</td>
@@ -57,8 +212,18 @@ const body = `<h1>7.3 — Ladders I: The Climbing State</h1>
         </tr>
     </table>
 
+    <div class="callout info">
+        <strong>Half the look is already in your tray.</strong> Open the <code>Caves</code> palette
+        you loaded in <a href="7.1.html">7.1</a> and look at what it already holds: the ladder's
+        <em>head</em> tile is in it, and so is the beam it hangs from. The three rung tiles are not
+        — they are sliced and waiting in
+        <code>Assets/Artwork/Platformer/Sliced/CavesTileSet/</code> for you to drag into the tray,
+        which is exactly the move 7.1 taught you. So the look costs one drag and one paint stroke.
+        Remember that number when you are an hour into the mechanic.
+    </div>
+
     <p>
-        So the ladder is yours to invent, and it splits cleanly in two. The <strong>look</strong>
+        So the ladder is yours to build, and it splits cleanly in two. The <strong>look</strong>
         is a painting problem, and you have a tileset. The <strong>mechanic</strong> is the part
         that has never existed in this project: a <em>state</em> your player can be in that is
         neither walking nor falling, entered only because a trigger said so.
@@ -104,7 +269,7 @@ const body = `<h1>7.3 — Ladders I: The Climbing State</h1>
     <div class="socratic">
         <h3>Socratic: What Kind of Thing Is a Ladder?</h3>
         <ol>
-            <li>The ladder has no art. Which of the two halves of it — look or mechanic — can you build today without drawing anything? Which one is the real engineering?</li>
+            <li>The ladder has art, but no prefab, no climb animation and no tag. Which of those four is a painting job and which one is the engineering — and why does the art being nearly free not make today easy?</li>
             <li>The trigger zone sets a flag on entry and clears it on exit. Compare that with the lever from <a href="5.2.html">5.2</a>, which flips a value and keeps it forever. Why is a ladder remembered only while you are inside it, and a lever remembered permanently? What does each one assume about the player's intent?</li>
             <li>Climbing turns gravity off. Your character also had gravity set to zero in the Overworld, in <a href="5.3.html">5.3</a>. The same number means two different things in two different scenes. Say what each one means, and why "gravity zero" is not a fact about the world but a fact about the state.</li>
             <li>Your jump uses an impulse (a flick, not a push), and gravity was tuned in <a href="6.1.html">6.1</a> to make the arc feel right. If the climb sets <code>gravityScale</code> to zero and then restores it, what is the danger of restoring it to a number you typed, rather than to the number you saved in <a href="6.3.html">6.3</a>?</li>
@@ -166,7 +331,7 @@ brakeForce = onCable ? 0f : fullWeight;</code></pre>
             <li>While climbing, which input axis is read, and which directions must be <em>ignored</em>? What happens if you leave sideways input live while on a ladder?</li>
             <li>What is <code>climbSpeed</code>, what type is it, and how is it exposed as a tuning knob? Why does it want to be slower than your walk speed?</li>
             <li>Which component's gravity is switched off, and to what value? Where does the number come from when you switch it back on — a literal you type, or a value you cached in <a href="6.3.html">6.3</a>? Justify your answer.</li>
-            <li><a href="6.3.html">6.3</a> already assigns <code>gravityScale</code> every single frame based on your vertical velocity. If your climb branch sets it to zero and 6.3's branch then sets it back, which one wins? Predict, test, and describe the symptom the player would see.</li>
+            <li><a href="6.3.html">6.3</a> already assigns <code>gravityScale</code> on the <em>physics</em> clock — once per physics step, in <code>FixedUpdate()</code>, from your vertical velocity. If your climb branch sets it to zero in <code>Update()</code> and 6.3's branch then sets it back, which one wins? Predict, test, and describe the symptom the player would see.</li>
             <li>Your platformer movement is the one you settled on in <a href="2.2.html">2.2</a> — <code>linearVelocity</code> on a <strong>Dynamic</strong> body, not <code>transform.Translate</code>. What does that method need in order to move the player straight up a ladder, and why does the ladder's velocity line carry no <code>Time.deltaTime</code>? Then check it against <a href="6.1.html">6.1</a>: a Kinematic body would have ignored your jump impulse entirely, so which body type is on your Player right now?</li>
             <li>What exits the climb state? List every exit you can think of: reaching the top, jumping, dying, leaving the zone. Which of them happen through the trigger, and which need handling by hand?</li>
         </ul>
@@ -181,10 +346,15 @@ brakeForce = onCable ? 0f : fullWeight;</code></pre>
     </div>
 
     <p>
-        <strong>Step 1 — paint the look.</strong> Choose a vertical run of tiles from
-        <code>Assets/Artwork/Platformer/Sliced/CavesTileSet/</code> that reads as "climbable" —
-        a vine, a fractured wall face, a column of rough rock. Paint it one tile wide and five or
-        six tiles tall, somewhere with a ledge at the top and open floor at the bottom.
+        <strong>Step 1 — paint the look.</strong> Open the <code>Caves</code> palette from
+        <a href="7.1.html">7.1</a> and drag the three rung tiles into it from
+        <code>Assets/Artwork/Platformer/Sliced/CavesTileSet/</code>:
+        <code>MainLev2.0_1422</code>, <code>_1468</code> and <code>_1514</code>. The head,
+        <code>MainLev2.0_1375</code>, is already in the tray — put it on top and you have a
+        four-tile ladder. Paint it one tile wide and let it run from open floor at the bottom up
+        to a ledge at the top. If you would rather invent your own ladder out of the vine or the
+        fractured-rock tiles, do that instead: the mechanic below does not care what the picture
+        is, which is exactly why the picture is the small half of this problem.
     </p>
 
     <p>
@@ -226,7 +396,9 @@ brakeForce = onCable ? 0f : fullWeight;</code></pre>
         smallest script in the unit — four lines of behaviour — and the whole difficulty is in
         the <em>else</em> branch, which is where you restore gravity. Do that first, before you
         write any climbing movement, and test it: walk into the zone and confirm the flag flips.
-        Print it with <code>Debug.Log</code> while you test. There is still no UI in this project.
+        Print it with <code>Debug.Log</code> while you test. The HUD you built in 5.3 lives in
+        <code>Start</code> and reads only the player's stats — it is not in this scene and it has
+        never heard of a ladder, so a climbing experiment still reports through the Console.
     </p>
 
     <p>
@@ -291,10 +463,11 @@ brakeForce = onCable ? 0f : fullWeight;</code></pre>
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
-            <li>State that this project ships no ladder art, and say which tileset you assembled the look from</li>
+            <li>Name the four tiles a ladder is cut from, and explain why searching the project for "ladder" finds none of them</li>
+            <li>Say which of the ladder's tiles were already on the <code>Caves</code> palette and which you dragged into it yourself</li>
             <li>Build a trigger zone with its own tag, and explain why it must be a trigger</li>
             <li>Explain climb as a state: gravity off, vertical input only, and a deliberate restore</li>
-            <li>Say which of the two gravity conflicts — 6.3's per-frame assignment and your climb branch — wins in your build, and how you know</li>
+            <li>Say which of the two gravity conflicts — 6.3's physics-step assignment in <code>FixedUpdate()</code> and your climb branch — wins in your build, and how you know</li>
             <li>Demonstrate the jump-off re-entry bug and defend the repair you chose</li>
             <li>Explain one input axis serving three meanings, chosen by state</li>
             <li>Commit and push</li>

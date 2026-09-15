@@ -1,54 +1,89 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>5.2 The Door: Opening It with Events — AP CS Principles</title><meta name="description" content="Lesson 5.2 The Door: Opening It with Events — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="5.2 The Door: Opening It with Events — AP CS Principles"><meta property="og:description" content="Lesson 5.2 The Door: Opening It with Events — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="5.1.html">&#9664; 5.1</a><span class="lesson-id">5.2</span><a href="5.3.html">5.3 &#9654;</a></div><h1>5.2 — The Door: Opening It with Events</h1>
 
 <p class="lesson-lead">
-    You have an axe, and the cave door does not care — yet. Today you close the last gap:
-    press E near a lever, the lever fires a <strong>UnityEvent</strong>, and the door opens
-    without the lever ever knowing what a door is. That gap between cause and effect is called
+    You have an axe, and the cave door does not care — yet. Today you close the last gap: press
+    <strong>E</strong> beside the lever, and a door the lever has never met swings open. The lever
+    knows nothing about doors. It flips a sprite and it fires an <strong>event</strong>, and who is
+    listening is somebody else's business. That gap between cause and effect is called
     <em>abstraction</em>, and it is the most exam-relevant idea in this whole project.
 </p>
+
+<div class="ask-banner" data-scaffold="1"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I open a door with a key?&rdquo;</span><span class="ask-banner-level">Full walkthrough</span></div>
+
+<div class="activity decompose" data-level="1" data-parts="6" data-given="6" data-docs="6"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Full walkthrough</span></div><p class="dc-big">Press E beside a lever, and a cave door you have never touched disappears - the wall you could feel, the wall you could see, and a panel that has nothing to do with any of it, all switched off at the same instant by one object that only ever flips a sprite. That whole sentence is the feature, and the lever has never met the door.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Notice one press of a key</span><span class="dc-does">Input is a state, not a moment: <code>Input.GetKey</code> is true on every frame the key is held, and <code>Input.GetKeyDown</code> is true on exactly one frame. An interaction wants the one frame, or a single press becomes sixty and the lever flips until you let go.</span><span class="dc-doc">Read: <a href="1.6.html">the <code>Input.GetKeyDown</code> row of the quick reference, and the <code>if (Input.GetMouseButtonDown(0))</code> you wrote for the attack in 1.6.</a></span></li><li class="dc-part"><span class="dc-name">Decide the player is close enough</span><span class="dc-does">A straight-line distance between two positions, compared against a number you chose and put in the Inspector so a designer can change it. It is the turret's range check, pointed at an object instead of at the player.</span><span class="dc-doc">Read: <a href="3.1.html">the <code>Vector3.Distance</code> row of the quick reference, and the range check you wrote on the turret in 3.1.</a></span></li><li class="dc-part"><span class="dc-name">Find the lever without knowing its name</span><span class="dc-does">A scene-wide search for a <code>Lever</code> component - <code>Object.FindFirstObjectByType&lt;Lever&gt;()</code> in Unity 6, which replaces the deprecated <code>FindObjectOfType&lt;T&gt;()</code>. It hands back the component and not the GameObject, and it hands back <code>null</code> when the scene has no lever in it at all.</span><span class="dc-doc">Read: <a href="3.1.html">the <code>GameObject.FindWithTag</code> row of the quick reference - locating an object you hold no reference to - and the same search on the turret in 3.1.</a></span></li><li class="dc-part"><span class="dc-name">Ask the lever to act, without doing its job for it</span><span class="dc-does">One call: <code>lever.Interact()</code>. The lever owns its own state, its own sprite swap and its own <code>Invoke()</code>; the player contributes a moment in time and nothing else. This is why <code>Interact()</code> is <code>public</code> and almost everything else in that file is not.</span><span class="dc-doc">Read: <code>Assets/Scripts/Lever.cs</code> itself - <code>public void Interact()</code>, and the comment above it that already says who calls it.</span></li><li class="dc-part"><span class="dc-name">Let the lever announce that it happened, without naming anyone</span><span class="dc-does"><code>onLeverOn.Invoke()</code> runs every method that has subscribed, and the lever holds no reference to a single one of them. That gap is the thing your exam calls abstraction: a procedure causing other procedures to run without knowing their names.</span><span class="dc-doc">Read: <a href="../docs/unit-05/index.html">the two <code>UnityEvent</code> fields at the top of <code>Lever.cs</code>, and the <code>On Lever On</code> list on <code>CaveSwitch</code> in the Overworld scene - three subscribers the lever has never met.</a></span></li><li class="dc-part"><span class="dc-name">Subscribe to the announcement, and open the door</span><span class="dc-does"><code>AddListener</code> puts your method on the event; <code>RemoveListener</code> takes it off again, and one without the other is how a listener outlives the object that added it. The event field is <code>private</code>, so the Inspector can subscribe to it and C# cannot - subscribing in code means exposing it first.</span><span class="dc-doc">Read: <a href="../docs/unit-05/index.html"><code>Lever.cs</code> again - look at the access level on <code>onLeverOn</code> - and the three listeners already sitting on <code>CaveSwitch</code>, which is exactly what that field was left <code>private</code> for.</a></span></li></ol><p class="dc-why">Four of those six parts are work you have already done: a key that fires on one frame is 1.6, a distance measured against a number is 3.1, and a search plus a method call is what you have been writing since 2.1. The last two have no precedent anywhere in this course, and they are the reason this lesson is a full walkthrough rather than a guided one. Every part before today had a name you could look up - <code>GetKeyDown</code>, <code>Vector3.Distance</code>, <code>GetComponent</code>. An event does not. <code>Invoke()</code> is the first line in this project that causes code to run without naming the code, and the only way to learn a mechanism you cannot search for is to be shown the whole of it once.</p><p class="dc-size">The test: could you look this part up on its own, right now, in one search? "Open a door with a key" cannot be looked up - there is no such API and no such search. "Make a method run when an event fires" can: that is <code>AddListener</code>, and it is one search away.</p><div class="dc-connect"><h4>Connect it to something you already built</h4><p>Very little in this course is new. Most of it is something you have already done, pointed in a different direction — and saying which one out loud is how you stop relearning it every time.</p><p>The lever is driving three subscribers today and has never met any of them. Say what it would have had to know if it had been written the obvious way - holding a reference to the door and calling a method on it - and say what the event removed from the file.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:dc1:q1" data-block="decompose" data-question="The lever is driving three subscribers today and has never met any of them. Say what it would have had to know if it had been written the obvious way - holding a reference to the door and calling a method on it - and say what the event removed from the file." placeholder="write your answer, then keep going"></textarea></label><p>The event that connects the lever to the door is <code>private</code>. Which of the two roads this lesson builds - the Inspector list, or <code>AddListener</code> in a script - works without editing somebody else's file, and what does the other road cost you?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:dc1:q2" data-block="decompose" data-question="The event that connects the lever to the door is `private`. Which of the two roads this lesson builds - the Inspector list, or `AddListener` in a script - works without editing somebody else's file, and what does the other road cost you?" placeholder="write your answer, then keep going"></textarea></label><p>In 2.1 your coin pickup opened with <code>other.CompareTag("Coin")</code>, because a trigger fires for everything that touches you. Which part of today is that same idea, and what is being tested instead of a tag?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:dc1:q3" data-block="decompose" data-question="In 2.1 your coin pickup opened with `other.CompareTag(&quot;Coin&quot;)`, because a trigger fires for everything that touches you. Which part of today is that same idea, and what is being tested instead of a tag?" placeholder="write your answer, then keep going"></textarea></label><p>In 3.1 the turret decided whether it could see the player by measuring <code>Vector3.Distance</code> against a radius. Which part of today is that measurement - and what does the answer change? The turret started firing; what does the lever do?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:dc1:q4" data-block="decompose" data-question="In 3.1 the turret decided whether it could see the player by measuring `Vector3.Distance` against a radius. Which part of today is that measurement - and what does the answer change? The turret started firing; what does the lever do?" placeholder="write your answer, then keep going"></textarea></label><p>In 1.6 you chose between <code>GetMouseButton</code> and <code>GetMouseButtonDown</code> for the attack, and one of them restarted the swing every frame. Which part of today is that same choice, and what does the wrong one do to a lever?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:dc1:q5" data-block="decompose" data-question="In 1.6 you chose between `GetMouseButton` and `GetMouseButtonDown` for the attack, and one of them restarted the swing every frame. Which part of today is that same choice, and what does the wrong one do to a lever?" placeholder="write your answer, then keep going"></textarea></label></div></div>
 
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
         <span class="activity-label">Read the Code That Ships</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <p>
         This is the one script in <code>Assets/Scripts/</code> that is <strong>not</strong> an
-        empty shell. Open <code>Assets/Scripts/Lever.cs</code> and read the whole thing —
-        it is short. Here is the part that matters, quoted:
+        empty shell. Open <code>Assets/Scripts/Lever.cs</code> and read the whole thing — it is
+        short. Here is the part that matters, quoted:
     </p>
-    <pre><code>[SerializeField] private UnityEvent onLeverOn;
+
+    <pre><code>[SerializeField] private Sprite offSprite;
+[SerializeField] private Sprite onSprite;
+
+// Events to trigger things (like opening a door)
+[SerializeField] private UnityEvent onLeverOn;
 [SerializeField] private UnityEvent onLeverOff;
+
 // ... later, inside Interact():
 onLeverOn.Invoke();</code></pre>
 
     <p>
-        Notice what is <em>missing</em>: the word "door" appears nowhere in that file. The lever
-        has no idea what it is switching on. It flips a sprite, and it fires an event — and who
+        Read those two event fields again and notice the word in front of them:
+        <code>private</code>. That one word decides a great deal of this lesson, so hold on to it.
+        Notice as well what is <em>missing</em>: the word "door" appears nowhere in that file. The
+        lever has no idea what it is switching on. It flips a sprite, it fires an event — and who
         is listening is somebody else's business entirely.
     </p>
 
     <p>
-        Now open the Overworld scene, select the <strong>Switch</strong> object, and look at its
-        Inspector under <strong>On Lever On</strong>. This is the part that should surprise you:
-        <strong>somebody has already wired it up.</strong> Three listeners are waiting there.
-        Before you read on, expand each one and find out what it targets.
+        Now open the <strong>Overworld</strong> scene and select <strong>CaveSwitch</strong>
+        <em>in the scene</em> — the object standing in the Hierarchy, not the prefab in the Project
+        window. Look in its Inspector under <strong>On Lever On</strong>. This is the part that
+        should surprise you: <strong>somebody has already wired it up.</strong> Three listeners are
+        waiting there, and each one calls <code>SetActive</code> with a true/false argument. Before
+        you read on, expand each one and find out what it targets.
     </p>
+
+    <div class="callout trap">
+        <strong>Select the object in the scene, not the prefab.</strong> Those three listeners are
+        <em>prefab-instance overrides</em>: they were added to the copy of <code>CaveSwitch</code>
+        that lives in the Overworld, so the prefab asset in the Project window still has two empty
+        event lists. That is normal Unity behaviour and worth knowing — a prefab is a starting
+        point, and an instance drifts from it on purpose. If you inspect the prefab and see nothing
+        wired, nothing is wrong; you are looking at the wrong object.
+    </div>
+
     <p>
-        Two of them are tilemaps called <code>Collision Door Removed</code> and
+        Two of the listeners target objects called <code>Collision Door Removed</code> and
         <code>No Collision Door Removed</code>. Find them in the Hierarchy, then look at them in
         the scene. Together they <em>are</em> the door: one object for the wall you can feel, one
-        for the wall you can see, and the lever switches both off at once. <strong>The door
-        mechanism already works.</strong> Everything missing from it is the part you are about to
-        write — a way for the player to reach the lever at all.
+        for the wall you can see, and the lever switches both off at the same moment.
+        <strong>The door mechanism already works.</strong> Everything missing from it is the part
+        you are about to write — a way for the player to reach the lever at all.
     </p>
+
     <p>
-        The third listener points at the scene's <code>Canvas</code>, which nothing uses yet, and
-        nothing explains why the lever turns it off. That is your first piece of genuine legacy
-        code: wiring somebody else left behind, with no note attached. Deciding what to do about
-        it is part of the job.
+        The third listener points at the scene's <code>Canvas</code>, which nothing in this scene
+        uses yet, and nothing explains why the lever turns it off. That is your first piece of
+        genuine legacy code: wiring somebody left behind, with no note attached. Deciding what to do
+        about it is part of the job — and there is a trap in it, further down this page.
+    </p>
+
+    <p>
+        One more thing worth seeing before you move on. Expand <strong>On Lever Off</strong>: it is
+        <em>empty</em>. Somebody wired the switch-on and never wired the switch-off, so a lever that
+        visibly toggles its own sprite back has nothing to say on the way home. And if your list
+        looks like it has five rows rather than three, you are seeing two leftover blank entries
+        from when the list was made shorter — Unity keeps the space. They target nothing and they
+        never fire.
     </p>
 
     <div class="socratic">
@@ -65,14 +100,80 @@ onLeverOn.Invoke();</code></pre>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: The interaction</span>
-        <span class="activity-time">~25 min</span>
+        <span class="activity-label">Read the Docs: The API for Reaching a Lever</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        The lever works. What does not exist yet is any way for the <em>player</em> to reach it.
-        Press E right now and nothing happens, because nothing in <code>PlayerController</code>
-        listens for it.
+        Every row below is a call you will type in the next two walkthroughs. Read the last column
+        as carefully as the middle one: four of these rows are calls you have already met in
+        another lesson, and four are the new mechanism. The costs are what tell you which is which.
+    </p>
+
+    <table>
+        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>Input.GetKeyDown(KeyCode.E)</code></td>
+            <td>True on the <strong>single frame</strong> the key goes down. The moment, rather than the state — the keyboard twin of the <code>GetMouseButtonDown</code> that drives your attack in <a href="1.6.html">1.6</a>.</td>
+            <td>Choosing the wrong twin is invisible in the code and obvious in the game: <code>Input.GetKey</code> is true on every frame the key is <em>held</em>, so one press becomes sixty and the lever toggles until you let go.</td>
+        </tr>
+        <tr>
+            <td><code>Object.FindFirstObjectByType&lt;Lever&gt;()</code></td>
+            <td>A scene-wide search that hands back the first <code>Lever</code> component, without you ever holding a reference to it. The Unity 6 spelling — the old <code>FindObjectOfType&lt;T&gt;()</code> is deprecated.</td>
+            <td>It returns <code>null</code> whenever the scene has no lever in it, which is every scene except the Overworld. And it searches the whole scene: fine once per key press, wasteful once per frame.</td>
+        </tr>
+        <tr>
+            <td><code>Vector3.Distance(a, b)</code></td>
+            <td>The straight-line distance between two points — the call that decided whether the turret could see you in <a href="3.1.html">3.1</a>, and now the call that decides whether you can reach the lever.</td>
+            <td>It measures <em>between two positions</em>, so both have to exist. Ask it about a <code>null</code> reference and the script stops with a NullReferenceException — every frame, pointing at that line.</td>
+        </tr>
+        <tr>
+            <td><code>lever.transform</code></td>
+            <td>A component's shortcut to the Transform of the GameObject it is attached to. This is how a search that returns a <em>component</em> still gives you a <em>position</em>.</td>
+            <td>Nothing — but it is the reason the component-versus-GameObject question has a happy answer. A component has no position of its own; it always reaches through its own object.</td>
+        </tr>
+        <tr>
+            <td><code>lever.Interact()</code> &mdash; and the word <code>public</code></td>
+            <td>The lever's one offered method. The player contributes a moment in time; the lever does everything else.</td>
+            <td>It has to be <code>public</code>. A <code>private</code> method is visible only inside its own class, so the compiler refuses the call outright — <code>error CS0122</code>. That is the difference between a method that is used and a method that is <em>offered</em>.</td>
+        </tr>
+        <tr>
+            <td><code>onLeverOn.Invoke()</code></td>
+            <td>Runs every method that has subscribed to the event, and names not one of them. The line the exam's definition of abstraction is about.</td>
+            <td>It is completely silent when nobody is listening — a lever with no subscribers looks exactly like a working lever until you check whether anything changed. And the field is <code>private</code>, so the Inspector is the only thing that can subscribe out of the box.</td>
+        </tr>
+        <tr>
+            <td><code>onLeverOn.AddListener(m)</code><br><code>onLeverOn.RemoveListener(m)</code></td>
+            <td>Subscribe and unsubscribe. The method is handed over as a <em>value</em> — no parentheses — and the lever calls it later, when and if it ever fires.</td>
+            <td>Two costs. The event accepts only methods that take nothing and return nothing, so the shape of your handler is not yours to choose. And a listener you never remove outlives its object: the next <code>Invoke()</code> calls into something that has been destroyed.</td>
+        </tr>
+        <tr>
+            <td><code>gameObject.SetActive(false)</code></td>
+            <td>Switch a whole object off — the object still exists, it is simply not in the world. This is the one call the three listeners on <code>CaveSwitch</code> actually make.</td>
+            <td>Nothing at all. And that is the lesson: the door is opened by three copies of one ordinary call, chosen by somebody who was not you, in a file you have never opened.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>The lever was built to be listened to, and you are the fourth listener.</strong>
+        Everything needed to open the door already exists. What does not exist is any way for the
+        player to reach the lever — and that is half of this lesson, with the other half being the
+        event that connects the two. The next two walkthroughs build one half each: first the
+        player's interaction, then a subscriber of your own written in code.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Decide What "Near" Means</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        There is one lever standing still in the scene and one player. So the whole question is how
+        the player finds out it is standing next to it — and you have solved the shape of that
+        problem twice already, once for a coin and once for a turret.
     </p>
 
     <div class="socratic">
@@ -83,12 +184,12 @@ onLeverOn.Invoke();</code></pre>
             <tr>
                 <td><strong>Search and measure</strong></td>
                 <td>On the key press, find every lever in the scene, measure the distance to each, and interact with the ones close enough.</td>
-                <td>A scene-wide search and a distance check for each lever. Simple to reason about, but it scales badly and it re-does work the physics engine could have done for you.</td>
+                <td>A scene-wide search and a distance check for each lever. Simple to reason about, and no scene setup at all — but it scales badly and it re-does work the physics engine could have done for you.</td>
             </tr>
             <tr>
                 <td><strong>A trigger zone around the lever</strong></td>
                 <td>Give the lever a large trigger collider. Track when the player enters and leaves it, and remember the lever you are currently standing in.</td>
-                <td>You must add a component and manage the "which one am I inside" state yourself. But the physics engine does the proximity test for free, every frame.</td>
+                <td>You must add a component and manage the "which one am I inside" state yourself, and clear it on the way out. But the physics engine does the proximity test for free, every frame.</td>
             </tr>
             <tr>
                 <td><strong>Look forward from the player</strong></td>
@@ -98,32 +199,121 @@ onLeverOn.Invoke();</code></pre>
         </table>
         <ol>
             <li>Which approach did you use for turret detection in <a href="3.1.html">3.1</a>? Which of these three is the closest cousin to it, and why is the analogy not perfect?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:sc2:q1" data-block="socratic" data-question="Which approach did you use for turret detection in 3.1 ? Which of these three is the closest cousin to it, and why is the analogy not perfect?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>There is exactly one Switch in the Overworld today. Which approach is over-engineered for one lever, and which one would you regret <em>not</em> choosing if the cave had twelve?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:sc2:q2" data-block="socratic" data-question="There is exactly one Switch in the Overworld today. Which approach is over-engineered for one lever, and which one would you regret not choosing if the cave had twelve?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>There is exactly one CaveSwitch in the Overworld today. Which approach is over-engineered for one lever, and which one would you regret <em>not</em> choosing if the cave had twelve?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:sc2:q2" data-block="socratic" data-question="There is exactly one CaveSwitch in the Overworld today. Which approach is over-engineered for one lever, and which one would you regret not choosing if the cave had twelve?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Whichever you pick, what does "close enough" mean numerically — and where should that number live so a designer can change it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:sc2:q3" data-block="socratic" data-question="Whichever you pick, what does &quot;close enough&quot; mean numerically — and where should that number live so a designer can change it?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Which key event should trigger the interaction: the one that fires every frame the key is held, or the one that fires once on press? What would happen with the wrong choice?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:sc2:q4" data-block="socratic" data-question="Which key event should trigger the interaction: the one that fires every frame the key is held, or the one that fires once on press? What would happen with the wrong choice?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 
-    <div class="callout">
-        <strong>Architectural specification: the interaction.</strong>
-        <ul>
-            <li>Which callback in <code>PlayerController</code> should hold this, and which input method detects a single key press rather than a held key?</li>
-            <li>What method on the lever do you need to call? Read <code>Lever.cs</code> and find its public method — what is it called, and why must it be <code>public</code> for you to reach it?</li>
-            <li>How do you get a reference to the Lever component itself rather than to the GameObject? Which method does that?</li>
-            <li>What is your proximity test, and what will you compare against?</li>
-            <li>What happens if your search finds nothing? Write the guard before you need it.</li>
-        </ul>
+    <div class="callout info">
+        <strong>Whichever row you picked, the same four lines exist.</strong> Something notices a
+        single press of a key, something decides the player is close enough, something finds the
+        object to act on, and something asks it to act. The rows differ only in <em>who does the
+        finding and the measuring</em> — your code, the physics engine, or a raycast. The
+        walkthrough below builds the first row: the one with no scene setup at all, and the one you
+        have already written twice.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">Build It With Me</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I press E beside a lever and make the lever do something?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. The lever is already wired to the door. What is missing is any way for the player to reach it: press E today and nothing happens, because no line in your controller has ever asked about the E key. The whole interaction is about fifteen lines, and every one of them is given and explained below. It is also the first time this course searches the scene for something you did not place yourself.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Declare how far your reach is</h4><p class="wt-lead">One field, in the class body, beside <code>moveSpeed</code> and the rest. It is the <code>[SerializeField] private</code> pattern from 1.3 - private in code, a knob in the Inspector.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    [SerializeField] private float interactRange = 1.5f;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">How close counts as <strong>near enough</strong>, in world units. <code>1.5f</code> is roughly one player width, which is a sane first guess for a lever standing on the ground.</span><span class="wt-why"><strong>It has to be a field, not a number typed into the condition later.</strong> A number written into the <code>if</code> is invisible: "I have to stand exactly on top of the lever" then means editing code and waiting for a recompile. As a serialized field it is a slider, and every playtest becomes a drag instead of a build. Identical argument to <code>moveSpeed</code> in 1.4 - and identical to the threshold you tuned on the turret in 3.1.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Notice the press - once, not sixty times a second</h4><p class="wt-lead">These four lines go at the bottom of the <code>Update()</code> you have been adding to since 1.4, after your movement and animation lines. The method they call is written in the next step, so the file will not compile until step 5 - type all five steps, then build.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">        if (Input.GetKeyDown(KeyCode.E))</span>
+<span class="wt-line" data-n="2">        {</span>
+<span class="wt-line wt-line-why" data-n="3">            TryInteract();</span>
+<span class="wt-line" data-n="4">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The new key question. <code>Input</code> is the class from 1.4, <code>KeyCode.E</code> names the key, and <code>GetKeyDown</code> is true on the <strong>single frame</strong> the key goes down.</span><span class="wt-why"><strong><code>Input.GetKey(KeyCode.E)</code> is the wrong one here, and it fails in the loudest possible way.</strong> Without the <code>Down</code> it is true on every frame the key is held, so half a second of holding E toggles the lever about thirty times and the door opens and shuts until you let go. The lever looks broken; it is not, the condition is. This is the exact pair you met on the mouse in 1.6.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">Opens the "E went down this frame" block.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Calls the method you write in the next step. The parentheses are empty because it needs nothing handed to it: <code>interactRange</code> is a field, and the lever is found inside the method.</span><span class="wt-why"><strong>A method you write yourself does nothing until something calls it</strong> - the rule you met in 1.6 with <code>UpdateAnimation()</code> and <code>CheckAttack()</code>. This line is the only thing in the file that makes the interaction ever happen, and leaving it out is the quietest bug in the lesson: no error, no warning, nothing.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Closes the key-press block. <code>Update()</code> carries on and ends exactly as it did before.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Find the lever, and survive finding nothing</h4><p class="wt-lead">A method of your own, and its first job is to answer "which lever?". You have never held a reference to it and you never will - it is one object standing somewhere in a scene, and your script has no slot for it.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    private void TryInteract()</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line wt-line-why" data-n="3">        Lever lever = Object.FindFirstObjectByType&lt;Lever&gt;();</span>
+<span class="wt-line wt-line-why" data-n="4">        if (lever == null)</span>
+<span class="wt-line" data-n="5">        {</span>
+<span class="wt-line" data-n="6">            return;</span>
+<span class="wt-line" data-n="7">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what"><code>private</code>, because nothing outside this script calls it - compare that with <code>Interact()</code> on the lever, which is <code>public</code> for exactly the opposite reason. <code>void</code> means it hands nothing back when it finishes.</span><span class="wt-why">The interaction is in its own method so <code>Update()</code> stays readable as three ideas - read the input, move, update the visuals - plus one new one. Same separation you made for <code>UpdateAnimation()</code> in 1.6, and the same reason you did not write the distance check inline in 3.1.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">Opens <code>TryInteract()</code>. Everything between here and its closing brace runs only on a frame where E went down.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Searches the whole scene for the first <code>Lever</code> component and stores it. Two things to read carefully: the type is <strong><code>Lever</code></strong>, the component, not <code>GameObject</code> - and <code>FindFirstObjectByType</code> is the Unity 6 spelling.</span><span class="wt-why"><strong><code>Object.FindObjectOfType&lt;Lever&gt;()</code> is the old spelling and Unity 6 marks it deprecated.</strong> It still runs and still finds things, which is why the mistake survives: what you get is a Console carrying an obsolete-call warning naming <code>FindObjectOfType</code> on every compile, and a line the docs have retired. The capital <code>Object</code> in front matters too - it is Unity's <code>Object</code>, and naming it is how the compiler knows which one you mean.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">The guard. The search hands back <code>null</code> - "nothing at all" - when the scene contains no lever, and this line catches that before anything tries to use it.</span><span class="wt-why"><strong>The Overworld has one lever and the other scenes have none.</strong> <code>Start</code>, <code>Platformer</code>, and any empty test scene you press Play in contain no <code>Lever</code> at all, so the search returns <code>null</code> there every single time. Without this guard the next line throws a <code>NullReferenceException</code> into the Console every frame E is pressed - in a scene that looks like it has nothing to do with the lever you are working on, which is what makes it take an hour to find.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">Opens the "there is no lever here" block.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what">Leaves <code>TryInteract()</code> immediately. Nothing below this line runs, and <code>Update()</code> carries on as normal - the player still walks, and E simply does nothing.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what">Closes the guard. Past this line, <code>lever</code> is guaranteed to be a real object you can talk to.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Measure the distance, and refuse if you are too far</h4><p class="wt-lead">The same measurement the turret made in 3.1, with two differences: it is between the player and the lever, and the number it is compared against is the field you declared in step 1.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">        float distance = Vector3.Distance(transform.position, lever.transform.position);</span>
+<span class="wt-line wt-line-why" data-n="2">        if (distance &gt; interactRange)</span>
+<span class="wt-line" data-n="3">        {</span>
+<span class="wt-line" data-n="4">            return;</span>
+<span class="wt-line" data-n="5">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The straight-line distance from the player to the lever, as a <code>float</code>. On the left, <code>transform.position</code> is <strong>yours</strong> - this script sits on the Player, so the shorthand <code>transform</code> means the Player's. On the right it is reached through the component you just found.</span><span class="wt-why"><strong><code>lever.transform</code> is the line that answers the component-versus-GameObject question.</strong> A component has no position of its own; every MonoBehaviour carries a <code>transform</code> property pointing at the Transform of the GameObject it is attached to. So the search handing back a <strong>component</strong> costs you nothing - the script can still reach its own object's position, and its own <code>gameObject</code> if you ever need it.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">True when the lever is <strong>further away than your reach</strong>. Read it as the refusal rather than the permission, because that is exactly how the guard below is written.</span><span class="wt-why"><strong><code>&gt;</code> decides what happens at the boundary.</strong> <code>distance &gt; interactRange</code> refuses anything past your reach and allows standing exactly at it; <code>&gt;=</code> would refuse the edge itself. Neither is wrong - but pick one and know which one you picked. This is the same decision you made about the arrival threshold in 3.1, and the same one you will make about every threshold in this course.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Opens the "too far away" block.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Leaves <code>TryInteract()</code> again. You have found a lever and decided it is not one you can reach, so there is nothing left to do this frame.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">Closes the range guard. Everything past this line runs only when E was pressed <strong>and</strong> a lever exists <strong>and</strong> you are standing within <code>interactRange</code> of it.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 5</span>Tell the lever</h4><p class="wt-lead">One line, and it is the only thing your script ever says to the lever. Everything else about the lever - its state, its sprite, whether anything else should happen - is not your business and never appears in your file.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">        lever.Interact();</span>
+<span class="wt-line" data-n="2">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Calls the lever's own public method. The parentheses are empty because the lever needs nothing from you: it already knows whether it is on or off, and it holds its own sprites.</span><span class="wt-why"><strong><code>Interact()</code> has to be <code>public</code> or this line will not compile.</strong> <code>private</code> means "visible only inside this class", so a <code>private Interact()</code> would be refused by the compiler the moment another script named it - error CS0122, <code>is inaccessible due to its protection level</code>. The lever marks it public because the lever expects to be called from outside: that is the difference between a method that is merely used and a method that is <strong>offered</strong>.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">Closes <code>TryInteract()</code>. One more <code>}</code> closes the class.</span></li></ol></div><div class="wt-pitfalls"><h4>Where this goes wrong</h4><p class="wt-lead">These are the mistakes this step actually produces. Read them before you are surprised by one.</p><ul class="wt-pit-list"><li class="wt-pitfall"><p class="wt-pit-mistake"><code>if (Input.GetKey(KeyCode.E))</code> - the version without <code>Down</code></p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>Holding E for half a second flips the lever about thirty times. The sprite strobes, <code>On Lever On</code> and <code>On Lever Off</code> fire alternately, and the door opens and closes until you let go of the key.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span><code>GetKeyDown</code> is true on the one frame the key goes down; <code>GetKey</code> is true on every frame the key is held. An interaction is a moment, not a state. It is the same pair as <code>GetMouseButton</code> and <code>GetMouseButtonDown</code> from 1.6, and the same trap.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake"><code>Lever lever = GetComponent&lt;Lever&gt;();</code> - finding the lever the way you find your own components</p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>Pressing E does absolutely nothing, and the Console stays completely clean. Your null guard is doing its job perfectly, on a reference that will never be anything but <code>null</code>.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span><code>GetComponent&lt;T&gt;()</code> looks on the object the script is attached to. The Player does not have a <code>Lever</code> on it, so there is nothing to find and nothing to complain about. To reach an object you hold no reference to, search the scene: <code>Object.FindFirstObjectByType&lt;Lever&gt;()</code>.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake">the null guard left out, so the very next line reads <code>lever.transform.position</code></p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span><code>NullReferenceException: Object reference not set to an instance of an object</code>, once per frame while E is held - and only in the scenes that have no lever in them, which is every scene except the Overworld.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>An empty reference is a perfectly legal value in C#: nothing complains until you use it. Write the <code>if (lever == null) return;</code> guard before you need it. This is the same argument as the null guard on the turret in 3.1 - the search is allowed to come back empty.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake"><code>Object.FindObjectOfType&lt;Lever&gt;()</code> - the pre-Unity-6 spelling</p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>It works, which is the problem. Every compile puts an obsolete-call warning naming <code>FindObjectOfType</code> in the Console, and the call you have written is the one the docs are retiring. Nothing tells you what to write instead.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span><code>Object.FindFirstObjectByType&lt;Lever&gt;()</code>. Unity 6 renamed the family: <code>FindFirstObjectByType&lt;T&gt;()</code> for one, and <code>FindObjectsByType&lt;T&gt;(FindObjectsSortMode.None)</code> for many. <code>Object.FindWithTag</code> in the quick reference still works and is still fine when you genuinely want a tag.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake">the lever found by name - <code>GameObject.Find("CaveSwitch")</code> - and then <code>GetComponent&lt;Lever&gt;()</code> on the result</p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>It works all afternoon. Then somebody renames the object in the Hierarchy and pressing E does nothing at all, in silence, because your guard caught the null and there is no error to point at the string that no longer matches.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>Search for the <strong>type</strong>, not the name. A name is a label a human can edit at any moment; the type is a fact about the object. <code>FindFirstObjectByType&lt;Lever&gt;()</code> keeps working when the object is renamed, re-parented or moved into another scene, and it cannot be broken by a typo in a string.</p></li></ul></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare against your own file rather than copying it. What has to match is the shape of the interaction, not its text: a single-frame key check, a scene search whose result is allowed to be nothing, a distance measured against a serialized number, and one call to <code>Interact()</code>. This version folds both refusals into one <code>&amp;&amp;</code> condition, where the walkthrough used two separate early <code>return</code>s - on every frame the two files do the same thing. Your movement method from 2.2, your <code>interactRange</code>, and the names of your own methods are yours.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
+//  REFERENCE FILE — Assets/Scripts/PlayerController.cs
+//  Written to be read, not pasted. Build it with the walkthrough
+//  above, one step at a time, then open this and compare.
+//  If it is sitting in your project unchanged, that is the thing
+//  to go and do now — the walkthrough is still above you.
+// ------------------------------------------------------------------
+using UnityEngine;
+
+// PlayerController.cs - the interaction half, complete. Everything you built
+// from 1.4 to 2.2 (input, movement, animation, coins, health) stays exactly as
+// you wrote it; the two members below are the whole of what is new.
+public class PlayerController : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 5f;          // your number from 2.2
+    [SerializeField] private float interactRange = 1.5f;    // how close is "near enough"
+
+    private Rigidbody2D body;
+
+    void Start()
+    {
+        body = GetComponent&lt;Rigidbody2D&gt;();                 // looked up once, per 2.2
+    }
+
+    void Update()
+    {
+        // ... the input, movement and animation lines from 1.4, 1.6 and 2.2 ...
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            TryInteract();
+        }
+    }
+
+    // One search, one measurement, one call. The search is allowed to come back
+    // empty, so the two refusals are folded into the same condition - which
+    // leaves exactly one line in this file that can do anything at all.
+    private void TryInteract()
+    {
+        Lever lever = Object.FindFirstObjectByType&lt;Lever&gt;();
+
+        if (lever != null &amp;&amp;
+            Vector3.Distance(transform.position, lever.transform.position) &lt;= interactRange)
+        {
+            lever.Interact();
+        }
+    }
+}</code></pre></details></div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Spend the Wiring You Inherited</span>
+        <span class="activity-time">~20 min</span>
     </div>
 
     <p>
-        <strong>Step 2 — spend the wiring you inherited, then extend it.</strong> Do not add
-        anything yet. Press Play, walk to the lever, and press E. The wall vanishes — a door
-        somebody else built, opened by the interaction you just wrote.
+        <strong>Step 1 — press E and watch somebody else's machine start.</strong> Save, press
+        Play in the Overworld, walk to the lever, and press E. The wall vanishes — a door somebody
+        else built, opened by the interaction you just wrote. Nothing about the door is in your
+        code, and nothing about your code is in the door. Sit with that for a second; it is the
+        whole lesson in one key press.
     </p>
     <p>
-        Now change it. That is the real skill here: reading wiring you did not write and making it
-        yours. Add a fourth listener that does something of your own choosing — reveal a message,
-        swap a sprite, disable a hazard. All of it from the Inspector, with zero lines of code.
+        <strong>Step 2 — change the rules with no code at all.</strong> That is the real skill here:
+        reading wiring you did not write, and then making it yours. Add a fourth listener to
+        <strong>On Lever On</strong> that does something of your own choosing — reveal a message,
+        swap a sprite, disable a hazard. Everything that list can call is a public method or
+        property on some component, which is exactly the constraint your own scripts live under.
+        Zero lines of code, and the game has a new rule.
     </p>
 
     <div class="callout trap">
@@ -132,16 +322,105 @@ onLeverOn.Invoke();</code></pre>
         <a href="5.3.html">5.3</a> you will put your HUD in the <code>Start</code> scene — and the
         moment you move or rebuild that Canvas, this listener loses its target and the slot will
         read <em>Missing</em> in the Inspector. Unity will not warn you until you run the game and
-        something quietly fails to happen. Decide now whether to delete the listener or repoint
-        it, and write down your reason.
+        something quietly fails to happen. Decide now whether to delete the listener or repoint it,
+        and write down your reason.
     </div>
 
     <p>
         <strong>Step 3 — the design question.</strong> The door should only open for someone
-        holding the axe. Read <code>Lever.cs</code> again: does it check anything about the axe?
-        No — the lever checks nothing at all. So where <em>should</em> that check live: in the
-        lever, on the door, or in the player? Write your answer down and defend it. There is a
-        strong argument for each, and the next lesson takes the door off its hinges anyway.
+        holding the axe. Read <code>Lever.cs</code> again: does it check anything about the axe? No
+        — the lever checks nothing at all. So where <em>should</em> that check live: in the lever,
+        on the door, or in the player? Write your answer down and defend it. There is a strong
+        argument for each, and the next lesson takes the door off its hinges anyway.
+    </p>
+
+    <div class="callout info">
+        <strong>This is the exam's abstraction, in one sentence.</strong> A procedure that calls
+        other procedures without knowing their names <em>is</em> abstraction, and
+        <code>onLeverOn.Invoke()</code> is that sentence in C#. It causes three methods to run, and
+        the file it lives in does not contain one of their names. Add a fourth listener, delete a
+        listener, point one at a completely different object — <code>Lever.cs</code> does not
+        change, and cannot tell.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">Build It With Me</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I make my own object open the door when the lever is pulled?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/DoorOpener.cs (plus one line of Lever.cs)</code>. The Inspector list on <code>CaveSwitch</code> already opens the cave door, and that is the road you just used - it needs no code and it is the only road that works without touching <code>Lever.cs</code>. This walkthrough builds the same connection the other way, in a script of your own. Take it when the thing you want to happen is not already a listener, or when you want the wiring visible in the same file as the behaviour it causes. Both roads end at the same door.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Open the event up - the one edit to somebody else's file</h4><p class="wt-lead">Read the two lines at the top of <code>Lever.cs</code> again. The events are <code>[SerializeField] private</code> - and that one word, <code>private</code>, is the whole reason the Inspector was the only road available.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    // BEFORE:  [SerializeField] private UnityEvent onLeverOn;</span>
+<span class="wt-line wt-line-why" data-n="2">    public UnityEvent onLeverOn;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">A comment, so you can see what you are changing. Nothing else in <code>Lever.cs</code> moves today: not <code>Interact()</code>, not the sprite swap, not the <code>Invoke()</code>.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">The same field with <strong>one word changed</strong>. Delete <code>private</code> and the <code>[SerializeField]</code> in front of it, and write <code>public</code>. That is the entire edit.</span><span class="wt-why"><strong><code>private</code> means only code inside <code>Lever</code> may touch this field - and <code>AddListener</code> IS touching it.</strong> Your <code>DoorOpener</code> is a different class, so the compiler refuses with <code>error CS0122: 'Lever.onLeverOn' is inaccessible due to its protection level</code>, and there is no way around it from your side. <code>[SerializeField]</code> is what made the field visible in the <strong>Inspector</strong> while staying private to C#: Unity's serialization can reach a private field, and your code cannot. The Inspector is not code. So the field was reachable by the three listeners somebody wired and by nobody else - <strong>and that was almost certainly deliberate.</strong> Exposing it is a real decision, not a formality: it says "any script may now subscribe to this". Say that sentence out loud before you make the change, because that is the actual cost. If you also want to subscribe to the switch-off, make the identical change to <code>onLeverOff</code> once more.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Declare what this script is listening to</h4><p class="wt-lead">A brand new file in <code>Assets/Scripts/</code>. It has two slots to fill in the Inspector and no other state at all - a listener owns nothing, it only reacts.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    [SerializeField] private Lever lever;</span>
+<span class="wt-line wt-line-why" data-n="2">    [SerializeField] private GameObject door;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">A slot holding the lever <strong>component</strong> this door listens to. <code>Lever</code> is the type name from <code>Lever.cs</code>, so this field can hold nothing else - and an empty slot in the Inspector is a bug you can see before you press Play.</span><span class="wt-why"><strong>A wired reference, rather than a scene search.</strong> You could call <code>FindFirstObjectByType&lt;Lever&gt;()</code> in <code>Start()</code> here exactly as you did in the interaction, and it would work. The slot is better for this job: a door that listens to a specific lever should say so, in the Inspector, where a designer can see it and change it without opening the code. Same argument as the waypoint slots in 4.1 - a reference to a <strong>thing in the scene</strong> belongs to the scene.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">The object to switch off when the lever is pulled - the same <code>Collision Door Removed</code> object the Inspector listeners target, or one you made yourself.</span><span class="wt-why"><strong><code>GameObject</code>, not <code>Transform</code>.</strong> The call the listeners make is <code>GameObject.SetActive(bool)</code>, and <code>SetActive</code> lives on the GameObject - so the slot has to be able to hold one. A <code>Transform</code> slot would give you <code>door.gameObject.SetActive(false)</code> and one extra hop for nothing. This is the same distinction as the component-versus-GameObject question in the interaction walkthrough, seen from the other side.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Subscribe in Start()</h4><p class="wt-lead">This is the line that makes the whole mechanism work: your method is handed to the lever's event, and from now on the lever calls it whether it knows your name or not.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    void Start()</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line wt-line-why" data-n="3">        lever.onLeverOn.AddListener(OpenDoor);</span>
+<span class="wt-line" data-n="4">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The once-only setup method from 1.3 - the same one that finds your body and seeds your memory in every other script you own. Here it does the subscribing.</span><span class="wt-why"><strong>Once, and only once.</strong> <code>Start()</code> runs a single time before the first frame, which is exactly right: subscribing is a fact about this object - "I am listening" - not something that has to be re-established. Put it in <code>Update()</code> instead and you add a <strong>new</strong> listener every frame: after one second the lever has sixty subscribers, and one pull calls your method sixty times. It still looks like it works, because switching a door off twice is the same as switching it off once, which is what makes that bug so easy to ship.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">Opens <code>Start()</code>.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Adds <code>OpenDoor</code> to the lever's event. Read it left to right: the lever, its event field, and the method to add. Notice there is <strong>no dot between <code>AddListener</code> and <code>OpenDoor</code></strong> - <code>OpenDoor</code> is not being called here, it is being handed over as a value.</span><span class="wt-why"><strong>This is the whole point of the lesson in one line.</strong> The lever stores a reference to your method and calls it later. It does not check what the method does, where it lives, or what the object is for. <code>OpenDoor</code> could equally well start music, spawn an enemy, or count a coin, and <code>Lever.cs</code> would not change by a character - which is exactly what the exam means by abstraction, and exactly what the three listeners on <code>CaveSwitch</code> are doing already.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Closes <code>Start()</code>. The subscription is in place before the first frame, so no early pull of the lever can be missed.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Write the method that actually opens the door</h4><p class="wt-lead">A plain method with an empty parameter list - and the emptiness is not an accident. This method has to fit the shape the event is expecting, which is a method that takes nothing and returns nothing.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    private void OpenDoor()</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line wt-line-why" data-n="3">        door.SetActive(false);</span>
+<span class="wt-line" data-n="4">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what"><code>private</code>, because nothing outside this script calls it - the lever calls it through the subscription, and the subscription was set up in here. No parameter and no return value, which is the only shape <code>onLeverOn</code> can accept.</span><span class="wt-why"><strong>An event fixes the shape of the methods it will call.</strong> <code>AddListener</code> wants a method that takes no arguments and hands nothing back, so a <code>OpenDoor(int n)</code> or an <code>int OpenDoor()</code> would be refused at compile time. That constraint is the price of the lever being able to call you without knowing anything about you - the event says "tell me when", and nothing more.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">Opens <code>OpenDoor()</code>. Everything in here runs at the moment the lever is pulled, not when the line in <code>Start()</code> was written.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The one thing this script does: switch the door object off, the same call the Inspector listeners make. <code>false</code> means "inactive" - the object still exists, it is simply not in the world any more.</span><span class="wt-why"><strong>This is the line the Inspector list has been running all along.</strong> Open one of the three listeners on <code>CaveSwitch</code> and you will see the same call, with the same <code>false</code>, wired to a different object. You have not built anything new here; you have built the <strong>same thing</strong> somewhere you can read it, and that is the point of the exercise.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Closes <code>OpenDoor()</code>.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 5</span>Unsubscribe in OnDestroy()</h4><p class="wt-lead">The line everybody forgets. <code>Start()</code> put your method on the lever's event, and the lever will keep calling it for as long as the event exists - whether or not the object that subscribed is still there.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    private void OnDestroy()</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line wt-line-why" data-n="3">        lever.onLeverOn.RemoveListener(OpenDoor);</span>
+<span class="wt-line" data-n="4">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Another lifecycle method, like <code>Start()</code> and <code>Update()</code> - but Unity calls this one when the object is about to be destroyed. Scene changes, <code>Destroy(gameObject)</code>, and the end of Play mode all land here.</span><span class="wt-why"><strong>The pair to <code>Start()</code>.</strong> Every subscription has a matching unsubscription, and Unity runs these two at the two ends of an object's life. Once you know to look for the pattern, you will see it everywhere: whoever adds a listener is responsible for removing it, and <code>OnDestroy()</code> is where that promise comes due.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">Opens <code>OnDestroy()</code>.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Takes <code>OpenDoor</code> back off the event. Same three pieces as the <code>AddListener</code> line, with the same method, in the same order.</span><span class="wt-why"><strong>A listener that outlives its object is a call into something that is no longer there.</strong> The event is holding a reference to <strong>your object</strong>, and if you are destroyed while you are still subscribed, the next pull of the lever calls a method on a destroyed object - and Unity throws <code>MissingReferenceException: The object of type 'DoorOpener' has been destroyed but you are still trying to access it</code> the moment the method touches anything Unity owns. <strong>You will meet this properly in 5.3</strong>, when objects start outliving scenes: anything that survives a scene change is holding references into a world that no longer exists unless somebody is careful, and this two-line pair is the smallest version of being careful.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Closes <code>OnDestroy()</code>. One more <code>}</code> closes the class.</span></li></ol></div><div class="wt-pitfalls"><h4>Where this goes wrong</h4><p class="wt-lead">These are the mistakes this step actually produces. Read them before you are surprised by one.</p><ul class="wt-pit-list"><li class="wt-pitfall"><p class="wt-pit-mistake"><code>Lever.cs</code> left alone, so <code>onLeverOn</code> is still <code>private</code></p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>The project will not compile at all: <code>error CS0122: 'Lever.onLeverOn' is inaccessible due to its protection level</code>, pointing at your <code>AddListener</code> line.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>This one fails loudly and early, which is the good news. Change the field to <code>public UnityEvent onLeverOn;</code> and re-read why: <code>[SerializeField] private</code> let the Inspector in and kept C# out, and you are now C#.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake">the <code>lever</code> slot left at None in the Inspector</p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span><code>NullReferenceException</code> in <code>Start()</code> the moment the scene loads - before you have touched anything, before you have pressed a key, and pointing at a line that only subscribes.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>Wire the slot. Drag the object that carries the <code>Lever</code> component - the scene's <code>CaveSwitch</code> - into it. An empty slot never complains when you press Play; it complains at the first line that reads it, which is why the error appears at the start of the scene rather than at the moment of the interaction.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake">the subscription written in <code>Update()</code> instead of <code>Start()</code></p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>Nothing looks wrong. The door opens exactly as it should - and then you notice the Console filling with <code>OpenDoor</code> logs, or a sound effect firing sixty times in one frame.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span><code>AddListener</code> in <code>Update()</code> adds a <strong>new listener every frame</strong> - sixty a second, all pointing at the same method - so one pull of the lever calls your handler sixty times. Anything idempotent (<code>SetActive(false)</code>) hides it completely. Subscribing is setup: it belongs in <code>Start()</code>, once, like the body lookup in 2.2.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake"><code>OnDestroy()</code> left out - <code>AddListener</code> with no <code>RemoveListener</code></p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>Fine until something destroys the subscriber while the game is running. Then the next pull of the lever throws <code>MissingReferenceException: The object of type 'DoorOpener' has been destroyed but you are still trying to access it</code>.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>Every <code>AddListener</code> gets a matching <code>RemoveListener</code>, and <code>OnDestroy()</code> is the pair to <code>Start()</code>. The event holds a reference to your object; removing the listener is how you let go of it. The Bug Hunt below asks you to produce this on purpose, so you have seen it before it happens by accident.</p></li><li class="wt-pitfall"><p class="wt-pit-mistake">the <code>door</code> slot left at None, while the <code>lever</code> slot is correct</p><p class="wt-pit-row"><span class="wt-pit-key">You will see</span>The game runs, the lever pulls, the sprite swaps - and then a <code>NullReferenceException</code> appears at the exact moment of the interaction, not at the start of the scene.</p><p class="wt-pit-row"><span class="wt-pit-key">Do this</span>Wire the <code>door</code> slot too. The lesson here is about <strong>when</strong> a missing reference reports itself: it throws at the first line that <strong>uses</strong> it, so a missing <code>lever</code> breaks the scene on load and a missing <code>door</code> breaks it on the key press. When an error arrives at the wrong moment, suspect a wiring change rather than your logic.</p></li></ul></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things carry the lesson, and all three have to match: the access level you changed on <code>onLeverOn</code>, the subscription in <code>Start()</code>, and the unsubscription in <code>OnDestroy()</code>. This version keeps the method in a <code>UnityAction</code> field and hands the same value to both calls, where the walkthrough passed the method group straight into each one - the walkthrough's form is correct and shorter, and this one is the form you reach for once there are several methods to remove. Your lever, your door, and the names of your own methods are yours.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
+//  REFERENCE FILE — Assets/Scripts/DoorOpener.cs (plus one line of Lever.cs)
+//  Written to be read, not pasted. Build it with the walkthrough
+//  above, one step at a time, then open this and compare.
+//  If it is sitting in your project unchanged, that is the thing
+//  to go and do now — the walkthrough is still above you.
+// ------------------------------------------------------------------
+using UnityEngine;
+using UnityEngine.Events;
+
+// DoorOpener.cs - this script's whole job is to be listening when the lever is
+// pulled. It never touches Lever.cs at runtime: the lever calls OpenDoor without
+// knowing this file exists, and it would call anything else the same way.
+public class DoorOpener : MonoBehaviour
+{
+    [SerializeField] private Lever lever;        // the lever this door listens to
+    [SerializeField] private GameObject door;    // the thing that disappears
+
+    // The same method, kept as a value. AddListener and RemoveListener have to
+    // be handed the SAME delegate, and holding it in a field is what makes the
+    // removal exact rather than hopeful - and it is the only way once there is
+    // more than one method to take off.
+    private UnityAction onLeverPulled;
+
+    private void Start()
+    {
+        onLeverPulled = OpenDoor;
+        lever.onLeverOn.AddListener(onLeverPulled);
+    }
+
+    private void OnDestroy()
+    {
+        // The pair to Start(). A listener that outlives its object is a call
+        // into something that is no longer there.
+        lever.onLeverOn.RemoveListener(onLeverPulled);
+    }
+
+    private void OpenDoor()
+    {
+        door.SetActive(false);
+    }
+}</code></pre></details></div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Break It on Purpose</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        Both roads now work: the Inspector list somebody left you, and the subscriber you wrote
+        yourself. Break them one at a time, and write down which road each fault belongs to. Only
+        one question below is hypothetical, and it says so.
     </p>
 
     <div class="bug-hunt">
@@ -150,8 +429,8 @@ onLeverOn.Invoke();</code></pre>
             <li>If you chose search-and-measure, remove the distance check and press E from across the map. What did that check protect you from?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:bh1:q1" data-block="bug-hunt" data-question="If you chose search-and-measure, remove the distance check and press E from across the map. What did that check protect you from?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Wire the door's <code>SetActive(false)</code> into <strong>On Lever Off</strong> instead of On. Now what is the exact key-press sequence to get through? Is that a puzzle or a bug?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:bh1:q2" data-block="bug-hunt" data-question="Wire the door's SetActive(false) into On Lever Off instead of On. Now what is the exact key-press sequence to get through? Is that a puzzle or a bug?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Clear the lever's <code>onSprite</code> field so it has no sprite to swap to. Does the event still fire? Which of the two is decoration, and which is the machinery?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:bh1:q3" data-block="bug-hunt" data-question="Clear the lever's onSprite field so it has no sprite to swap to. Does the event still fire? Which of the two is decoration, and which is the machinery?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Add a second Switch and stand between them so both are in range. Press E once. What happened — and should one keypress ever flip two switches? Which of the three approaches would prevent it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:bh1:q4" data-block="bug-hunt" data-question="Add a second Switch and stand between them so both are in range. Press E once. What happened — and should one keypress ever flip two switches? Which of the three approaches would prevent it?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Give the lever a trigger zone (if you chose that approach) and then walk away without pressing E. Does the lever still think you are nearby? What state are you failing to clear?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:bh1:q5" data-block="bug-hunt" data-question="Give the lever a trigger zone (if you chose that approach) and then walk away without pressing E. Does the lever still think you are nearby? What state are you failing to clear?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Add a second CaveSwitch and stand between them so both are in range. Press E once. What happened — and should one keypress ever flip two switches? Which of the three approaches would prevent it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:bh1:q4" data-block="bug-hunt" data-question="Add a second CaveSwitch and stand between them so both are in range. Press E once. What happened — and should one keypress ever flip two switches? Which of the three approaches would prevent it?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Take the <code>RemoveListener</code> line out of <code>OnDestroy()</code>, then destroy the object your subscriber sits on while the game is running — a temporary <code>Destroy(gameObject)</code> is enough. Now press E. What does the Console say, and can the Inspector's list, which you also never unsubscribed from, produce the same fault? Say why the answer differs between the two roads.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:bh1:q5" data-block="bug-hunt" data-question="Take the RemoveListener line out of OnDestroy() , then destroy the object your subscriber sits on while the game is running — a temporary Destroy(gameObject) is enough. Now press E. What does the Console say, and can the Inspector's list, which you also never unsubscribed from, produce the same fault? Say why the answer differs between the two roads." placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
@@ -169,7 +448,7 @@ onLeverOn.Invoke();</code></pre>
             <li>The lever already drives three listeners at once and does not know it. Add a fourth of your own. Why is "whoever wants to know, listens" the direction that scales, and what would the lever have needed to know if it had been written the obvious way?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:tk1:q1" data-block="tinker" data-question="The lever already drives three listeners at once and does not know it. Add a fourth of your own. Why is &quot;whoever wants to know, listens&quot; the direction that scales, and what would the lever have needed to know if it had been written the obvious way?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Make a false wall that opens a secret passage instead of the cave. How much code did that cost you — and what does that number tell you about the value of the event pattern?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:tk1:q2" data-block="tinker" data-question="Make a false wall that opens a secret passage instead of the cave. How much code did that cost you — and what does that number tell you about the value of the event pattern?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Make the lever refuse to work unless the player holds the axe. Which script gains a conditional — and can you do it with <em>zero</em> changes to <code>Lever.cs</code>? (Hint: think about who is allowed to be a listener.)<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:tk1:q3" data-block="tinker" data-question="Make the lever refuse to work unless the player holds the axe. Which script gains a conditional — and can you do it with zero changes to Lever.cs ? (Hint: think about who is allowed to be a listener.)" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>The lever is shouting into an empty room until someone subscribes. What happens if you wire a listener, then delete the object it points at? What does Unity show you in the Inspector?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:tk1:q4" data-block="tinker" data-question="The lever is shouting into an empty room until someone subscribes. What happens if you wire a listener, then delete the object it points at? What does Unity show you in the Inspector?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The lever is shouting into an empty room until someone subscribes. What happens if you wire a listener in the Inspector, then delete the object it points at? What does Unity show you in the slot — and how does that answer differ from deleting an object that subscribed in code, where nothing is shown to you at all?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.2:tk1:q4" data-block="tinker" data-question="The lever is shouting into an empty room until someone subscribes. What happens if you wire a listener in the Inspector, then delete the object it points at? What does Unity show you in the slot — and how does that answer differ from deleting an object that subscribed in code, where nothing is shown to you at all?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 
@@ -177,10 +456,10 @@ onLeverOn.Invoke();</code></pre>
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
             <li>Explain a UnityEvent as cause-and-effect with a deliberate gap: the lever never names the door</li>
-            <li>Wire a listener in the Inspector and change the game's rules with no code</li>
+            <li>Wire a listener in the Inspector, and change the game's rules with no code at all</li>
             <li>Compare three ways to detect "the player is near a lever", and defend yours</li>
-            <li>Explain why <code>Interact()</code> must be public</li>
-            <li>Argue where an item-gate check belongs, and name the cost of each placement</li>
+            <li>Explain why <code>Interact()</code> must be public — and why <code>onLeverOn</code> being private is the one line of somebody else's file this lesson changes, and what changing it costs</li>
+            <li>Argue where an item-gate check belongs, and say what a listener that outlives the object that added it does</li>
             <li>Commit and push</li>
         </ul>
     </div>
@@ -192,10 +471,11 @@ onLeverOn.Invoke();</code></pre>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — levers, events and scene switching</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — UnityEvent and search APIs</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — input, distance, search APIs and object lifetime</li>
+        <li><a href="5.1.html">5.1 — The Axe: Item Pickups &amp; Inventory Bools</a> — the <code>hasAxe</code> flag the item-gate question is really about</li>
     </ul>
-    <p>Next: <a href="5.3.html">5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor</a>, where you leave the overworld and everything you have stored breaks.</p>
-</div><div class="lab-bar" data-lesson="5.2" data-lesson-title="The Door: Opening It with Events" data-count="16" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/16 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="5.2" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="5.1.html"><span class="dir">&#9664; Previous</span><span class="where">5.1 — The Axe: Item Pickups &amp; Inventory Bools</span></a><a class="foot-next" href="5.3.html"><span class="dir">Next &#9654;</span><span class="where">5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+    <p>Next: <a href="5.3.html">5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor</a>, where you leave the overworld and everything you have stored breaks — including the listener you wrote today.</p>
+</div><div class="lab-bar" data-lesson="5.2" data-lesson-title="The Door: Opening It with Events" data-count="21" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/21 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="5.2" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="5.1.html"><span class="dir">&#9664; Previous</span><span class="where">5.1 — The Axe: Item Pickups &amp; Inventory Bools</span></a><a class="foot-next" href="5.3.html"><span class="dir">Next &#9654;</span><span class="where">5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
      restores the hidden bridge textareas first, and mc-quiz.js reads those
      restored values to re-check the radios. Swapping the order breaks
      answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

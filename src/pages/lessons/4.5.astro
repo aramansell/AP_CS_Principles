@@ -1,12 +1,336 @@
 ---
 // Lesson 4.5 — The Full State Machine: Patrol, Chase, Attack
 // Capstone of Unit 4. The enemy built across 4.1-4.4 is refactored so its
-// states are EXPLICIT: enum state variable vs boolean flags, compared in a
-// table, with the student choosing and refactoring to whichever they prefer.
+// states are EXPLICIT: the student names them, holds the current one in a
+// field, and picks a representation — enum + switch, boolean flags, or one
+// method per state — from a priced comparison table, then justifies it.
 // The "attack is a callback, not a state" observation from the original lesson
 // is kept, because it is true of the code the student has written.
 // There is NO isPlatformer flag anywhere in this project and none is mentioned.
+//
+// Scaffolding: GUIDED (level 2). The student has written every line of this
+// enemy already — the beat (4.1), the pursuit (4.3), the contact damage and
+// its cooldown (4.4) — so the whole file is given and exactly ONE line is a
+// gap: the selection that reads the state field and picks a behaviour. That
+// single line is the new idea at the size it actually is. The reference build
+// is the enum + switch row; the Build Lab is where a student who chose flags
+// or per-state methods builds theirs.
+//
+// The old "Read Function-Level Examples" activity (a washing machine, a lift,
+// a vending machine, a level crossing, a traffic signal) is deleted. Its five
+// load-bearing facts — a state can be printed, the type forbids a fourth one,
+// a state can sit outside the loop, order is behaviour, and two booleans can
+// both be true — now live in the "Five facts a diagram cannot carry" callout
+// in the activity that replaces it, in the same order, so the Predict Before
+// Building socratic that follows is still answerable. That socratic is kept
+// verbatim in the same position, so its positional question ids are unchanged.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The three recurring questions, applied to the machine. Level 2, so exactly
+// one part is withheld — the one with no precedent in this course. Everything
+// this enemy remembers so far is a value that describes the WORLD (where the
+// player is, which way I am walking, when I last hit something); today's memory
+// describes the ENEMY, and the whole file reads off it. Its reading stays
+// attached, because finding the answer in the docs is the skill being practised.
+const DECOMPOSE = {
+  big:
+    'The enemy should walk its beat, come for you when you get close, and hurt you when it ' +
+    'reaches you — and on every single frame it should be doing exactly one of those three. ' +
+    '"It behaves correctly, but nobody can say which one it is doing" is the whole problem.',
+  parts: [
+    {
+      name: 'Name the states this enemy can be in',
+      does: 'Three names — PATROL, CHASE, ATTACK — and nothing else. Written down once, in one type, so a fourth value cannot arrive by accident and the enemy cannot be two of them at once.',
+      doc: 'the **Making states explicit** section of the Enemy State Machines reference.',
+      href: '../docs/unit-04/enemy-state-machines.html',
+    },
+    {
+      name: 'Hold which one it is in right now',
+      doc: 'the `enum` row in the Unity + C# Quick Reference, and the field-scope rule from 1.3 (the deadline you wrote as `nextReportTime`).',
+      href: '../docs/reference/unity-csharp-quickref.html',
+      blank: true,
+    },
+    {
+      name: 'Decide what moves it from one state to the next',
+      does: 'One assignment per arrow. `state = EnemyState.Chase;` **is** the transition — the comparison that used to decide whether to chase now only decides whether the machine **becomes** the chasing machine.',
+      doc: 'the four-part upgrade list in the Enemy State Machines reference, next to the transition table you drew at the top of this lesson.',
+      href: '../docs/unit-04/enemy-state-machines.html',
+    },
+    {
+      name: 'Keep the three behaviours you already wrote',
+      does: 'The beat from 4.1, the pursuit vector from 4.3 and the contact damage from 4.4 are not rewritten. They move behind the state that owns them, and not one line of them changes.',
+      doc: 'your own `EnemyController.cs` after 4.1, 4.3 and 4.4 — the walkthrough below shows where each piece lands.',
+      href: '4.4.html',
+    },
+  ],
+  why:
+    'Three of those four parts are code you have already written, and the fourth is one field ' +
+    'plus the line that reads it. That is the honest size of this lesson. What you have never ' +
+    'had is a place in the file that says which behaviour is live — the state is **implied** by ' +
+    'which branch happened to run, which is why you cannot print it, cannot drive an animator ' +
+    'from it, and cannot answer "what is this enemy doing?" without reading the whole file.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Make the ' +
+    'enemy switch between behaviours" cannot be looked up. "Declare an enum, hold one value of ' +
+    'it, and switch on that value" can — and the reference page writes out all four pieces.',
+  connect: [
+    'In 4.1 your patrol ran on every frame, with nothing anywhere deciding that it should. What did the enemy store so it knew when to turn around — and is that a state, or a condition?',
+    'In 4.3 the chase hid inside an `if`, and the patrol was whatever ran when that `if` stopped matching. Which of the two could move the enemy while the other was also running — and what did the player see on screen?',
+    'In 4.4 the damage arrived from a physics callback, gated by a cooldown you first met in 3.3. Is ATTACK something the enemy is **doing**, or something that happens to it while it is doing something else — and which of those two did you actually write?',
+    'The turret in 3.1 fired the instant a distance check passed, and in 3.3 you gave it a memory so it could not fire every frame. What is the difference between a condition that is re-tested every frame and a state that lasts until something changes it?',
+  ],
+  turns: [
+    'The pieces table prices three ways to hold the states. Which did you choose, and what does your choice cost you — in your own words, not the table\'s?',
+    'ATTACK is entered by a physics callback rather than by a comparison. If you make it a real state, what changes about when the enemy moves — and is that the fight you designed in 4.4?',
+    'Your animator\'s `Direction` parameter is an Int with four values and no idle states. Now that the machine has a state you can read, what could you drive from it that you could not drive before?',
+  ],
+};
+
+const WALK = {
+  ask: 'how do I make an enemy switch between patrolling, chasing and attacking?',
+  file: 'Assets/Scripts/EnemyController.cs',
+  intro: 'Everything you built in 4.1, 4.3 and 4.4 stays: the beat, the pursuit, the contact damage and its cooldown. Today adds two lines to the class body and one selection inside `Update()` — the line that was never there. The names below are the ones this course uses; if you named yours differently, keep your names and read the shape.',
+  level: 2,
+  steps: [
+    {
+      title: 'Name the states, and give the class one field to hold the current one',
+      lead: 'Both lines go inside the class braces and outside every method — the placement rule from 1.3, and the reason an enemy can remember anything between frames at all.',
+      lines: [
+        { code: '    // ...the fields you wrote in 4.1, 4.3 and 4.4: speed, direction, the patrol memory, the aggro radius, the damage knob and its cooldown...', what: 'Not one of those fields is deleted or renamed today. The two lines below are the only additions to the class body.' },
+        { code: '', what: '' },
+        { code: '    private enum EnemyState { Patrol, Chase, Attack }', what: 'The legal states, written down in exactly one place. Three names, and from here on the compiler knows them.', why: '**The type is the point.** `EnemyState.Patrol` is the only spelling that compiles, so a typo is an error on the line you typed rather than a fourth state that silently matches nothing. A `string` holding `"patrol"` would compile happily — that is 4.2\'s lesson, where `Direction` meant Right on one controller and Up on the other and no error message ever mentioned it. `private`, because this is one enemy\'s own vocabulary and no other script has business naming its states.' },
+        { code: '', what: '' },
+        { code: '    private EnemyState state = EnemyState.Patrol;', what: '**The field this whole lesson is about.** One variable holding which of those three names the enemy is doing right now — the thing you could not print, could not drive an animator from, and could not ask about without reading the file.', why: '**Two things to notice, and both are 1.3.** **Where it lives**: in the class body, not inside `Update()`. Declared inside a method it would be rebuilt from nothing sixty times a second and carry nothing between frames — the same mistake as `lastAttackTime` in 3.3. **What it starts at**: `Patrol`. Frame one has to be **some** state, and a guard that spawns already hunting you has no first state at all; the beat you built in 4.1 is the machine at rest. Leave the starting value off and you get `0`, which is whichever name you happened to list first rather than the one you meant.' },
+      ],
+    },
+    {
+      title: 'Let the state decide which behaviour runs',
+      lead: 'This is the line that did not exist. Until today the patrol simply ran, and the chase ran if an `if` happened to match — two separate decisions, and nothing stopping both from being true in the same frame.',
+      lines: [
+        { code: '    void Update()', what: 'Still the every-frame method, and still where the enemy decides what to do.' },
+        { code: '    {', what: '' },
+        { code: '        float distance = DistanceToPlayer();', what: 'One measurement, made once, by a small method that answers the only question the machine ever asks about the player: how far away is it?', why: '**This replaces the early return you wrote in 4.3.** There, a missing player stopped the update dead. Here, no player simply means the machine falls back to PATROL — and the distance it is compared against is `float.MaxValue`, which is never inside any radius, so the beat can never be interrupted by a target that does not exist.' },
+        { code: '', what: '' },
+        { code: '        if (playerTransform == null)', what: 'The guard from 4.3, with a new job: it no longer stops the frame, it forces the state.' },
+        { code: '        {', what: '' },
+        { code: '            state = EnemyState.Patrol;', what: 'An enemy with no target is a patrolling enemy. That is a **state**, not an exit — and it is the answer to what this machine does the moment your death rule from 2.2 takes the player out of the scene.', why: '**An early return here would delete the machine.** Return before the selection and no state is ever consulted again: the enemy freezes mid-beat, and the animator from 4.2 keeps playing the last clip it was given. The fallback for "no target" has to be a state, or the machine has a hole where its default should be.' },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        { code: '        ________ (________)', blank: true, what: 'The selection. Read the field from step 1 and choose which of the three behaviours runs this frame. One construct, three branches, exactly one of them running — this line is the machine.', hint: 'The multi-branch selection statement you met in 1.5: the one that reads a value and picks a branch to run. The value is the field you declared in step 1, and its type is the enum you wrote beside it.', why: '**This is the line whose absence was the bug.** Before today, behaviour was decided by **where the code sat** — the patrol ran because it was there, the chase ran if its `if` matched — so on any frame where both matched, both moved the transform. That is 4.3\'s two-writers bug, the hunter that crabs sideways because it is patroling and chasing at once. Now a value decides, the value can be printed, and there is no arrangement of this file in which two branches run in the same frame.' },
+        { code: '        {', what: '' },
+        { code: '            // one branch per state — the next step fills them in', what: 'The three branches land here. Nothing else in `Update()` changes: this selection replaces the unconditional patrol and the hidden chase, and the distance is still measured exactly once, above it.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: 'Closes `Update()`.' },
+        { code: '', what: '' },
+        { code: '    // No player is never in range, so the beat is never interrupted', what: 'The small helper the line above calls. Two lines of body and one idea.' },
+        { code: '    private float DistanceToPlayer()', what: 'A method with one job: return a number the machine can compare against a radius, whether or not there is anything to measure.' },
+        { code: '    {', what: '' },
+        { code: '        if (playerTransform == null)', what: 'The case that used to freeze the enemy in 4.3.' },
+        { code: '        {', what: '' },
+        { code: '            return float.MaxValue;', what: 'A number so far outside every radius in the Inspector that no comparison in the machine can match it. "There is no player" is expressed as a distance, so the rest of the file never has to ask the question again.' },
+        { code: '        }', what: '' },
+        { code: '        return Vector3.Distance(transform.position, playerTransform.position);', what: 'The measurement from 4.3, unchanged — the same two positions, the same call. If you chose `sqrMagnitude` there instead, keep it: what matters is that one place in the file answers this question.' },
+        { code: '    }', what: 'Closes the helper. One more `}` closes the class.' },
+      ],
+    },
+    {
+      title: 'Move patrol and chase behind their states, and write both exits down',
+      lead: 'Every behaviour stays exactly as you wrote it — it only changes which lines it sits behind. What is new is the arrows: each `state = ...` line is one arrow from your diagram, in code.',
+      lines: [
+        { code: '            case EnemyState.Patrol:', what: 'The state the machine starts in, and the one that runs when nothing is hunting you.' },
+        { code: '                if (distance <= aggroRadius)', what: 'The comparison from 4.3, measuring the same two things it always did. Its job changed: it no longer decides whether to chase this frame, it decides whether the machine **becomes** the chasing machine.' , why: '**The exit and the entry have to agree about the boundary.** Your entry uses `<=`, so the chase\'s way out uses the other side of it — `distance > aggroRadius`. Use the same side in both places and an enemy standing exactly on the line changes state on every frame and stutters there instead of committing.' },
+        { code: '                {', what: '' },
+        { code: '                    state = EnemyState.Chase;', what: '**The arrow.** One assignment **is** the transition: the machine is now the chasing machine, and it stays that way until some line changes it back.', why: '**One arrow, one assignment, and it lives in the case it leaves.** If the chase code could also write `state`, two places would be deciding this machine\'s next move and which one won would depend on the order of the lines — the same class of bug as two writers on one transform in 4.3. A transition belongs with the state you are leaving, never with the state you are entering.' },
+        { code: '                    break;', what: 'Ends this case for this frame.' , why: '**The one line a `switch` has that an `if`/`else` chain does not.** Leave it out and the machine falls through into the next case and runs the chase as well — in the same frame, from the state it was just leaving. Nothing crashes and nothing is underlined in red: the enemy simply behaves like two states at once, which is the exact thing this lesson exists to remove.' },
+        { code: '                }', what: '' },
+        { code: '', what: '' },
+        { code: '                // ...your beat from 4.1, unchanged: the anchor or waypoint check, the direction flip, the movement call and your animator line...', what: 'The patrol itself is untouched. It now runs on the frames where the machine is in PATROL and on no others — which is the whole difference from 4.1, where it ran on every frame there was.' },
+        { code: '                break;', what: 'Ends the PATROL case.' },
+        { code: '', what: '' },
+        { code: '            case EnemyState.Chase:', what: 'The hunting state: entered from PATROL, and left by the two lines inside it.' },
+        { code: '                if (distance > aggroRadius)', what: 'The return-to-patrol arrow, written down by hand. There was no such line in 4.3 — the chase ended when its `if` stopped matching, and the patrol was simply what was left. Now an exit nobody writes is an exit that does not exist.' , why: '**This is the line teams forget.** Delete it and the enemy follows you across the entire map, forever, because nothing in the machine can leave CHASE. Notice also which radius it uses: if you built a second, larger give-up radius in 4.3, this is where it belongs, and the gap between chase-in and give-up is what stops the state flickering on the boundary.' },
+        { code: '                {', what: '' },
+        { code: '                    state = EnemyState.Patrol;', what: 'The arrow back to the beat. The beat resumes where it was — the anchor and the direction field are still holding the values 4.1 gave them, which is a decision you can make the other way if you want a fresh beat.' },
+        { code: '                    break;', what: 'Without it the machine falls through and runs the chase body on the same frame it decided to stop chasing.' },
+        { code: '                }', what: '' },
+        { code: '', what: '' },
+        { code: '                // ...your pursuit from 4.3, unchanged: the normalized (player - me) vector, the movement call and your animator line...', what: 'The chase body — the same subtraction order, the same `.normalized`, the same movement call. Nothing about the pursuit changes; it has just been given a state to live in.' },
+        { code: '                break;', what: 'Ends the CHASE case.' },
+      ],
+    },
+    {
+      title: 'Say what the machine does while it is attacking, and let physics enter it',
+      lead: 'ATTACK is the state your contact damage reaches — but not from a comparison. It arrives from the collision callback you wrote in 4.4, which is the only place in the file where the physics engine tells you the fight started.',
+      lines: [
+        { code: '            case EnemyState.Attack:', what: 'The state a landing hit puts the machine into. Be honest about this one out loud: in your file the attack is not a movement — it is a callback — and this case is where you decide what the enemy does **while** a hit is landing. In this build that is nothing: no movement line runs here, so it stops for the length of its cooldown.' , why: '**Whether ATTACK is a state is a design decision, and this is where you make it.** Your diagram draws ATTACK as a box because that is how the fight feels to the player; your code reaches it from physics, which means it can fire while the enemy is calmly patrolling. Both are defensible. What is not defensible is a state that nothing ever enters.' },
+        { code: '                if (Time.time >= lastDamageTime + damageCooldown)', what: 'The cooldown gate from 4.4 doing a second job. The same pair of fields that stopped the damage running every frame now says when the swing is over.' , why: 'The seed you chose in 4.4 matters here too. `lastDamageTime` is stamped the moment a hit lands, so this comparison is false for exactly one cooldown — and if you never seeded it in `Start()`, an enemy that has never hit you is already "finished attacking" on frame one.' },
+        { code: '                {', what: '' },
+        { code: '                    state = EnemyState.Chase;', what: 'The exit: the swing is over, back to the hunt.' },
+        { code: '                }', what: '' },
+        { code: '                break;', what: 'Ends the ATTACK case. Every case in the selection ends this way, and every exit in the machine is a line you typed.' },
+        { code: '        }', what: 'Closes the selection.' },
+        { code: '    }', what: 'Closes `Update()`. One more `}` closes the class.' },
+        { code: '', what: '' },
+        { code: '    private void OnCollisionStay2D(Collision2D collision)', what: 'Whichever callback you chose in 4.4 — `OnCollisionStay2D`, `OnTriggerStay2D`, or their `Enter` versions. The name is yours; the shape below is the same for all of them.' },
+        { code: '    {', what: '' },
+        { code: '        if (!collision.gameObject.CompareTag("Player")) return;', what: 'The tag check from 4.4, unchanged — one extra hop through `.gameObject` for a `Collision2D`, direct for a `Collider2D`.' },
+        { code: '        if (Time.time < lastDamageTime + damageCooldown) return;', what: 'The cooldown from 4.4, unchanged: a second touch inside the window is discarded, not queued.' },
+        { code: '', what: '' },
+        { code: '        // ...the single damage call you wrote in 4.4, unchanged...', what: 'Your `GetComponent` call and the negative number you pass to the health method on `PlayerController`. Nothing about the damage itself changes today.' },
+        { code: '        lastDamageTime = Time.time;', what: 'The stamp from 4.4 that closes the damage gate. It is also the clock the ATTACK case reads to decide when the swing is over.' },
+        { code: '', what: '' },
+        { code: '        state = EnemyState.Attack;', what: 'The one new line here: the machine is now attacking. **This is what makes ATTACK reachable** — without it the state exists, compiles, and is never entered.', why: '**This is the row of your diagram that your code does not implement the way you drew it.** You drew an arrow from CHASE to ATTACK as if chasing led to attacking. In your file the arrow comes from physics instead: the enemy enters ATTACK from PATROL just as readily, which is why walking into a guard on its beat costs you health. Say that out loud once and you will never again mistake the diagram for the code.' },
+        { code: '    }', what: 'Closes the callback.' },
+      ],
+    },
+  ],
+  pitfalls: [
+    {
+      mistake: 'state declared inside Update() instead of in the class body',
+      symptom: 'The enemy is stuck in one behaviour, or snaps back to PATROL on every frame, and walking in and out of the radius changes it only for an instant.',
+      fix: 'Declare it in the class body and only **assign** to it from inside a method. A variable declared inside a method is created fresh every time that method runs, so it cannot carry a state from one frame to the next. Same rule as `lastAttackTime` in 3.3.',
+    },
+    {
+      mistake: 'a case left without its break;',
+      symptom: 'The enemy chases and attacks in the same frame, and printing the state shows two names arriving in one frame. It reads as a movement bug, not as a selection bug.',
+      fix: 'Every case ends with `break;`. C# falls through to the next case otherwise — no error, no crash, just two behaviours in one frame, which is the bug this lesson exists to delete.',
+    },
+    {
+      mistake: 'the state assigned in more than one place — the chase code also writes it',
+      symptom: 'The enemy flickers between two states every frame, and which one wins changes when you move a line of code.',
+      fix: 'One arrow, one assignment, and every assignment sits inside the case it leaves. If two places can write `state`, you have two machines arguing over one field — the two-writers problem from 4.3, wearing a new hat.',
+    },
+    {
+      mistake: 'the same side of the comparison used to enter and to leave a state',
+      symptom: 'Standing exactly on the aggro radius, the printed state alternates sixty times a second and the enemy stutters on the line instead of committing to a behaviour.',
+      fix: 'Enter with `distance <= aggroRadius` and leave with `distance > aggroRadius` — opposite sides of the same boundary. If it still flickers in play, that is the signal to leave a gap: chase in at one radius, give up at a larger one. That gap is a number you choose, not an accident.',
+    },
+    {
+      mistake: 'ATTACK left in the enum with nothing anywhere that enters it',
+      symptom: 'The state name never prints in the Console, and the contact damage behaves exactly as it did in 4.4 — the state is decoration.',
+      fix: 'Something has to assign `EnemyState.Attack`, and in this enemy that something is the contact callback — the one place physics tells you a hit landed. A state nothing enters is a box on a diagram, not part of the machine.',
+    },
+    {
+      mistake: 'the 4.3 early return kept in front of the machine',
+      symptom: 'Destroy the player and the enemy stands still forever — mid-beat, still animating, doing nothing. No state is ever consulted again.',
+      fix: 'The guard\'s job is now to force the state, not to stop the update: set `state = EnemyState.Patrol;` and let the selection run. "No target" is a fallback state, not an exit.',
+    },
+  ],
+  finalFile: `using UnityEngine;
+
+public class EnemyController : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 2f;              // your number from 4.1
+    [SerializeField] private float patrolDistance = 3f;         // the size of the beat (4.1)
+    [SerializeField] private float aggroRadius = 5f;            // your number from 4.3
+    [SerializeField] private int contactDamage = 1;             // your number from 4.4
+    [SerializeField] private float damageCooldown = 0.75f;      // your number from 4.4
+
+    private Vector3 spawnPoint;                 // 4.1 - the anchor, saved once in Start()
+    private int direction = 1;                  // 4.1 - the sign that IS the beat
+    private Transform playerTransform;          // 4.3 - however you acquired it
+    private float lastDamageTime;               // 4.4 - the moment of the last hit
+
+    // ---- all of today, in two lines: three names, and which one is live ----
+    private enum EnemyState
+    {
+        Patrol,
+        Chase,
+        Attack
+    }
+
+    private EnemyState state = EnemyState.Patrol;   // frame one is a calm guard
+
+    void Start()
+    {
+        spawnPoint = transform.position;
+        playerTransform = GameObject.FindWithTag("Player").transform;   // or your wired reference
+        lastDamageTime = -damageCooldown;           // "there has been no last hit"
+    }
+
+    private void Update()
+    {
+        // One measurement, and no early return: an enemy with no target is a
+        // patrolling enemy, not an enemy that stops thinking.
+        float distance = DistanceToPlayer();
+
+        if (playerTransform == null)
+        {
+            state = EnemyState.Patrol;
+        }
+
+        switch (state)
+        {
+            case EnemyState.Patrol: PatrolTick(distance); break;
+            case EnemyState.Chase:  ChaseTick(distance);  break;
+            case EnemyState.Attack: AttackTick();         break;
+        }
+    }
+
+    // Same machine, arranged differently: each state's code is its own method,
+    // and the transition lives inside the method of the state it leaves.
+    private float DistanceToPlayer()
+    {
+        if (playerTransform == null)
+        {
+            return float.MaxValue;                  // no player is never in range
+        }
+        return Vector3.Distance(transform.position, playerTransform.position);
+    }
+
+    private void PatrolTick(float distance)
+    {
+        if (distance <= aggroRadius)
+        {
+            state = EnemyState.Chase;
+            return;
+        }
+
+        // ...your beat from 4.1, unchanged: the anchor check, the direction
+        //    flip, the movement call and your SetInteger("Direction", ...)...
+    }
+
+    private void ChaseTick(float distance)
+    {
+        if (distance > aggroRadius)
+        {
+            state = EnemyState.Patrol;              // the exit nobody writes
+            return;
+        }
+
+        // ...your pursuit from 4.3, unchanged: the normalized (player - me)
+        //    vector, the movement call and your animator line...
+    }
+
+    private void AttackTick()
+    {
+        if (Time.time >= lastDamageTime + damageCooldown)
+        {
+            state = EnemyState.Chase;               // the swing is over
+            return;
+        }
+
+        // Nothing here moves the enemy, so it stands still for the length of
+        // its cooldown. If you would rather it kept coming, that is the one
+        // line you move into this method - and it is a design decision.
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        if (!collision.gameObject.CompareTag("Player")) return;
+        if (Time.time < lastDamageTime + damageCooldown) return;
+
+        // ...the damage call you wrote in 4.4, unchanged...
+        lastDamageTime = Time.time;
+
+        state = EnemyState.Attack;      // physics is what enters ATTACK here
+    }
+}`,
+  finalNote:
+    'Compare against your own file rather than copying it. This is the same machine arranged differently on purpose: the reference puts each state\'s code in its own method, so you can see that the arrangement was never the point — the state field, the selection that reads it, and the exits you wrote by hand are. Your names, your beat, your movement call and your damage flow are yours; the machine is what has to match.',
+};
 
 const body = `<h1>4.5 — The Full State Machine: Patrol, Chase, Attack</h1>
 
@@ -16,6 +340,10 @@ const body = `<h1>4.5 — The Full State Machine: Patrol, Chase, Attack</h1>
     — and that missing field is the difference between a pile of behaviours and a machine.
     Today you name the states, draw the arrows, and choose how you want to represent them.
 </p>
+
+${renderAskBanner('how do I make an enemy switch between patrolling, chasing and attacking?', 2)}
+
+${renderDecompose('4.5', DECOMPOSE, 2)}
 
 <!-- ============================================================ -->
 <div class="activity discovery">
@@ -55,15 +383,15 @@ const body = `<h1>4.5 — The Full State Machine: Patrol, Chase, Attack</h1>
         actually implements.
     </div>
 
-    <p>Here are the three ways to represent a machine like this. You are going to pick one:</p>
+    <p>Here are the ways to represent a machine like this. You are going to pick one:</p>
 
     <table>
-        <tr><th>Representation</th><th>What it looks like in the file</th><th>What it buys you</th><th>What it costs</th></tr>
+        <tr><th>Representation</th><th>What it looks like in the file</th><th>What it buys you</th><th>What it costs you</th></tr>
         <tr>
             <td><strong>Implicit — the shape of the code is the state</strong></td>
             <td>The chase is an <code>if</code>; the patrol is whatever runs when the <code>if</code> fails; the attack is a callback.</td>
             <td>No new fields at all, and the machine is short enough to read in one screen. This is what you have right now.</td>
-            <td>Nothing can ask what the enemy is doing — not a <code>Debug.Log</code>, not the animator, not a behaviour you add in Unit 6. A third behaviour means nesting a third <code>if</code>, and the number of paths grows faster than you can read them.</td>
+            <td>Nothing can ask what the enemy is doing — not a <code>Debug.Log</code>, not the animator, not a behaviour you add in Unit 6. A third behaviour means nesting a third <code>if</code>, and the number of paths grows faster than you can read them. It also lets two behaviours run in one frame: the 4.3 bug, still in the file.</td>
         </tr>
         <tr>
             <td><strong>Boolean flags — one bool per behaviour</strong></td>
@@ -73,11 +401,25 @@ const body = `<h1>4.5 — The Full State Machine: Patrol, Chase, Attack</h1>
         </tr>
         <tr>
             <td><strong>An enum state variable</strong></td>
-            <td>One enum listing the states, plus one field of that type.</td>
+            <td>One enum listing the states, plus one field of that type, read by a <code>switch</code>.</td>
             <td>The set of legal states is written down in exactly one place, so illegal combinations cannot even be expressed. You can print the state name, drive the animator from it, and read every transition out of one <code>switch</code>. This is the version that survives Unit 8.</td>
-            <td>One field, one enum declaration, and one transition rule — and you must decide <em>every</em> exit on purpose. The implicit version gave you the exits for free; here you have to write them down.</td>
+            <td>One field, one enum declaration, and one transition rule — and you must decide <em>every</em> exit on purpose. The implicit version gave you the exits for free; here you have to write them down, and the one you forget is a state the enemy can never leave.</td>
+        </tr>
+        <tr>
+            <td><strong>An enum, and one method per state</strong></td>
+            <td>The same enum and the same field, with each case in the <code>switch</code> reduced to a single call: <code>case EnemyState.Chase: ChaseTick(distance); break;</code></td>
+            <td>Each state's code becomes a named block you can read on its own, and the dispatch at the top of the frame reads as a table of contents. This is the arrangement that scales best when a machine gets big.</td>
+            <td>You have to decide what each state is handed — the distance? the target? — and the transition now sits one hop away from the selection that reads the field. An extra hop, in exchange for a loop you can read at a glance.</td>
         </tr>
     </table>
+
+    <div class="callout info">
+        <strong>These are not ranked — they are priced.</strong> Every row above is in shipped
+        games, and the first one is what you already have. The question is never "which is
+        correct", it is "which cost am I willing to pay for this enemy, this week" — and you have
+        to answer it in one sentence you can defend to the person next to you. The implicit row
+        is not an answer: it is the thing this lesson exists to replace.
+    </div>
 
     <div class="socratic">
         <h3>Socratic: Naming the Machine</h3>
@@ -95,35 +437,73 @@ const body = `<h1>4.5 — The Full State Machine: Patrol, Chase, Attack</h1>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-label">Read the Docs: The Pieces of the Machine, in C#</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
-        your enemy. None of these is from a video game.
+        Whichever representation you picked above, it is assembled from the same pieces. Read all
+        six rows — the last column is the one nobody reads, and it is the column that decides
+        which arrangement suits your enemy.
     </p>
 
-    <p><strong>Example 1 — A washing machine that is always in exactly one phase:</strong></p>
-    <pre><code>// The machine is never between phases; the panel can always say which one it is
-Console.WriteLine("Phase: " + machine.Phase);</code></pre>
+    <table>
+        <tr><th>Piece</th><th>What it looks like</th><th>What it does</th><th>What it costs you</th></tr>
+        <tr>
+            <td><strong>The enum declaration</strong></td>
+            <td><code>private enum EnemyState { Patrol, Chase, Attack }</code></td>
+            <td>Declares the legal states once, as names the compiler knows. Nothing else in the file may invent a fourth one.</td>
+            <td>It is a second list to keep in step with your diagram. Add a state here and the <code>switch</code> still compiles with no branch for it — nothing makes you handle every case, so a missing branch is silent rather than an error.</td>
+        </tr>
+        <tr>
+            <td><strong>The state field</strong></td>
+            <td><code>private EnemyState state = EnemyState.Patrol;</code></td>
+            <td>One variable holding which state is live right now. This is the thing 4.1, 4.3 and 4.4 never had.</td>
+            <td>One more field to give a first value to, and its scope matters: declared inside <code>Update()</code> it forgets between frames. Leave the starting value off and it begins at <code>0</code> — whichever name you happened to list first, not the one you meant.</td>
+        </tr>
+        <tr>
+            <td><strong>The selection</strong></td>
+            <td><code>switch (state)</code>, with one <code>case</code> per state</td>
+            <td>Reads the field and runs exactly one branch this frame. The choice is now data, rather than the layout of your <code>if</code>s.</td>
+            <td>Exactly one branch runs, so anything two states genuinely share has to be lifted out of the cases or written twice — and the moment it is written twice, the copies drift apart.</td>
+        </tr>
+        <tr>
+            <td><strong>The transition</strong></td>
+            <td><code>state = EnemyState.Chase;</code></td>
+            <td>One assignment is one arrow: the comparison above it decides <em>whether</em>, the assignment decides <em>where to</em>.</td>
+            <td>Every arrow has to be written by hand. The implicit version in 4.3 gave you the exits for free — the chase ended when its <code>if</code> stopped matching — so an exit you do not write is an exit the enemy never takes.</td>
+        </tr>
+        <tr>
+            <td><strong>The <code>break;</code></strong></td>
+            <td><code>break;</code> at the end of a case</td>
+            <td>Ends the case for this frame, so the machine runs one state and stops.</td>
+            <td>It is easy to leave out, and there is no error message when you do: the machine falls through and runs the next case as well. The symptom is two behaviours in one frame, which reads as a movement bug rather than a selection bug.</td>
+        </tr>
+        <tr>
+            <td><strong>One method per state</strong></td>
+            <td><code>case EnemyState.Chase: ChaseTick(distance); break;</code></td>
+            <td>The case becomes a single call, and each state's code becomes a named block. The same machine, arranged differently.</td>
+            <td>You decide what each state is handed, and the transition ends up one hop away from the selection that reads the field. A little more ceremony for a dispatch you can read at a glance.</td>
+        </tr>
+    </table>
 
-    <p><strong>Example 2 — A lift declaring its legal states (comment only):</strong></p>
-    <pre><code>// A lift is Idle, Moving or DoorsOpen. There is no fourth thing, and it is
-// never two of them at once - the type itself forbids it.</code></pre>
+    <div class="callout info">
+        <strong>Five facts a diagram of boxes and arrows cannot carry.</strong> The diagram shows
+        you the shape; these five decide whether the machine in your file behaves like the one on
+        your paper. Each is asked about again below.
+        <ol>
+            <li>A machine can always say which phase it is in. That is what the field is for: the state has a name, the name can be printed, and a printed state is a bug report you can read off the Console.</li>
+            <li>The type forbids a fourth state. Declare three names and three names exist — there is no fourth value to invent by accident, and no way to be in two of them at the same moment.</li>
+            <li>A state can be real and still sit outside the loop. A vending machine carries an <code>OutOfStock</code> it may never come back from: reachable, legitimate, and not part of the cycle. Which transitions exist is decided by whoever wrote them, never by the type.</li>
+            <li>The order is the behaviour. Warn, then lower, then wait, then raise — run those out of sequence and what you lost <em>is</em> the sequence. Some machines are a timeline wearing a state machine's clothes.</li>
+            <li>A machine built from two booleans will eventually show both at once. In an enum that combination cannot be written down; in flags it is representable, which means someday it happens.</li>
+        </ol>
+    </div>
 
-    <p><strong>Example 3 — A vending machine's cycle:</strong></p>
-    <pre><code>// Idle -> CreditHeld -> Dispensing -> Idle. Two of those exits exist only
-// because somebody wrote them down.
-private enum VendState { Idle, CreditHeld, Dispensing, OutOfStock }</code></pre>
-
-    <p><strong>Example 4 — A level crossing (comment only):</strong></p>
-    <pre><code>// Warn, lower the barriers, wait, raise them. The ORDER is the behaviour -
-// run them out of sequence and the sequence is what you lost.</code></pre>
-
-    <p><strong>Example 5 — A traffic signal (comment only):</strong></p>
-    <pre><code>// A signal is never green and red at once. In a machine built from two
-// booleans, that state is representable - which means someday it will happen.</code></pre>
+    <p>
+        Each question below opens with one of those five facts, then asks what it means for your
+        enemy. Answer from the table and the callout above, not from the player's script.
+    </p>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
@@ -138,11 +518,23 @@ private enum VendState { Idle, CreditHeld, Dispensing, OutOfStock }</code></pre>
 </div>
 
 <!-- ============================================================ -->
+${renderWalkthrough(WALK)}
+
+<!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
         <span class="activity-label">Build Lab: Refactor to a Real Machine</span>
         <span class="activity-time">~30 min</span>
     </div>
+
+    <p>
+        Open <code>Assets/Scripts/EnemyController.cs</code> — the file you built in
+        <a href="4.1.html">4.1</a>, <a href="4.3.html">4.3</a> and <a href="4.4.html">4.4</a>.
+        The walkthrough above built the enum-and-switch row step by step. If that is the row you
+        chose, you already have it working. If you chose boolean flags or one method per state,
+        this is where you build <em>yours</em>: the five steps below are the same five for every
+        row, and the answers look nothing alike.
+    </p>
 
     <div class="callout">
         <strong>Architectural specification for the state machine:</strong>
@@ -156,7 +548,7 @@ private enum VendState { Idle, CreditHeld, Dispensing, OutOfStock }</code></pre>
 
         <p><strong>Step 2 — choose the representation and refactor.</strong></p>
         <ul>
-            <li>Enum or boolean flags? Pick the one you prefer and write one sentence justifying it against the other. (The implicit version is what you already have, so it cannot be your answer.)</li>
+            <li>Enum with a <code>switch</code>, boolean flags, or an enum with one method per state? Pick the one you prefer and write one sentence justifying it against the others. (The implicit version is what you already have, so it cannot be your answer.)</li>
             <li>If you chose the enum: what type holds the current state, what is its default value, and does it need to be serialized or private?</li>
             <li>If you chose the flags: how many flags do you need for the states you named, and how many of the resulting combinations are real? Write the count down.</li>
             <li>Whichever you chose: where is the state <em>changed</em>? Is it at the top of the frame before any behaviour runs, or inside each state's own code? What could go wrong if two transitions fire in the same frame?</li>
@@ -222,6 +614,8 @@ private enum VendState { Idle, CreditHeld, Dispensing, OutOfStock }</code></pre>
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
+            <li>Break "the enemy should switch between patrolling, chasing and attacking" into its parts before you write any code</li>
+            <li>Name, for each of those parts, the earlier lesson you lifted it from</li>
             <li>Draw the enemy's state machine from memory, with a condition written on every arrow</li>
             <li>Compare the implicit, flag-based and enum-based representations, and defend the one you chose</li>
             <li>Say where the return-to-patrol transition lives in your code, and what condition it tests</li>
@@ -238,6 +632,7 @@ private enum VendState { Idle, CreditHeld, Dispensing, OutOfStock }</code></pre>
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — every question this course answers, in the words you would search with</li>
         <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the full reference, with the boss preview</li>
         <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — every branch of the enemy annotated</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — enums, switch statements and <code>Debug.Log</code></li>

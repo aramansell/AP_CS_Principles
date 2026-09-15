@@ -1,12 +1,16 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>9.3 Compression: Lossy vs Lossless — AP CS Principles</title><meta name="description" content="Lesson 9.3 Compression: Lossy vs Lossless — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="9.3 Compression: Lossy vs Lossless — AP CS Principles"><meta property="og:description" content="Lesson 9.3 Compression: Lossy vs Lossless — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="9.2.html">&#9664; 9.2</a><span class="lesson-id">9.3</span><a href="9.4.html">9.4 &#9654;</a></div><h1>9.3 — Compression: Lossy vs Lossless</h1>
 
 <p class="lesson-lead">
-    Your game folder holds a thousand files and is only megabytes.
-    The same pictures as raw bitmaps would be a hundred times bigger.
-    Today: the two families of compression — one that risks losing
-    something forever, one that promises to get every bit back — and
-    why your game uses both in different places.
+    The biggest picture in your project is a 2048 × 2048 level sheet:
+    654,657 bytes on disk, and <strong>exactly 16 MiB</strong> as pixels
+    before anything touches it. That gap is not luck. Two families of
+    compression can produce it — and only one of them is allowed to lose
+    anything on the way.
 </p>
+
+<div class="ask-banner" data-scaffold="3" data-frame="concept"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I make a file smaller without losing anything?&rdquo;</span></div>
+
+<div class="activity decompose" data-level="3" data-parts="5" data-given="5" data-docs="5" data-frame="concept"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span></div><p class="dc-big">Your biggest level sheet leaves the project as 654,657 bytes and is 16 MiB of pixels before anything touches it. "Make it smaller" is not one problem: it is working out what the pixels cost raw, knowing which of the two families a file is allowed to use, and being able to say what each one threw away.</p><p class="dc-ask"><strong>First, before anything else:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Work out what the pixels cost before any compression</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="9.2.html">the four-bytes-per-colour rule from 9.2, and the size table at the top of this lesson's Concept Lab</a></span></li><li class="dc-part"><span class="dc-name">Say which family a format belongs to</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="../exam/mc-strategy.html">the lossless-vs-lossy row of the MC trap catalog, and the PNG-vs-JPEG table in this lesson's Concept Lab</a></span></li><li class="dc-part"><span class="dc-name">Find the repetition a lossless format can exploit</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: the worked run-length example in this lesson's Concept Lab</span></li><li class="dc-part"><span class="dc-name">Decide which family each file in the project is allowed to use</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="7.1.html">Step 4 of the Build Lab below, and the sprite-slicing pipeline you ran in 7.1</a></span></li><li class="dc-part"><span class="dc-name">Measure the file you already have before you re-compress it</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: the two measurements in Step 3 of the Build Lab below</span></li></ol><p class="dc-why">The split is the whole lesson. "Compress this file" is one job you can only do by opening a tool; these five are five things you can check, argue and measure. The first is arithmetic you already own, the third and fifth are measurements you run on your own project, and the second and fourth are what the exam actually asks — every compression question on the paper is a question about which family a situation demands, and what it is allowed to lose.</p><p class="dc-size">The test for a finished split: could you settle the part with a calculator and a file listing? "Work out what the pixels cost" gives you a number; "decide what this file may lose" gives you a reason. A part that needs a compressor installed before you can even think about it is not a part of this problem.</p><div class="dc-connect"><h4>Connect it to something you already know</h4><p>Very little in this course is new. Most of it is something you have already done, pointed in a different direction — and saying which one out loud is how you stop relearning it every time.</p><p>Pick two of the parts above and say in one line what each one actually does.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:dc1:q1" data-block="decompose" data-question="Pick two of the parts above and say in one line what each one actually does." placeholder="write your answer, then keep going"></textarea></label><p>A 64×64 sprite is exactly 16 KiB of pixels raw and 825 bytes as a PNG on disk, and compressing that PNG again gives you 858 bytes — bigger than the file you started with. Explain both numbers in one sentence each, and say which of them would change if the sprite were a photograph instead of flat pixel art.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:dc1:q2" data-block="decompose" data-question="A 64×64 sprite is exactly 16 KiB of pixels raw and 825 bytes as a PNG on disk, and compressing that PNG again gives you 858 bytes — bigger than the file you started with. Explain both numbers in one sentence each, and say which of them would change if the sprite were a photograph instead of flat pixel art." placeholder="write your answer, then keep going"></textarea></label><p>Your project ships the same 589,301-byte picture twice, and nothing in the project points at the copy in <code>OriginalFiles/</code>. Deleting either copy breaks no reference; deleting the wrong one costs a future re-slice. Which do you delete, and what does your answer assume about the next person to open the project?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:dc1:q3" data-block="decompose" data-question="Your project ships the same 589,301-byte picture twice, and nothing in the project points at the copy in `OriginalFiles/`. Deleting either copy breaks no reference; deleting the wrong one costs a future re-slice. Which do you delete, and what does your answer assume about the next person to open the project?" placeholder="write your answer, then keep going"></textarea></label><p>In 9.2 you wrote <code>new Color32(255, 102, 0, 255)</code> and called it hex in decimal cosplay. That is four bytes for one pixel. Multiply it out for a 64×64 sprite and you have the number this entire lesson is measured against — what is it, and why does the answer not depend on what the picture shows?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:dc1:q4" data-block="decompose" data-question="In 9.2 you wrote `new Color32(255, 102, 0, 255)` and called it hex in decimal cosplay. That is four bytes for one pixel. Multiply it out for a 64×64 sprite and you have the number this entire lesson is measured against — what is it, and why does the answer not depend on what the picture shows?" placeholder="write your answer, then keep going"></textarea></label><p>In 9.1 an eight-bit number stops at 255 and a 32-bit int reaches about 2.1 billion, and you learned that the ceiling is real wherever the width is fixed. A file size is the same arithmetic one scale up. Which of the two families here changes how many pixels you store, and which one changes how many bits each pixel costs?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:dc1:q5" data-block="decompose" data-question="In 9.1 an eight-bit number stops at 255 and a 32-bit int reaches about 2.1 billion, and you learned that the ceiling is real wherever the width is fixed. A file size is the same arithmetic one scale up. Which of the two families here changes how many pixels you store, and which one changes how many bits each pixel costs?" placeholder="write your answer, then keep going"></textarea></label><p>In 7.1 you sliced <code>MainLev2.0.png</code> into individual Tile assets and kept the source sheet around "for when you need to re-slice". That source sheet is still in the project — in fact the same 589,301 bytes sit in two folders at once. Which copy is doing work, and what did the slicing turn a picture into?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:dc1:q6" data-block="decompose" data-question="In 7.1 you sliced `MainLev2.0.png` into individual Tile assets and kept the source sheet around &quot;for when you need to re-slice&quot;. That source sheet is still in the project — in fact the same 589,301 bytes sit in two folders at once. Which copy is doing work, and what did the slicing turn a picture into?" placeholder="write your answer, then keep going"></textarea></label><p>In 7.1 the cave tiles went into a Tile Palette as a grid of hundreds of small <code>.asset</code> files, each one pointing at a slice of a single sheet. That is a compression decision somebody made before you arrived: the level stores which tile is at (x,y) rather than a picture per square. Where is the <code>(count, value)</code> pair hiding in that idea, and what did it stop storing?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:dc1:q7" data-block="decompose" data-question="In 7.1 the cave tiles went into a Tile Palette as a grid of hundreds of small `.asset` files, each one pointing at a slice of a single sheet. That is a compression decision somebody made before you arrived: the level stores which tile is at (x,y) rather than a picture per square. Where is the `(count, value)` pair hiding in that idea, and what did it stop storing?" placeholder="write your answer, then keep going"></textarea></label></div></div>
 
 <!-- ============================================================ -->
 <div class="activity expand-app">
@@ -15,26 +19,55 @@
         <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Lossless: mathematically reversible.</strong> The
-    original bits come back EXACTLY. Your .png sprites and .zip
-    files are lossless. The simplest lossless trick, run-length
-    encoding (RLE) — you have seen this pattern hiding in your
-    tilemap:</p>
-    <pre><code>Raw row (16 bytes):   A A A A A A A A B B B B B B B B
-RLE (8 bytes):        8A 6B                      ← wait: 8+6=14... 8A 8B!
-Raw row:             1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0
-RLE:                 1×7, 0×9        → (7,1)(9,0) → 4 numbers</code></pre>
-    <p>A run of identical values becomes (count, value) pairs. Your
-    cave floor is a run of identical tiles — tilemaps themselves are
-    a compression idea: store "tile type at (x,y)" instead of a
-    unique picture for every screen.</p>
+    <p><strong>Start with what the pixels cost.</strong> You already know
+    from <a href="9.2.html">9.2</a> that a colour is a
+    <code>Color32</code> — four bytes, one each for R, G, B and A. So one
+    pixel costs four bytes, and a picture's raw size is nothing more than
+    <code>width × height × 4</code>. Here are three real files from your
+    own <code>Assets/Artwork/</code> folder, with what the size column
+    says next to what the pixels actually are:</p>
 
-    <p><strong>Lossy: smaller, forever changed.</strong> The original
-    is NOT recoverable — the compressed file IS the file now. JPEG
-    photographs, MP3 audio, Ogg/Theora video. The trick: throw away
-    what human senses barely notice (color detail in JPEG, sounds
-    masked by louder sounds in MP3). Perfect for a photo of your dog;
-    TERRIBLE for your game's sprite sheet —</p>
+    <table>
+        <tr><th>File</th><th>Pixels</th><th>Raw (w × h × 4)</th><th>On disk</th></tr>
+        <tr><td><code>OriginalFiles/Spike.png</code></td><td>64 × 64</td><td>16,384 bytes (16 KiB)</td><td>825 bytes</td></tr>
+        <tr><td><code>OriginalFiles/mainlevbuild.png</code></td><td>2048 × 2048</td><td>16,777,216 bytes (16 MiB)</td><td>654,657 bytes</td></tr>
+        <tr><td><code>Character/Player/Axe1.png</code></td><td>1152 × 2112</td><td>9,732,096 bytes</td><td>71,391 bytes</td></tr>
+    </table>
+
+    <p>Read the last two columns together. A 64 × 64 spike is 16 KiB of
+    pixels and 825 bytes of file — <strong>19.9 times smaller</strong>.
+    The big level sheet is 16 MiB of pixels and 654,657 bytes of file —
+    <strong>25.6 times smaller</strong>. Nothing was thrown away to get
+    either number. That is <strong>lossless</strong> compression.</p>
+
+    <p><strong>Lossless: every bit comes back.</strong> PNG, ZIP, GIF.
+    The file shrinks because the format found repetition and wrote it
+    down more cleverly, not because it decided any part of the picture
+    was unimportant. Unzip a project and you get the same bytes back,
+    which is why ZIP is what you send somebody when the files matter.</p>
+
+    <p>The simplest lossless trick is run-length encoding, RLE: a run of
+    identical values becomes a single <em>(count, value)</em> pair. Two
+    sixteen-symbol rows, one flat and one not:</p>
+
+    <pre><code>Raw row (16 symbols):  A A A A A A A A B B B B B B B B
+RLE (4 symbols):       8A 8B          8 A's, then 8 B's
+
+Raw row (16 symbols):  1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0
+RLE (4 symbols):       (7,1)(9,0)     7 ones, then 9 zeros</code></pre>
+
+    <p>Sixteen symbols become four. Now feed RLE the wrong picture — a
+    checkerboard, <code>1 0 1 0 1 0 ...</code> — and every run is one
+    symbol long, so the file comes out <em>bigger</em> than it went in.
+    A compression scheme is a bet on repetition, and pure noise is the
+    bet lost. Hold on to that: it comes back in Step 3.</p>
+
+    <p><strong>Lossy: smaller, and forever changed.</strong> The original
+    is not recoverable, because the compressed file <em>is</em> the file
+    now. JPEG images, MP3 audio and streaming video work this way. The
+    trick is to throw away what your eyes and ears barely notice — colour
+    detail in a photograph, quiet sounds underneath loud ones — and keep
+    what they do.</p>
 
     <table>
         <tr><th></th><th>Lossless (PNG)</th><th>Lossy (JPEG)</th></tr>
@@ -43,16 +76,30 @@ RLE:                 1×7, 0×9        → (7,1)(9,0) → 4 numbers</code></pre>
         <tr><td>Use for</td><td>Sprites, UI, textures with hard edges</td><td>Photos, backgrounds, music</td></tr>
     </table>
 
+    <div class="callout info">
+        <strong>Your project already took the lossy trade — and it is not
+        audio.</strong> There is no music and no sound file anywhere under
+        <code>Assets/</code>. The lossy step is the texture import. Open a
+        sprite's <code>.png.meta</code> file and the platform settings read
+        <code>textureCompression: 1</code> (Normal Quality) with
+        <code>crunchedCompression: 0</code>, and that is where Unity picks
+        DXT/ETC — a GPU format that stores texture blocks approximately.
+        So the same sprite is <strong>lossless on disk and lossy on the
+        GPU</strong>: exact where it is stored, close enough where it is
+        used. Somebody chose that once, in one dropdown, for every sprite
+        in the project at the same time.
+    </div>
+
     <div class="socratic">
         <h3>Socratic</h3>
         <p>
-            The exam asks about tradeoffs, always. Your game ships
-            sprites as PNG (lossless) and could ship music as
-            lossy Ogg. Why is "lossless" worth its size for pixels
-            the player looks at directly, but "lossy" fine for
-            audio they hear once per fight? Whose senses set the
-            threshold?
-        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:sc1:q1" data-block="socratic" data-question="The exam asks about tradeoffs, always. Your game ships sprites as PNG (lossless) and could ship music as lossy Ogg. Why is &quot;lossless&quot; worth its size for pixels the player looks at directly, but &quot;lossy&quot; fine for audio they hear once per fight? Whose senses set the threshold?" placeholder="write your answer, then keep going"></textarea></label>
+            The exam asks about tradeoffs, always. Your project keeps its
+            sprites lossless in the file and accepts an approximate
+            texture format on the GPU — the same picture, both families,
+            one pipeline. Why is exactness worth paying for where the
+            file is stored, and a small approximation acceptable where it
+            is used? Who set that threshold, and what would move it?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:sc1:q1" data-block="socratic" data-question="The exam asks about tradeoffs, always. Your project keeps its sprites lossless in the file and accepts an approximate texture format on the GPU — the same picture, both families, one pipeline. Why is exactness worth paying for where the file is stored, and a small approximation acceptable where it is used? Who set that threshold, and what would move it?" placeholder="write your answer, then keep going"></textarea></label>
     </div>
 </div>
 
@@ -63,28 +110,55 @@ RLE:                 1×7, 0×9        → (7,1)(9,0) → 4 numbers</code></pre>
         <span class="activity-time">~20 min</span>
     </div>
 
-    <p><strong>Step 1 — compress by hand.</strong> Take a
-    16×1 "sprite row" you invent (letters or 0/1). Write it raw
-    (16 symbols), then RLE it. Compute the compression ratio for a
-    few of your own rows: repetitive rows shrink wildly; noisy rows
-    RLE can EXPLODE. Why does a checkerboard defeat RLE? What would
-    defeat even clever formats (pure noise — which is why your
-    random-particle sprite PNGs are the biggest files)?</p>
+    <p><strong>Step 1 — compress by hand.</strong> Invent a 16 × 1
+    "sprite row" (letters or 0/1) and write it out raw, then RLE it.
+    Compute the ratio for a few rows of your own: repetitive rows shrink
+    wildly, and noisy rows RLE can explode. Why does a checkerboard
+    defeat RLE — and what defeats even a clever format? Pure noise, which
+    is why a photograph is the one thing a lossless format cannot rescue.</p>
 
-    <p><strong>Step 2 — inspect your real assets.</strong> In
-    Finder/Explorer, sort Assets by size. Find the biggest PNGs.
-    Unity recompresses imports as DXT/ETC (GPU formats, lossy-ish
-    for textures) — check the import settings on one: compression
-    type on your sprites. Your game ALREADY made this tradeoff in
-    every texture — you just could not see the paperwork until
-    today.</p>
+    <p><strong>Step 2 — price your own artwork.</strong> Open
+    <code>Assets/Artwork/</code> and sort by size. The biggest picture in
+    the project is <code>Platformer/OriginalFiles/mainlevbuild.png</code>:
+    2048 × 2048, <strong>654,657 bytes</strong>. Raw it would be
+    2048 × 2048 × 4 = <strong>16,777,216 bytes</strong>, exactly 16 MiB —
+    so that PNG is 25.6 times smaller than the pixels it stores. Do the
+    same arithmetic on two more before you move on:
+    <code>Character/Player/Axe1.png</code> (1152 × 2112) and
+    <code>Top_Down/OriginalFiles/Spike.png</code> (64 × 64). Then find the
+    picture the project ships <em>twice</em>: <code>MainLev2.0.png</code>
+    is 589,301 bytes, and the same 589,301 bytes sit in both
+    <code>OriginalFiles/</code> and <code>Sliced/</code>.</p>
 
-    <p><strong>Step 3 — feel the quality knob.</strong> Export ONE
-    of your sprites as PNG, then again as JPEG at quality 80, 50,
-    20 (GIMP/Preview can do this). Zoom to 400%. The JPEG halos
-    around your sprite's outline are the "lossy" in action. At
-    which quality would you NOTICE mid-fight? That threshold —
-    not zero — is what streaming services chase.</p>
+    <p><strong>Step 3 — watch lossless run out of room.</strong> Lossless
+    compression does not make everything smaller. It makes
+    <em>uncompressed</em> things smaller. The biggest file in your
+    <code>Assets/</code> folder is not a picture at all — it is
+    <code>_Scenes/Overworld.unity</code>, 2,377,344 bytes of scene text.
+    Compress it (right-click → Compress, or Send to → Compressed folder)
+    and it collapses to roughly 65,000 bytes: about <strong>36 times
+    smaller</strong>, and it still opens as exactly the same scene. Now
+    compress <code>Top_Down/OriginalFiles/Spike.png</code> the same way
+    and it comes out <em>bigger</em> than you started — around 858 bytes
+    against 825.</p>
+
+    <p>Those two results are one law, not two quirks. The scene is text
+    that had never been compressed, so there was repetition left to find.
+    The PNG had already been through exactly this, so there was nothing
+    left to find. <strong>Compressing a file that is already compressed
+    buys you nothing</strong> — which is why zipping a folder of PNGs
+    saves you almost nothing, while zipping a folder of text saves you a
+    great deal.</p>
+
+    <p><strong>Step 4 — feel the quality knob, on a file that has
+    one.</strong> PNG has no quality setting, because there is nothing to
+    trade. JPEG does. Export one of your sprites as a JPEG at quality 80,
+    then 50, then 20 (Preview, GIMP, or any converter), then zoom to 400%
+    and look at the outline. The halos you can see are the "lossy" in
+    action — a decision about what the eye will forgive, taken before the
+    player ever sees it. At which quality would you stop noticing
+    mid-fight? That threshold, and not zero, is what a streaming service
+    is chasing.</p>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Format failures</h3>
@@ -92,16 +166,19 @@ RLE:                 1×7, 0×9        → (7,1)(9,0) → 4 numbers</code></pre>
             <li>A teammate ships sprites as JPEG. What three
                 things break (alpha! edges! halo rings) — and which
                 one do players notice FIRST?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:bh1:q1" data-block="bug-hunt" data-question="A teammate ships sprites as JPEG. What three things break (alpha! edges! halo rings) — and which one do players notice FIRST?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Your save file (coins, health) — why must it NEVER
-                be lossy? What does "compression artifact" mean in
-                a number that is supposed to be 3?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:bh1:q2" data-block="bug-hunt" data-question="Your save file (coins, health) — why must it NEVER be lossy? What does &quot;compression artifact&quot; mean in a number that is supposed to be 3?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Your scene and prefab files are numbers that have to
+                come back exact — a position, a guid, a component
+                count. Why may a file like that never be lossy, and
+                what does "compression artifact" mean in a value
+                that is supposed to be 3?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:bh1:q2" data-block="bug-hunt" data-question="Your scene and prefab files are numbers that have to come back exact — a position, a guid, a component count. Why may a file like that never be lossy, and what does &quot;compression artifact&quot; mean in a value that is supposed to be 3?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>Zip your whole project. Unzip it elsewhere. It runs
                 identical. Which family is zip — and what did
                 zip NEVER touch (the count, not the content)?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.3:bh1:q3" data-block="bug-hunt" data-question="Zip your whole project. Unzip it elsewhere. It runs identical. Which family is zip — and what did zip NEVER touch (the count, not the content)?" placeholder="write your answer, then keep going"></textarea></label></li>
             <li>AP classic: "A 20 MB image is compressed to 2 MB
                 with lossy compression. The decompressed image…"
                 — finish the sentence the way the exam wants
-                (cannot be perfectly restored).</li>
+                (cannot be perfectly restored), then say what the
+                2 MB bought and what it cost.</li>
         </ol>
     </div>
 </div>
@@ -136,8 +213,10 @@ RLE:                 1×7, 0×9        → (7,1)(9,0) → 4 numbers</code></pre>
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
             <li>Explain lossless vs lossy with one real example of each</li>
+            <li>Turn a picture's pixel size into bytes with width × height × 4, and compare it to the file on disk</li>
             <li>RLE-compress a row by hand and compute the ratio</li>
             <li>Explain why sprites demand PNG and what artifacts look like</li>
+            <li>Say why compressing an already-compressed file buys nothing</li>
             <li>Argue a size-vs-quality tradeoff for a specific asset</li>
         </ul>
     </div>
@@ -149,10 +228,11 @@ RLE:                 1×7, 0×9        → (7,1)(9,0) → 4 numbers</code></pre>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — compression and the data family</li>
+        <li><a href="../exam/mc-strategy.html">MC Trap Catalog</a> — the lossless-vs-lossy row you will be tested on</li>
         <li><a href="../exam/reference-sheet.html">Exam Reference Sheet</a> — data questions you will see</li>
     </ul>
     <p>Next: <a href="9.4.html">9.4 — Your Scene Is Data: Metadata &amp; Files</a></p>
-</div><div class="lab-bar" data-lesson="9.3" data-lesson-title="Compression: Lossy vs Lossless" data-count="7" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/7 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="9.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="9.2.html"><span class="dir">&#9664; Previous</span><span class="where">9.2 — Hex, RGB &amp; Data Abstraction</span></a><a class="foot-next" href="9.4.html"><span class="dir">Next &#9654;</span><span class="where">9.4 — Your Scene Is Data: Metadata &amp; Files</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+</div><div class="lab-bar" data-lesson="9.3" data-lesson-title="Compression: Lossy vs Lossless" data-count="14" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/14 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="9.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="9.2.html"><span class="dir">&#9664; Previous</span><span class="where">9.2 — Hex, RGB &amp; Data Abstraction</span></a><a class="foot-next" href="9.4.html"><span class="dir">Next &#9654;</span><span class="where">9.4 — Your Scene Is Data: Metadata &amp; Files</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
      restores the hidden bridge textareas first, and mc-quiz.js reads those
      restored values to re-check the radios. Swapping the order breaks
      answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

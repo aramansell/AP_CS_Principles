@@ -54,6 +54,27 @@ export const LEVEL_LABEL: Record<ScaffoldLevel, string> = {
   4: 'Solo build',
 };
 
+/**
+ * Which genre of lesson is carrying the ladder furniture.
+ *
+ * `LEVEL_LABEL` above is code vocabulary, and it is only true of a lesson that
+ * ends in a script. A lesson about binary, compression or encryption has no
+ * file to hand over, so a chip reading "Outline only" is a claim about
+ * something that does not exist — and inventing a second ladder vocabulary
+ * would put a word on screen the teacher never asked for and no other page
+ * uses.
+ *
+ * So a `concept` lesson keeps every structural part of the ladder — the
+ * `data-scaffold` attribute, the rung number, the decompose decay, and the
+ * checks in scripts/verify-site.mjs that read them — and drops only the
+ * visible chip. Wording changes; nothing that is checked does.
+ *
+ * Note the levels that are reachable: check 7 fails a lesson that declares
+ * level 1 or 2 without rendering a walkthrough, so a concept lesson (which
+ * never renders one) sits at 3 or 4 by construction.
+ */
+export type LessonFrame = 'build' | 'concept';
+
 /** One line of code and the plain-English account of what it does. */
 export interface CodeLine {
   /**
@@ -246,7 +267,37 @@ export function renderWalkthrough(spec: WalkthroughSpec): string {
       'Do not paste this in. Compare it against what you built — every line should be one you can explain.'
   );
 
-  const finalCode = '<pre class="wt-code wt-code-full"><code>' + esc(spec.finalFile ?? '') + '</code></pre>';
+  // The reference file carries its own marker INSIDE the code block, because
+  // the note above it does not survive a copy: it is outside the artifact, so
+  // a pasted file arrived looking exactly like the student's own work. This
+  // header is what travels with the paste, and it is the difference between
+  // "you cannot prove I pasted this" and "this is the reference file."
+  //
+  // It is deliberately not an accusation and not a trap. A student who reads
+  // the file and then writes their own never sees it again. A student who
+  // hands it in unchanged has handed in a file whose first line says what it
+  // is AND what to do about it — go back and build it one step at a time.
+  // That is the whole point: it hands the teacher the conversation, and it
+  // hands the student the instruction, in the same four lines.
+  const isCode = (s: string) => /[;{}]/.test(s);
+  const refHeader =
+    spec.finalFile && isCode(spec.finalFile)
+      ? [
+          '// ' + '-'.repeat(66),
+          '//  REFERENCE FILE — ' + (spec.file || 'the finished script'),
+          '//  Written to be read, not pasted. Build it with the walkthrough',
+          '//  above, one step at a time, then open this and compare.',
+          '//  If it is sitting in your project unchanged, that is the thing',
+          '//  to go and do now — the walkthrough is still above you.',
+          '// ' + '-'.repeat(66),
+          '',
+        ].join('\n')
+      : '';
+
+  const finalCode =
+    '<pre class="wt-code wt-code-full"><code>' +
+    esc(refHeader + (spec.finalFile ?? '')) +
+    '</code></pre>';
 
   // The answer key is a deliberate act to open, at EVERY level — including
   // level 1. It is never removed: a student who missed class still has to be
@@ -304,12 +355,20 @@ export function renderWalkthrough(spec: WalkthroughSpec): string {
  * A one-line banner naming the question a lesson answers, for lessons that
  * do not carry a full walkthrough (the later, solo end of the ladder).
  */
-export function renderAskBanner(ask: string, level: ScaffoldLevel): string {
+export function renderAskBanner(ask: string, level: ScaffoldLevel, frame: LessonFrame = 'build'): string {
+  // A concept lesson keeps `data-scaffold` — the checks read it, and the rung
+  // is a real statement about how much of the decomposition is handed over —
+  // and drops only the code-scaffolding chip, for the reason in `LessonFrame`.
+  const chip =
+    frame === 'concept'
+      ? ''
+      : '<span class="ask-banner-level">' + LEVEL_LABEL[level] + '</span>';
   return (
-    '<div class="ask-banner" data-scaffold="' + level + '">' +
+    '<div class="ask-banner" data-scaffold="' + level + '"' +
+    (frame === 'concept' ? ' data-frame="concept"' : '') + '>' +
     '<span class="ask-banner-label">In this lesson you will be able to answer</span>' +
     '<span class="ask-banner-q">&ldquo;' + prose(ask) + '&rdquo;</span>' +
-    '<span class="ask-banner-level">' + LEVEL_LABEL[level] + '</span>' +
+    chip +
     '</div>'
   );
 }

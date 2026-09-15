@@ -48,7 +48,7 @@
  * challenge — see src/lib/formify.ts.
  */
 
-import type { ScaffoldLevel } from './walkthrough';
+import type { LessonFrame, ScaffoldLevel } from './walkthrough';
 import { LEVEL_LABEL } from './walkthrough';
 import { renderAnswerField } from './formify';
 
@@ -74,11 +74,34 @@ export interface Part {
   blank?: boolean;
 }
 
+/**
+ * Which genre of lesson the block is sitting in. The three questions are the
+ * same three in both, but the words are not: a lesson that ends in a script
+ * can say "before any code" and "something you already built", and a lesson
+ * about binary, hex or compression cannot — there is no code to write and
+ * nothing was built.
+ *
+ * This exists because the teacher's rule is that the three discussions belong
+ * in EVERY lesson, not only the ones with a file at the end. Without it, the
+ * concept units (9 and 10) could not carry the block at all, and the rule
+ * quietly became "every lesson that happens to produce code" — 17 of 81.
+ *
+ * The type lives in `walkthrough.ts`, next to the ladder vocabulary it
+ * modifies, and `renderAskBanner` takes the same flag — a concept lesson must
+ * not carry a code chip on its banner either.
+ *
+ * `build` is the default, so every existing lesson renders byte-for-byte what
+ * it rendered before.
+ */
+export type DecomposeFrame = LessonFrame;
+
 export interface DecomposeSpec {
   /** The problem in its whole, unbroken form — the thing being split up. */
   big: string;
   /** The parts, in the order they should be built. */
   parts: Part[];
+  /** Build (default) or concept. Changes wording only, never structure. */
+  frame?: DecomposeFrame;
   /**
    * Why this is the right split: the sentence that makes the decomposition
    * itself a taught thing rather than a list to memorise.
@@ -163,10 +186,13 @@ export function renderDecompose(lessonId: string, spec: DecomposeSpec, level: Sc
   // verifier would then check against nothing.
   const docs = level >= 4 ? 0 : spec.parts.filter((p) => p.doc).length;
 
+  const concept = spec.frame === 'concept';
+
   const parts =
     level >= 4
       ? '<p class="dc-empty">No parts listed here on purpose. Splitting the problem up ' +
-        '<em>is</em> the work of this lesson — write your list before you open the file.</p>'
+        '<em>is</em> the work of this lesson — write your list before you ' +
+        (concept ? 'read on.</p>' : 'open the file.</p>')
       : '<ol class="dc-parts">' + spec.parts.map((p) => renderPart(p, level)).join('') + '</ol>';
 
   // The tail: one level-appropriate question, the lesson's own discussion
@@ -184,22 +210,40 @@ export function renderDecompose(lessonId: string, spec: DecomposeSpec, level: Sc
   const block = lessonId + ':dc1';
   const turns = asks.map((q, i) => turn(lessonId, 'dc1', i + 1, q)).join('');
 
+  // The two genre differences, in one place. `frame` changes wording only —
+  // no attribute, class or answer box moves, so a lesson's saved answers are
+  // untouched by switching it.
+  // A concept lesson carries no code, so the code-scaffolding badge would be a
+  // claim about something that does not exist. It is omitted rather than
+  // reworded: inventing a second ladder vocabulary would put a word on screen
+  // the teacher never asked for and no other page uses.
+  const badge = concept
+    ? ''
+    : '<span class="dc-level">' + LEVEL_LABEL[level] + '</span>';
+  const askLead = concept
+    ? '<strong>First, before anything else:</strong> cut that into parts small enough '
+    : '<strong>First, before any code:</strong> cut that into parts small enough ';
+  const connectLead = concept
+    ? '<h4>Connect it to something you already know</h4>'
+    : '<h4>Connect it to something you already built</h4>';
+
   return (
     '<div class="activity decompose" data-level="' + level + '" data-parts="' + spec.parts.length +
-    '" data-given="' + given + '" data-docs="' + docs + '">' +
+    '" data-given="' + given + '" data-docs="' + docs + '"' +
+    (concept ? ' data-frame="concept"' : '') + '>' +
     '<div class="activity-header">' +
     '<span class="activity-label">Break It Down</span>' +
     '<span class="activity-time">~10 min</span>' +
-    '<span class="dc-level">' + LEVEL_LABEL[level] + '</span>' +
+    badge +
     '</div>' +
     '<p class="dc-big">' + prose(spec.big) + '</p>' +
-    '<p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough ' +
+    '<p class="dc-ask">' + askLead +
     'that you could look each one up on its own.</p>' +
     parts +
     (spec.why ? '<p class="dc-why">' + prose(spec.why) + '</p>' : '') +
     (spec.sizeTest ? '<p class="dc-size">' + prose(spec.sizeTest) + '</p>' : '') +
     '<div class="dc-connect">' +
-    '<h4>Connect it to something you already built</h4>' +
+    connectLead +
     '<p>Very little in this course is new. Most of it is something you have already done, ' +
     'pointed in a different direction — and saying which one out loud is how you stop ' +
     'relearning it every time.</p>' +

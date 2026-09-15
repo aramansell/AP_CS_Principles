@@ -2,42 +2,276 @@
 // Lesson 3.3 — Fire Rate: Cooldowns & Time
 // Adds rate limiting to the turret the student built in 3.1 and 3.2. They left
 // 3.2 firing once per FRAME, because the range check that calls Fire() runs
-// inside Update(). Four timing approaches are laid out for comparison
-// (Time.time timestamp, countdown decremented by Time.deltaTime,
-// InvokeRepeating, a coroutine loop); the student chooses and justifies one.
-// GROUND TRUTH: no "Attack Cooldown" field exists anywhere in the project -
-// every knob in this lesson is one the student adds themselves.
-// No spikes are referenced anywhere in this lesson.
+// inside Update() — a condition, re-evaluated every frame, not an event.
+//
+// Scaffolding: GUIDED (level 2). The shape of the file is given — the student
+// has written Update() before, twice — and the two lines carrying the new idea
+// are gaps: the gate condition and the line that stamps the new moment. Those
+// two are the whole mechanism; everything around them is 3.1 and 1.3.
+//
+// Four timing approaches are laid out for comparison (Time.time timestamp,
+// countdown decremented by Time.deltaTime, InvokeRepeating, a coroutine loop);
+// the student chooses and justifies one. The walkthrough builds the reference
+// approach — the Time.time timestamp, the quick reference's "Cooldown" pattern
+// row and the field the Unit 3 docs call lastAttackTime — and the Build Lab is
+// where a student who chose any of the other three builds theirs.
+//
+// FACTUAL GROUND TRUTH, do not "fix" these:
+//   - Time.deltaTime IS correct inside a countdown timer. This lesson's rule
+//     that velocity code takes no deltaTime is about Rigidbody2D.linearVelocity,
+//     which is already measured per second. The two rules do not conflict, and
+//     the table prices both rows without ranking them.
+//   - no "Attack Cooldown" field exists anywhere in the project — every knob in
+//     this lesson is one the student adds themselves.
+//   - no spikes are referenced anywhere in this lesson.
+//
+// The old "Read Function-Level Examples" activity (traffic light, lighthouse,
+// bakery, stadium, pedestrian crossing) is deleted. Its one load-bearing fact —
+// a rate limit remembers WHEN the last one happened, not HOW MANY are owed —
+// now lives in the "what it costs" column of row (a), and the two questions
+// from its socratic that were about this project rather than about the foreign
+// snippets are appended to the timing-model socratic.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The three recurring questions, applied to the cooldown. Level 2, so exactly
+// one part is withheld — the one with no precedent in this course. Everything
+// this project has remembered so far (a coin count, health, whether a door is
+// open) has been a number that changes; today's memory is a MOMENT, which is
+// only meaningful next to the clock it came from. Its reading stays attached,
+// because finding the answer in the docs is the skill being practised.
+const DECOMPOSE = {
+  big:
+    'The turret should shoot at me — but not sixty times a second. "Shoot at me, sometimes" ' +
+    'is the whole feature, and there is nothing in it yet that a computer can act on.',
+  parts: [
+    {
+      name: 'Notice the player is still inside the radius',
+      does: 'The distance test from 3.1, re-evaluated every frame. It stays true for sixty frames in a row, which is not a bug — it is what a condition is. It is also why the turret hosed bullets in 3.2.',
+      doc: 'your own `Update()` from 3.1, and the `Vector3.Distance` row in the quick reference.',
+      href: '3.1.html',
+    },
+    {
+      name: 'Remember when the last shot happened',
+      doc: 'the `Time.time` row in the quick reference, and the deadline you wrote in 1.3 (`nextReportTime`).',
+      href: '../docs/reference/unity-csharp-quickref.html',
+      blank: true,
+    },
+    {
+      name: 'Refuse to fire until enough time has passed',
+      does: 'One condition attached to the range check with `&&`: the clock, against that remembered moment plus the gap you want. Both halves have to be true before the turret may fire.',
+      doc: 'the **Cooldown** row of the pattern table in the quick reference, and the gate you wrote in 1.3.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Record the new moment the instant a shot leaves',
+      does: 'One line, run only when the turret actually fires, and the only thing that closes the gate again. Leave it out and the condition stays true and the frame-rate bug comes straight back inside the fix.',
+      doc: 'the **Cooldown** row in the pattern table (`act, set last = Time.time`).',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+  ],
+  why:
+    'Three of those four parts are code you have already written: the range check is 3.1, the ' +
+    'condition is the gate from 1.3, and the line that closes it is that same re-arm line with a ' +
+    'different name. Only one part has no precedent in this course. Everything you have made a ' +
+    'game remember so far — a coin count, health, whether a door is open — has been a number that ' +
+    'changes. A moment is a different kind of number: it means nothing on its own and everything ' +
+    'next to the clock it came from, which is why this lesson lives on `Time.time`.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Fire less ' +
+    'often" cannot be looked up. "Compare a timestamp against the current time" can — and you ' +
+    'wrote that comparison in 1.3.',
+  connect: [
+    'In 3.2 you left the turret firing every frame. Nothing in your firing method is wrong, so which line of your own code decided how many times it ran — and is that line a condition or an event?',
+    'In 2.2 you gave the Player health: a value declared on the class, changed on one frame, and read again on another. Which part of today\'s split is that same move — and what is different about the value you store this time?',
+    'In 1.3 you learned that Start() runs once and Update() runs every frame. Today\'s memory needs a value before the first frame ever runs — which method gives it one, and what does the turret do on the first frame the player walks into range if you skip that step?',
+  ],
+  turns: [
+    'The reading prices four ways to time this action. Which did you choose, and what does your choice cost you — in your own words, not the table\'s?',
+    'Today\'s memory holds a moment on the clock. If the turret had to charge for a second before each shot, what would that field have to hold instead — and which of the four approaches would you reach for?',
+  ],
+};
+
+const WALK = {
+  ask: 'how do I stop shooting too fast?',
+  file: 'Assets/Scripts/TurretController.cs',
+  intro: 'The turret you built in 3.1 and 3.2 does not change: it still finds the target, measures the distance and spawns a projectile at the muzzle. Today adds one knob, one field and one condition. The names below are the ones this course uses — if you named yours differently in 3.1, keep your names and read the shape.',
+  level: 2,
+  steps: [
+    {
+      title: 'Add the knob and the memory to the class body',
+      lead: 'Both lines go inside the class braces and outside every method — the placement rule from 1.3, and the reason a turret can remember anything between frames at all.',
+      lines: [
+        { code: '    // ...the range, target and prefab fields you wrote in 3.1 and 3.2...', what: 'Nothing you wrote in 3.1 or 3.2 changes today. The two lines below are the only additions to the class body.' },
+        { code: '', what: '' },
+        { code: '    [SerializeField] private float cooldown = 1.5f;', what: 'The knob: how many seconds must pass between shots. `[SerializeField]` puts it in the Inspector so a designer sets the pacing without opening your code — the same treatment you gave `range` and `moveSpeed`.' , why: '**It has to be a `float`.** Shot gaps are fractions of a second, and an `int` would round every value you typed in the Inspector down to a whole second — so `0.5` would quietly become `0`, and you would be back to a turret that fires every frame, from a type the Inspector never shows you.' },
+        { code: '', what: '' },
+        { code: '    private float lastAttackTime;', what: '**The memory.** One float holding the moment, on the game clock, when this turret last fired. `private`, because it is the turret\'s own bookkeeping and no other script has any business reading it.' , why: '**Notice that it has no value yet** — the next step gives it one. And notice **where** it lives. Move this line inside `Update()` and it would be rebuilt from nothing sixty times a second, holding the same empty value every time, and the turret could never remember a thing. That is the scope rule from 1.3: the same line in the wrong place is not a memory, it is a habit.' },
+      ],
+    },
+    {
+      title: 'Seed the memory before the first frame',
+      lead: '`Start()` runs once, before `Update()` has ever run — you already use it in 3.1 to find the target.',
+      lines: [
+        { code: '    void Start()', what: 'The once-only setup method from 1.3. Yours already exists from 3.1, and what is inside it stays exactly as you wrote it.' },
+        { code: '    {', what: '' },
+        { code: '        // ...the target lookup you chose in 3.1, unchanged...', what: 'Whichever targeting approach you picked — a tag search or a serialized reference — nothing about it changes today.' },
+        { code: '', what: '' },
+        { code: '        lastAttackTime = -cooldown;', what: 'Gives the memory a first value, so the turret may fire the moment the player walks into range instead of serving a penalty for a shot it never took.' , why: '**Zero is a real moment on this clock.** `Time.time` starts at `0` when the scene loads, so a field left at its default says "my last shot was at the instant the scene began" — and the gate in the next step would refuse to fire for the first `cooldown` seconds with the player standing right in front of it. Putting the last shot one cooldown **before** the game started is how you say "there has been no last shot".' },
+        { code: '    }', what: 'Closes `Start()`.' },
+      ],
+    },
+    {
+      title: 'Close the gate in Update()',
+      lead: 'The range check stays exactly as you wrote it in 3.1. What changes is that it is no longer the only thing deciding whether the turret fires.',
+      lines: [
+        { code: '    void Update()', what: 'Still the every-frame method, and still where the range check lives.' },
+        { code: '    {', what: '' },
+        { code: '        // ...your guard and your distance measurement from 3.1...', what: 'Unchanged — the null guard, the distance, whatever you named them.' },
+        { code: '', what: '' },
+        { code: '        if (distance <= range && ______________________)', blank: true, what: 'The gate. Keep the range half you already wrote, add `&&`, and add the second condition: the turret may fire only when enough time has passed since its last shot. Compare the game clock against that remembered moment plus your knob.' , hint: 'The clock that only ever counts up is the `Time.time` row in the quick reference. The moment of the last shot is the field you declared in step 1; the gap you want is the knob. Put those three into one comparison — and ask yourself whether `==` could ever be true.' , why: '**`==` is the wrong operator here.** Frames do not land on exact times, so the clock almost never **equals** your remembered moment plus the cooldown — it jumps past it. `>=` says **at or past**, which is what "enough time has passed" actually means. The `&&` is not decoration either: drop the range half and the turret fires at nothing, on cadence, from wherever it happens to be standing.' },
+        { code: '        {', what: '' },
+        { code: '            Fire();', what: 'Your firing method from 3.2 — the one that spawns a projectile at the muzzle. Unchanged, however you named it.' },
+        { code: '', what: '' },
+        { code: '            ________________', blank: true, what: 'The line that closes the gate again, and it runs only when a shot has actually left the barrel. Write the current moment into the field that remembers the last one.' , hint: 'The field remembers a moment, and the gate compared it against the same clock you are standing on right now. What is the current value of that clock?' , why: '**This is the most common bug in the lesson.** Leave it out and the gate never closes: the field keeps its old value, the condition stays true on the next frame and on every frame after it, and the turret is right back to firing at your frame rate — the bug you started today with, rebuilt inside the fix. It is also the argument for stamping the moment inside `Fire()` instead: any other caller of that method would skip it. Keep it here for now, where the gate and its consequence sit on the same three lines.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: 'Closes `Update()`. One more `}` closes the class.' },
+      ],
+    },
+  ],
+  pitfalls: [
+    {
+      mistake: 'private float lastAttackTime; declared inside Update() instead of in the class body',
+      symptom: 'The turret fires in a stream again — the 3.2 bug, unchanged — and no value you type in the Inspector makes any difference.',
+      fix: 'Declare it in the class body and only **assign** to it from inside a method. A variable declared inside a method is created fresh every time that method runs, so it cannot carry a moment from one frame to the next. Same rule as `nextReportTime` in 1.3.',
+    },
+    {
+      mistake: 'the stamp line left out — nothing ever writes the new moment',
+      symptom: 'The turret goes straight back to a stream of bullets. The condition that was meant to close the gate is still true on the next frame, and on every frame after it.',
+      fix: 'Something has to write the current moment at the instant the shot happens — `lastAttackTime = Time.time;`. It is the only line that closes the gate, and the one line in this lesson worth memorising.',
+    },
+    {
+      mistake: 'Time.time == lastAttackTime + cooldown used instead of >=',
+      symptom: 'The turret fires rarely, at random, or never — and turning the cooldown knob down makes it worse, which looks like the opposite of what should happen.',
+      fix: 'Use `>=`. Frames do not land on exact clock values, so equality is almost never true: the clock jumps past the moment you asked for and is then unequal again.',
+    },
+    {
+      mistake: 'the range check replaced by the cooldown check instead of combined with it',
+      symptom: 'The turret fires on cadence at nothing, from across the map, with the player nowhere near it.',
+      fix: 'The two conditions combine with `&&`, and both have to be true. The cooldown does not replace the range test — it is attached to it.',
+    },
+    {
+      mistake: 'a Time.time gate comparing against a field you decrement with Time.deltaTime',
+      symptom: 'The turret fires every frame, or never, and the number in the Inspector has nothing to do with the gap you measure with a stopwatch.',
+      fix: 'One row, one clock. A **timestamp** is compared against `Time.time`; a **countdown** is the field that has `Time.deltaTime` subtracted from it every frame. Both are correct — in their own row. Mixing them gives you a field with two meanings and neither behaviour.',
+    },
+  ],
+  finalFile: `using UnityEngine;
+
+public class TurretController : MonoBehaviour
+{
+    [SerializeField] private float range = 6f;              // your number from 3.1
+    [SerializeField] private float cooldown = 1.5f;         // the new knob
+    [SerializeField] private Transform playerTransform;     // however you acquired it in 3.1
+    [SerializeField] private GameObject projectilePrefab;
+    [SerializeField] private Transform spawnPoint;
+
+    private float lastAttackTime;                           // the memory: a MOMENT, not a count
+
+    void Start()
+    {
+        // ...the target lookup you chose in 3.1 stays here...
+
+        // One cooldown BEFORE the game started, so the first shot is legal
+        // the moment the player walks into range.
+        lastAttackTime = -cooldown;
+    }
+
+    void Update()
+    {
+        if (playerTransform == null)
+        {
+            return;
+        }
+
+        float distance = Vector3.Distance(transform.position, playerTransform.position);
+
+        // Both halves must be true: in range, AND enough time since the last shot.
+        if (distance <= range && Time.time >= lastAttackTime + cooldown)
+        {
+            Fire();
+
+            lastAttackTime = Time.time;                     // closes the gate again
+        }
+    }
+
+    private void Fire()
+    {
+        // ...the projectile spawn you wrote in 3.2, unchanged...
+    }
+}`,
+  finalNote:
+    'Compare against your own file rather than copying it. The two gaps are the gate condition and the stamp line, and neither is right by luck: `Time.time >= lastAttackTime + cooldown` because frames never land on an exact time, and `lastAttackTime = Time.time;` because that is the only thing that closes the gate. Your names, your range, your cooldown default and your projectile spawn from 3.2 are yours — the shape is what has to match.',
+};
 
 const body = `<h1>3.3 — Fire Rate: Cooldowns &amp; Time</h1>
 
 <p class="lesson-lead">
     Last lesson you pressed Play, walked into range, and the turret did not fire a shot — it
-    fired a <em>stream</em>. Nothing you wrote is broken. Your range check runs every frame, and
-    every frame it called your firing method, so the turret has been firing at your frame rate.
-    Today you fix that. The fix has more than one honest answer, and you are going to pick one
-    and defend it.
+    fired a <em>stream</em>. Nothing you wrote is broken. Your range check is a
+    <em>condition</em>, and it runs every frame, so every frame it called your firing method and
+    the turret fired at your frame rate. Today you give it a memory: a field holding the moment
+    it last fired, and a condition that refuses to fire again until enough time has passed. The
+    fix has more than one honest answer, and you are going to pick one and defend it.
 </p>
+
+${renderAskBanner('how do I stop shooting too fast?', 2)}
+
+${renderDecompose('3.3', DECOMPOSE, 2)}
 
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
         <span class="activity-label">The Problem: An Action That Happens Too Often</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
     <p>
-        <strong>Rate limiting</strong> is a problem software has solved in every domain: a login
-        form that must not accept a thousand attempts a second, a printer that must not accept a
-        thousand jobs, a turret that must not fire a thousand bullets. The shape of the solution
-        is always the same — <em>remember when the last one happened, and refuse until enough
-        time has passed</em> — but the engine gives you several ways to remember.
+        <strong>Rate limiting</strong> is not a game problem. A login form must not accept a
+        thousand attempts a second; a printer must not accept a thousand jobs; a turret must not
+        fire a thousand bullets. The shape of the solution is the same everywhere —
+        <em>remember when the last one happened, and refuse until enough time has passed</em> —
+        and this course handed you every part of it in <a href="1.3.html">1.3</a>.
     </p>
     <p>
-        Before you pick one, notice what you <em>cannot</em> do. <code>Update()</code> is called
-        by the engine every frame; there is no way to make it "wait". Any pause you write has to
-        be a test that fails for a while, not a stop.
+        Press Play and stand inside a turret's radius for five seconds, but watch the Console
+        instead of the screen. Count the lines. That number is not something you wrote: it is how
+        often <code>Update()</code> ran. <strong>There is no way to make <code>Update()</code>
+        wait.</strong> Any pause you write has to be a test that fails for a while, not a stop —
+        and building that test is the whole of today.
+    </p>
+
+    <div class="callout">
+        <strong>Where this sits in your existing design.</strong> In <a href="3.1.html">3.1</a>
+        you made detection a <em>condition</em> that is re-evaluated every frame, not an event —
+        and you were told that would matter. Here it is. A condition that is true for sixty
+        consecutive frames runs whatever is inside it sixty times. Today's field is the memory
+        that turns that condition into an event.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: Four Ways to Time an Action</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        The engine gives you more than one way to remember when something last happened. Read all
+        four rows, including the last column — the column nobody reads is the one that decides
+        this for you. Then choose, and be ready to defend the choice.
     </p>
 
     <table>
@@ -46,7 +280,7 @@ const body = `<h1>3.3 — Fire Rate: Cooldowns &amp; Time</h1>
             <td><strong>(a) A <code>Time.time</code> timestamp</strong></td>
             <td>One float: the moment the last shot happened.</td>
             <td><code>Time.time &gt;= lastShot + cooldown</code></td>
-            <td>One line of state. Forgetting to write the new timestamp turns the gate permanently true — you get the frame-rate bug straight back. A timestamp is only meaningful against the same clock, so anything that pauses or resets time needs thought.</td>
+            <td>One line of state. Forgetting to write the new timestamp turns the gate permanently true — you get the frame-rate bug straight back. A timestamp is only meaningful against the same clock, so anything that pauses or resets time needs thought. Note also what it does <em>not</em> store: it remembers <strong>when</strong> the last one happened, not <strong>how many</strong> are owed. A second press inside the window is discarded, not queued.</td>
         </tr>
         <tr>
             <td><strong>(b) A countdown timer</strong></td>
@@ -64,7 +298,7 @@ const body = `<h1>3.3 — Fire Rate: Cooldowns &amp; Time</h1>
             <td><strong>(d) A coroutine loop</strong></td>
             <td>A running coroutine handle.</td>
             <td><code>while (true) { yield return new WaitForSeconds(t); }</code></td>
-            <td>The most powerful and the most readable for <em>sequences</em>, and the only one that expresses "charge, then burst, then rest" cleanly. It costs you a <code>StartCoroutine</code> call, a stored handle to stop it, and a second mental model of when your code runs.</td>
+            <td>The most powerful and the most readable for <em>sequences</em>, and the only one that expresses "charge, then burst, then rest" cleanly. It costs you a <code>StartCoroutine</code> call, a stored handle to stop it, and a second mental model of when your code runs. The <code>yield</code> is what makes it legal: it hands the frame back to the engine instead of holding it.</td>
         </tr>
     </table>
 
@@ -76,71 +310,23 @@ const body = `<h1>3.3 — Fire Rate: Cooldowns &amp; Time</h1>
         describe the behaviour. Rows (b) and (c) sit between them.
     </div>
 
-    <div class="callout">
-        <strong>Where this sits in your existing design.</strong> In <a href="3.1.html">3.1</a>
-        you made detection a <em>condition</em> that is re-evaluated every frame, not an event —
-        and you were told that would matter. Here it is. A condition that is true for sixty
-        consecutive frames will run whatever you put inside it sixty times. Today's field is the
-        memory that turns that condition into an event.
-    </div>
-
     <div class="socratic">
-        <h3>Socratic: Choosing a Timing Model</h3>
+        <h3>Choosing a Timing Model</h3>
         <ol>
             <li>Trace your own 3.2 build. If the player stood inside the radius for one second at 60 frames per second, how many projectile clones did <code>Instantiate</code> create — and which line of your code is responsible for that number?</li>
-            <li>Why can't you just call a "wait one second" function inside <code>Update()</code>? Describe what the player would see on screen during that wait, and explain why a game engine refuses to let you block the frame.</li>
+            <li>Why can't you call a "wait one second" function inside <code>Update()</code>? Describe what the player would see on screen during that wait, and explain why a game engine refuses to let you block the frame.</li>
             <li>Row (a) stores a <em>moment</em>; row (b) stores a <em>duration</em>. Which one can you print in the Console and have a player immediately understand, and which one is easier to compare against a designer's tuning value?</li>
             <li>Read the docs for <code>InvokeRepeating</code>. It has no idea where the player is. What has to move inside your firing method if you choose row (c), and what happens if you forget?</li>
-            <li>Row (d) is described as the tool for sequences rather than single actions. What behaviour in this game is a <em>sequence</em> rather than a single action — and which state machine do you think the boss in Unit 8 will need?</li>
+            <li>Row (d) is described as the tool for sequences rather than single actions. What behaviour in this game is a <em>sequence</em> rather than a single action — and which approach do you think the boss in Unit 8 will need?</li>
             <li>Which of the four approaches lets a designer change the fire rate from the Inspector without touching code? Which of them makes that rate hard to change while the game is running?</li>
+            <li>Your knob is <code>2</code> and your timestamp field was stamped at <code>12</code>. What is the earliest value of <code>Time.time</code> at which the gate opens?</li>
+            <li>Row (a) compares against <code>Time.time</code>; row (b) subtracts <code>Time.deltaTime</code> on every frame. Both measure a gap. Which of the two is tied to how often the frame runs — and which one reports the same wall-clock gap when the frame rate changes?</li>
         </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Read Function-Level Examples</span>
-        <span class="activity-time">~15 min</span>
-    </div>
-
-    <p>
-        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
-        your turret. None of these is from a video game.
-    </p>
-
-    <p><strong>Example 1 — A traffic signal honouring a minimum green time:</strong></p>
-    <pre><code>// The signal may not change until the clock has passed the minimum green window
-bool maySwitch = Time.time &gt;= greenStartedAt + minimumGreen;</code></pre>
-
-    <p><strong>Example 2 — A lighthouse counting down the dark between flashes:</strong></p>
-    <pre><code>// The lamp counts the darkness down; at zero it flashes and refills the counter
-darkTimer -= Time.deltaTime;
-if (darkTimer &lt;= 0f) { Flash(); darkTimer = flashInterval; }</code></pre>
-
-    <p><strong>Example 3 — A bakery conveyor glazing on a fixed cadence:</strong></p>
-    <pre><code>// Repeats one action on a schedule the engine holds, not the machine
-InvokeRepeating(nameof(SprayGlaze), 0f, 1.5f);</code></pre>
-
-    <p><strong>Example 4 — A stadium scoreboard running a timed sequence:</strong></p>
-    <pre><code>// Yield hands the frame back to the engine, then resumes this method later
-IEnumerator Announce() { yield return new WaitForSeconds(3f); ShowScore(); }</code></pre>
-
-    <p><strong>Example 5 — A pedestrian crossing button (comment only):</strong></p>
-    <pre><code>// A second press inside the debounce window is discarded, not queued.
-// The button remembers WHEN it was last pressed, not how many presses it owes.</code></pre>
-
-    <div class="socratic">
-        <h3>Predict Before Building</h3>
-        <ol>
-            <li>In Example 1, <code>greenStartedAt</code> was set to <code>12.0</code> and <code>minimumGreen</code> is <code>4.0</code>. What is the earliest value of <code>Time.time</code> at which <code>maySwitch</code> becomes true?</li>
-            <li>Example 1 compares against <code>Time.time</code> and Example 2 subtracts <code>Time.deltaTime</code>. Both measure a gap. Which one keeps working if the clock's meaning is different from frame count — and which one is tied to how often the frame runs?</li>
-            <li>Example 3 never asks whether anything is in range. If you copied that shape into your turret exactly, what would the turret do while the player is on the other side of the map?</li>
-            <li>Example 5 says the button remembers <em>when</em>, not <em>how many</em>. Which row of the timing table is that, and what does that tell you about the field you are about to add?</li>
-            <li>In Example 2, what happens if <code>darkTimer</code> is declared inside the method that runs each frame instead of as a field on the class? What value does it hold at the start of the next frame?</li>
-        </ol>
-    </div>
-</div>
+${renderWalkthrough(WALK)}
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
@@ -151,43 +337,49 @@ IEnumerator Announce() { yield return new WaitForSeconds(3f); ShowScore(); }</co
 
     <p>
         Open <code>Assets/Scripts/TurretController.cs</code> — the file you built in
-        <a href="3.1.html">3.1</a> and <a href="3.2.html">3.2</a>. Everything you need is already
-        there: a range knob, a cached target, a distance test, and a firing method that spawns a
-        projectile from the muzzle. What is missing is one field and one condition.
+        <a href="3.1.html">3.1</a> and <a href="3.2.html">3.2</a>. The walkthrough above built the
+        timestamp row step by step. If that is the row you chose, you already have it working,
+        and your remaining work is the knob's default and the proof at the bottom. If you chose
+        the countdown, the engine schedule or the coroutine, this is where you build
+        <em>yours</em>: the four decisions below are the same four for every row, and the
+        answers look nothing alike.
     </p>
 
     <div class="callout">
-        <strong>Architectural specification for the cooldown:</strong>
+        <strong>Architectural specification — for whichever row you chose.</strong>
 
-        <p><strong>The knob:</strong></p>
+        <p><strong>The knob (every row):</strong></p>
         <ul>
             <li>What serialized float lets a designer set the gap between shots from the Inspector without recompiling? What do you name it — and what does the name have to make obvious to a stranger reading your Inspector?</li>
-            <li>What default value will you ship? Justify it against the size of the Overworld and how fast your player moves. There is no correct answer in the project — there is only the answer you can defend.</li>
+            <li>What default value will you ship, and how do you justify it against the size of the Overworld and how fast your player moves? There is no correct answer in the project — only the answer you can defend.</li>
         </ul>
 
-        <p><strong>The memory:</strong></p>
+        <p><strong>The memory — the decision the four rows disagree about most:</strong></p>
         <ul>
-            <li>Which row of the table did you choose, and what single field does that row require? What type is it, and where does it live — inside <code>Update()</code> or on the class?</li>
-            <li>What should that field's starting value be so the turret can fire on the very first frame the player enters range? What happens to the first shot if you seed it wrongly?</li>
-            <li>If you chose the countdown, which line decrements the field, and does that line belong inside the range check or outside it? Argue both and pick.</li>
+            <li>Row (a) keeps a moment and row (b) keeps a duration. Which does yours keep, what type is that field, and what value does it start at?</li>
+            <li>Row (c) keeps nothing at all. So what plays the part of the memory in your build, and who owns it — you, or the engine?</li>
+            <li>Row (d) keeps a handle. What is the handle for, and what can you no longer do if you lose it?</li>
+            <li>Whatever your row, where does that state live — inside <code>Update()</code> or in the class body? Say what breaks if you get it wrong, using the word "frame" in your answer.</li>
         </ul>
 
-        <p><strong>The gate:</strong></p>
+        <p><strong>The gate — where the rows look least alike:</strong></p>
         <ul>
             <li>Which two conditions must <em>both</em> be true before the turret may fire? Which boolean operator expresses "both"?</li>
-            <li>Where exactly does the second condition attach to the range check you already wrote? Does the cooldown test belong inside the range test, or beside it?</li>
             <li>Read the docs on <code>&amp;&amp;</code> and short-circuit evaluation. If the player is out of range, does Unity bother evaluating the cooldown half at all?</li>
+            <li>Row (c) moved the timing out of your <code>Update()</code> and into the engine's schedule. What has to move <em>inside</em> the firing method if you chose it — and where is the turret shooting while the player stands on the other side of the map if you forget?</li>
+            <li>Row (d) put the wait inside a coroutine. What does the loop check before each wait, and where does the range check have to live now?</li>
         </ul>
 
-        <p><strong>The reset:</strong></p>
+        <p><strong>The reset — the line, or its equivalent, that closes the gate:</strong></p>
         <ul>
-            <li>What line must run at the instant the turret actually fires? Which of your fields does it change, and to what?</li>
-            <li>Predict what happens if you omit it, before you test. You have already seen that bug once today.</li>
+            <li>In your row, what happens at the instant the turret actually fires? Which of your fields changes, and to what?</li>
+            <li>Predict the failure for your own row before you test it — then test it and write down whether you were right.</li>
         </ul>
 
-        <p><strong>Proving it:</strong></p>
+        <p><strong>Proving it (every row):</strong></p>
         <ul>
-            <li>How do you report each shot to the Console so you can <em>count</em> the cadence without a UI? What would you time with a stopwatch to check the number?</li>
+            <li>How do you report each shot to the Console so you can <em>count</em> the cadence without a UI? What do you time with a stopwatch to check the number?</li>
+            <li>Which rows let a designer retune the rate while the game is running, and which make that hard? Test the claim you just made rather than asserting it.</li>
         </ul>
     </div>
 
@@ -231,6 +423,8 @@ IEnumerator Announce() { yield return new WaitForSeconds(3f); ShowScore(); }</co
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
+            <li>Break "the turret should not fire every frame" into its parts before you write any code</li>
+            <li>Name, for each of those parts, the earlier lesson you lifted it from</li>
             <li>Explain why your turret was firing once per frame, naming the line responsible</li>
             <li>Compare the four timing approaches and state what each one costs</li>
             <li>Say which approach you chose, and give a reason that is about <em>this</em> behaviour</li>
@@ -247,6 +441,7 @@ IEnumerator Announce() { yield return new WaitForSeconds(3f); ShowScore(); }</co
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — every question this course answers, in the words you would search with</li>
         <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — cooldowns and attack timing in depth</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>Time</code>, coroutines and logical operators</li>
     </ul>
