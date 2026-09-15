@@ -1,23 +1,97 @@
 ---
 // Lesson 3.4 — Projectile Damage, Tuning & Playtest
 // Closes the turret loop. The student discovers Turret_Projectile.prefab has
-// NO Collider2D and NO Rigidbody2D (same discovery as 2.1), adds one, chooses
-// trigger vs solid, detects the hit, applies damage through the health method
-// THEY built on PlayerController in 2.2, and destroys the bullet. Then they
-// define their own difficulty knobs and playtest.
+// NO Collider2D and NO Rigidbody2D (same discovery as 2.1), adds what their
+// chosen setup requires, detects the hit, applies damage through the health
+// method THEY built on PlayerController in 2.2, and destroys the bullet. Then
+// they define their own difficulty knobs and playtest.
+//
+// Scaffolding: OUTLINE ONLY (level 3). The spec and the API are given and no
+// code is. The student built the collider-and-tag pickup in 2.1, the signed
+// damage method in 2.2, the spawn-then-destroy lifecycle in 2.4 and 3.2, and
+// the cooldown in 3.3 — so this lesson names the file, the callback, the
+// decision and the cost, and stops there. The ask banner is the level marker:
+// a level-3 lesson must not render a walkthrough, and verify-site refuses one
+// that does.
+//
+// The old "Read Function-Level Examples" activity has been deleted (a hotel
+// door, a turnstile, a firework casing, a delivery driver, a paintball vest).
+// Five foreign-domain snippets stood in for the explanation at exactly the
+// moment the student should be writing their own file. The facts they carried
+// now live in the reference table's "what it costs" column, in the callout
+// info beneath it, and in the Predict Before Building socratic, which was kept
+// and rewritten without the snippets: a tag names the kind of thing you hit, a
+// component lookup is what tells you what that thing can do.
+//
 // GROUND TRUTH: StatManager.cs is still an EMPTY STUB - it is not used here.
-// Two Turret instances already exist in the Overworld; the difficulty values
-// are the student's own fields, not values that ship with the project.
+// Health lives as a field on PlayerController, where the student put it in 2.2.
+// The health method there is `private void TakeDamage(int amount)`; making it
+// callable from another script is part of today's work, and the reference table
+// says so. Two Turret instances already exist in the Overworld; the difficulty
+// values are the student's own fields, not values that ship with the project.
 import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The recurring three-beat block: split the problem, look each part up, connect
+// it to something already built. Level 3, so the renderer withholds what each
+// part DOES and asks the student to say it — the parts and their doc pointers
+// are the level-3 bargain. Every doc pointer here is either a lesson they have
+// finished or a row of this lesson's own reference table.
+const DECOMPOSE = {
+  big: 'My bullets should actually hurt the player, and the fight should be hard without being unfair.',
+  parts: [
+    {
+      name: 'Give the bullet a body',
+      does: 'The prefab ships as a Transform and a Sprite Renderer and nothing else. Add the collider your chosen setup needs, size it against the scaled sprite, and add the Rigidbody2D that setup requires — an overlap message needs a collider on both objects and a body on at least one of them.',
+      doc: '2.1 — Coins: Triggers, Tags & Your First Stat (the collider-and-trigger recipe), and the `Rigidbody2D` row of this lesson\'s reference table',
+      href: '2.1.html',
+    },
+    {
+      name: 'Detect the hit, and confirm what was hit',
+      does: 'A callback Unity calls on the frame the two shapes meet, plus the tag check that separates the player from a wall, the turret that fired you, or another bullet.',
+      doc: 'the `OnTriggerEnter2D`, `OnCollisionEnter2D` and `CompareTag` rows of this lesson\'s reference table',
+    },
+    {
+      name: 'Apply the damage through the health method you already wrote',
+      does: 'Reach the `PlayerController` on the object you hit with a component lookup, then call the signed-amount method from 2.2 with the sign that hurts, so the one method still serves both damage and healing.',
+      doc: '2.2 — Spikes: Physics, Damage & Death (the method you wrote there), and the `GetComponent` and public-method rows of this lesson\'s reference table',
+      href: '2.2.html',
+    },
+    {
+      name: 'Destroy the bullet',
+      does: 'Remove the bullet so one shot costs one hit — the same cleanup call 3.2 made on a timer, now triggered by a hit instead of a clock.',
+      doc: '3.2 — Projectiles: Instantiate, Fire, Destroy, and the `Destroy` row of this lesson\'s reference table',
+      href: '3.2.html',
+    },
+  ],
+  why: 'Three of these four parts are lessons you have already finished, and the fourth is the one genuinely new idea: until now, every script you wrote changed its own values. A bullet has to reach into a different object and ask that object to change its own number — which is a question about access, not about arithmetic.',
+  sizeTest: 'The split is finished when every part names something you could point at in the editor: a component on a prefab, a callback, a method on a script, a call. If a part needs the word "and" twice to describe it, it is two parts.',
+  turns: [
+    'Trigger or solid — which did you choose for the bullet, and what does that choice cost you? Name the checkbox and the callback name that have to agree, and what the Console does when they do not.',
+    'The projectile prefab is tagged `Enemy`, the same tag the turret that fired it carries. What will your callback actually test for, and on which object does it ask?',
+  ],
+  connect: [
+    '2.1 is this lesson in different clothes: confirm the thing that triggered was a coin, change the count, destroy the object. Which line of your 2.1 pickup is the same move as today\'s tag check, and which line is the same move as today\'s destroy?',
+    'In 2.2 you wrote a method on `PlayerController` that takes a signed amount and changes health. Until today, nothing outside that file ever called it. How does one object call a method on another — and what does that method have to be made into before the call can even be written?',
+    '3.2 already ended with a `Destroy` on the bullet. What is different about destroying it on a hit instead of on a timer, and what has to be true before the destroy line is allowed to run?',
+  ],
+};
 
 const body = `<h1>3.4 — Projectile Damage, Tuning &amp; Playtest</h1>
 
 <p class="lesson-lead">
-    Your turret sees you, aims, and fires on a timer. And every bullet passes cleanly through
-    your body, because the projectile is still just a picture. Today you close the loop —
-    collision, damage, cleanup — and then you take control of the numbers that decide whether
-    the encounter is tense or unfair.
+    Your turret sees you, aims, and fires on a timer — and every bullet passes cleanly through
+    your body, because the projectile is still just a picture. Today you close the loop: give
+    the bullet a body, detect the hit, apply damage through the method you already wrote, clean
+    up. Then you take control of the numbers that decide whether the encounter is tense or
+    unfair.
 </p>
+
+${renderAskBanner('how do I make my bullet hurt the player?', 3)}
+
+<!-- ============================================================ -->
+${renderDecompose('3.4', DECOMPOSE, 3)}
 
 <!-- ============================================================ -->
 <div class="activity discovery">
@@ -101,7 +175,7 @@ const body = `<h1>3.4 — Projectile Damage, Tuning &amp; Playtest</h1>
             <li>Which of the two scripts will you put the hit check in, and what does that choice cost you later when the game has arrows, boss lasers and a flamethrower?</li>
             <li>A bullet that stops the player dead like a brick wall would be miserable to play against. Which of the three bullet setups avoids that, and what is the exact checkbox responsible?</li>
             <li>The projectile prefab is tagged <code>Enemy</code>, just like the turret and the mobile enemy. Given that, how will a bullet ever know it hit the <em>player</em> — whose tag will you actually test, and on which object?</li>
-            <li>Your player's health method from 2.2 takes a <em>signed</em> amount. What number do you pass to hurt them, and what would happen if you passed the positive value by mistake?</li>
+            <li>Your player's health method from 2.2 takes a <em>signed</em> amount. Which sign hurts — check the arithmetic in your own method rather than guessing — and what would happen if you passed the other one by mistake?</li>
             <li>What happens if you never call <code>Destroy</code> on the bullet? Describe the scene after a two-minute firefight and name the two systems that suffer first.</li>
             <li>A bullet in flight is a hazard even after it has left the turret's range. Is that correct behaviour for this game, or should a bullet stop mattering when the turret loses track of you? Argue it.</li>
         </ol>
@@ -111,44 +185,102 @@ const body = `<h1>3.4 — Projectile Damage, Tuning &amp; Playtest</h1>
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Read Function-Level Examples</span>
+        <span class="activity-label">Read the Docs: The API for Landing a Hit</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Read each snippet for what it does <em>in isolation</em>, then work out how it maps onto
-        your bullet. None of these is from a video game.
+        This is the level-3 substitute for a walkthrough. The API is laid out below and the code
+        is not: you write the file. Between them, these rows are the whole job — a callback, a
+        tag check, a lookup, a call, a destroy, and two declarations. Every one of them costs
+        something, so name the cost before you pick; otherwise you are not choosing, you are
+        guessing.
     </p>
 
-    <p><strong>Example 1 — A hotel door that only answers to one credential:</strong></p>
-    <pre><code>// Everything that touches the reader arrives here; only one class of thing matters
-if (other.CompareTag("Player")) { RegisterArrival(); }</code></pre>
+    <table>
+        <tr><th>API</th><th>Signature</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>OnTriggerEnter2D</code></td>
+            <td><code>void OnTriggerEnter2D(Collider2D other)</code> — a callback. Unity calls it; you never do.</td>
+            <td>Fires on the first frame two shapes overlap, with <em>Is Trigger</em> ticked on at least one of them. The parameter is the <em>other</em> object's collider.</td>
+            <td>Triggers only, and it fires once per entry — the shapes have to separate and meet again for a second message. A misspelling in the name is not an error; it is silence.</td>
+        </tr>
+        <tr>
+            <td><code>OnCollisionEnter2D</code></td>
+            <td><code>void OnCollisionEnter2D(Collision2D collision)</code> — a callback</td>
+            <td>Fires the moment two solid colliders meet, provided one of the two objects carries a <strong>Dynamic</strong> body. The parameter is the <em>other</em> object's collision.</td>
+            <td>A different parameter type, so the tag is asked of <code>collision.gameObject</code> rather than the collider itself. A solid bullet is an obstacle: it shoves a Dynamic player instead of passing through. And a Kinematic body produces no contact message against a static collider at all — it passes through walls in silence.</td>
+        </tr>
+        <tr>
+            <td><code>Collider2D.CompareTag</code></td>
+            <td><code>bool CompareTag(string tag)</code></td>
+            <td>Asks the engine whether that object carries the tag. One check, and you know what kind of thing you hit.</td>
+            <td>Exact spelling, and the tag has to exist in the project first. It must be asked of the object that carries the collider — <code>other.gameObject</code> or <code>collision.gameObject</code> — never of the script the callback lives on.</td>
+        </tr>
+        <tr>
+            <td><code>GetComponent&lt;T&gt;()</code></td>
+            <td><code>T GetComponent&lt;T&gt;()</code>, called on a GameObject or a component</td>
+            <td>The component of that type on the object you call it on — here, the <code>PlayerController</code> that owns the health. A tag names the kind of thing; this is what tells you what it can <em>do</em>.</td>
+            <td>It is a search, and it returns <code>null</code> when the type is not there. The plain version does not look at children, so the component has to sit on the object you actually touched. <code>InParent</code> and <code>InChildren</code> variants exist and cost you a slower search.</td>
+        </tr>
+        <tr>
+            <td>Calling a public method on another component</td>
+            <td><code>player.TakeDamage(damage);</code> — a call on a reference to another script, not a member of this class. The name is whatever you called yours in 2.2.</td>
+            <td>Hands the problem to the object that owns the data: the bullet never touches the health number, it only asks.</td>
+            <td>The method you wrote in 2.2 is declared <code>private</code>, so nothing outside <code>PlayerController</code> can see it yet. Widening it to <code>public</code> is part of today's work — and everything public becomes part of your game's interface, which is a promise to every future caller. Read your own method before you pass a number: a sign that is backwards is not a compiler error, it is a heal.</td>
+        </tr>
+        <tr>
+            <td><code>Destroy(Object)</code></td>
+            <td><code>void Destroy(Object obj)</code></td>
+            <td>Removes the object at the end of the frame — the same cleanup 3.2 used on a timer, now on a hit.</td>
+            <td>It is final, and it is deferred: the object is still alive for the rest of the frame, which is why a hit can be counted twice if you do not also stop the callback from running again.</td>
+        </tr>
+        <tr>
+            <td><code>[SerializeField] private int</code></td>
+            <td>A field declaration, not a call — the form you have used since 1.3. Class body, never inside a method. The name and the starting value are yours to choose.</td>
+            <td>A named value that survives every frame and appears in the Inspector as the designer's tuning knob for how punishing one hit is.</td>
+            <td>The type has to match the parameter of the method you call. <code>TakeDamage(int amount)</code> takes an <code>int</code>, so a <code>float</code> knob cannot be passed without a conversion the compiler will refuse.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D</code></td>
+            <td>A component you add to an object, not a call</td>
+            <td>The component that puts an object into the physics simulation. A trigger pair reports nothing unless one of the two objects carries one — which is why your choice in the first table decides whether the bullet needs a body at all.</td>
+            <td>A Dynamic body obeys gravity and is stopped by walls. Adding one changes what the bullet <em>does</em>, not merely whether it is detected — so buy it only if the setup you chose asks for it, and set its Gravity Scale deliberately.</td>
+        </tr>
+        <tr>
+            <td><code>Debug.Log(object)</code></td>
+            <td><code>void Debug.Log(object message)</code></td>
+            <td>Prints to the Console — the only feedback this game has until Unit 5.</td>
+            <td>Text only, and it prints when <em>you</em> call it. A hit that lands and changes nothing prints nothing unless you print it yourself.</td>
+        </tr>
+    </table>
 
-    <p><strong>Example 2 — A theme-park turnstile deducting ride credit:</strong></p>
-    <pre><code>// One method handles both directions: a negative amount spends, a positive one refunds
-wallet.AdjustCredit(-rideCost);</code></pre>
-
-    <p><strong>Example 3 — A spent firework casing removing itself:</strong></p>
-    <pre><code>// The casing destroys itself so it can never be counted a second time
-Destroy(gameObject);</code></pre>
-
-    <p><strong>Example 4 — A delivery driver reaching the person behind the door:</strong></p>
-    <pre><code>// Find the script on the thing you touched, then hand the problem to it
-TicketHolder holder = other.GetComponent&lt;TicketHolder&gt;();
-if (holder != null) { holder.Charge(2); }</code></pre>
-
-    <p><strong>Example 5 — A paintball vest (comment only):</strong></p>
-    <pre><code>// The vest is a sensor, not a wall. It exists to notice a hit that already
-// happened and report it - it never pushes the player anywhere.</code></pre>
+    <div class="callout info">
+        <strong>Four facts a signature cannot carry.</strong> First, the callback is silent about
+        your mistakes: leave the collider off, mistype the method name, or tick the wrong
+        checkbox, and the Console stays empty — "no error at all" is the hardest bug in this unit
+        to find, which is why you check the component before you check the code. Second, the tag
+        check is the first filter and the component lookup is the second: the only objects that
+        reach the lookup are the ones your tag already let through, and a lookup that finds
+        nothing hands you <code>null</code> rather than stopping the script, so every line below
+        it has to be written as though the lookup succeeded. Third, the player's health lives on
+        <code>PlayerController</code> and nowhere else — that is where you put it in
+        <a href="2.2.html">2.2</a>, and the method that changes it is still private until you
+        widen it. Fourth, the health method takes a <em>signed</em> amount on purpose, and the
+        sign is decided by your own arithmetic rather than by convention: read the line in your
+        method that changes health, work out which sign <em>hurts</em>, and pass that one. The
+        same method then serves the spike, the bullet, and any healing source you add later,
+        because a signed amount can travel in both directions.
+    </div>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>Example 1 tests a tag; Example 4 fetches a script. Which one can tell you <em>what kind of thing</em> you hit, and which can tell you what that thing can <em>do</em>? Which do you need for damage?</li>
-            <li>In Example 4, what happens on the next line if <code>holder</code> is null and you skip the guard? What does that error look like in the Console, and which line does it point at?</li>
-            <li>Example 2 passes a negative number to mean "take". Your health method works the same way — so why is one signed method better than separate <code>Heal</code> and <code>Hurt</code> methods, and who will be calling it in Unit 5?</li>
-            <li>Example 3 destroys <code>gameObject</code>. In your hit callback, <code>gameObject</code> and <code>other.gameObject</code> are two different objects. Which one is the bullet, and what would you accidentally destroy if you got it backwards?</li>
-            <li>Example 5 says the vest never pushes the player. Which of the three bullet setups in the docs behaves like the vest, and which behaves like a wall?</li>
+            <li>A tag check tells you what <em>kind</em> of thing you hit; a component lookup tells you what that thing can <em>do</em>. Which one do you need before you can hurt the player — and could today's callback be written with only the other one?</li>
+            <li>The lookup hands back <code>null</code> when the object you hit carries no such component. What does the next line do with that <code>null</code> if you skip the guard, what does the Console point at, and why is the error message a worse teacher than the guard would have been?</li>
+            <li>Your health method takes a signed amount. Who will call that same method in Unit 5, when a pickup starts healing you — and what would separate <code>Heal</code> and <code>Hurt</code> methods have cost you then?</li>
+            <li>Inside the callback, the object your script sits on and the object you collided with are two different things. Which one do you destroy, and what would you be deleting by mistake if you got it backwards?</li>
+            <li>A bullet has to report a hit without shoving the player anywhere. Which setup in the first table behaves like that, and which checkbox is responsible?</li>
         </ol>
     </div>
 </div>
@@ -161,39 +293,52 @@ if (holder != null) { holder.Charge(2); }</code></pre>
     </div>
 
     <p>
-        <strong>Step 1 — give the bullet a shape.</strong> Open the
-        <code>Turret_Projectile</code> prefab and add the collider you chose. Size it and check it
-        against the sprite in the Scene view, remembering that the sprite is scaled and may sit on
-        a child object. Set <strong>Is Trigger</strong> deliberately, not by default.
+        This one is on you, and there is no code in this section on purpose. A collider and a
+        trigger are 2.1, a method that changes health is 2.2, a clone that destroys itself is 3.2,
+        and a tag check is all three. What is new is the <em>decision</em> — and the specification
+        below names the component, the callback, the method and the question to answer. The
+        reference table names the API. The rest is yours.
     </p>
 
     <div class="callout">
-        <strong>Architectural specification for <code>Projectile.cs</code>:</strong>
-
-        <p><strong>The damage knob:</strong></p>
+        <strong>Architectural specification: the body.</strong>
         <ul>
-            <li>What serialized field lets a designer decide how punishing one hit is? What type <em>must</em> it match to work with the health method you wrote in 2.2?</li>
-            <li>What default do you ship, given the player's starting health? Justify the ratio, not just the number.</li>
+            <li>Which of the three setups in the first table did you choose — trigger, solid, or trigger plus a body — and what exactly does each one add to <code>Turret_Projectile</code>? Write your choice down before you open the prefab.</li>
+            <li>The prefab carries a Transform and a Sprite Renderer and nothing else. Which of the two missing components does <em>your</em> choice actually require — and which object in the pair is going to carry the Rigidbody2D, the bullet you are editing or the player who has had one since <a href="2.2.html">2.2</a>? Check both Inspectors before you answer, and say what your answer costs you per shot.</li>
+            <li>Open the <code>Turret_Projectile</code> prefab. The sprite is scaled and may sit on a child object — how do you size the collider so it matches what the player sees, and how do you confirm that in the Scene view rather than by guessing?</li>
+            <li>Is <em>Is Trigger</em> ticked or not? State it deliberately, out loud. The checkbox and the callback name have to agree, and the Console will not tell you when they do not.</li>
         </ul>
+    </div>
 
-        <p><strong>The hit callback:</strong></p>
+    <div class="callout">
+        <strong>Architectural specification: the hit.</strong>
         <ul>
-            <li>Which callback method receives the message — and does the name depend on whether you ticked <em>Is Trigger</em>? What is the parameter's type in each case?</li>
-            <li>How do you confirm you hit the player, and why is a tag check the right first filter rather than testing for a script straight away?</li>
-            <li>How do you get from the thing you collided with to the health method on <code>PlayerController</code>? Which <code>GetComponent</code> family call do you need — plain, <code>InParent</code>, or <code>InChildren</code> — and why?</li>
-            <li>What guard check protects you if the object you hit carries no <code>PlayerController</code> at all? What would happen without it?</li>
+            <li>Which callback method receives the message — and does its name depend on the checkbox you just set? What is the parameter's type in each case?</li>
+            <li>Which object's tag do you ask about, and which property carries it in each of the two callbacks?</li>
+            <li>What tag does the player actually carry, and where do you verify that rather than assume it?</li>
+            <li>Which lookup gets you from the object you hit to the script that owns the health — plain, <code>InParent</code>, or <code>InChildren</code>? Why is the plain one the right call here?</li>
+            <li>Why is the tag check the first filter, rather than looking for the script straight away? Say what each of the two checks actually tells you.</li>
         </ul>
+    </div>
 
-        <p><strong>Applying the damage:</strong></p>
+    <div class="callout">
+        <strong>Architectural specification: the damage.</strong>
         <ul>
-            <li>Which method do you call, and what sign is the number you pass? Say out loud what a positive value would do instead.</li>
+            <li>Which method do you call on the player, and which sign is the number you pass? Read the line in your own method that changes health before you answer — then say out loud what the other sign would do instead.</li>
+            <li>That method is <code>private</code> in the file you wrote in <a href="2.2.html">2.2</a>. What has to change in <code>PlayerController.cs</code> before another script can call it at all — and what does making it public commit you to for the rest of the year?</li>
+            <li>What guard protects the call when the lookup came back <code>null</code>, and what does the Console show without it?</li>
+            <li>Your damage knob is a serialized field on the bullet. What type <em>must</em> it match to work with the health method, and what default do you ship given the player's starting health? Justify the ratio, not just the number.</li>
             <li>What message do you print so you can watch the health change with no UI at all?</li>
         </ul>
+    </div>
 
-        <p><strong>Cleanup:</strong></p>
+    <div class="callout">
+        <strong>Architectural specification: the cleanup.</strong>
         <ul>
-            <li>Which object gets destroyed — the bullet or the player? What happens to the player's health if you get it wrong?</li>
-            <li>Where in the callback does the destroy line go: before or after the damage? What happens if the bullet survives a frame while still inside the player?</li>
+            <li>Which object gets destroyed — the bullet, the player, or the object you hit? What happens to your health if you destroy the wrong one?</li>
+            <li>Where in the callback does the destroy line go: before the damage, or after it? What happens if the bullet survives a frame while still inside the player?</li>
+            <li>3.2 ended with this same call on a timer. Why does the bullet need both a lifetime <em>and</em> this line — what is each one for, and which would you lose first?</li>
+            <li>What is sitting in the Hierarchy after a two-minute firefight if you never write the destroy line at all — and which two systems in your game slow down first?</li>
         </ul>
     </div>
 
@@ -209,8 +354,92 @@ if (holder != null) { holder.Charge(2); }</code></pre>
         Save, wire nothing new, and press Play. Stand in front of a turret and let it shoot you.
         Your health number should fall by exactly your damage knob, the bullet should vanish, and
         when health reaches zero your death rule from 2.2 should fire. If the Console is silent,
-        check the collider before you check the code.
+        check the collider before you check the code — and check the tag spelling before you
+        check the collider.
     </p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: The Difficulty Knobs</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Difficulty is not a feeling, it is a short list of numbers — and the numbers are not
+        Unity's, they are <em>yours</em>. Every field in the table below is one you declared in
+        this unit: the range you exposed in <a href="3.1.html">3.1</a>, the timing field you
+        chose a method for in <a href="3.3.html">3.3</a>, the speed and the damage knob on the
+        projectile. There are <strong>no correct values in this project</strong>, so the standard
+        is not "right" — it is the player experience you can defend in one sentence.
+    </p>
+
+    <table>
+        <tr><th>The knob</th><th>Where your field lives</th><th>What it controls</th><th>Tense, and fair</th><th>Unfair</th><th>Your value</th></tr>
+        <tr>
+            <td><strong>Detection range</strong></td>
+            <td>the field you exposed in <code>TurretController.cs</code> in 3.1</td>
+            <td>How much of the map is a danger zone.</td>
+            <td>The player can see the turret before the turret sees the player.</td>
+            <td>The first hit is always a surprise, and evasion looks impossible.</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><strong>Fire cooldown</strong></td>
+            <td>the field your chosen timing method guards in <code>TurretController.cs</code></td>
+            <td>The gap the player gets between shots.</td>
+            <td>There is a beat between shots to move in.</td>
+            <td>A bullet hose with no room to dodge.</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><strong>Projectile speed</strong></td>
+            <td>the field on <code>Projectile.cs</code> from 3.2</td>
+            <td>How much reaction time the player has.</td>
+            <td>Dodgeable by a player who is watching.</td>
+            <td>Faster than a human can react — the hit lands before the decision does.</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><strong>Damage</strong></td>
+            <td>the <code>[SerializeField]</code> knob you declared today</td>
+            <td>How punishing one mistake is, out of the player's total health.</td>
+            <td>A mistake the player can recover from and learn from.</td>
+            <td>One mistake ends the run, so there is no lesson in it.</td>
+            <td></td>
+        </tr>
+    </table>
+
+    <p>
+        There is a fifth knob, and nobody hands it to you: the one <em>you</em> invent. Look at
+        your own <code>Projectile.cs</code> and <code>TurretController.cs</code> and find a
+        number you could add that would change how the encounter feels — a muzzle offset, a
+        lifetime, a spread. Name it, declare it as a serialized field, and put it in the table
+        above with your own two adjectives next to it.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: build three turret personalities.</strong>
+        The Overworld scene already contains <strong>two</strong> Turret instances — count them in
+        the Hierarchy before you assume anything. If you want a third personality, duplicate one
+        of the existing two (Ctrl+D); that gives you three. Do not duplicate both.
+        <ul>
+            <li>Which of the two existing turrets will keep its current numbers, and where in the scene does it sit?</li>
+            <li>For each personality you build, write down every value <em>before</em> you type it, and say what player experience you are aiming at in one sentence.</li>
+            <li>Inspector values on an instance override the prefab's values. Where do your personality numbers live — on the prefab, or on the instance in the Overworld? What happens to the other instance if you edit the prefab instead?</li>
+            <li>Does a personality need to be a different <em>prefab</em>, or just a different set of numbers on an instance? What does your answer cost you when you want to reuse a personality in another scene?</li>
+            <li>Which of your three personalities is the one you would hand a first-time player first, and which number would you change to prove it?</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: Silent Bullets</span>
+        <span class="activity-time">~15 min</span>
+    </div>
 
     <div class="bug-hunt">
         <h3>Bug Hunt: Silent Bullets</h3>
@@ -222,66 +451,6 @@ if (holder != null) { holder.Charge(2); }</code></pre>
             <li>Set your damage knob to match the player's full starting health. What is the encounter now — and why is a one-hit kill a design statement rather than a bug?</li>
             <li>Delete the tag check and let the bullet damage anything it touches. What would go wrong the day the player can shoot back, and why is a whitelist safer than a blacklist here?</li>
         </ol>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Read the Docs: The Difficulty Knobs</span>
-        <span class="activity-time">~15 min</span>
-    </div>
-
-    <p>
-        Difficulty is not a feeling, it is a small set of numbers you now own. There are
-        <strong>no correct values in this project</strong> — only the ones you choose, and the
-        player experience they produce. Fill in the right-hand column with your own numbers as
-        you go.
-    </p>
-
-    <table>
-        <tr><th>Knob (and which script owns it)</th><th>What it controls</th><th>Low value feels like</th><th>High value feels like</th><th>Your value</th></tr>
-        <tr>
-            <td><strong>Detection range</strong> (<code>TurretController</code>)</td>
-            <td>How much of the map is a danger zone.</td>
-            <td>A close-quarters sentry you can walk around.</td>
-            <td>A sniper that owns the open ground.</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td><strong>Fire cooldown</strong> (<code>TurretController</code>)</td>
-            <td>The gap the player gets between shots.</td>
-            <td>A bullet hose with no room to dodge.</td>
-            <td>Long, tense waits between single shots.</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td><strong>Projectile speed</strong> (<code>Projectile</code>)</td>
-            <td>How much reaction time the player has.</td>
-            <td>Slow enough to walk around.</td>
-            <td>Faster than a human can react.</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td><strong>Damage</strong> (<code>Projectile</code>)</td>
-            <td>How punishing one mistake is, out of the player's total health.</td>
-            <td>Chip damage they can ignore.</td>
-            <td>A mistake that ends the run.</td>
-            <td></td>
-        </tr>
-    </table>
-
-    <div class="callout">
-        <strong>Architectural specification: build three turret personalities.</strong>
-        The Overworld scene already contains <strong>two</strong> Turret instances — count them in
-        the Hierarchy before you assume anything. If you want a third personality, duplicate one
-        of the existing two (Ctrl+D); that gives you three. Do not duplicate both.
-        <ul>
-            <li>Which of the two existing turrets will keep its current numbers, and where in the scene does it sit?</li>
-            <li>For each personality you build, write down the four values <em>before</em> you type them, and say what player experience you are aiming at in one sentence.</li>
-            <li>Inspector values on an instance override the prefab's values. Where do your personality numbers live — on the prefab, or on the instance in the Overworld? What happens to the other instance if you edit the prefab instead?</li>
-            <li>Does a personality need to be a different <em>prefab</em>, or just a different set of numbers on an instance? What does your answer cost you when you want to reuse a personality in another scene?</li>
-        </ul>
     </div>
 </div>
 
@@ -319,9 +488,11 @@ if (holder != null) { holder.Charge(2); }</code></pre>
             <li>Explain what the projectile prefab was missing and why no message ever fired</li>
             <li>Defend your choice of trigger versus solid, and say which callback name each one requires</li>
             <li>Explain how a bullet reaches the player's health method, and why the null guard matters</li>
-            <li>Explain why the damage amount is negative, and what a positive value would do</li>
+            <li>Explain which sign of the number hurts, why it is that sign in your own method, and what the other sign would do</li>
             <li>Name the four difficulty knobs, where each one lives, and your value for each</li>
             <li>Say how many turrets the scene shipped with, and how many you added</li>
+            <li>Break this feature into parts small enough to look each one up on its own, and say in one line what each part does</li>
+            <li>Say which earlier lesson each part of this feature came from, and where you would reread it</li>
             <li>Run a silent playtest and make one evidence-based change</li>
             <li>Commit and push</li>
         </ul>
@@ -333,6 +504,7 @@ if (holder != null) { holder.Charge(2); }</code></pre>
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
         <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — the complete turret system</li>
         <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the hit detection reference, reused here</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — triggers, tags and <code>GetComponent</code></li>

@@ -385,7 +385,14 @@ if (!fs.existsSync(askSrcPath)) {
         }
       }
 
-      if (!askLessons.includes(id)) fail(id + ' has a walkthrough but no "How do I…?" entry pointing at it');
+      // Every lesson on the ladder must be findable from the question index —
+      // not just the ones that happen to render a walkthrough. A student who
+      // cannot find the lesson cannot reread it, and src/data/asks.ts is the
+      // only complete map of what each lesson is designed to give. Keeping it
+      // complete is also what stops the rollout plan living in somebody's head.
+      if (!askLessons.includes(id)) {
+        fail(id + ' declares a ladder level but has no "How do I…?" entry pointing at it (src/data/asks.ts)');
+      }
     }
     const groupCount = (askSrc.match(/title:\s*'/g) ?? []).length;
     const ladder = [1, 2, 3, 4]
@@ -456,11 +463,59 @@ if (!fs.existsSync(askSrcPath)) {
 
       // Beat three never decays, at any level — that is the point of the
       // sequence, so a missing connection question is a real failure.
-      if (!html.includes('class="dc-connect"')) {
+      // The block emits no nested divs, so the first </div> closes it.
+      const connectBlock = html.match(/class="dc-connect"([\s\S]*?)<\/div>/);
+      if (!connectBlock) {
         fail(id + ' decompose block has no "connect it to something you already built" beat');
       }
       const boxes = (html.match(/data-block="decompose"/g) ?? []).length;
       if (boxes === 0) fail(id + ' decompose block asks nothing — no answer box to discuss in');
+      // ...and beat three in particular has to collect something. It is the one
+      // beat that never decays, so at level 4 it is the ONLY thing still being
+      // asked — a level-4 lesson whose connection is rhetorical has nothing
+      // left in the block at all.
+      if (connectBlock && !connectBlock[1].includes('data-block="decompose"')) {
+        fail(id + '"connect it" beat talks about prior work but gives no box to write it in');
+      }
+
+      // Every prompt in the block has to be answerable. Note this is NOT a
+      // "must contain a question mark" test: "Pick two of the parts above and
+      // say in one line what each one actually does" is a good discussion
+      // prompt and contains no '?'. What this catches is an empty or stub
+      // prompt — a box the student cannot possibly know how to fill.
+      for (const m of html.matchAll(/data-block="decompose"[^>]*data-question="([^"]*)"/g)) {
+        if (m[1].trim().length < 20) {
+          fail(id + ' decompose block has a stub prompt: "' + m[1] + '"');
+        }
+      }
+
+      // The whole point of the third beat is activating PRIOR knowledge, so a
+      // lesson may point back but never forward — "in 4.1 you did this" in
+      // Unit 2 sends a student to a lesson that does not exist yet.
+      //
+      // Only the connect beat is checked. The body of a lesson may legitimately
+      // say "next lesson we will...", and that is a preview rather than a claim
+      // about prior knowledge; the block whose whole job is to say "you have
+      // done this before" is the one that must not point at an unseen lesson.
+      // The lookahead drops a decimal that is really a number: `1.5f` must not
+      // read as lesson 1.5.
+      const self = id.match(/^(\d+)\.(\d+)/);
+      if (self && connectBlock) {
+        const seen = new Set();
+        for (const m of connectBlock[1].matchAll(/\b(\d{1,2}\.\d)(?![\w])/g)) seen.add(m[1]);
+        for (const ref of seen) {
+          if (!lessonIds.includes(ref)) continue; // not a lesson reference
+          const other = ref.match(/^(\d+)\.(\d+)/);
+          if (!other) continue;
+          const ahead =
+            Number(other[1]) > Number(self[1]) ||
+            (Number(other[1]) === Number(self[1]) && Number(other[2]) > Number(self[2]));
+          if (ahead) {
+            fail(id + ' points forward to lesson ' + ref + ' in its "connect it" beat — ' +
+              'prior knowledge only, the student has not been there yet');
+          }
+        }
+      }
 
       // the banner and the block must agree about the rung
       const bannerL = html.match(/class="ask-banner" data-scaffold="([1-4])"/);

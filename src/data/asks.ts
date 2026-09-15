@@ -95,6 +95,7 @@ export const ASK_GROUPS: AskGroup[] = [
       { q: 'how do I shoot a projectile?', lesson: '3.2', note: 'Instantiate, direction vectors, and Destroy.', level: 4 },
       { q: 'how do I make an object disappear?', lesson: '3.2', note: 'Destroy, and the difference between hiding something and removing it.', level: 4 },
       { q: 'how do I stop shooting too fast?', lesson: '3.3', note: 'Cooldowns with Time.time — the interval pattern from 1.3, reused.', level: 2 },
+      { q: 'how do I make my bullet hurt the player?', lesson: '3.4', note: 'Putting a body on a moving object, detecting the hit, and calling a method on another script.', level: 3 },
       { q: 'how do I make an enemy chase me?', lesson: '4.3', note: 'An aggro radius, and moving toward a target you did not choose.', level: 4 },
       { q: 'how do I make an enemy follow a patrol route?', lesson: '4.1', note: 'Waypoints, and a state that runs without you.', level: 2 },
     ],

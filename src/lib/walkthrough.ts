@@ -167,11 +167,22 @@ function renderStep(step: Step, index: number): string {
       const body = l.blank
         ? '<span class="wt-gap">' + esc(l.code.trim() === '' ? '________________' : l.code) + '</span>'
         : esc(l.code);
-      return '<span class="' + cls.join(' ') + '"><span class="wt-ln">' + n + '</span>' + body + '</span>';
+      // The line number is carried in data-n and drawn by CSS (see .wt-line
+      // ::before in public/style.css). It is decoration: on screen it sits in
+      // the gutter, but in the TEXT it is absent, so copying a step out of the
+      // page gives you the code and not "1using UnityEngine;23public class".
+      return '<span class="' + cls.join(' ') + '" data-n="' + n + '">' + body + '</span>';
     })
-    // Joined with NO newline: .wt-line is display:block, so each line breaks
-    // on its own. A literal newline here would render as a blank line.
-    .join('');
+    // Joined with a real newline, so the source reads one line per line.
+    // .wt-line is display:block, so the browser breaks lines with or without
+    // it — but anything that reads the TEXT rather than the rendered page (a
+    // copy-paste, a text extract, a screen reader) has no CSS, and without
+    // these newlines the whole file arrives as one unbroken line.
+    //
+    // The container is <pre>, so a newline between two .wt-line spans would
+    // otherwise render as a visible blank line; .wt-code > code sets
+    // white-space:normal to collapse it. See public/style.css.
+    .join('\n');
 
   const annots = step.lines
     .map((l, i) => ({ line: l, n: i + 1 }))
@@ -187,7 +198,9 @@ function renderStep(step: Step, index: number): string {
       out += '</li>';
       return out;
     })
-    .join('');
+    // One annotation per line in the source too. This <ol> is not a <pre>, so
+    // the newline collapses on screen and costs nothing.
+    .join('\n');
 
   return (
     '<div class="wt-step">' +
@@ -235,26 +248,31 @@ export function renderWalkthrough(spec: WalkthroughSpec): string {
 
   const finalCode = '<pre class="wt-code wt-code-full"><code>' + esc(spec.finalFile ?? '') + '</code></pre>';
 
-  // At level 2 and above the answer key is a deliberate act to open. It is
-  // never removed: a student who missed class still has to be able to catch
-  // up alone. But a gap you can see the answer to without deciding to look is
-  // not a gap. See the ladder note in the module comment.
+  // The answer key is a deliberate act to open, at EVERY level — including
+  // level 1. It is never removed: a student who missed class still has to be
+  // able to catch up alone, and the whole reason every line is written down
+  // the first time is so that it can be found again later. But it is never
+  // lying open at the bottom of the page either.
+  //
+  // This was wrong in the first cut: the gate was applied at level 2 and up,
+  // which is exactly backwards. Level 1 is the lesson with no gaps at all, so
+  // a student who is going to paste has the least to lose by skipping to the
+  // bottom — and that is the newest student in the course. A block of code
+  // sitting open at the end of the page with "do not paste this in" written
+  // above it is not a warning, it is a target.
+  const finalPeek = spec.level === 1
+    ? 'build it as you read &mdash; then open this to check every line'
+    : 'try every gap first &mdash; then open this to compare';
   const finalFile = !spec.finalFile
     ? ''
-    : spec.level === 1
-      ? '<div class="wt-final">' +
-        '<h4>Check your work: the finished file</h4>' +
-        '<p class="wt-lead">' + finalNote + '</p>' +
-        finalCode +
-        '</div>'
-      : '<details class="wt-final wt-gated">' +
-        '<summary>' +
-        '<span class="wt-gated-title">Check your work: the finished file</span>' +
-        '<span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span>' +
-        '</summary>' +
-        '<p class="wt-lead">' + finalNote + '</p>' +
-        finalCode +
-        '</details>';
+    : '<details class="wt-final wt-gated">' +
+      '<summary>' +
+      '<span class="wt-gated-title">Check your work: the finished file</span>' +
+      '<span class="wt-gated-peek">' + finalPeek + '</span>' +
+      '</summary>' +
+      '<p class="wt-lead">' + finalNote + '</p>' +
+      finalCode +
+      '</details>';
 
   const blanks = countBlanks(spec);
   const gapLine = blanks
