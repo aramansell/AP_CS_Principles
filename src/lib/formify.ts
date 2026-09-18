@@ -3,7 +3,7 @@
  * discovery blocks (bug hunts, socratic checkpoints) into a fillable lab form.
  *
  * Every question paragraph / list item gets a textarea with a stable,
- * deterministic id (`1.1:tk1:q2` = lesson 1.1, first tinker block,
+ * deterministic id (`1.1:sc1:q2` = lesson 1.1, first socratic block,
  * second question). The question text rides along in a data attribute so
  * the downloaded JSON is self-describing for the teacher; an autoscored
  * grader that matches answers against src/data/answerKeys.ts by id is a
@@ -102,9 +102,9 @@ function field(qid: string, block: string, question: string): string {
 }
 
 /**
- * Inject answer boxes into every bug-hunt / tinker / socratic block of a
- * lesson body. Pure string transform — safe to run on the verbatim
- * migrated HTML (blocks contain no nested divs; verified site-wide).
+ * Inject answer boxes into every bug-hunt / socratic block of a lesson body.
+ * Pure string transform — safe to run on the verbatim migrated HTML (blocks
+ * contain no nested divs; verified site-wide).
  */
 export function formify(body: string, lessonId: string): FormifyResult {
   const counters: Record<string, number> = {};

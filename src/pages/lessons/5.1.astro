@@ -62,7 +62,7 @@ const DECOMPOSE = {
     {
       name: 'Put one where a player can reach it',
       does: 'An instance of the prefab standing in the Overworld. There are **zero** in any scene, so the mechanic is invisible until you place one — and it has to be somewhere a tester will walk without dying first.',
-      doc: 'the prefab-versus-instance distinction from 2.1, and the Bug Hunt in 2.4 that showed you what a prefab owns',
+      doc: 'the prefab-versus-instance distinction from 2.1, and the clone you spawned in 2.4 that showed you what a prefab owns',
       href: '2.4.html',
     },
     {
@@ -79,7 +79,7 @@ const DECOMPOSE = {
     },
     {
       name: 'Replace the whole animation set',
-      doc: 'the Animator component page in the Unity scripting reference — the property whose type is `RuntimeAnimatorController` — and the axe controller that 1.6\'s Tinker already told you was sitting unused in `Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/`',
+      doc: 'the Animator component page in the Unity scripting reference — the property whose type is `RuntimeAnimatorController` — and the unused axe controller that is already sitting in `Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/`',
       href: '1.6.html',
       blank: true,
     },
@@ -137,7 +137,7 @@ const WALK = {
       title: 'Declare the state, and the controller you will become',
       lead: 'Two lines in the class body, next to your coin count and your health. One of them is what this lesson is about; the other is a reference to an asset that is not wired to anything in the project yet.',
       lines: [
-        { code: '    [SerializeField] private bool hasAxe = false;', what: '**The capability.** A `bool` holds true or false and nothing else, which is the honest shape of "I have an axe": one item, one yes/no. There is no count because nobody has ever needed two axes — the `int` that serves your coins would be storing a number you would never read.', why: 'Get the starting value the right way round. `false` means you do not have the axe until you find it. Start it `true` and the game has granted you the capability before you have walked anywhere — and because your character already looks like an axe-wielder, the pickup appears to do nothing at all. The Bug Hunt makes you play that version on purpose.' },
+        { code: '    [SerializeField] private bool hasAxe = false;', what: '**The capability.** A `bool` holds true or false and nothing else, which is the honest shape of "I have an axe": one item, one yes/no. There is no count because nobody has ever needed two axes — the `int` that serves your coins would be storing a number you would never read.', why: 'Get the starting value the right way round. `false` means you do not have the axe until you find it. Start it `true` and the game has granted you the capability before you have walked anywhere — and because your character already looks like an axe-wielder, the pickup appears to do nothing at all — the Build Lab asks you to say exactly what the player gets for free if you pick that value.' },
         { code: '', what: '' },
         { code: '    [SerializeField] private RuntimeAnimatorController axeController;', what: 'A slot in the Inspector that will hold the controller asset for the axe. Leave it empty for now — step 4 wires it from the Project window. This is the `[SerializeField]` slot pattern from 1.3, the same one that holds your speed and your coin count.', why: '**A slot rather than a typed-in path.** The controller is an asset sitting in `Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/`, and a field wired in the Inspector is a reference to that asset: rename it, move it, and the reference survives. A string path typed into your code would break the moment anybody tidied the folder.' },
       ],
@@ -146,20 +146,20 @@ const WALK = {
       title: 'Add the axe to the callback that already handles pickups',
       lead: 'One more branch inside the `OnTriggerEnter2D` you have had since 2.1. The coin check stays exactly where it is; the axe is one more question asked of the same event.',
       lines: [
-        { code: '    private void OnTriggerEnter2D(Collider2D other)', what: 'Your existing pickup callback, unchanged. It fires on the first frame two shapes overlap, and `other` is the collider that ran into you.' },
+        { code: '    private void OnTriggerEnter2D(Collider2D other)', what: '' },
         { code: '    {', what: '' },
-        { code: '        if (other.CompareTag("Coin"))', what: 'Your coin branch from 2.1. It is repeated here only so you can see where the new branch belongs — your potion branch from 2.3 sits in this same callback, right beside it.' },
+        { code: '        if (other.CompareTag("Coin"))', what: '' },
         { code: '        {', what: '' },
-        { code: '            coins = coins + 1;', what: 'Unchanged from 2.1.' },
-        { code: '            Destroy(other.gameObject);', what: 'Unchanged — `other.gameObject` and never plain `gameObject`, for the reason 2.1 hammered: plain `gameObject` is **you**.' },
+        { code: '            coins = coins + 1;', what: '' },
+        { code: '            Destroy(other.gameObject);', what: '' },
         { code: '        }', what: '' },
         { code: '        else if (other.CompareTag("Axe"))', what: '**The new question.** The prefab has carried the tag `Axe` since the day you opened it, so there is nothing to create and nothing to spell-check — but it is still `CompareTag` and not `==`, for the reason from 2.1.' , why: '`else if` rather than a second `if`, so each object is asked exactly one question. No collider is a coin and an axe at once, so it makes no difference to the game — it says what you mean: one overlap, one answer.' },
         { code: '        {', what: '' },
         { code: '            hasAxe = true;', what: 'Sets the capability. No type in front of it: the field already exists in the class body, so this **assigns** to it — the declare-versus-assign rule from 1.3. Declaring it here instead would build a brand-new `bool`, throw it away at the end of the frame, and leave the real one false forever.' },
-        { code: '            animator.____ = ____;', blank: true, what: 'The last line of the pickup, and the whole of "becoming an axe-wielder". The line above says **that** you have the axe; this one is what puts it in your hands, by handing the Animator a different controller to play. Keep the receiver exactly as written — `animator` is the field you cached in 1.6, and it is the same Animator that has been playing your shovel. The right-hand side is the slot you declared in step 2.' , hint: 'You want the property on `animator` that holds **which controller it is playing right now** — the same type as the slot you declared, so the two sides of this assignment are the same kind of thing. The Animator component page in the Unity scripting reference lists it among its properties; it is the one whose type is `RuntimeAnimatorController`.' , why: 'Nothing else in this file changes when you pick up the axe — your movement, your input, your health and the coin branch above are all exactly what they were, and the three parameters from 1.6 (`IsWalking`, `WalkDir`, `Attack`) keep driving the new controller without a single edit. That is the surprise: the player does not **transition** into being an axe-wielder, the machine that draws the player is **replaced**. And because it is replaced rather than saved, it is gone the moment a fresh Player is built from the prefab — which is exactly why `SceneSwitch.cs` saves the controller before it loads a scene and puts it back in `Start()`. Bug Hunt question four is about that code.' },
+        { code: '            animator.____ = ____;', blank: true, what: 'The last line of the pickup, and the whole of "becoming an axe-wielder". The line above says **that** you have the axe; this one is what puts it in your hands, by handing the Animator a different controller to play. Keep the receiver exactly as written — `animator` is the field you cached in 1.6, and it is the same Animator that has been playing your shovel. The right-hand side is the slot you declared in step 2.' , hint: 'You want the property on `animator` that holds **which controller it is playing right now** — the same type as the slot you declared, so the two sides of this assignment are the same kind of thing. The Animator component page in the Unity scripting reference lists it among its properties; it is the one whose type is `RuntimeAnimatorController`.' , why: 'Nothing else in this file changes when you pick up the axe — your movement, your input, your health and the coin branch above are all exactly what they were, and the three parameters from 1.6 (`IsWalking`, `WalkDir`, `Attack`) keep driving the new controller without a single edit. That is the surprise: the player does not **transition** into being an axe-wielder, the machine that draws the player is **replaced**. And because it is replaced rather than saved, it is gone the moment a fresh Player is built from the prefab — which is exactly why `SceneSwitch.cs` saves the controller before it loads a scene and puts it back in `Start()`. The Build Lab asks you to explain why that code has to exist.' },
         { code: '            Destroy(other.gameObject);', what: 'The axe leaves the world the moment you pick it up — the same line as the coin and the potion. What stays behind is the boolean: the object is consumed, the capability is not.' },
         { code: '        }', what: '' },
-        { code: '    }', what: 'Closes the callback. One more `}` closes the class.' },
+        { code: '    }', what: '' },
       ],
     },
     {
