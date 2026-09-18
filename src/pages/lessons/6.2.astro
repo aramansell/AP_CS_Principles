@@ -32,8 +32,8 @@
 //                     it is sitting in the student's own Hierarchy.
 //     (`Quad` is the backdrop: MeshCollider + MeshRenderer, layer Default,
 //      scale 48. A MeshCollider is 3D, so Physics2D cannot see it — which is
-//      why the "mask = Everything" bug hunt lists three hit-able objects, not
-//      four.)
+//      why a raycast with the mask set to Everything can hit three objects in
+//      this scene, not four.)
 //
 //   Assets/Prefabs/Player.prefab — root: Transform + PlayerController ONLY.
 //     Tag `Player` (SceneSwitch depends on it), layer 0. NO Rigidbody2D and NO
@@ -55,8 +55,8 @@
 //       and reproducible here, not hypothetical.
 //     m_QueriesHitTriggers: 1 — triggers are hit by queries too.
 //   (Also verified: Player_Shovel.controller carries exactly IsWalking/Bool,
-//   WalkDir/Int, Attack/Trigger, so the Tinker item about a fourth parameter is
-//   accurate; Player_Axe.controller is the equivalent asset 5.1 swaps in;
+//   WalkDir/Int, Attack/Trigger — three parameters, no fourth;
+//   Player_Axe.controller is the equivalent asset 5.1 swaps in;
 //   Assets/Scripts/Package Scripts/TopDown_EnemyAnimator.cs exists and reads
 //   Direction + Attack with no ground check of any kind.)
 //
@@ -85,24 +85,20 @@
 // different row down their own road.
 //
 // PROTECTED BLOCKS — ids are POSITIONAL (src/lib/formify.ts), so nothing here
-// is reordered, renumbered or re-counted. All four keep their document
+// is reordered, renumbered or re-counted. Both keep their document
 // position, their exact `<li>` counts, and — the part that is easy to miss —
 // their exact SET OF BOXES: formify only gives a box to an item whose text
 // contains a '?' or does not end in '.' or ':', so an item reworded to *gain* a
 // question mark would renumber every box below it in the same block. The
-// baseline inventory, unchanged:
-//   socratic  "Asking Versus Remembering"  5 <li>, 5 boxes  (6.2:sc1:q1..q5)
-//   socratic  "Choose Your Check"          6 <li>, 5 boxes  (6.2:sc2:q1..q5;
-//                                                    item 2 is deliberately
-//                                                    statement-shaped, no box)
-//   bug-hunt  "The Flying Ant"             6 <li>, 5 boxes  (6.2:bh1:q1..q5;
-//                                                    item 3 is deliberately
-//                                                    statement-shaped, no box)
-//   tinker    "Check Design"               5 <li>, 5 boxes  (6.2:tk1:q1..q5)
-// Every item was reworded in place where the new prose or the project's real
-// contents made the old wording wrong; none was added, removed or moved. The
-// checklist is NOT a formify target (no box, not protected) and is kept for
-// continuity.
+// inventory as it stands:
+//   socratic  "Asking Versus Remembering"  3 <li>, 3 boxes  (6.2:sc1:q1..q3)
+//   socratic  "Choose Your Check"          4 <li>, 4 boxes  (6.2:sc2:q1..q4)
+// The bug-hunt and tinker blocks that used to sit after these were removed by
+// the block cut, so no 6.2:bh1:* or 6.2:tk1:* id is produced any more. Every
+// surviving item was reworded in place where the new prose or the project's
+// real contents made the old wording wrong; none was added, removed or moved.
+// The checklist is NOT a formify target (no box, not protected) and is kept
+// for continuity.
 //
 // No nested <div> inside any protected block — formify's regex is non-greedy
 // and a nested div truncates the block.
@@ -205,7 +201,7 @@ const WALK = {
       lead: 'Four lines in the class body, beside `moveSpeed` and the jump field from 6.1. Three are `[SerializeField]` knobs a designer can see in the Inspector — the pattern from 1.3 — and the fourth is the answer itself.',
       lines: [
         { code: '    [SerializeField] private Transform groundCheck;', what: 'The slot that will hold the empty child from step 2. A `Transform` is a position in the world, and wired from the Inspector it is also a reference to another object — the same kind of slot as the waypoints in 4.1.' , why: '**Wire it at the end of this step, before you press Play.** An empty slot does not complain when the scene loads; it throws a `NullReferenceException` at the first line that **reads** it, and this script reads it sixty times a second, so the Console fills faster than you can read it.' },
-        { code: '    [SerializeField] private float groundCheckDistance = 0.1f;', what: 'How far down the ray reaches. `0.1` is a starting guess. The honest value is **measured**: the gap from the bottom of your collider to the tile surface, plus a hair.' , why: '**This number is the difference between a check and a lie, and you cannot read it off the screen.** Too short and the ray misses the floor by a hair while your feet are visibly on it, so the jump stops working at random. Too long and the character is "grounded" while standing over thin air beside a ledge — the exact bug the Bug Hunt makes you produce on purpose.' },
+        { code: '    [SerializeField] private float groundCheckDistance = 0.1f;', what: 'How far down the ray reaches. `0.1` is a starting guess. The honest value is **measured**: the gap from the bottom of your collider to the tile surface, plus a hair.' , why: '**This number is the difference between a check and a lie, and you cannot read it off the screen.** Too short and the ray misses the floor by a hair while your feet are visibly on it, so the jump stops working at random. Too long and the character is "grounded" while standing over thin air beside a ledge — the exact bug worth producing on purpose once.' },
         { code: '    [SerializeField] private LayerMask groundLayer;', what: '**What the ray is allowed to notice.** The type is `LayerMask`, not `int`, and the Inspector draws it as a dropdown of layer names rather than a number.' , why: '**A `LayerMask` is an integer whose bits mark which layers you care about** — and that is the whole trick. It is why "Everything" is not a special case in the code: it is simply every bit switched on. Leave the field empty and the mask is `Nothing`, and a ray allowed to hit nothing reports nothing; point it at `Everything` and the ray is allowed to hit your own body.' },
         { code: '', what: '' },
         { code: '    private bool isGrounded;', what: '**The answer**, and the only thing in the file that changes because of it. Named for the question rather than the technique, so it reads correctly whether the answer came from a ray, a circle or a callback.' , why: '**In the class body — not inside the method that computes it.** That is the scope rule from 1.3, and here it is load-bearing twice over: declared inside the method, it would be built and thrown away sixty times a second, and the jump in step 5 would read a name that does not exist when it looks. It is a field rather than a local for a second reason too: two different methods need it. The check **writes** it and the jump **reads** it, and a value two methods share is state.' },
@@ -490,7 +486,7 @@ ${renderDecompose('6.2', DECOMPOSE, 2)}
         <h3>Choose Your Check</h3>
         <ol>
 <li>Which of the four did you pick, and which one does your character's body argue for? A character with a wide flat collider and one with a small round one do not fail the same way under the same technique.</li>
-<li>Two of the four can tell you how far the ground is. Name a game behaviour that needs that distance, and say whether your game has it.</li>
+<li>Two of the four can tell you how far the ground is. Which game behaviour needs that distance — and does your game have it?</li>
 <li>The circle check would call a wall "ground". Is that a bug you would fix, or a feature a wall-slide or wall-jump would later exploit?</li>
 <li>The collision-callback check needs no mask and no distance — it is the laziest to write. What does it demand instead, and which Rigidbody2D checkbox can silently break it?</li>
 </ol>
@@ -538,7 +534,7 @@ ${renderWalkthrough(WALK)}
         <strong>Step 4 — tune the distance by measurement.</strong> Put the character on the floor,
         read the real gap from the bottom of your collider to the tile surface in the Scene view,
         and set the number from that. Then halve it, play, and watch the jump start failing on
-        ground you can see. Guessing here is what produces the whole of the Bug Hunt below.
+        ground you can see. Guessing here is what produces exactly that failure.
     </p>
 
     <div class="callout">

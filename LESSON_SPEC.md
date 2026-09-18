@@ -61,10 +61,11 @@ Inside the `const body` template literal:
   Labels are free text: Predict First / Build Lab / Ship It / Studio / Kickoff / Playtest / Showcase / Clinic etc.
 - Callouts: `<div class="callout warn">`, `<div class="callout trap">`, `<div class="callout info">` — always with a `<strong>Lead phrase.</strong>` then text.
 - Question block — the lab form. The system auto-injects an answer box after every question-like element inside it:
-  - `<div class="socratic"><h3>Socratic: ...</h3>` reflection questions (CSP connection). **At most 3 questions.** This is the lesson's lab form, so every lesson has one — including process days — and a 4th question is a lesson nobody finishes.
+  - `<div class="socratic"><h3>Socratic: ...</h3>` reflection questions (CSP connection). **Three questions is the target; four is the hard ceiling**, and the fourth is only ever the block's synthesis question — the one that ties the lesson to a bigger idea. This is the lesson's lab form, so every lesson has one — including process days — and a fifth question is a lesson nobody finishes. `npm run verify` fails on any block rendering more than four `<li>`.
   - Items only get a box if they are question-like (contains `?`, or does not end with `.` or `:`). Phrase them as questions.
 - **The "Break It Down" block is not hand-written.** It is rendered from a `DecomposeSpec` (`src/lib/decompose.ts`) — parts, plus `why`/`sizeTest`, plus `turns` (the lesson's own discussion questions). Copy the shape from `scripts/new-lesson.mjs`.
-- **Retired — do not use.** `<div class="tinker">`, `<div class="bug-hunt">` (kept only in 1.3, 1.4, 1.6, where breaking something IS the teaching method), a `pitfalls:` list on a walkthrough, a `connect:` beat on a decompose spec, and activities labelled "The Problem" or "What You Just Switched On". Each was one more block competing for the same 90 minutes; the thinking that earned its place now lives in the Socratic, in `turns`, or in a line's `why`.
+- **Retired — do not use.** `<div class="tinker">`, `<div class="bug-hunt">` (kept only in 1.3, 1.4, 1.6, where breaking something IS the teaching method), a `pitfalls:` list on a walkthrough, and a `connect:` beat on a decompose spec. Each was one more block competing for the same 90 minutes; the thinking that earned its place now lives in the Socratic, in `turns`, or in a line's `why`.
+- Activities labelled **"The Problem: …"** stay. In the 26 lessons that have one, it carries that lesson's API table, its hands-on discovery steps ("open Platformer.unity and press Play") and its own Socratic — it *is* that lesson's Read the Docs section, so removing it removes the reference material rather than a redundant frame. Same for 2.1's "What You Just Switched On", which tells the student to go and observe something. Trim one only where its framing merely restates the Break It Down `big`.
 - `<div class="checklist"><h3>Checkpoint — before moving on, you must be able to:</h3><ul>...</ul></div>` — 4-6 bullets, always near the end.
 - `<div class="resources"><h3>Reference Docs</h3><p>...</p><ul>...</ul></div>` — LAST block always.
 - Code: `<pre><code>...</code></pre>`. Tables: plain `<table><tr><th>...`. Output annotation: `<span class="output">...</span>` inside code samples for what the Console prints.
@@ -137,7 +138,7 @@ Unit 3 — The Turret (Oct):
 Unit 4 — The Enemy (Oct-Nov):
 - 4.1 Patrol: EnemyController PlatformerMove: startPosition saved in Start; transform.Translate(Vector2.right * direction * speed * Time.deltaTime); when Vector3.Distance(start, now) > patrolDistance → direction *= -1. Predict the bug (stuck flipping) before seeing the guard clause.
 - 4.2 Patrol polish: the stuck-flip guard clauses; SpriteRenderer flipX = direction < 0; animation if the enemy has one.
-- 4.3 Chase: TopDownMove: find player GameObject.FindWithTag("Player") in Start; chaseDistance 5; move (player - enemy).normalized * speed * deltaTime — normalization for constant speed (ties to 1.4 diagonal tinker!).
+- 4.3 Chase: TopDownMove: find player GameObject.FindWithTag("Player") in Start; chaseDistance 5; move (player - enemy).normalized * speed * deltaTime — normalization for constant speed (ties back to the 1.4/1.5 diagonal-speed fix).
 - 4.4 Attack: OnCollisionEnter2D/OnCollisionStay2D with "Player" → TryDamage; damageCooldown 1.0; Time.time > lastDamageTime + cooldown; why cooldown on damage too.
 - 4.5 Full state machine: the if/else shape of TopDownMove+TryDamage as STATES (idle/chase/attack); draw the state diagram on paper; AP: algorithms with selection; socratic: where is "return to patrol if player flees" in the code (the chase if has no else — falling out of the if = returning to patrol).
 
@@ -150,7 +151,7 @@ Unit 6 — Jumping (Nov):
 - 6.1 Gravity & jump: AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse) on Space; gravityScale 2; force vs transform.Translate; predict: what happens holding Space (infinite jump bug).
 - 6.2 Ground checks: the infinite jump bug; options (flag set on collision with ground layer, raycast, coyote timer); jumps-used counter reset on ground; pick one and build it.
 - 6.3 Jump feel: faster falling (extra gravity when falling / lower jump when releasing early), coyote time, jump buffering — pick 2, tune by playtest; deltaTime again.
-- 6.4 Double jump: boots pickup sets maxJumps = 2 (pickup pattern from 2.1/5.1); reset on landing; tinker: 3 jumps? air control?
+- 6.4 Double jump: boots pickup sets maxJumps = 2 (pickup pattern from 2.1/5.1); reset on landing; socratic: 3 jumps? air control?
 - 6.5 Platforming studio: build a 3-challenge gauntlet teaching each mechanic; cross-playtest.
 
 Unit 7 — Levels & Ladders (Dec):
@@ -169,8 +170,8 @@ Unit 8 — Boss Fight (Jan, 6 lessons then the Jan 21 final):
 - 8.5 Win/lose: reuse the death loop (StatManager); victory → LoadScene or victory UI; fail states, restart flow; socratic on error handling.
 - 8.6 Boss studio + semester review: cross-playtest + a written concepts check prep (predict outputs of short code — the final's format).
 
-Unit 9 — Data & Systems (Jan-Feb, CSP Concept lessons; expand-app flavor; less Unity, more big ideas; each has a worksheet-style tinker or socratic and links its concept doc):
-- 9.1 Binary: bits, place values, byte; count in binary on fingers; C# int = 32 bits; what Debug.Log shows vs what memory holds (DAT-1). Tinker: convert 13, 255, 256; why does 255 matter.
+Unit 9 — Data & Systems (Jan-Feb, CSP Concept lessons; expand-app flavor; less Unity, more big ideas; each has a worksheet-style socratic and links its concept doc):
+- 9.1 Binary: bits, place values, byte; count in binary on fingers; C# int = 32 bits; what Debug.Log shows vs what memory holds (DAT-1). Socratic: convert 13, 255, 256; why does 255 matter.
 - 9.2 Hex & RGB: hex digits, #RRGGBB, Color32, the hex↔binary bridge; inspect Unity's color picker; AP: hexadecimal as shorthand for binary (DAT-1).
 - 9.3 Compression: lossless (PNG, ZIP) vs lossy (JPEG, MP3); run-length encoding by hand; why game assets ship compressed; tradeoff questions (DAT-2).
 - 9.4 Scenes are data: open a .unity/.prefab/.meta file in a text editor — YAML!; GUIDs in .meta; scene = data describing objects; file size math; socratic on metadata.

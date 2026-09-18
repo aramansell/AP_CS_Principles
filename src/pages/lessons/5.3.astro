@@ -190,29 +190,29 @@ const WALK_SINGLETON = {
         { code: '', what: '' },
         { code: '        if (health <= 0)', what: 'The other half of your 2.2 rule: what happens when health reaches zero.' },
         { code: '        {', what: '' },
-        { code: '            Debug.Log("Player died.");', what: 'Whatever you wrote there moves across unchanged — the message, the scene reload, the respawn you designed in 2.2. It still works, because it reads the same field it always read; that field just lives somewhere else now.' },
+        { code: '            Debug.Log("Player died.");', what: '' },
         { code: '        }', what: '' },
-        { code: '    }', what: 'Closes `TakeDamage`.' },
+        { code: '    }', what: '' },
         { code: '', what: '' },
         { code: '    public void SetHasAxe(bool value)', what: 'The one setter. The axe pickup calls `SetHasAxe(true)` from 5.1\'s branch, and nothing else in the game should ever write that field.' },
         { code: '    {', what: '' },
         { code: '        hasAxe = value;', what: 'A `bool` parameter, assigned straight across. `value` is the name C# gives the thing that came in.' },
-        { code: '    }', what: 'One more `}` closes the class.' },
+        { code: '    }', what: '' },
       ],
     },
     {
       title: 'Repoint the callers — the part people forget',
       lead: 'The file is finished and the game does not compile yet: every script that used to reach for a field on the player is reaching for something that is no longer there. Search your own code for `coins`, `health`, `maxHealth` and `hasAxe`, and change each one.',
       lines: [
-        { code: '        if (collision.gameObject.CompareTag("Spikes"))', what: 'Your spike branch from 2.2. The check does not change at all — in this whole step, only the line *inside* it changes.' },
+        { code: '        if (collision.gameObject.CompareTag("Spikes"))', what: '' },
         { code: '        {', what: '' },
         { code: '            StatManager.Instance.TakeDamage(1);', what: 'The same call with a new receiver. `player.TakeDamage(1)` becomes `StatManager.Instance.TakeDamage(1)`, and the rule it runs is still one line away in the file you just wrote.' , why: '**And this caller never had anything to do with the player.** Your projectile from 3.4 was handed a reference to the Player for one reason: to call this method. It does not need one now — `StatManager.Instance.TakeDamage(damage);` reaches the same rule from anywhere — so the reference field it used to hold can go. That is what moving a responsibility looks like from the outside: a reference that turns out to have been unnecessary.' },
         { code: '        }', what: '' },
         { code: '', what: '' },
-        { code: '        if (other.CompareTag("Coin"))', what: 'Your pickup branch from 2.1.' },
+        { code: '        if (other.CompareTag("Coin"))', what: '' },
         { code: '        {', what: '' },
         { code: '            StatManager.Instance.AddCoins(1);', what: 'One coin, through the method that counts them.' },
-        { code: '            Destroy(other.gameObject);', what: 'Unchanged — and that is worth noticing. It is still the **coin** that disappears. Only the number moved house.' },
+        { code: '            Destroy(other.gameObject);', what: '' },
         { code: '        }', what: '' },
         { code: '', what: '' },
         { code: '            StatManager.Instance.SetHasAxe(true);', what: '5.1\'s axe branch, with its receiver changed in exactly the same way.' },
@@ -316,7 +316,7 @@ const WALK_HUD = {
       title: 'Build the HUD in the scene the game begins in — no code yet',
       lead: 'Which scene first, because a Canvas only exists in the scene that contains it. `Start` is build index 0: it is what a built game loads first, and it is where the StatManager object lives.',
       lines: [
-        { code: 'File ▸ Build Profiles ▸ Scene List   (Start is index 0)', what: 'The list that decides what the game loads first. `Start` is at the top, which is why it is load index 0 — and it is what `SceneSwitch.cs` means when it stores the `int` 0. (Unity 6 renamed this panel: it is **Build Profiles** now, and older tutorials call it Build Settings.)' , why: 'This ordering is the reason the whole design works. The manager object is in `Start`, so the scene that loads first is the scene that claims the singleton slot. Put the manager in the Overworld instead and the numbers only begin existing once you walk there — which is the bug the Bug Hunt asks you to produce on purpose.' },
+        { code: 'File ▸ Build Profiles ▸ Scene List   (Start is index 0)', what: 'The list that decides what the game loads first. `Start` is at the top, which is why it is load index 0 — and it is what `SceneSwitch.cs` means when it stores the `int` 0. (Unity 6 renamed this panel: it is **Build Profiles** now, and older tutorials call it Build Settings.)' , why: 'This ordering is the reason the whole design works. The manager object is in `Start`, so the scene that loads first is the scene that claims the singleton slot. Put the manager in the Overworld instead and the numbers only begin existing once you walk there — which is the failure the HUD Build Lab asks you to reason about before you build anything.' },
         { code: 'Hierarchy (Start) ▸ GameObject ▸ UI ▸ Text - TextMeshPro', what: 'One menu item creates three things: a **Canvas** (the object that draws UI at all), a **Text (TMP)** object parented to it, and an **EventSystem**, which the UI needs to exist even when nothing on it is clickable. The Overworld already contains exactly this trio — that is where the Canvas the lever switches off comes from.' , why: '**TextMeshPro, not the plain `Text`.** TMP ships with the UI package this project already uses, and it is what the Overworld\'s `Text (TMP)` object is. The legacy `Text` still exists and still works, and picking it means your HUD looks nothing like the text object already in your own project.' },
         { code: 'Text (TMP) ▸ RectTransform ▸ anchor preset → top-left', what: 'Where on the screen the label sits. Choose the top-left anchor and give it a small offset from the corner, so the numbers stay put when the window is resized.' , why: '**A corner, not the centre.** A centre-anchored label sits in the middle of the player\'s view at every resolution — which is where the game is, and where the numbers will be least readable.' },
         { code: 'Canvas ▸ Add Component ▸ Hud Controller   (after you write it below)', what: 'The script goes on the Canvas. Which object carries it matters less than you think — a component reaches the text through the slot you are about to fill — but the Canvas is the sensible home for anything whose whole job is drawing.' },
@@ -353,7 +353,7 @@ const WALK_HUD = {
         { code: '        }', what: '' },
         { code: '', what: '' },
         { code: '        statsText.text = statsLine;', what: 'The write. `statsText` is the component you wired in the Inspector; `.text` is the property holding the characters on screen. Assign to it and the label changes on this frame.' , why: '**Nothing reads the text back, and nothing stores it.** The label is a *view* of the numbers, not a copy of them — it holds no game state of its own. That is what makes it impossible for the HUD and the truth to disagree, which is the whole thing you came here to fix. The moment you cache a number in this script "to save time", you have built a second source of truth, and it will be the wrong one.' },
-        { code: '    }', what: 'Closes `Update()`. One more `}` closes the class.' },
+        { code: '    }', what: '' },
       ],
     },
   ],
@@ -683,9 +683,9 @@ ${renderWalkthrough(WALK_HUD)}
 
 <p>
     Test it the only way that matters first: collect coins, take damage, grab the axe, walk
-    into a cave, and come back. Everything should still be there. Then do the opposite — every
-    fault below is a way to bring the old bug back, and each one has a different symptom,
-    which is the part worth learning.
+    into a cave, and come back. Everything should still be there. Then do the opposite —
+    break one thing at a time and bring the old bug back on purpose, and notice that each
+    fault has a different symptom, which is the part worth learning.
 </p>
 
 <!-- ============================================================ -->

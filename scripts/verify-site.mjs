@@ -613,6 +613,32 @@ if (!fs.existsSync(askSrcPath)) {
       boxless.join(', ') + ' — every lesson has to ask the student something');
   }
   ok(labs + ' lessons with a lab form, every count matching its rendered boxes');
+
+  // The Socratic is the lesson's one discussion block. Three questions is the
+  // target and a fourth is allowed only when it is the block's synthesis
+  // question — the one that ties the lesson to a bigger idea. A fifth is
+  // accretion, which is what the restructure existed to remove.
+  //
+  // The count is read from the rendered <li> list rather than from the answer
+  // boxes, so a question authored in the source and silently never boxed still
+  // counts against the cap. Counting boxes would let a block grow past the
+  // limit precisely by being less answerable.
+  const overCap = [];
+  for (const f of built) {
+    const id = f.replace('.html', '');
+    const html = fs.readFileSync(path.join(dist, 'lessons', f), 'utf8');
+    const blocks = [...html.matchAll(/<div class="socratic">([\s\S]*?)<\/div>/g)];
+    blocks.forEach((m, i) => {
+      const n = (m[1].match(/<li\b/g) ?? []).length;
+      if (n > 4) overCap.push(id + ':sc' + (i + 1) + ' has ' + n);
+    });
+  }
+  if (overCap.length) {
+    fail('Socratic block(s) over the four-question limit: ' + overCap.join('; ') +
+      " — three is the target, and a fourth only if it is the block's synthesis question");
+  } else {
+    ok('no Socratic block exceeds four questions');
+  }
 }
 
 console.log('');
