@@ -17,11 +17,13 @@
  *     walkthrough declares a valid level, every "How do I…?" entry points
  *     at a lesson that exists, and every walkthrough lesson is findable
  *     from the question index
- *  8. the three recurring questions survive in every lesson that has opted
+ *  8. the two recurring questions survive in every lesson that has opted
  *     onto the ladder — the problem is split into more than one part, every
- *     part says where to read about it, the "connect it to something you
- *     already built" beat is still asked, and the block decays by the same
- *     level as the code
+ *     part says where to read about it, the block still asks the student
+ *     something, and it decays by the same level as the code
+ *  9. the lab form adds up — every lesson renders at least one answer box,
+ *     and the count the page prints at build time matches the boxes the
+ *     page actually contains
  *
  * Ported from the AP CS A Guide's verify-site.mjs, minus the legacy-site
  * URL parity checks (this site has no legacy twin).
@@ -448,15 +450,21 @@ if (!fs.existsSync(askSrcPath)) {
     ok('ladder spread — ' + ladder);
     ok(askQs.length + ' questions indexed across ' + groupCount + ' groups, all rendering');
 
-    // ---------- 8. the three beats that must appear in every build lesson
+    // ---------- 8. the two beats that must appear in every build lesson
     // The year has two learning targets bigger than any API — break the
-    // problem into parts, and look each part up — plus the prior-knowledge
-    // question that makes the sequencing pay off. They are rendered by
+    // problem into parts, and look each part up. They are rendered by
     // src/lib/decompose.ts and asked identically in every lesson, so the
     // checks are: the block exists, it is a real split (more than one part),
-    // every named part says where to read about it, the connection beat is
-    // still there, and the block decays on the same ladder as the code.
-    console.log('8. the three recurring questions...');
+    // every named part says where to read about it, the block still asks the
+    // student something, and it decays on the same ladder as the code.
+    //
+    // There used to be a third beat — "connect it to something you already
+    // built" — asked in every lesson without decay. It was removed: asked 46
+    // times it became a formality students answered without thinking, and it
+    // cost 163 answer boxes. A connection to earlier work now belongs in the
+    // lesson's own `turns` if it genuinely explains the decomposition, which
+    // is what the forward-reference scan below still guards.
+    console.log('8. the two recurring questions...');
     let decomposed = 0;
     const stillLevel = [];
     for (const f of built) {
@@ -506,22 +514,13 @@ if (!fs.existsSync(askSrcPath)) {
       if (level >= 3 && level <= 3 && given !== parts) fail(id + ' is level 3 but withholds ' + (parts - given) + ' part(s)');
       if (level === 4 && given !== 0) fail(id + ' is level 4 (solo) but still hands over ' + given + ' part(s)');
 
-      // Beat three never decays, at any level — that is the point of the
-      // sequence, so a missing connection question is a real failure.
-      // The block emits no nested divs, so the first </div> closes it.
-      const connectBlock = html.match(/class="dc-connect"([\s\S]*?)<\/div>/);
-      if (!connectBlock) {
-        fail(id + ' decompose block has no "connect it to something you already built" beat');
-      }
+      // The block has to ask the student something. The discussion is the
+      // point of the block — a parts list with nothing to answer is a reading,
+      // not a decomposition. At level 4 the auto-generated "list the parts"
+      // prompt guarantees this; below that the lesson's own `turns` carry it,
+      // so a lesson that lists parts and asks nothing is the failure here.
       const boxes = (html.match(/data-block="decompose"/g) ?? []).length;
       if (boxes === 0) fail(id + ' decompose block asks nothing — no answer box to discuss in');
-      // ...and beat three in particular has to collect something. It is the one
-      // beat that never decays, so at level 4 it is the ONLY thing still being
-      // asked — a level-4 lesson whose connection is rhetorical has nothing
-      // left in the block at all.
-      if (connectBlock && !connectBlock[1].includes('data-block="decompose"')) {
-        fail(id + '"connect it" beat talks about prior work but gives no box to write it in');
-      }
 
       // Every prompt in the block has to be answerable. Note this is NOT a
       // "must contain a question mark" test: "Pick two of the parts above and
@@ -534,20 +533,23 @@ if (!fs.existsSync(askSrcPath)) {
         }
       }
 
-      // The whole point of the third beat is activating PRIOR knowledge, so a
-      // lesson may point back but never forward — "in 4.1 you did this" in
-      // Unit 2 sends a student to a lesson that does not exist yet.
+      // A lesson may point back but never forward — "in 4.1 you did this" in
+      // Unit 2 sends a student to a lesson that does not exist yet. The turns
+      // are where earlier lessons get named, so that is what is scanned.
       //
-      // Only the connect beat is checked. The body of a lesson may legitimately
-      // say "next lesson we will...", and that is a preview rather than a claim
-      // about prior knowledge; the block whose whole job is to say "you have
-      // done this before" is the one that must not point at an unseen lesson.
+      // Only the turns are checked. The body of a lesson may legitimately say
+      // "next lesson we will...", and that is a preview rather than a claim
+      // about prior knowledge.
       // The lookahead drops a decimal that is really a number: `1.5f` must not
       // read as lesson 1.5.
       const self = id.match(/^(\d+)\.(\d+)/);
-      if (self && connectBlock) {
+      // The turns container emits <p> + <label> siblings and no nested divs,
+      // so the first </div> closes it. Absent at level 1-2 when a lesson has
+      // no turns of its own — nothing to scan, and nothing claimed.
+      const turnsBlock = html.match(/class="dc-turns"([\s\S]*?)<\/div>/);
+      if (self && turnsBlock) {
         const seen = new Set();
-        for (const m of connectBlock[1].matchAll(/\b(\d{1,2}\.\d)(?![\w])/g)) seen.add(m[1]);
+        for (const m of turnsBlock[1].matchAll(/\b(\d{1,2}\.\d)(?![\w])/g)) seen.add(m[1]);
         for (const ref of seen) {
           if (!lessonIds.includes(ref)) continue; // not a lesson reference
           const other = ref.match(/^(\d+)\.(\d+)/);
@@ -556,7 +558,7 @@ if (!fs.existsSync(askSrcPath)) {
             Number(other[1]) > Number(self[1]) ||
             (Number(other[1]) === Number(self[1]) && Number(other[2]) > Number(self[2]));
           if (ahead) {
-            fail(id + ' points forward to lesson ' + ref + ' in its "connect it" beat — ' +
+            fail(id + ' points forward to lesson ' + ref + ' in its Break It Down turns — ' +
               'prior knowledge only, the student has not been there yet');
           }
         }
@@ -568,7 +570,7 @@ if (!fs.existsSync(askSrcPath)) {
         fail(id + ' ask banner says level ' + bannerL[1] + ' but the decompose block says ' + level);
       }
     }
-    ok(decomposed + ' lessons carry the three recurring questions, decay verified');
+    ok(decomposed + ' lessons carry the two recurring questions, decay verified');
     if (stillLevel.length) {
       console.log('  note: ' + stillLevel.length + ' build lesson(s) still on the old shape, not yet ' +
         'rolled onto the ladder: ' + stillLevel.join(', '));
@@ -581,12 +583,20 @@ if (!fs.existsSync(askSrcPath)) {
   // different places (src/lib/formify.ts and the DOM), so any new kind of
   // answer box can silently desync them — the student sees one total, then a
   // different one a moment later, and neither is obviously the wrong one.
+  //
+  // This check also holds the floor: every lesson has to render at least one
+  // box. A lesson that loses its last one emits no lab bar, and the count
+  // below would simply print a smaller number — so without this, a refactor
+  // that deletes questions degrades verification silently instead of failing
+  // it. That is the trap the box-count column exists to catch.
   console.log('9. lab forms...');
   let labs = 0;
+  const boxless = [];
   for (const f of built) {
     const id = f.replace('.html', '');
     const html = fs.readFileSync(path.join(dist, 'lessons', f), 'utf8');
     const boxes = (html.match(/class="lab-answer"/g) ?? []).length;
+    if (boxes === 0) boxless.push(id);
     const bar = html.match(/class="lab-bar"[^>]*data-count="(\d+)"/);
     if (!bar) {
       if (boxes > 0) fail(id + ' renders ' + boxes + ' answer box(es) but no lab bar to hold them');
@@ -597,6 +607,10 @@ if (!fs.existsSync(askSrcPath)) {
       fail(id + ' lab bar counts ' + bar[1] + ' question(s) but the page renders ' + boxes +
         ' answer box(es) — the readout will contradict itself once the script runs');
     }
+  }
+  if (boxless.length) {
+    fail(boxless.length + ' lesson(s) render no answer box at all, so they carry no lab form: ' +
+      boxless.join(', ') + ' — every lesson has to ask the student something');
   }
   ok(labs + ' lessons with a lab form, every count matching its rendered boxes');
 }

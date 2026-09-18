@@ -115,6 +115,18 @@ export interface CodeLine {
    * for here, never the answer itself.
    */
   hint?: string;
+  /**
+   * Where to read about the API this line uses — the quick reference row, the
+   * lesson that taught it, or both. Rendered as a link under the annotation.
+   *
+   * Put this on the line that CARRIES a new API, not on every line that calls
+   * one. A step where four lines each link to the same table teaches the
+   * student to stop reading the annotations, which costs more than the links
+   * are worth. `href` is relative to a lesson page (e.g.
+   * `../docs/reference/unity-csharp-quickref.html`).
+   */
+  doc?: string;
+  href?: string;
 }
 
 /** One increment of the build: a few lines, framed by a sub-problem. */
@@ -124,16 +136,6 @@ export interface Step {
   /** One or two sentences on the problem this step solves. */
   lead?: string;
   lines: CodeLine[];
-}
-
-/** A mistake that has actually been observed, not a hypothetical one. */
-export interface Pitfall {
-  /** What the student wrote. */
-  mistake: string;
-  /** What they will see happen. */
-  symptom: string;
-  /** The one-line correction. */
-  fix: string;
 }
 
 export interface WalkthroughSpec {
@@ -146,7 +148,6 @@ export interface WalkthroughSpec {
   /** Scaffolding level — drives the badge, and is asserted by verify-site. */
   level: ScaffoldLevel;
   steps: Step[];
-  pitfalls?: Pitfall[];
   /**
    * The finished file. This is a check-your-work reference for students who
    * missed class, deliberately placed AFTER the steps so it cannot be pasted
@@ -216,6 +217,13 @@ function renderStep(step: Step, index: number): string {
       out += '<span class="wt-ref">' + x.n + '</span><span class="wt-what">' + prose(x.line.what) + '</span>';
       if (x.line.hint) out += '<span class="wt-hint">' + prose(x.line.hint) + '</span>';
       if (x.line.why) out += '<span class="wt-why">' + prose(x.line.why) + '</span>';
+      if (x.line.doc) {
+        out += '<span class="wt-doc">Read: ' +
+          (x.line.href
+            ? '<a href="' + esc(x.line.href) + '">' + prose(x.line.doc) + '</a>'
+            : prose(x.line.doc)) +
+          '</span>';
+      }
       out += '</li>';
       return out;
     })
@@ -233,34 +241,12 @@ function renderStep(step: Step, index: number): string {
   );
 }
 
-function renderPitfalls(pitfalls: Pitfall[]): string {
-  const rows = pitfalls
-    .map(
-      (p) =>
-        '<li class="wt-pitfall">' +
-        '<p class="wt-pit-mistake">' + prose(p.mistake) + '</p>' +
-        '<p class="wt-pit-row"><span class="wt-pit-key">You will see</span>' + prose(p.symptom) + '</p>' +
-        '<p class="wt-pit-row"><span class="wt-pit-key">Do this</span>' + prose(p.fix) + '</p>' +
-        '</li>'
-    )
-    .join('');
-  return (
-    '<div class="wt-pitfalls">' +
-    '<h4>Where this goes wrong</h4>' +
-    '<p class="wt-lead">These are the mistakes this step actually produces. Read them before you are surprised by one.</p>' +
-    '<ul class="wt-pit-list">' + rows + '</ul>' +
-    '</div>'
-  );
-}
-
 /**
  * Render a full walkthrough. Returns an HTML string for interpolation into a
  * lesson body (which is itself a template literal rendered via set:html).
  */
 export function renderWalkthrough(spec: WalkthroughSpec): string {
   const steps = spec.steps.map((s, i) => renderStep(s, i)).join('');
-
-  const pitfalls = spec.pitfalls?.length ? renderPitfalls(spec.pitfalls) : '';
 
   const finalNote = prose(
     spec.finalNote ??
@@ -345,7 +331,6 @@ export function renderWalkthrough(spec: WalkthroughSpec): string {
     '<p class="wt-lead wt-file">You are editing <code>' + esc(spec.file) + '</code>. ' + prose(spec.intro) + '</p>' +
     gapLine +
     steps +
-    pitfalls +
     finalFile +
     '</div>'
   );

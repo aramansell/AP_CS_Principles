@@ -1,7 +1,6 @@
 /**
  * Build-time transform: turns the reflection questions inside a lesson's
- * discovery blocks (bug hunts, tinker challenges, socratic checkpoints)
- * into a fillable lab form.
+ * discovery blocks (bug hunts, socratic checkpoints) into a fillable lab form.
  *
  * Every question paragraph / list item gets a textarea with a stable,
  * deterministic id (`1.1:tk1:q2` = lesson 1.1, first tinker block,
@@ -20,8 +19,14 @@ export interface FormifyResult {
   questionCount: number;
 }
 
-/** Short codes for question ids, stable across rebuilds. */
-const SHORT: Record<string, string> = { 'bug-hunt': 'bh', tinker: 'tk', socratic: 'sc' };
+/**
+ * Short codes for question ids, stable across rebuilds.
+ *
+ * The counters these feed are per class and the ids are persisted to
+ * localStorage, so this map is append-only in practice: dropping a class from
+ * the scan below does NOT renumber the others. Do not reuse a retired code.
+ */
+const SHORT: Record<string, string> = { 'bug-hunt': 'bh', socratic: 'sc' };
 
 const ENTITY_MAP: Record<string, string> = {
   '&amp;': '&',
@@ -106,7 +111,7 @@ export function formify(body: string, lessonId: string): FormifyResult {
   let questionCount = 0;
 
   const html = body.replace(
-    /(<div class="(bug-hunt|tinker|socratic)">)([\s\S]*?)(<\/div>)/g,
+    /(<div class="(bug-hunt|socratic)">)([\s\S]*?)(<\/div>)/g,
     (_m, open: string, cls: string, inner: string, close: string) => {
       counters[cls] = (counters[cls] ?? 0) + 1;
       const blockId = lessonId + ':' + SHORT[cls] + counters[cls];
@@ -115,7 +120,7 @@ export function formify(body: string, lessonId: string): FormifyResult {
 
       let out = inner;
 
-      // Ordered-list questions (socratic checkpoints, tinker steps).
+      // Ordered-list questions (socratic checkpoints, bug hunt steps).
       // (\s[^>]*)? requires whitespace or nothing after the tag name, so
       // <pre> can never match as <p re> and swallow code blocks.
       out = out.replace(/<li(\s[^>]*)?>([\s\S]*?)<\/li>/g, (m, at: string, li: string) => {
