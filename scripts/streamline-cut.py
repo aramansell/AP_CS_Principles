@@ -9,8 +9,8 @@ it is deleted once the refactor lands. See the plan for the shape it produces.
 It removes:
   - every <div class="tinker"> block
   - every <div class="bug-hunt"> block, except in BUG_HUNT_KEEP
-  - activity wrappers left with nothing but a header
-  - any <li> after the third in a <div class="socratic"> list
+  - the activity wrapper that held either, hoisting whatever else it contained
+  - every question after the third in a <div class="socratic"> list
   - `pitfalls: [...]` and `connect: [...]` from the specs above the body
 
 Block matching is a depth-counted div walk rather than a regex, because the
@@ -30,6 +30,11 @@ import os
 # labelled "Test It, Then Break It". Everywhere else the bug hunt was one more
 # form to fill in.
 BUG_HUNT_KEEP = {'1.3', '1.4', '1.6'}
+
+# Activity labels that named a section this refactor removes. A wrapper still
+# carrying one of these, with no live block left inside it, is furniture for a
+# section that no longer exists.
+RETIRED_LABEL = re.compile(r'Bug Hunt|Tinker')
 
 DRY = '--dry-run' in sys.argv
 
@@ -76,37 +81,80 @@ def cut_blocks(s, cls):
         n += 1
 
 
-def cut_empty_activities(s):
-    """Drop activity wrappers that are now no more than a header."""
-    n = 0
+def unwrap_retired_activities(s):
+    """Drop the activity wrapper around a section this refactor removed.
+
+    Returns (text, unwrapped, emptied).
+
+    A wrapper is retired when its label names a removed section AND it no
+    longer holds that section's block. The second half of that test is what
+    protects 1.3/1.4/1.6, which keep their bug hunt: their wrappers still
+    contain a live block and are left alone.
+
+    What is left inside is HOISTED to lesson level, not deleted. That matters
+    because the wrapper usually held more than the block: in 2.2 the tinker was
+    the only thing in its wrapper besides the Checkpoint, and deleting the
+    wrapper outright would have taken the Checkpoint with it — while leaving it
+    in place would print "Tinker" over a checkpoint. Both are worse than a
+    checkpoint with no heading of its own, which is what this produces.
+
+    Note the wrapper's own <div> tags are part of `inner` — the earlier version
+    of this function tested the whole element for emptiness and so never once
+    matched. The body has to be cut out of it first.
+    """
+    unwrapped = 0
+    emptied = 0
     i = 0
     while True:
         m = re.search(r'<div class="activity [^"]*">', s[i:])
         if not m:
-            return s, n
+            return s, unwrapped, emptied
         start = i + m.start()
         end = matching_div(s, start)
         if end is None:
-            return s, n
+            return s, unwrapped, emptied
         inner = s[start:end]
-        rest = re.sub(r'<div class="activity-header">.*?</div>', '', inner, flags=re.S)
-        rest = re.sub(r'<!--.*?-->', '', rest, flags=re.S)
-        rest = re.sub(r'<h[1-6][^>]*>.*?</h[1-6]>', '', rest, flags=re.S)
-        if rest.strip() == '':
-            cut_from = start
-            line_start = s.rfind('\n', 0, start) + 1
-            if s[line_start:start].strip() == '':
-                cut_from = line_start
-            cut_to = end
-            while cut_to < len(s) and s[cut_to] in ' \t':
-                cut_to += 1
-            if s[cut_to:cut_to + 1] == '\n':
-                cut_to += 1
-            s = s[:cut_from] + s[cut_to:]
-            n += 1
-            i = cut_from
-        else:
+        label = re.search(r'activity-label">([^<]*)', inner)
+        label = label.group(1) if label else ''
+        live = ('class="bug-hunt"' in inner) or ('class="tinker"' in inner)
+        if not RETIRED_LABEL.search(label) or live:
             i = end
+            continue
+
+        body = s[s.index('>', start) + 1:end - len('</div>')]
+        body = re.sub(r'<div class="activity-header">.*?</div>', '', body, flags=re.S)
+        # Leftover comments would read as separators for a section that is gone.
+        body = re.sub(r'^\s*<!--.*?-->\s*$', '', body, flags=re.M | re.S)
+        # Dedent one level, but never inside a <pre>: there, leading spaces are
+        # the indentation the code sample is being read for.
+        if '<pre' not in body:
+            body = re.sub(r'^ {4}', '', body, flags=re.M)
+        body = body.strip('\n')
+        if body.strip() == '':
+            emptied += 1
+            repl = ''
+        else:
+            repl = '\n' + body + '\n'
+
+        cut_from = start
+        line_start = s.rfind('\n', 0, start) + 1
+        if s[line_start:start].strip() == '':
+            cut_from = line_start
+        # An emptied wrapper leaves its own "=====" separator pointing at
+        # nothing, so that goes too.
+        if repl == '':
+            prev = s.rfind('\n', 0, cut_from - 1)
+            prev_line = s[prev + 1:cut_from]
+            if re.fullmatch(r'\s*<!--.*?-->\s*', prev_line, re.S):
+                cut_from = prev + 1
+        cut_to = end
+        while cut_to < len(s) and s[cut_to] in ' \t':
+            cut_to += 1
+        if s[cut_to:cut_to + 1] == '\n':
+            cut_to += 1
+        s = s[:cut_from] + repl + s[cut_to:]
+        unwrapped += 1
+        i = cut_from + len(repl)
 
 
 def is_question(item):
@@ -258,7 +306,7 @@ def cut_js_array(s, key):
 
 def main():
     files = sorted(glob.glob('src/pages/lessons/*.astro'))
-    totals = {'tinker': 0, 'bug-hunt': 0, 'empty-activity': 0,
+    totals = {'tinker': 0, 'bug-hunt': 0, 'retired-wrapper': 0, 'wrapper-emptied': 0,
               'socratic-q': 0, 'socratic-tail': 0, 'pitfalls': 0, 'connect': 0}
     for path in files:
         lid = os.path.basename(path).replace('.astro', '')
@@ -272,10 +320,9 @@ def main():
             src, n = cut_blocks(src, 'bug-hunt')
             totals['bug-hunt'] += n
 
-        src, n = cut_empty_activities(src)
-        while n:
-            totals['empty-activity'] += n
-            src, n = cut_empty_activities(src)
+        src, n, emptied = unwrap_retired_activities(src)
+        totals['retired-wrapper'] += n
+        totals['wrapper-emptied'] += emptied
 
         src, n, tail = cap_socratic(src)
         totals['socratic-q'] += n

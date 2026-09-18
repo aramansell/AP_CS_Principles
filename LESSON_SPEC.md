@@ -58,12 +58,13 @@ Inside the `const body` template literal:
   `rpg` (Game Jam), `assessment` (Exam Prep/Assessment), `hybrid` (Create PT/Flex).
   A lesson usually has 2-4 activity divs.
 - Activity header: `<div class="activity-header"><span class="activity-label">Label</span><span class="activity-time">~XX min</span></div>`.
-  Labels are free text: Predict First / Build Lab / Bug Hunt / Tinker / Ship It / Studio / Kickoff / Playtest / Showcase / Clinic etc.
+  Labels are free text: Predict First / Build Lab / Ship It / Studio / Kickoff / Playtest / Showcase / Clinic etc.
 - Callouts: `<div class="callout warn">`, `<div class="callout trap">`, `<div class="callout info">` — always with a `<strong>Lead phrase.</strong>` then text.
-- Question blocks (the lab-form system auto-injects an answer box after every question inside these three):
-  - `<div class="bug-hunt"><h3>Bug Hunt: ...</h3>...` with an `<ol>`/`<ul>` of numbered break-it steps. Bug hunt items should END WITH A QUESTION (\?) or be phrased as a question — the injector only adds boxes to question-like text (contains ?, or does not end with . or :). Make most items questions.
-  - `<div class="tinker"><h3>Tinker: ...</h3>` open-ended experiments.
-  - `<div class="socratic"><h3>Socratic</h3>` reflection questions (CSP connection).
+- Question block — the lab form. The system auto-injects an answer box after every question-like element inside it:
+  - `<div class="socratic"><h3>Socratic: ...</h3>` reflection questions (CSP connection). **At most 3 questions.** This is the lesson's lab form, so every lesson has one — including process days — and a 4th question is a lesson nobody finishes.
+  - Items only get a box if they are question-like (contains `?`, or does not end with `.` or `:`). Phrase them as questions.
+- **The "Break It Down" block is not hand-written.** It is rendered from a `DecomposeSpec` (`src/lib/decompose.ts`) — parts, plus `why`/`sizeTest`, plus `turns` (the lesson's own discussion questions). Copy the shape from `scripts/new-lesson.mjs`.
+- **Retired — do not use.** `<div class="tinker">`, `<div class="bug-hunt">` (kept only in 1.3, 1.4, 1.6, where breaking something IS the teaching method), a `pitfalls:` list on a walkthrough, a `connect:` beat on a decompose spec, and activities labelled "The Problem" or "What You Just Switched On". Each was one more block competing for the same 90 minutes; the thinking that earned its place now lives in the Socratic, in `turns`, or in a line's `why`.
 - `<div class="checklist"><h3>Checkpoint — before moving on, you must be able to:</h3><ul>...</ul></div>` — 4-6 bullets, always near the end.
 - `<div class="resources"><h3>Reference Docs</h3><p>...</p><ul>...</ul></div>` — LAST block always.
 - Code: `<pre><code>...</code></pre>`. Tables: plain `<table><tr><th>...`. Output annotation: `<span class="output">...</span>` inside code samples for what the Console prints.
@@ -90,9 +91,9 @@ NEVER link anywhere else. Never use absolute URLs except https://github.com/ and
 
 ## Content quality bar
 
-- Total body length: 60-120 lines of HTML. Jam/studio/CPT build-day lessons may be shorter (40-70) since they are process days; concept lessons (unit 9) and core build labs should be rich (80-130).
+- Total body length: 40-90 lines of HTML. Jam/studio/CPT build-day lessons should be shorter still (30-50) since they are process days; concept lessons (unit 9) and core build labs may run to 110. If a lesson is longer than that, it is carrying a block that should have been cut — shorten it, do not trim the teaching.
 - Voice: second person, direct, a little funny, zero fluff. The reader is a high schooler at a computer with Unity open.
-- Every build lesson: predict-first where possible (predict before running), then steps with runnable C# that matches the REAL starter code, then at least ONE of bug-hunt/tinker/socratic with REAL question-like items, then checklist, then resources.
+- Every build lesson: a Break It Down block (decompose spec), predict-first where possible (predict before running), then steps with runnable C# that matches the REAL starter code, then a Socratic block of at most 3 real questions, then checklist, then resources.
 - The C# you teach matches the actual starter scripts or builds on them step-by-step. In the starter project, most gameplay systems are NOT pre-written: students build them from scratch. Use canonical Unity naming (xSpeed, ySpeed, maxAttackRange, ChangeHealth, StatManager.manager, etc.) and consistent C# conventions: MonoBehaviour, [SerializeField] private, private helper methods, Debug.Log, CompareTag, Vector2/Vector3, Time.deltaTime.
 - Weave AP CSP ideas explicitly (the CED topic listed for the lesson) — one socratic question or callout that names the connection (e.g. deltaTime = abstraction, state machine = algorithm with selection, ScriptableObjects = data abstraction).
 - Dates/class context: lessons are ~90-minute block periods. Activity times should sum to roughly 60-85 min.
@@ -218,7 +219,7 @@ Unit 12 — Season 2 (May-Jun):
 - [ ] No raw backtick or \${ inside body
 - [ ] All < > in code escaped; &amp; used
 - [ ] h1 present; lesson-lead present; checklist present; resources div LAST
-- [ ] At least one bug-hunt/tinker/socratic with question-like items
+- [ ] At least one socratic block, with at most 3 question-like items
 - [ ] Only links from the link map; all relative
 - [ ] C# matches real starter files (you read them)
 - [ ] File is valid UTF-8, uses the em dash — literally in the h1
