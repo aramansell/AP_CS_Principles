@@ -70,11 +70,6 @@ const DECOMPOSE = {
   sizeTest:
     'The test: does the part name an API you could search for? "Play the walking animation" ' +
     'cannot be looked up. `SetBool`, `SetInteger` and `flipX` can — and each of them is a part.',
-  connect: [
-    'In 1.4 you read inputX and inputY once per frame and used them to move the character. Today those same two numbers answer two questions — is anything moving, and which way is it facing. What is different about what the numbers are being used for?',
-    'In 1.3 you learned that a reference kept in the class body survives, while one declared inside a method does not. Which part above is that rule doing the work in, and what does the Console say when you break it?',
-    'In 1.5 you made the direction vector\'s length exactly 1 so that pushing two keys could not make you faster. Today you compare how hard each axis is being pushed. What does Mathf.Abs throw away so the comparison is about strength rather than direction — and why does walking left lose to a gentle nudge upward without it?',
-  ],
   turns: [
     'The walkthrough also fires an attack with SetTrigger, and a swing is not one of the parts above. Why is it not part of "play a walking animation", and what is different about an action that ends by itself?',
     'Two methods are written in the walkthrough and neither one runs until something calls it. Where in Update() do those calls belong, and why would calling them before the input is read animate the wrong frame?',
@@ -180,38 +175,6 @@ const WALK = {
         { code: '        UpdateAnimation();', what: 'Runs the animation logic every frame. The parentheses are empty because the method needs nothing handed to it: `inputX` and `inputY` are fields, so they are already sitting there for it to read.', why: '**The position matters.** Put this call after the input is read, not before. `isMoving` and `WalkDir` are built from `inputX` and `inputY`, so calling it earlier would animate last frame\'s input and the character would visibly lag behind its own movement.' },
         { code: '        CheckAttack();', what: 'The same idea for the attack. It has to be here inside `Update()` — `Start()` runs once, and the player can click at any moment.' },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: 'declaring `private Animator animator;` and never giving it a value — no `Start()`, or a `Start()` that only handles other things',
-      symptom: 'The game runs, the character still moves, and then the moment you press a direction key the Console fills with `NullReferenceException: Object reference not set to an instance of an object`.',
-      fix: 'A declared field is `null` until something assigns it. Add `void Start()` and put `animator = GetComponentInChildren<Animator>();` inside it. `Start()` runs once before the first frame, so the lookup happens once rather than sixty times a second.',
-    },
-    {
-      mistake: '`animator = GetComponent<Animator>();` — the version without `InChildren`',
-      symptom: 'The same `NullReferenceException`, even though you can see the Animator component sitting right there in the Inspector when you select the Sprite object.',
-      fix: 'The Animator is on the child **Sprite**, not on the Player where this script lives. `GetComponent<T>()` looks only at the object the script is attached to, so it returns null. `GetComponentInChildren<T>()` searches that object **and everything beneath it**, which is why this lesson uses it for both the Animator and the Sprite Renderer.',
-    },
-    {
-      mistake: '`animator.SetBool("isWalking", isMoving);` — lowercase `i` — or `"Walking"`, or `"Walk"`',
-      symptom: 'Nothing happens visually. The character keeps sliding around in its idle pose, and somewhere in the Console there is a warning like `Animator does not have a parameter named "isWalking"`. It does not crash, so it is very easy to miss.',
-      fix: 'Open the Animator window, click the **Parameters** tab, and copy the name exactly: `IsWalking`, capital I, capital W. Unity compares the string character for character; near enough is not enough.',
-    },
-    {
-      mistake: '`animator.SetFloat("WalkDir", inputX);` or `animator.SetBool("WalkDir", true);` — using a setter that does not match the parameter declared in the controller',
-      symptom: 'The same quiet warning and no change on screen. `WalkDir` is an **Int**, so only `SetInteger` can move it.',
-      fix: 'Read the parameter type in the Parameters tab and pick the matching method: `SetBool` for Bool, `SetInteger` for Int, `SetFloat` for Float, `SetTrigger` for Trigger. The word after `Set` **is** the type. This controller has no Float parameter at all, which is why you never call `SetFloat` here.',
-    },
-    {
-      mistake: 'writing `UpdateAnimation()` but never calling it from `Update()`',
-      symptom: 'The character moves and collides exactly as before, but the sprite is frozen in whatever pose it started in. No errors, nothing in the Console.',
-      fix: 'A method you write yourself does nothing until something calls it. `Update()` is the only thing running every frame, so both calls belong at the end of it, after the input has been read.',
-    },
-    {
-      mistake: '`if (Input.GetMouseButton(0))` instead of `if (Input.GetMouseButtonDown(0))`',
-      symptom: 'Holding the mouse button makes the swing restart every frame — the shovel never finishes its arc. It reads as a broken animation rather than a broken condition.',
-      fix: '`GetMouseButtonDown` is true on the one frame the button goes down. `GetMouseButton` is true on every frame it is held. A one-shot trigger wants the single frame.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -365,11 +328,10 @@ ${renderDecompose('1.6', DECOMPOSE, 1)}
     <div class="socratic">
         <h3>Socratic: Separation of Concerns</h3>
         <ol>
-            <li>Why does your script set abstract parameters like <code>"IsWalking"</code> rather than telling the engine "play frame 4 of the walk sprite sheet"?</li>
-            <li>If an artist replaced a 4-frame walk animation with an 8-frame one, how much C# would have to change? What does your answer say about the value of this split?</li>
-            <li>What is the technical difference between setting a boolean with <code>SetBool</code> and firing an action with <code>SetTrigger</code>? Which one resets itself, and why does that matter for an attack?</li>
-            <li>The Animator and the Sprite Renderer are both on the child object, while your script is on the parent. Why would <code>GetComponent&lt;Animator&gt;()</code> return nothing, and what does <code>GetComponentInChildren&lt;Animator&gt;()</code> do differently?</li>
-        </ol>
+<li>Why does your script set abstract parameters like <code>"IsWalking"</code> rather than telling the engine "play frame 4 of the walk sprite sheet"?</li>
+<li>If an artist replaced a 4-frame walk animation with an 8-frame one, how much C# would have to change? What does your answer say about the value of this split?</li>
+<li>What is the technical difference between setting a boolean with <code>SetBool</code> and firing an action with <code>SetTrigger</code>? Which one resets itself, and why does that matter for an attack?</li>
+</ol>
     </div>
 </div>
 
@@ -426,15 +388,6 @@ ${renderWalkthrough(WALK)}
         </ol>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Exploring state transitions</h3>
-        <ol>
-            <li>Keep the Animator window open while the game runs in Play mode. Walk around. Watch the blue progress bar slide across each state and the transition arrows light up in real time. Which state is active when you stand still, and which parameter is it testing?</li>
-            <li>Hold W and D together and watch <code>WalkDir</code> in the Parameters tab. Which branch of your <code>if</code> chain won, and what would you change in the condition if you wanted vertical movement to win instead?</li>
-            <li>Your Player is wired to <code>Player_Shovel.controller</code>, which is why the attack is a shovel swing. Go and find <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/Player_Axe.controller</code> and open it. It is a complete, working controller with axe swings instead of shovel swings, and it is assigned to nothing. Which single property on the Animator component would you change to make your character swing an axe? (You will do exactly this in Unit 5.)</li>
-            <li>Add a fourth parameter of your own to the controller and wire a transition to it. What is the minimum you need — a parameter, a state, and what else?</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

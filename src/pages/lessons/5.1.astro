@@ -104,11 +104,6 @@ const DECOMPOSE = {
     'cannot be looked up. "Change the controller an Animator is playing" can — and the search term for ' +
     'it is a property name you have to go and read rather than guess, which is why the gap above names ' +
     'where to look and not what to type.',
-  connect: [
-    '2.1 built the coin: a trigger collider, a tag check, a value that changes, a destroy. Which parts of today\'s split are that same pattern — and which part of the six has no twin there at all?',
-    '2.3\'s potion changed a number that already existed and had a ceiling on it. Say out loud what the axe has in common with the potion, and then say what the axe does that the potion never could.',
-    'In 1.6 you drove the Animator by setting parameters — `SetBool`, `SetInteger`, `SetTrigger` — and the controller decided which clip that meant. Today you touch none of those three. What is the difference between setting a parameter on a controller and replacing the controller itself?',
-  ],
   turns: [
     // Deliberately no lesson number here. This beat sits inside the "connect
     // it" block, which the verifier reads as prior-knowledge only — and it is
@@ -176,33 +171,6 @@ const WALK = {
         { code: '// Press Play, collect the axe, and swing', what: 'Save, press Play, walk into the axe and click. The character you are controlling should be an axe-wielder now: new walk, new idle, an axe swing instead of a shovel. Nothing else about the player changed — you can still move, still take damage, still collect coins.' },
         { code: '// Walk through a cave mouth and come back', what: 'The axe should still be in your hands, because `SceneSwitch.cs` copies the controller off the Player before it loads the scene and hands it back in `Start()`. Read that method now, while the behaviour is fresh — it is your proof that a controller can be swapped at runtime at all, and it is the code you will be glad existed in 5.3.' },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: 'Is Trigger left unticked on the axe collider',
-      symptom: 'The player is stopped dead by a small invisible wall where the axe is, the axe never leaves the ground, and the Console says nothing at all.',
-      fix: 'Tick **Is Trigger**. A solid collider reports a **collision** and calls `OnCollisionEnter2D` — the spike callback from 2.2 — so `OnTriggerEnter2D` never runs and your branch is never reached. Same checkbox, same consequence, as the coin in 2.1.',
-    },
-    {
-      mistake: 'hasAxe declared inside OnTriggerEnter2D instead of in the class body',
-      symptom: 'The Console prints `true` on the frame you touch the axe and `false` on every frame after it. The capability is granted for one frame and then forgotten, and the pickup looks like it half-worked.',
-      fix: 'The field belongs in the **class body**, for the reason from 1.3: a variable declared inside a method is built fresh every time that method runs. Inside the branch it lives for one frame and is thrown away; the axe is destroyed, so you can never collect it again.',
-    },
-    {
-      mistake: 'hasAxe starting at true',
-      symptom: 'You begin the game already an axe-wielder — the axe swing plays before you have found anything — and walking into the axe changes nothing you can see. The axe stops being a reward and becomes decoration.',
-      fix: '`= false`. The default is the whole design: the capability has to be **earned** by the branch you just wrote, or the pickup has nothing left to do. The Bug Hunt asks you to play this version and watch what it costs.',
-    },
-    {
-      mistake: 'the Axe Controller slot left at None in the Inspector',
-      symptom: 'You touch the axe, the boolean flips to true, and the character does not change. No swing plays either, because the Animator was just handed an empty controller and has nothing left to play.',
-      fix: 'Wire the slot — drag `Player_Axe.controller` into it, on the **Player prefab**. The assignment runs perfectly; it is the reference that is empty, and C# does not complain about an empty reference until something reads it.',
-    },
-    {
-      mistake: 'the collider added to the axe instance in the scene instead of to the prefab asset',
-      symptom: 'The axe you placed works. The next one you drag in from the same prefab is a picture again — you walk straight through it, nothing happens, and there is no error to follow.',
-      fix: 'Edit the **prefab asset** first, then place instances. An instance inherits whatever the prefab had when you dropped it in, so a collider added to one instance belongs to that instance alone — the same prefab-versus-instance rule 2.1 gave you and 2.4 made you break on purpose.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -430,11 +398,10 @@ ${renderDecompose('5.1', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Socratic: Right-sizing the data</h3>
         <ol>
-            <li>Why is a <code>bool</code> the right abstraction for "I have an axe" but the wrong one for "how many coins do I have"?</li>
-            <li>At roughly how many items does a collection of booleans become the wrong design? What breaks first — readability, or the number of branches you have to write?</li>
-            <li>Where should this boolean live — on the axe, on the player, or somewhere global? Use the reasoning you applied in <a href="2.1.html">2.1</a>, then check it against what you actually do below.</li>
-            <li>You already store coins and health on <code>PlayerController</code>. Is "has an axe" the same kind of fact? What makes it different from a number, if anything?</li>
-        </ol>
+<li>Why is a <code>bool</code> the right abstraction for "I have an axe" but the wrong one for "how many coins do I have"?</li>
+<li>At roughly how many items does a collection of booleans become the wrong design? What breaks first — readability, or the number of branches you have to write?</li>
+<li>Where should this boolean live — on the axe, on the player, or somewhere global? Use the reasoning you applied in <a href="2.1.html">2.1</a>, then check it against what you actually do below.</li>
+</ol>
     </div>
 </div>
 
@@ -522,11 +489,10 @@ ${renderDecompose('5.1', DECOMPOSE, 2)}
             </tr>
         </table>
         <ol>
-            <li>Which approach does the project's own art layout clearly <em>intend</em> you to take? What is the evidence?</li>
-            <li>Read <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code>. Find where it saves and restores something related to the Animator. Which property does it touch, and what does that prove is possible at runtime?</li>
-            <li>Which approach would you choose if this game had four weapons instead of two, and why does the answer change?</li>
-            <li>What is the name of the property on the Animator component that holds the controller? Find it in the documentation rather than guessing.</li>
-        </ol>
+<li>Which approach does the project's own art layout clearly <em>intend</em> you to take? What is the evidence?</li>
+<li>Read <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code>. Find where it saves and restores something related to the Animator. Which property does it touch, and what does that prove is possible at runtime?</li>
+<li>Which approach would you choose if this game had four weapons instead of two, and why does the answer change?</li>
+</ol>
     </div>
 </div>
 
@@ -596,16 +562,6 @@ ${renderWalkthrough(WALK)}
         come back, and check that they still are.
     </p>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: The phantom axe</h3>
-        <ol>
-            <li>Set <code>hasAxe</code> to start at the "already has it" state and press Play. What does the game grant you before you ever found the axe — and what did the default you originally chose protect against?</li>
-            <li>Pick up the axe, then die using the death rule you built in <a href="2.2.html">2.2</a>. Do you still have the axe? Should you — and is that a coding decision or a design decision?</li>
-            <li>Add a second axe and collect both. What does the boolean become after the second one? Why is that the only correct answer even though you touched two axes?</li>
-            <li>What happens to the player's appearance when a <em>scene loads</em>? Walk through a cave mouth with the axe and look. Then find the code in <code>SceneSwitch.cs</code> that deals with it, and explain why that code has to exist at all.</li>
-            <li>Change the name your code uses for an Animator parameter so it no longer matches the controller. What is the symptom — silence, an error, or nothing at all? What does that tell you about the cost of string-based APIs?</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -622,15 +578,6 @@ ${renderWalkthrough(WALK)}
         weapons to be added.
     </p>
 
-    <div class="tinker">
-        <h3>Tinker: Inventory design</h3>
-        <ol>
-            <li>Look in <code>Assets/Artwork/Character/Player/ExtraSpriteSheets/</code>. It holds <strong>four</strong> sprite sheets: no weapon, shovel, slingshot, and one that pairs the slingshot with a shield. Now count the controllers in <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/</code>. There are only <strong>two</strong> — shovel and axe. So the art for a slingshot exists and nobody ever authored its states. Under the approach you chose, what would it cost you to make the slingshot real — and does that change which of the three approaches you would pick for a game with four weapons?</li>
-            <li>Design the feedback: how would a player <em>see</em> that they are holding an axe? Argue sprite-only versus a UI icon — and which does the animation swap give you for free?</li>
-            <li>The one-use axe: breaking the door consumes it, so the boolean flips back to false. Which script should flip it back, and why must it not be the pickup branch that does so?</li>
-            <li>Right now your boolean is lost when the scene reloads. Write down exactly what that means for the player. You will fix this in <a href="5.3.html">5.3</a>, and the fix will not be about the axe.</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

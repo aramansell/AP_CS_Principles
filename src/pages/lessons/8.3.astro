@@ -138,12 +138,6 @@ const DECOMPOSE: DecomposeSpec = {
     'swing hurt the boss" cannot be looked up. "Give me every collider inside a box, on one ' +
     'layer" can — and the page you land on hands you four arguments in a fixed order and a ' +
     'result type that is already an array.',
-  connect: [
-    'In 2.1 you ticked **Is Trigger** on the coin so it would report a contact instead of shoving the player, and in 8.2 you gave the boss a collider of its own. Which part above is that same trigger again — and what is different about a shape that exists for a moment and then closes?',
-    'In 3.3 you built a fire rate out of two floats, and you wrote the first value as one interval in the past so that "there has been no last shot" needed no special case. Which part above is that mechanism again, and why does a swing need it as much as a turret did?',
-    'In 5.3 the damage method took a signed amount, where a positive number hurts and a negative one heals. Which part above carries that sign, and what would the fight look like if you got it backwards?',
-    'In 8.2 you wrote the method that subtracts from the boss\'s health and watched it fall in the Console. Which part above is the thing that finally calls it — and what did that lesson deliberately leave for this one?',
-  ],
   turns: [
     'Your ground check from 6.2 and today\'s swing query both ask the physics engine about colliders. Say which of the two can come back with more than one answer, and what each one does with the answer it gets.',
     'The window is what stops a swing being decided by a single frame. Name one other place in this project where state exists for a short time and then closes — and say what would break if it never did.',
@@ -329,43 +323,6 @@ const WALK = {
         },
         { code: '        }', what: 'Closes the window check. One more `}` closes the class.' },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: 'the Boss Layer mask left at Nothing — or left at Everything',
-      symptom:
-        'Nothing: you can stand inside the boss and swing all day. The animation plays, the Console is clean, and the health never moves — the query found nothing because the mask named nothing. Everything: the first swing also collects the Coin beside you, because the hitbox is a trigger and the Player\'s own `OnTriggerEnter2D` from 2.1 is still listening for one.',
-      fix:
-        'Point the mask at the single layer your boss is on — `Enemy`, if you assembled it from an enemy prefab in 8.2 — and then open the boss\'s Inspector and confirm that is true. A mask that names a bucket nothing is in returns nothing, silently, forever, and no error will ever tell you.',
-    },
-    {
-      mistake: '`hit.GetComponent<BossHealth>()` when the collider and the health sit on different objects in the boss',
-      symptom:
-        'The query clearly finds the boss — put a `Debug.Log` on `hits.Length` and it says 1 — and the health still never moves. No exception, nothing red in the Console. Every swing is being thrown away by the `continue`.',
-      fix:
-        'Use `GetComponentInParent<BossHealth>()`, which walks up from the collider to the object that owns the number. 2.1 established that a collider and a renderer can live on different objects in the same hierarchy; the rule covers every component, and this is the first time it costs you a hit.',
-    },
-    {
-      mistake: 'the window left open — set forward on every frame, or never closed on a hit',
-      symptom:
-        'One click and the boss\'s health drops to nothing while the swing animation plays once. Hold the mouse button and the whole fight is over in about a second, with the hitbox still live long after the animation has finished.',
-      fix:
-        'Close it when a hit lands (`windowClosesAt = Time.time;`), and read the click with `GetMouseButtonDown` rather than `GetMouseButton` — the `Down` is what makes one press one swing, and it is the rule 1.6 already gave you.',
-    },
-    {
-      mistake: 'the hitbox parked at `+0.6` on x and never moved',
-      symptom:
-        'You face left, swing, and hit nothing — while the enemy standing in front of you takes damage from a swing aimed the other way. It works perfectly for anyone who only ever walks right, which is why it survives your first five minutes of testing.',
-      fix:
-        'Set `attackHitbox.localPosition` from `spriteRenderer.flipX` at the moment the swing opens. That flag is the one you set from the movement input in 1.6 and cached in `Start()`, and `true` means facing left.',
-    },
-    {
-      mistake: 'the `AttackHitbox` collider with **Is Trigger** left unticked',
-      symptom:
-        'Swinging next to the boss shoves it — or shoves *you*, because the box overlaps your own collider — and the damage still lands, which is what makes it confusing. A solid collider is a real object and the physics engine resolves the overlap by pushing something out of the way.',
-      fix:
-        'Tick **Is Trigger**. The shape is not meant to be a thing in the world; it is meant to be a question. Note that this changes nothing about what queries can find — `Queries Hit Triggers` is ticked in this project, so a trigger is found by every query anyway. That is the point the first activity makes.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -591,13 +548,10 @@ ${renderDecompose('8.3', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Socratic: Sensors and the Questions They Answer</h3>
         <ol>
-            <li>A raycast returns the <em>first</em> collider it meets along its path. Why does that single fact turn a stray trigger into a ground-check bug rather than a harmless extra result?</li>
-            <li>Your ground check and your attack query are both asking the physics engine a question — "what is under my feet" and "what is in front of me". Which of the two is the hitbox a legitimate answer to?</li>
-            <li>Option (c) fixes the hitbox and breaks every other query in the game that wanted to find a trigger. Which query in your own project, written by you, would break?</li>
-            <li>Option (b) is free but blunt. What is the long-term cost of putting two very different objects on the same built-in layer?</li>
-            <li>You are going to swing at the boss. Whose collider does the query need to find — the boss's body, or a separate one? What did you decide in <a href="8.2.html">8.2</a>, and does your mask match that decision?</li>
-            <li>Before you build: what do you predict happens to your jump if you put the hitbox on the player's default layer and change nothing else?</li>
-        </ol>
+<li>A raycast returns the <em>first</em> collider it meets along its path. Why does that single fact turn a stray trigger into a ground-check bug rather than a harmless extra result?</li>
+<li>Your ground check and your attack query are both asking the physics engine a question — "what is under my feet" and "what is in front of me". Which of the two is the hitbox a legitimate answer to?</li>
+<li>Option (c) fixes the hitbox and breaks every other query in the game that wanted to find a trigger. Which query in your own project, written by you, would break?</li>
+</ol>
     </div>
 </div>
 
@@ -638,12 +592,10 @@ ${renderDecompose('8.3', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>In examples 3 and 4, the limit is mechanical rather than a rule someone remembers to follow. How would you make your attack's rate limit mechanical in the same way?</li>
-            <li>You already built a fire-rate cooldown for the turret in <a href="3.3.html">3.3</a>. Which parts of that idea transfer to a swing, and which part does not — what is different about a projectile that travels and a hitbox that appears?</li>
-            <li>Example 5's guard outranks the operator. If the player holds the mouse button down for two full seconds, what should happen — and which of your variables enforces that?</li>
-            <li>Example 1's fix narrows what the sensor looks at. If you choose that tool, which layers does your ground check need to name, and which layers does your attack query need to name?</li>
-            <li>Predict, in writing: you swing while standing on the ground. Does your player's <code>IsWalking</code> or ground check flicker for a frame? If it does, which of the four tools in the table fixes it?</li>
-        </ol>
+<li>In examples 3 and 4, the limit is mechanical rather than a rule someone remembers to follow. How would you make your attack's rate limit mechanical in the same way?</li>
+<li>You already built a fire-rate cooldown for the turret in <a href="3.3.html">3.3</a>. Which parts of that idea transfer to a swing, and which part does not — what is different about a projectile that travels and a hitbox that appears?</li>
+<li>Example 5's guard outranks the operator. If the player holds the mouse button down for two full seconds, what should happen — and which of your variables enforces that?</li>
+</ol>
     </div>
 </div>
 
@@ -719,17 +671,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~20 min</span>
     </div>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: What the Hitbox Touches That It Should Not</h3>
-        <ol>
-            <li>Stand still on solid ground and swing. Watch the Console for anything your ground check prints. Does it flicker for a frame? If it does, which of the four tools in the first table would stop it, and which one did you pick?</li>
-            <li>Set the ground check's layer mask to nothing (or remove the mask entirely) and swing again near a trigger. What does your player now believe about the floor — and what does that prove about what raycasts return?</li>
-            <li>Place a Coin a short distance in front of the player — close enough for the hitbox but clearly out of reach of the player's own collider. Swing. Does the coin vanish? Trace the message through your own pickup code to explain why the hitbox collected it.</li>
-            <li>Set your attack cooldown to zero and hold the mouse button down. How many hits per second land, and what did <a href="3.3.html">3.3</a> teach you to predict about a rule that lives only in the input?</li>
-            <li>Leave the query's mask wide open so it sees everything. What else does a swing now hit — pickups, projectiles, the lever, the player's own colliders? Which of those results is a real problem and which is merely noise?</li>
-            <li>Read the documentation page for <code>Physics2D.Raycast</code> and find the sentence about a ray whose origin lies <em>inside</em> a collider. Does that change how you would place your ground check's origin — and does it explain anything you have seen?</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -739,16 +680,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~10 min</span>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Combat Feel and One Optional Upgrade</h3>
-        <ol>
-            <li>Add hit feedback: flash the boss's colour for a tenth of a second when a hit lands. Why is "the numbers work but nothing reacts" the deadliest combat bug there is?</li>
-            <li>Time your swing against the boss's contact damage. How many frames are you inside the boss's reach while your own window is open? Is the trade fair — argue with the numbers from your <a href="8.1.html">8.1</a> arithmetic.</li>
-            <li>There is a fully built but <em>unassigned</em> animator controller at <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/Player_Axe.controller</code>. It uses the same parameter names you already drive — <code>IsWalking</code>, <code>WalkDir</code> and <code>Attack</code> — so it can be swapped onto the child <code>Sprite</code> almost as a drop-in. What does it cost you to try it, and what does it buy?</li>
-            <li>Swing at a wall, at a coin, and at the boss. Which of the three should deal damage, and does your mask currently agree with you?</li>
-            <li>Commit and push with a message naming the lesson: <code>"8.3: attack hitbox + damage window + layer fix"</code>.</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

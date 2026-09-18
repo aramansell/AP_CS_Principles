@@ -118,11 +118,6 @@ const DECOMPOSE = {
     'The test: could you look this part up on its own, right now, in one search? "Keep my stats between ' +
     'scenes" cannot be looked up. "Do not destroy this object when a new scene loads" can — it is one ' +
     'row of the quick reference, and every other part of this split is a move you have made before.',
-  connect: [
-    'In 2.1 the coin count started life as `[SerializeField] private int coins;` in the class body of `PlayerController`. Which part of today\'s split is that same number changing address — and what is it about a scene load that decided it had to move at all?',
-    'In 2.3 the max-health ceiling had to live inside the method that changes health, so that no future caller could go over it. Which part of today\'s split carries that rule forward — and why must the ceiling travel *with* the value it protects instead of staying behind on the player?',
-    'In 5.1 the axe added a third kind of fact: a `bool` that is not a number at all, and you had to decide where it lived. Which part of today\'s split moves it — and does anything about moving a `bool` differ from moving an `int`?',
-  ],
   turns: [
     'The project already contains one thing that survives a scene load: `SceneSwitch.cs` remembers which scene you came from, in a `static` field. Why is that field allowed to be `static` when your coins are not — what is different about the two things being remembered?',
     'The design you are about to build keeps the numbers alive across a *scene* load. Quit the game and they are gone. Is that a hole in the design or the design itself — and which of the three storage approaches would you have to reach for to change the answer?',
@@ -227,28 +222,6 @@ const WALK_SINGLETON = {
         { code: '', what: '' },
         { code: '        // No null guard here: if there is no StatManager in the scene, that', what: 'The honest answer to "should every caller check for a manager?" — **no**. `Instance` is `null` only when the scene you pressed Play in has no manager, which means you started the game from the Overworld instead of `Start`. A guard would hide a broken scene and make the Console silent about it. Fix the scene; write the guard only where code can genuinely run without a manager, which the HUD does in the next activity.' , why: 'This is a judgement call worth naming, because the instinct — from learning to write `if (slot != null)` before every Inspector reference in 4.1 — is to guard everywhere. Guarding everywhere converts a loud, traceable failure into a quiet, untraceable one.' },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: 'the instance field declared `private static StatManager Instance;`',
-      symptom: 'Every other script stops compiling with "StatManager.Instance is inaccessible due to its protection level" — including the HUD you are about to write. The manager itself compiles perfectly.',
-      fix: '`public static`. The whole point of the field is that scripts which have never met the manager can reach it; `private` makes it a well-kept secret.',
-    },
-    {
-      mistake: 'the setup written in `Start()` instead of `Awake()`',
-      symptom: 'A NullReferenceException on the first frame, from whichever script read `Instance` in its own `Start()` — and the error points at that innocent script, not at the manager. It happens on some runs and not others.',
-      fix: '`Awake()`. Unity runs every `Awake()` in the scene before the first `Start()`, and promises nothing about the order of two `Start()` methods. The singleton has to be claimed in the one hook that is guaranteed to run first.',
-    },
-    {
-      mistake: 'the `else { Destroy(gameObject); }` branch deleted as "defensive"',
-      symptom: 'Everything works until you walk back into `Start`, where a second StatManager loads and claims the slot — and your coins and health reset to their starting values, exactly as they did before the refactor. The Hierarchy now shows two of them.',
-      fix: 'Keep both branches. The `Start` scene really does contain its own manager object, so the duplicate is a scene you can walk into, not a hypothetical. The newcomer destroys itself; the original keeps the numbers.',
-    },
-    {
-      mistake: 'the stats copied to `StatManager` but left on `PlayerController` as well',
-      symptom: 'The game compiles and runs, and nothing appears to be wrong — except that the HUD never moves. The pickup still increments the player\'s private copy while every reader goes to the manager, so the number on screen is frozen at whatever it started as.',
-      fix: 'Delete the old fields. A refactor is a **move**, not a copy — and a field that exists in two places is not a backup, it is a disagreement waiting for a reader.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -384,28 +357,6 @@ const WALK_HUD = {
       ],
     },
   ],
-  pitfalls: [
-    {
-      mistake: 'the `using TMPro;` line left out',
-      symptom: 'The field line will not compile: "The type or namespace name \'TextMeshProUGUI\' could not be found". It reads like a typo in a type name that is spelled perfectly well.',
-      fix: 'Add `using TMPro;` at the top, beside `using UnityEngine;`. TMP\'s types live in their own namespace, and nothing puts them in scope for you.',
-    },
-    {
-      mistake: 'the Inspector slot left empty — Stats Text: None',
-      symptom: 'The game runs perfectly and the Console fills with a NullReferenceException every single frame, pointing at the line that writes `statsText.text`. Sixty messages a second, and the label never appears.',
-      fix: 'Drag the Text (TMP) object into the slot. An empty reference is a valid C# value and nothing complains until your code reads it — the identical trap as the empty waypoint slot in 4.1.',
-    },
-    {
-      mistake: 'the text written once in `Start()` instead of every frame',
-      symptom: 'The label shows the numbers you had when the scene loaded and never moves again. You collect a coin, take damage, and the screen says exactly what it said ten minutes ago — while the Console readout from `StatManager` is completely correct.',
-      fix: 'Build the string in `Update()`. The numbers move on their own; a string you built once does not follow them. This is the one bug in the lesson that looks like the HUD is broken when the stats are perfect.',
-    },
-    {
-      mistake: 'expecting the HUD to follow you into the cave',
-      symptom: 'The label is there in `Start`, and gone the moment you walk through a cave mouth — along with the Canvas, the text object and the script. Nothing is broken and nothing warns you; the UI simply is not in that scene.',
-      fix: 'A Canvas is scene-local, like everything else: it dies with the scene that owns it. That is a decision, not an accident — the HUD shows where the game begins. If you want it everywhere, the same `DontDestroyOnLoad` call you wrote in the first walkthrough works on a Canvas too, and it brings the same problem with it: walk back into `Start` and you now have two of them. Decide deliberately, and if you do make it persistent, guard it.',
-    },
-  ],
   finalFile: `using UnityEngine;
 using TMPro;
 
@@ -482,16 +433,6 @@ ${renderDecompose('5.3', DECOMPOSE, 1)}
         mouths marked on the overworld map.
     </p>
 
-    <div class="tinker">
-        <h3>Tinker: Everything you own, gone</h3>
-        <ol>
-            <li>What happened the moment you touched the cave entrance? Which scene are you standing in now — check the Hierarchy, not your memory.</li>
-            <li>Look at your coins, your health and your axe. What are they now? Write down each one's value before and after.</li>
-            <li>Go back through the cave's exit. Are your coins restored, or are they still reset? What does that tell you about where the numbers were living?</li>
-            <li>You have been tripping these cave entrances since <a href="2.1.html">2.1</a>, when you gave the Player a collider. What code has been running every time — and why did it start working only then?</li>
-            <li>Open <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code> and read it. Which method loads the scene — and what does it deliberately <em>restore</em> about the player when you arrive? What does that list tell you the person who wrote it already knew?</li>
-        </ol>
-    </div>
 
     <div class="callout trap">
         <strong>This is not a bug — it is the correct behaviour of a scene load.</strong>
@@ -574,11 +515,10 @@ ${renderDecompose('5.3', DECOMPOSE, 1)}
             </tr>
         </table>
         <ol>
-            <li>Your stats should reset when you start a new game, and survive a scene change. Which of the three can express both of those, and which one cannot express the first?</li>
-            <li>The <code>Start</code> scene already contains a StatManager object. If you return to <code>Start</code> later, what will be there — and what happens if nothing stops it from registering itself a second time?</li>
-            <li>Why can position <em>not</em> be handled this way? What is different about position that makes <code>SceneSwitch.cs</code> handle it instead?</li>
-            <li>A player's coins are a fact about <em>this run</em>. A high score is a fact about <em>all runs</em>. Which storage would you use for each, and why is the answer different?</li>
-        </ol>
+<li>Your stats should reset when you start a new game, and survive a scene change. Which of the three can express both of those, and which one cannot express the first?</li>
+<li>The <code>Start</code> scene already contains a StatManager object. If you return to <code>Start</code> later, what will be there — and what happens if nothing stops it from registering itself a second time?</li>
+<li>Why can position <em>not</em> be handled this way? What is different about position that makes <code>SceneSwitch.cs</code> handle it instead?</li>
+</ol>
     </div>
 </div>
 
@@ -753,17 +693,6 @@ ${renderWalkthrough(WALK_HUD)}
         which is the part worth learning.
     </p>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: Persistence Faults</h3>
-        <ol>
-            <li>Walk from <code>Start</code> into the Overworld, then take the cave mouth that leads back to <code>Start</code>. How many StatManager objects exist now? If you forgot the duplicate guard, what happens to your stats on the second one — and what would the Hierarchy show you?</li>
-            <li>Remove the "do not destroy" call. Everything looks fine until you change scenes. What exactly resets, and why did the bug hide until then?</li>
-            <li>Delete the manager's GameObject from <code>Start</code> but keep the script. What does the first caller that reaches for it do — and is the error loud or silent? Which of the two callers is silent, and why?</li>
-            <li>Put the StatManager object in the <em>Overworld</em> instead of <code>Start</code>, and take it out of <code>Start</code>. Press Play from <code>Start</code>. What happens — and what does that tell you about which scene has to own the manager?</li>
-            <li>Give the manager a <code>static</code> coin field <em>as well as</em> an instance field, and update only one of them. Which one does your HUD read, and why is having both a design smell rather than a safety net?</li>
-            <li>Read <code>SceneSwitch.cs</code> again: its <code>scene</code> field is an <code>int</code>, not a name. Now open the build's scene list (<strong>File ▸ Build Profiles ▸ Scene List</strong> in Unity 6 — the panel older tutorials call Build Settings) and drag <code>Overworld</code> above <code>Start</code> so <code>Start</code> is no longer index 0. Press Play in <code>Overworld</code> and walk into the cave mouth that used to lead back to <code>Start</code>. Which scene loads, and why did nothing warn you? Say what the <code>int</code> actually stores.</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -773,16 +702,6 @@ ${renderWalkthrough(WALK_HUD)}
         <span class="activity-time">~15 min</span>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Persistence design</h3>
-        <ol>
-            <li>Design the respawn contract now that you control it: if you die in the cave, where do you wake up, and what do you keep? Write it as a rule a player could understand in one sentence.</li>
-            <li>Add a persistent <em>high score</em> that outlives a play session. Which of the three storage approaches needs to change, and why can the singleton no longer do the job alone?</li>
-            <li>The manager currently holds coins, health, the maximum and the axe flag. At what point does it hold too much? Sketch how you would split it if it grew to ten values, and name the principle you are applying.</li>
-            <li>Read your own commit history from 5.1 to now. Which commit made the biggest change to the <em>shape</em> of the code rather than its behaviour? That is the mark of a refactor — and this lesson's commit should be the biggest one yet.</li>
-            <li>Commit and push: <code>"5.3: stats persist across scenes + HUD"</code>.</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

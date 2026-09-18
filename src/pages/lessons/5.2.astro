@@ -121,11 +121,6 @@ const DECOMPOSE = {
     'Four of those six parts are work you have already done: a key that fires on one frame is 1.6, a distance measured against a number is 3.1, and a search plus a method call is what you have been writing since 2.1. The last two have no precedent anywhere in this course, and they are the reason this lesson is a full walkthrough rather than a guided one. Every part before today had a name you could look up - `GetKeyDown`, `Vector3.Distance`, `GetComponent`. An event does not. `Invoke()` is the first line in this project that causes code to run without naming the code, and the only way to learn a mechanism you cannot search for is to be shown the whole of it once.',
   sizeTest:
     'The test: could you look this part up on its own, right now, in one search? "Open a door with a key" cannot be looked up - there is no such API and no such search. "Make a method run when an event fires" can: that is `AddListener`, and it is one search away.',
-  connect: [
-    'In 2.1 your coin pickup opened with `other.CompareTag("Coin")`, because a trigger fires for everything that touches you. Which part of today is that same idea, and what is being tested instead of a tag?',
-    'In 3.1 the turret decided whether it could see the player by measuring `Vector3.Distance` against a radius. Which part of today is that measurement - and what does the answer change? The turret started firing; what does the lever do?',
-    'In 1.6 you chose between `GetMouseButton` and `GetMouseButtonDown` for the attack, and one of them restarted the swing every frame. Which part of today is that same choice, and what does the wrong one do to a lever?',
-  ],
   turns: [
     'The lever is driving three subscribers today and has never met any of them. Say what it would have had to know if it had been written the obvious way - holding a reference to the door and calling a method on it - and say what the event removed from the file.',
     'The event that connects the lever to the door is `private`. Which of the two roads this lesson builds - the Inspector list, or `AddListener` in a script - works without editing somebody else\'s file, and what does the other road cost you?',
@@ -256,33 +251,6 @@ const WALK_INTERACT = {
           what: 'Closes `TryInteract()`. One more `}` closes the class.',
         },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: '`if (Input.GetKey(KeyCode.E))` - the version without `Down`',
-      symptom: 'Holding E for half a second flips the lever about thirty times. The sprite strobes, `On Lever On` and `On Lever Off` fire alternately, and the door opens and closes until you let go of the key.',
-      fix: '`GetKeyDown` is true on the one frame the key goes down; `GetKey` is true on every frame the key is held. An interaction is a moment, not a state. It is the same pair as `GetMouseButton` and `GetMouseButtonDown` from 1.6, and the same trap.',
-    },
-    {
-      mistake: '`Lever lever = GetComponent<Lever>();` - finding the lever the way you find your own components',
-      symptom: 'Pressing E does absolutely nothing, and the Console stays completely clean. Your null guard is doing its job perfectly, on a reference that will never be anything but `null`.',
-      fix: '`GetComponent<T>()` looks on the object the script is attached to. The Player does not have a `Lever` on it, so there is nothing to find and nothing to complain about. To reach an object you hold no reference to, search the scene: `Object.FindFirstObjectByType<Lever>()`.',
-    },
-    {
-      mistake: 'the null guard left out, so the very next line reads `lever.transform.position`',
-      symptom: '`NullReferenceException: Object reference not set to an instance of an object`, once per frame while E is held - and only in the scenes that have no lever in them, which is every scene except the Overworld.',
-      fix: 'An empty reference is a perfectly legal value in C#: nothing complains until you use it. Write the `if (lever == null) return;` guard before you need it. This is the same argument as the null guard on the turret in 3.1 - the search is allowed to come back empty.',
-    },
-    {
-      mistake: '`Object.FindObjectOfType<Lever>()` - the pre-Unity-6 spelling',
-      symptom: 'It works, which is the problem. Every compile puts an obsolete-call warning naming `FindObjectOfType` in the Console, and the call you have written is the one the docs are retiring. Nothing tells you what to write instead.',
-      fix: '`Object.FindFirstObjectByType<Lever>()`. Unity 6 renamed the family: `FindFirstObjectByType<T>()` for one, and `FindObjectsByType<T>(FindObjectsSortMode.None)` for many. `Object.FindWithTag` in the quick reference still works and is still fine when you genuinely want a tag.',
-    },
-    {
-      mistake: 'the lever found by name - `GameObject.Find("CaveSwitch")` - and then `GetComponent<Lever>()` on the result',
-      symptom: 'It works all afternoon. Then somebody renames the object in the Hierarchy and pressing E does nothing at all, in silence, because your guard caught the null and there is no error to point at the string that no longer matches.',
-      fix: 'Search for the **type**, not the name. A name is a label a human can edit at any moment; the type is a fact about the object. `FindFirstObjectByType<Lever>()` keeps working when the object is renamed, re-parented or moved into another scene, and it cannot be broken by a typo in a string.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -445,33 +413,6 @@ const WALK_SUBSCRIBE = {
           what: 'Closes `OnDestroy()`. One more `}` closes the class.',
         },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: '`Lever.cs` left alone, so `onLeverOn` is still `private`',
-      symptom: 'The project will not compile at all: `error CS0122: \'Lever.onLeverOn\' is inaccessible due to its protection level`, pointing at your `AddListener` line.',
-      fix: 'This one fails loudly and early, which is the good news. Change the field to `public UnityEvent onLeverOn;` and re-read why: `[SerializeField] private` let the Inspector in and kept C# out, and you are now C#.',
-    },
-    {
-      mistake: 'the `lever` slot left at None in the Inspector',
-      symptom: '`NullReferenceException` in `Start()` the moment the scene loads - before you have touched anything, before you have pressed a key, and pointing at a line that only subscribes.',
-      fix: 'Wire the slot. Drag the object that carries the `Lever` component - the scene\'s `CaveSwitch` - into it. An empty slot never complains when you press Play; it complains at the first line that reads it, which is why the error appears at the start of the scene rather than at the moment of the interaction.',
-    },
-    {
-      mistake: 'the subscription written in `Update()` instead of `Start()`',
-      symptom: 'Nothing looks wrong. The door opens exactly as it should - and then you notice the Console filling with `OpenDoor` logs, or a sound effect firing sixty times in one frame.',
-      fix: '`AddListener` in `Update()` adds a **new listener every frame** - sixty a second, all pointing at the same method - so one pull of the lever calls your handler sixty times. Anything idempotent (`SetActive(false)`) hides it completely. Subscribing is setup: it belongs in `Start()`, once, like the body lookup in 2.2.',
-    },
-    {
-      mistake: '`OnDestroy()` left out - `AddListener` with no `RemoveListener`',
-      symptom: 'Fine until something destroys the subscriber while the game is running. Then the next pull of the lever throws `MissingReferenceException: The object of type \'DoorOpener\' has been destroyed but you are still trying to access it`.',
-      fix: 'Every `AddListener` gets a matching `RemoveListener`, and `OnDestroy()` is the pair to `Start()`. The event holds a reference to your object; removing the listener is how you let go of it. The Bug Hunt below asks you to produce this on purpose, so you have seen it before it happens by accident.',
-    },
-    {
-      mistake: 'the `door` slot left at None, while the `lever` slot is correct',
-      symptom: 'The game runs, the lever pulls, the sprite swaps - and then a `NullReferenceException` appears at the exact moment of the interaction, not at the start of the scene.',
-      fix: 'Wire the `door` slot too. The lesson here is about **when** a missing reference reports itself: it throws at the first line that **uses** it, so a missing `lever` breaks the scene on load and a missing `door` breaks it on the key press. When an error arrives at the wrong moment, suspect a wiring change rather than your logic.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -713,11 +654,10 @@ onLeverOn.Invoke();</code></pre>
             </tr>
         </table>
         <ol>
-            <li>Which approach did you use for turret detection in <a href="3.1.html">3.1</a>? Which of these three is the closest cousin to it, and why is the analogy not perfect?</li>
-            <li>There is exactly one CaveSwitch in the Overworld today. Which approach is over-engineered for one lever, and which one would you regret <em>not</em> choosing if the cave had twelve?</li>
-            <li>Whichever you pick, what does "close enough" mean numerically — and where should that number live so a designer can change it?</li>
-            <li>Which key event should trigger the interaction: the one that fires every frame the key is held, or the one that fires once on press? What would happen with the wrong choice?</li>
-        </ol>
+<li>Which approach did you use for turret detection in <a href="3.1.html">3.1</a>? Which of these three is the closest cousin to it, and why is the analogy not perfect?</li>
+<li>There is exactly one CaveSwitch in the Overworld today. Which approach is over-engineered for one lever, and which one would you regret <em>not</em> choosing if the cave had twelve?</li>
+<li>Whichever you pick, what does "close enough" mean numerically — and where should that number live so a designer can change it?</li>
+</ol>
     </div>
 
     <div class="callout info">
@@ -800,16 +740,6 @@ ${renderWalkthrough(WALK_SUBSCRIBE)}
         one question below is hypothetical, and it says so.
     </p>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: The event that wouldn't</h3>
-        <ol>
-            <li>If you chose search-and-measure, remove the distance check and press E from across the map. What did that check protect you from?</li>
-            <li>Wire the door's <code>SetActive(false)</code> into <strong>On Lever Off</strong> instead of On. Now what is the exact key-press sequence to get through? Is that a puzzle or a bug?</li>
-            <li>Clear the lever's <code>onSprite</code> field so it has no sprite to swap to. Does the event still fire? Which of the two is decoration, and which is the machinery?</li>
-            <li>Add a second CaveSwitch and stand between them so both are in range. Press E once. What happened — and should one keypress ever flip two switches? Which of the three approaches would prevent it?</li>
-            <li>Take the <code>RemoveListener</code> line out of <code>OnDestroy()</code>, then destroy the object your subscriber sits on while the game is running — a temporary <code>Destroy(gameObject)</code> is enough. Now press E. What does the Console say, and can the Inspector's list, which you also never unsubscribed from, produce the same fault? Say why the answer differs between the two roads.</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -819,15 +749,6 @@ ${renderWalkthrough(WALK_SUBSCRIBE)}
         <span class="activity-time">~10 min</span>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Event design</h3>
-        <ol>
-            <li>The lever already drives three listeners at once and does not know it. Add a fourth of your own. Why is "whoever wants to know, listens" the direction that scales, and what would the lever have needed to know if it had been written the obvious way?</li>
-            <li>Make a false wall that opens a secret passage instead of the cave. How much code did that cost you — and what does that number tell you about the value of the event pattern?</li>
-            <li>Make the lever refuse to work unless the player holds the axe. Which script gains a conditional — and can you do it with <em>zero</em> changes to <code>Lever.cs</code>? (Hint: think about who is allowed to be a listener.)</li>
-            <li>The lever is shouting into an empty room until someone subscribes. What happens if you wire a listener in the Inspector, then delete the object it points at? What does Unity show you in the slot — and how does that answer differ from deleting an object that subscribed in code, where nothing is shown to you at all?</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

@@ -81,11 +81,6 @@ const DECOMPOSE = {
     'The test: does the part name the thing that does the work? "Take damage" is an effect, not a ' +
     'part. "Hand the movement to the physics engine" is a part — and it is the only one here that ' +
     'changes what your character is allowed to do.',
-  connect: [
-    'In 2.1 you wrote if (other.CompareTag("Coin")) and changed a number inside it. Which parts of today\'s split are that same shape, and which one is not?',
-    '1.4 and 1.5 built your movement twice — first with transform.Translate, then with a normalized direction. What did that movement never consult, and why is that the whole reason your spike did nothing?',
-    '2.1\'s coin was a trigger: it reported an overlap and pushed nothing. Today\'s spike is solid, so it pushes. Which part of the split is that difference in, and what does the push buy you that the report could not?',
-  ],
   turns: [
     'Your coin count only ever goes up, so it needs no rule at all. Health only goes down, and it has a floor. Which part above keeps health inside the range where the number still means something — and what would the Console print on a second spike without it?',
   ],
@@ -140,43 +135,6 @@ const WALK = {
         { code: '//   Freeze Rotation Z  ☑ ON', blank: true, what: 'Stop the body from spinning: find the **Constraints** section of the Rigidbody 2D and freeze rotation on the **Z** axis. This is an Inspector setting, so record it as a comment in your file.', hint: 'In 2.1 you left Constraints alone, because nothing in the world was solid to you.', why: 'This did not matter in 2.1 — a trigger reports an overlap without pushing anything, so nothing could ever spin you. A **solid** collider does push, and an off-centre hit imparts torque. Without this, your character tumbles like a dropped coin the first time it hits a wall at an angle.' },
         { code: '//   Interpolate        =  Interpolate', what: 'Already set in 2.1. Keeps movement smooth between physics steps.' },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: 'Body Type set to Kinematic, because the MovePosition docs said so',
-      symptom: 'The character walks through every wall and every cave door exactly as before, and nothing in the Console complains.',
-      fix: 'Body Type = **Dynamic**. A Kinematic body only collides with Dynamic bodies — static walls and cave entrances are invisible to it. Triggers are the one exception, which is why your coins still work and makes the whole thing more confusing.',
-    },
-    {
-      mistake: 'body.linearVelocity = direction * moveSpeed * Time.deltaTime;',
-      symptom: 'The character moves, but at a crawl — roughly one sixtieth of the speed you asked for.',
-      fix: 'Drop `Time.deltaTime`. Velocity is measured in units **per second**, so the physics engine already multiplies by time. `deltaTime` belongs with `transform.Translate`, which moves a distance **per frame**. Different unit, different formula.',
-    },
-    {
-      mistake: 'transform.Translate(...) left in place alongside the new velocity line',
-      symptom: 'The character moves at roughly double speed, and still slides through walls — because Translate is still doing the moving.',
-      fix: 'The two lines fight each other. Delete the `transform.Translate` line and the `Vector2 movement` that fed it. One object, one thing moving it.',
-    },
-    {
-      mistake: 'GetComponent<Rigidbody2D>() called inside Update() instead of assigned in Start()',
-      symptom: 'Nothing visibly breaks, so the mistake survives review — a component search repeated 60 times a second, forever.',
-      fix: 'Assign `body` once in `Start()`. If you also forgot the assignment entirely, `body` stays null and the first frame throws a `NullReferenceException`.',
-    },
-    {
-      mistake: 'the Player\'s collider left on the Untagged Sprite child',
-      symptom: 'Coins work, but the cave entrance never opens — even though you are now Dynamic.',
-      fix: 'The collider must be on the **root**, the object tagged `Player`. `SceneSwitch` asks `collision.gameObject.CompareTag("Player")`, and `collision.gameObject` is whichever object owns the collider.',
-    },
-    {
-      mistake: 'the spike made solid while its collider is not fitted to the sprite art',
-      symptom: 'You take damage from standing well clear of the spikes, or you walk visually through the tips without harm.',
-      fix: 'Select the collider and drag its size until the green outline in the Scene view matches the art. A new collider does not fit itself to your sprite.',
-    },
-    {
-      mistake: 'subtracting health inside OnCollisionEnter2D but never checking whether the player is already dead',
-      symptom: 'Health runs to −3, −4, −5 on repeated contacts. The number stops meaning anything.',
-      fix: 'Guard the subtraction with the death condition, so the value stays inside the range that is meaningful — the same "a value needs a rule, not just arithmetic" idea you meet properly in 2.3.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -289,16 +247,6 @@ ${renderDecompose('2.2', DECOMPOSE, 2)}
     </p>
     <p><strong>Step 3.</strong> Press Play and walk into your spike.</p>
 
-    <div class="tinker">
-        <h3>Tinker: The Ghost</h3>
-        <ol>
-            <li>You gave the spike a solid collider. Walk into it. Did you stop, or pass straight through? Describe exactly what happened.</li>
-            <li>Now walk into a wall. You gave the Player a Collider2D <em>and</em> a Rigidbody2D in 2.1 — so why does the wall still not stop you?</li>
-            <li>Open the documentation for <code>Transform.Translate</code>. Find the sentence that says whether the physics engine is consulted, and quote it precisely.</li>
-            <li>The spike, the wall and the coin all have colliders now. What single thing in the Player's movement code stands between your character and the physics world?</li>
-            <li>Predict: if you keep <code>transform.Translate</code> and make the spike solid, what will your player be able to do to <em>every wall in the game</em>?</li>
-        </ol>
-    </div>
 
     <div class="callout trap">
         <strong>This is the most important bug in the unit — do not patch around it.</strong>
@@ -381,14 +329,10 @@ ${renderDecompose('2.2', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Choose, Then Justify</h3>
         <ol>
-            <li>Your character is a ghost. Which row fixes that with the smallest change to the code you have already written?</li>
-            <li>This game is about exploring a world and being shot at by turrets. Do you want your movement to carry momentum? Which row gives you momentum whether you want it or not?</li>
-            <li>Only one column in that table has the same value in every row that works. What is it, and why is that column the real decision rather than the technique you picked?</li>
-            <li>Two of the four rows measure movement differently from the other one. Which two, and what does each of them <em>not</em> need that <code>transform.Translate</code> does?</li>
-            <li>A cave entrance has a solid collider wired to a scene change. It has been dormant all year because your Player had no body. Now that you have one, would it fire if you made your body Kinematic? Say why, using the word <em>collision</em> and the word <em>trigger</em> differently.</li>
-            <li>Your <code>EnemyController</code>, <code>TurretController</code> and <code>Projectile</code> are all still empty shells. Would an enemy or a bullet need a <em>different</em> row from the player? Argue a position.</li>
-            <li>What evidence from your own build would make your justification convincing to another student — a measurement, a screenshot, a before-and-after?</li>
-        </ol>
+<li>Your character is a ghost. Which row fixes that with the smallest change to the code you have already written?</li>
+<li>This game is about exploring a world and being shot at by turrets. Do you want your movement to carry momentum? Which row gives you momentum whether you want it or not?</li>
+<li>Only one column in that table has the same value in every row that works. What is it, and why is that column the real decision rather than the technique you picked?</li>
+</ol>
     </div>
 </div>
 
@@ -473,11 +417,10 @@ ${renderWalkthrough(WALK)}
     <div class="socratic">
         <h3>Picking a Hazard Model</h3>
         <ol>
-            <li>Which of the three matches the game you are building? Which would you pick for a game where spikes are a puzzle to be solved rather than a hazard to be avoided?</li>
-            <li>In the third row, what happens on the very first frame the player stands in the spike if you forget the cooldown? How many times per second does <code>OnTriggerStay2D</code> run?</li>
-            <li>For which of the three can you write <code>other.CompareTag("Spikes")</code> directly, and what must you write for the others?</li>
-            <li>Should a spike be destroyed when it damages you, the way a coin is destroyed when collected? What kind of object is a spike, and what does that tell you about using <code>Destroy</code> here?</li>
-        </ol>
+<li>Which of the three matches the game you are building? Which would you pick for a game where spikes are a puzzle to be solved rather than a hazard to be avoided?</li>
+<li>In the third row, what happens on the very first frame the player stands in the spike if you forget the cooldown? How many times per second does <code>OnTriggerStay2D</code> run?</li>
+<li>For which of the three can you write <code>other.CompareTag("Spikes")</code> directly, and what must you write for the others?</li>
+</ol>
     </div>
 </div>
 
@@ -519,12 +462,10 @@ ${renderWalkthrough(WALK)}
     <div class="socratic">
         <h3>The Death Decision</h3>
         <ol>
-            <li>Which death design did you choose, and what does the player keep and lose under it?</li>
-            <li>Option (b) loads this project's scene 0. What is in that scene, and what would the player actually see after dying? Test it before you answer.</li>
-            <li>If you chose (a), what happens to the coin count — and is "you lose your coins when you die" a fair rule, or just an accident of where the number happens to live?</li>
-            <li>If you added a coin penalty using <code>coins / 2</code>, what does a player with exactly 1 coin lose? Is that fair? Read the docs for <code>Mathf.FloorToInt</code>.</li>
-            <li>Whatever resets when you die, write down exactly what <em>survives</em>. You will need this fact in Unit 5.</li>
-        </ol>
+<li>Which death design did you choose, and what does the player keep and lose under it?</li>
+<li>Option (b) loads this project's scene 0. What is in that scene, and what would the player actually see after dying? Test it before you answer.</li>
+<li>If you chose (a), what happens to the coin count — and is "you lose your coins when you die" a fair rule, or just an accident of where the number happens to live?</li>
+</ol>
     </div>
 
     <p>
@@ -541,18 +482,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~15 min</span>
     </div>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: Physics and Boundary Faults</h3>
-        <ol>
-            <li>Set the spike's collider back to <strong>Is Trigger</strong> but keep your collision callback. Does anything fire? What does the Console show — or fail to show?</li>
-            <li>Set Body Type to <strong>Kinematic</strong> and walk into a wall. You are now following the documentation's own advice — does it stop you? Then walk into a cave door: does the scene still change? Explain both results with one sentence about what a Kinematic body collides with.</li>
-            <li>Put your velocity line back to multiplying by <code>Time.deltaTime</code>. Measure roughly how much slower the character moves, and compare that against the physics timestep.</li>
-            <li>Delete the <code>if (health &lt;= 0)</code> check and stand in a spike. What does the health number do? What does that prove about the difference between a <em>rule</em> and a <em>value</em>?</li>
-            <li>If you used the <code>OnTriggerStay2D</code> model, remove the cooldown and describe the first half-second of contact.</li>
-            <li>Set your speed very high and run at a wall. Do you stop, or end up on the other side? What does the wall's thickness have to do with it? (This failure has a name — look up "tunnelling".)</li>
-            <li>Die on purpose and watch the Console. Which values reset, and which survived? Compare that against what you wrote down earlier — were you right?</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -562,16 +491,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~10 min</span>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Exploring Collision Data</h3>
-        <ol>
-            <li>If you used collisions, add <code>Debug.Log("Impact: " + collision.relativeVelocity);</code> and bump a spike from two different angles. What does a <code>Collision2D</code> know that a <code>Collider2D</code> cannot tell you?</li>
-            <li>Using <code>relativeVelocity.magnitude</code>, how would you make damage happen only above a speed threshold? What would you name that number, and what is the feature usually called in games?</li>
-            <li>Open the Rigidbody 2D Inspector and tick <strong>Full Kinematic Contacts</strong> with a Kinematic body. Do you now get a Console message on impact? Do you stop against the wall? Why those two answers differ is the whole lesson.</li>
-            <li>Which movement method would you now recommend for the <em>enemy</em> in Unit 4? Does your answer have to match the player's? Why or why not?</li>
-            <li>Move your spike onto a slope or a corner and walk into it repeatedly. Does the damage fire once, or several times? What does that tell you about your choice of callback?</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

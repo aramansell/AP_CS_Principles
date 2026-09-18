@@ -136,11 +136,6 @@ const DECOMPOSE = {
     'Three of those five parts are work you have already done: a Dynamic body is 2.1, a serialized slot in the class body is 1.3 and again 5.1, and a once-only write in `Start()` is 3.3. The other two have no precedent anywhere in this course, and they are why this lesson is a full walkthrough rather than a guided one. Part 2 is the first time you decide something about the *world* instead of about the player - every flag you have ever written (`hasAxe`, `coins`, `lastAttackTime`) was a fact about your character, and this one is a fact about where the character is standing. Part 5 is the first time you hand the physics engine a *force* rather than a velocity: everything you have moved since 1.4 was a speed you chose, and a flick is a shove you do not control the consequences of.',
   sizeTest:
     'The test: could you look this part up on its own, right now, in one search? "Make the player jump" cannot be looked up - there is no such API. "Push a rigidbody upward once" can: that is `AddForce` with a force mode, and it is one search away.',
-  connect: [
-    'In 2.1 you set Body Type to Dynamic and Gravity Scale to 0, and in 2.2 you argued with the documentation about why the body had to stay Dynamic. Which part of today is that same pair of settings - and which one of the two changes?',
-    'In 5.1 the axe was a `bool` in the class body, ticked in the Inspector, and the whole design turned on what it started at. Which part of today is that same field, and what is it a fact about this time?',
-    'In 1.6 you chose between `GetMouseButton` and `GetMouseButtonDown`, and in 5.2 you chose between `GetKey` and `GetKeyDown`, both times because the wrong one fires every frame. Which part of today is that same choice, and what does the wrong one do to a jump?',
-  ],
   turns: [
     'The flag in part 2 is the first thing you have ever stored about the world rather than about the player. Name one other thing in your game that is really a fact about the scene, and say where you would keep it.',
     'Part 4 notices a key press; part 5 moves the body. Nothing in the file measures time, and yet the arc has a height. Say where the height actually comes from - and which of the two parts you would change first if the jump felt wrong.',
@@ -231,28 +226,6 @@ const WALK_GRAVITY = {
           why: '**This is the real test, and it is the one the Checkpoint asks about.** "Does the cave work" is a question about one scene; "does the other scene still work" is a question about your design. A change made for the cave that quietly alters the top-down hub is the exact failure this flag exists to prevent.',
         },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: 'the flag left unticked on the cave copy of the Player',
-      symptom: 'Nothing at all happens. The character stands in mid-air wherever you placed it, the Console is clean, and the jump you are about to write appears to do nothing.',
-      fix: 'Tick it, on the **scene instance**. A serialized `bool` defaults to `false`, so an unticked box is the same thing as a gate that never opens - and because it fails silently, this is the first thing to check before you suspect your code.',
-    },
-    {
-      mistake: 'the tick put on the Player PREFAB instead of on the cave copy',
-      symptom: 'The cave works - and so does the Overworld, which now falls. Your top-down character slides off the bottom of the screen the moment you press Play there, and the coin you were walking toward is unreachable.',
-      fix: 'Untick the prefab and tick the instance in the cave. A prefab is copied by every scene that uses it; only a value stored on the instance is a fact about that scene. Same rule as the axe collider in 5.1 and the enemy collider in 4.1.',
-    },
-    {
-      mistake: '`body.gravityScale = 1f;` written without the `if`, or moved into `Update()`',
-      symptom: 'Both scenes fall. The Overworld has no floor, so the character is gone within a second - and because the line runs sixty times a second, nothing in the Console points at it.',
-      fix: 'Keep the gate, and keep the whole thing in `Start()`. Gravity is decided once per scene; a line in `Update()` re-decides it every frame, which happens to look identical and is still the wrong home for a value that never changes.',
-    },
-    {
-      mistake: 'the Rigidbody2D added to the Sprite child in Unit 2, so `GetComponent<Rigidbody2D>()` finds nothing',
-      symptom: '`NullReferenceException: Object reference not set to an instance of an object`, in `Start()`, on the line that writes `gravityScale` - before the first frame, before you have pressed anything.',
-      fix: '`GetComponent<T>()` looks only on the object the script is attached to. If your body ended up on the child, either move it up to the Player root or look it up with `GetComponentInChildren<Rigidbody2D>()` - the same call you already use for the Animator. Check the Inspector rather than assuming: this is the wiring fault that produces a code-shaped error.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -367,33 +340,6 @@ const WALK_JUMP = {
           why: '**This is the part people get backwards.** The instinct is that anything touching the body belongs in `FixedUpdate`, and for a velocity you are setting every frame that is right - it is why your movement from 2.2 can live in `Update()` too and still behave. Forces are the exception: the engine collects them and spends them on its own schedule. Keep the input where input belongs, and let the engine own the timing.',
         },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: '`ForceMode2D.Impulse` left off the `AddForce` call',
-      symptom: 'The character twitches a hair and settles back down. It looks like the jump is too weak, so you raise `jumpForce`, and it still looks like the jump is too weak.',
-      fix: 'Add the argument. Without it you get `ForceMode2D.Force`, which is a push that keeps applying only while you keep calling it - and you call it on one frame out of sixty. Impulse is one hit. This is the single most common "my jump does nothing" bug in this unit.',
-    },
-    {
-      mistake: '`Input.GetKey(KeyCode.Space)` - the version without `Down`',
-      symptom: 'Hold Space and the character climbs. Not a jump: a continuous ascent with no ceiling, because sixty presses a second are being applied one after another.',
-      fix: '`GetKeyDown` is true on the one frame the key goes down; `GetKey` is true on every frame it is held. A jump is a moment, not a state - the same pair as `GetMouseButton` and `GetMouseButtonDown` in 1.6, and the same trap.',
-    },
-    {
-      mistake: 'the key check moved into `FixedUpdate()`',
-      symptom: 'It works - most of the time. Then on someone else\'s machine in the lab, one press in ten does nothing at all, and occasionally one press does two jumps in the air.',
-      fix: 'Poll input in `Update()`. `FixedUpdate` is the physics clock and does not run once per frame, so a condition that is true for exactly one frame can be seen twice or missed. `GetKeyDown` and `FixedUpdate` are the one combination in this lesson that is wrong on somebody else\'s hardware and right on yours.',
-    },
-    {
-      mistake: 'the flick written in a scene where the flag was never ticked',
-      symptom: 'Press Space and the character rises - and keeps rising. There is no apex, no fall, and no error: the game simply has no ceiling, and the top-down Overworld does the same thing.',
-      fix: 'Check `gravityScale` before you touch the jump code. An impulse with no gravity is not a weak jump, it is an escape: the number you were watching in the Console climbs forever instead of turning around. This is the trap callout at the bottom of the Build Lab, and it is worth producing on purpose once.',
-    },
-    {
-      mistake: '`jumpForce` tuned before the gravity number was settled',
-      symptom: 'You spend twenty minutes doubling and halving the force, and every value feels wrong in a different way - floaty at 5, twitchy at 14, and never quite right in between.',
-      fix: 'Tune them as a pair, and change one at a time. Gravity decides how long the arc lasts and the force decides how high it goes, so a change to either one moves the apex. The tuning triangle below is the order: gravity first, then the force, then mass - and write one sentence of feel for each, or you will not remember which change did what.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -584,12 +530,10 @@ ${renderDecompose('6.1', DECOMPOSE, 1)}
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>In the forklift example, what would change if you removed the <code>ForceMode2D.Impulse</code> argument? Predict the behaviour in one sentence, then test both in your cave.</li>
-            <li>The submarine keeps its horizontal drift and overwrites only the vertical part. What does that tell you about which component of a velocity a jump should touch — and which component it must leave alone?</li>
-            <li>The balloon rises with a tiny gravity scale, and your top-down world used gravity scale 0. What is the difference between <em>nothing falls</em> and <em>something rises</em>?</li>
-            <li>On the trampoline, height is decided at the instant the feet leave the mat. After that, does the player's input matter at all in a plain jump?</li>
-            <li>The bowling example says the same total push can be two different shots. Which of the two would you pick for a jump, and what would the other one be used for in your game?</li>
-        </ol>
+<li>In the forklift example, what would change if you removed the <code>ForceMode2D.Impulse</code> argument? Predict the behaviour in one sentence, then test both in your cave.</li>
+<li>The submarine keeps its horizontal drift and overwrites only the vertical part. What does that tell you about which component of a velocity a jump should touch — and which component it must leave alone?</li>
+<li>The balloon rises with a tiny gravity scale, and your top-down world used gravity scale 0. What is the difference between <em>nothing falls</em> and <em>something rises</em>?</li>
+</ol>
     </div>
 </div>
 
@@ -649,13 +593,10 @@ ${renderDecompose('6.1', DECOMPOSE, 1)}
     <div class="socratic">
         <h3>Choose, Then Justify</h3>
         <ol>
-            <li>Which of the four did you choose, and what does it require you to set on the Rigidbody2D that the other three do not?</li>
-            <li>Row two gives the same height every time; row one gives a height that depends on mass. Which is easier to explain to a teammate in six months, and which is easier to retune?</li>
-            <li>Row three is the only one where holding the key keeps mattering. Is that a jump or a jetpack — and what would have to be true about your level design for a jetpack to be fair?</li>
-            <li>Row four puts the body in <strong>Kinematic</strong>. Read the table in <a href="2.2.html">2.2</a> again: what did a Kinematic body cost you there — and is the price the same here, or do you pay it twice?</li>
-            <li>Whatever you choose, the jump is one line. So what is the actual engineering work of this lesson?</li>
-            <li>Would an enemy or a projectile want the same row as the player? Argue a position before you answer.</li>
-        </ol>
+<li>Which of the four did you choose, and what does it require you to set on the Rigidbody2D that the other three do not?</li>
+<li>Row two gives the same height every time; row one gives a height that depends on mass. Which is easier to explain to a teammate in six months, and which is easier to retune?</li>
+<li>Row three is the only one where holding the key keeps mattering. Is that a jump or a jetpack — and what would have to be true about your level design for a jetpack to be fair?</li>
+</ol>
     </div>
 </div>
 
@@ -747,17 +688,6 @@ ${renderWalkthrough(WALK_JUMP)}
         <span class="activity-time">~15 min</span>
     </div>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt</h3>
-        <ol>
-            <li>Remove the <code>ForceMode2D.Impulse</code> argument and keep the force. Tap the key. What did the jump become, and why does a "dribble" look like nothing at all in a single frame?</li>
-            <li>Set Body Type to <strong>Kinematic</strong> and press the key. With the technique you chose, does anything move at all? Which line of the Body Type documentation explains your answer?</li>
-            <li>Set Gravity Scale to 0 in the cave with the jump code still in place. Describe the first two seconds after one press — and why is "no gravity" worse than "no jump"?</li>
-            <li>Jump in the cave and watch the camera. Does it follow you upward? Find the component on Main Camera, read its fields, and work out which setting is holding it still. (<em>Assets/Scripts/Package Scripts</em> is worth knowing by now.)</li>
-            <li>Set Gravity Scale to 8 and jump onto a raised platform. Where do you land relative to where you aimed, and what does that tell you about tuning gravity and jump force as a <em>pair</em>?</li>
-            <li>Leave the jump in <code>Update()</code>, then move the key check into <code>FixedUpdate()</code> and hold the key down through a slow frame. Do you see any difference at 60 fps? When would you see it — and on whose laptop?</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -767,16 +697,6 @@ ${renderWalkthrough(WALK_JUMP)}
         <span class="activity-time">~10 min</span>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Jump Design</h3>
-        <ol>
-            <li>Tune a "sticky" jump and a "floaty" one — two very different pairs of gravity and force. Which one suits a cave full of hazards, and what does each do to how far ahead a player can see?</li>
-            <li>Variable jump height, the classic: releasing the key early produces a shorter hop. Which single quantity would you cut off mid-rise, and why is that fairer than it sounds?</li>
-            <li>Make the character jump <em>downward</em> through a platform. What has to be true about the platform's collider for that to work at all?</li>
-            <li>Untick the camera's vertical lock and play your cave again. What does the room read like now, and what does the camera do at the top of a jump?</li>
-            <li>Try a jump from a moving platform. Which of your four techniques would survive the ride, and which would fight it?</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

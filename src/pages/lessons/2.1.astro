@@ -83,11 +83,6 @@ const DECOMPOSE = {
     'The test: when the coin does nothing, is there one part above you can point at and test on ' +
     'its own? A silent failure with no error in the Console is a physics problem, not a script ' +
     'problem — and a split that stops at the C# cannot tell you which.',
-  connect: [
-    'In 1.3 you learned that a value declared inside a method forgets itself between calls. Which part above is that rule deciding, and what would the coin count do if you got it wrong?',
-    'In 1.2 you read the Player as a Transform, an empty script, and a child Sprite. Which part above adds the first components to it since that day — and why does the collider have to sit on the root rather than on the Sprite?',
-    'In 1.6 you cached the Animator with GetComponentInChildren because the component lived on the child. Today part three checks a tag. What is that check actually asked of — the picture you can see, or the object that owns the collider?',
-  ],
   turns: [
     'Part three is the line that turns "something touched me" into "a coin touched me". In one sentence, say what the Player would do on the first frame it walked into a wall if that line were missing.',
   ],
@@ -137,43 +132,6 @@ const WALK = {
         { code: '        }', what: '' },
         { code: '    }', what: 'Closes the method. The tag check exists so the destroy only ever reaches a coin.' },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: 'Colliders on both objects, but no Rigidbody2D anywhere',
-      symptom: 'Absolutely nothing happens. No error, no Console message, no warning. The coin sits there and the game looks fine.',
-      fix: 'At least one of the two objects needs a Rigidbody2D. Put it on the Player, since the Player is the thing that moves.',
-    },
-    {
-      mistake: 'leaving Gravity Scale at its default of 1 on the Player',
-      symptom: 'The character slides off the bottom of the screen the instant you press Play, and you cannot walk back.',
-      fix: 'Gravity Scale = 0. A top-down world has no down.',
-    },
-    {
-      mistake: 'Destroy(gameObject) instead of Destroy(other.gameObject)',
-      symptom: 'You collect one coin and the Player disappears instead. The camera goes dead.',
-      fix: '`other` is the thing you collided with. `other.gameObject` is it. Plain `gameObject` is **you**.',
-    },
-    {
-      mistake: 'forgetting to tick Is Trigger on the coin',
-      symptom: 'OnTriggerEnter2D never runs, and the coin stops you dead like a wall.',
-      fix: 'Is Trigger ☑ ON. A solid collider reports a *collision* (OnCollisionEnter2D), not a trigger.',
-    },
-    {
-      mistake: 'the collider added to the Sprite child instead of the root',
-      symptom: 'Coins still work, but the cave entrance never opens. Nothing in the Console either way, so there is no clue to follow.',
-      fix: 'The collider belongs on the **root** — the object that carries the tag. `CompareTag` is asked of whichever GameObject owns the collider, and the Sprite child is Untagged.',
-    },
-    {
-      mistake: 'a collider radius that was never fitted to the sprite',
-      symptom: 'You collect coins by touching empty air a character-width away, or you have to stand in exactly one spot for it to register.',
-      fix: 'Select the collider and drag its Radius until the green outline in the Scene view matches what you can see. A new collider does not size itself to your art.',
-    },
-    {
-      mistake: 'the coin\'s tag left as Untagged',
-      symptom: 'The overlap fires, the coin stays put, and no message appears. The `if` was false.',
-      fix: 'The prefab ships with the tag `Coin` already set. If you changed it, set it back — and remember a tag change on a scene instance can be overwritten by the prefab on save.',
     },
   ],
   finalFile: `// Added to Assets/Scripts/PlayerController.cs, alongside your movement code.
@@ -273,12 +231,11 @@ ${renderDecompose('2.1', DECOMPOSE, 1)}
     <div class="socratic">
         <h3>Socratic: What Is a Collider For?</h3>
         <ol>
-            <li>A Transform stores position, rotation and scale. What does a Collider2D store that a Transform has no way to express?</li>
-            <li>The physics engine runs on its own schedule, not inside your <code>Update()</code>. Why would Unity be built that way, instead of letting your script test for overlaps once a frame?</li>
-            <li>A trigger pushes nothing — it only reports. Name two game behaviours besides a coin pickup where a report-only overlap is the right tool.</li>
-            <li>A collider is a shape; a rigidbody is a thing under simulation. The Player is the object that moves. Which of the two must live on the Player for a coin to ever notice it, and which one <em>could</em> live on the coin instead?</li>
-            <li>The minimum is "a collider on both, a body on one". Which object should carry the body — the coin that sits still and vanishes, or the player that moves all game? Argue it, then build it that way.</li>
-        </ol>
+<li>A Transform stores position, rotation and scale. What does a Collider2D store that a Transform has no way to express?</li>
+<li>The physics engine runs on its own schedule, not inside your <code>Update()</code>. Why would Unity be built that way, instead of letting your script test for overlaps once a frame?</li>
+<li>A trigger pushes nothing — it only reports. Name two game behaviours besides a coin pickup where a report-only overlap is the right tool.</li>
+<li>A collider is a shape; a rigidbody is a thing under simulation. The Player is the object that moves. Which of the two must live on the Player for a coin to ever notice it, and which one <em>could</em> live on the coin instead?</li>
+</ol>
     </div>
 </div>
 
@@ -351,12 +308,10 @@ ${renderWalkthrough(WALK)}
     <div class="socratic">
         <h3>Where Does a Number Belong?</h3>
         <ol>
-            <li>Which of the three did you just build, and which line of your own code proves it?</li>
-            <li>Open <code>Assets/Scripts/StatManager.cs</code> and read it. If you filled it in as a singleton today, would your coin count survive a scene change? Would that be a feature or a problem <em>right now</em>?</li>
-            <li>The coin disappears when collected, but "how many coins I have" is not a property of the coin. So where does that number really belong — the object that vanishes, or the object that persists?</li>
-            <li>Which option makes the number easiest to find when you reopen this project in three weeks, and which makes it easiest to test on its own?</li>
-            <li>You just watched a cave entrance teleport you somewhere. What does that tell you about whether your stats need to survive a scene change <em>this month</em>?</li>
-        </ol>
+<li>Which of the three did you just build, and which line of your own code proves it?</li>
+<li>Open <code>Assets/Scripts/StatManager.cs</code> and read it. If you filled it in as a singleton today, would your coin count survive a scene change? Would that be a feature or a problem <em>right now</em>?</li>
+<li>The coin disappears when collected, but "how many coins I have" is not a property of the coin. So where does that number really belong — the object that vanishes, or the object that persists?</li>
+</ol>
     </div>
 </div>
 
@@ -367,28 +322,7 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~25 min</span>
     </div>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: Tracing Pickup Bugs</h3>
-        <ol>
-            <li>Untick <strong>Is Trigger</strong> on the coin's collider. Does <code>OnTriggerEnter2D</code> still run? What happens instead, and where does the player end up?</li>
-            <li>Remove the Rigidbody2D from the Player but leave every collider in place. Does the coin still vanish? Does the Console show a message, or nothing at all?</li>
-            <li>Change your destroy call to <code>Destroy(gameObject)</code> and collect a coin. Which object disappeared — and what is the Console still printing that tells you the player survived?</li>
-            <li>Comment out the destroy line and walk in and out of the same coin five times. What does the count say? Why is a coin that pays out every time a bug rather than a bonus?</li>
-            <li>Set the Player's Gravity Scale back to 1. What does the character do when you stop pressing keys, and which setting was quietly doing the work all along?</li>
-            <li>Move your <code>coins = coins + 1;</code> line up so it sits <em>before</em> the <code>if</code> check instead of inside it. Walk into a wall. What does the count do, and what does that tell you about what the <code>if</code> is actually guarding?</li>
-            <li>Walk into a Cave Entrance deliberately with your new body and collider. Which two components you added are responsible — and given the tag check inside that script, why did it react to <em>you</em> and not to a wall?</li>
-        </ol>
-    </div>
 
-    <div class="tinker">
-        <h3>Tinker: Destroy versus SetActive</h3>
-        <ol>
-            <li>Replace <code>Destroy(other.gameObject)</code> with <code>other.gameObject.SetActive(false)</code>. What changes on screen, what is different in the Hierarchy <em>after</em> you stop playing, and what happens to your count?</li>
-            <li>Read the docs for <code>SetActive</code>. In a game with thousands of coins, why might switching an object off and reusing it beat destroying it and building a new one?</li>
-            <li>Open <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code> and find the method that fires when the player touches a cave mouth. Which parameter type does it take, and which of the two components you added today made it fire?</li>
-            <li>Print your coin count with <code>Debug.Log</code> every frame instead of only on pickup. What happens to the Console, and why was printing on the event the better choice?</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
