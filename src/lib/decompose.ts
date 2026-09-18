@@ -110,12 +110,17 @@ export interface DecomposeSpec {
   /** How to tell the split is finished (the two-minute test). */
   sizeTest?: string;
   /**
-   * Beat 3 — the connections to prior work. Always rendered, at every level,
-   * as questions followed by answer boxes. Point them at lessons the student
-   * has actually finished.
+   * The closing discussion: questions specific to this lesson, rendered with
+   * answer boxes under the parts list.
+   *
+   * This used to be split in two — `turns` plus a separate always-on `connect`
+   * beat that asked how the lesson related to prior work. The connect beat was
+   * removed: asked in all 46 lessons it became a formality students answered
+   * without thinking, and it cost 163 answer boxes. Where a connection to
+   * earlier work genuinely explains the decomposition, fold that single
+   * sentence into `why` or add it here as one of the questions. Do not
+   * reintroduce it as a fixed beat.
    */
-  connect: string[];
-  /** Any extra discussion questions specific to this lesson. */
   turns?: string[];
 }
 
@@ -195,9 +200,11 @@ export function renderDecompose(lessonId: string, spec: DecomposeSpec, level: Sc
         (concept ? 'read on.</p>' : 'open the file.</p>')
       : '<ol class="dc-parts">' + spec.parts.map((p) => renderPart(p, level)).join('') + '</ol>';
 
-  // The tail: one level-appropriate question, the lesson's own discussion
-  // questions, then the connections. Always at least the connections, so
-  // every lesson in the course asks the prior-knowledge question in writing.
+  // The tail: one level-appropriate question, then the lesson's own.
+  // Order matters beyond readability: these become the answer-box ids
+  // (`LESSON:dc1:qN`) that a student's saved answers are filed under, so a
+  // question added above an existing one silently renumbers it. Append to
+  // `turns` rather than inserting.
   const asks: string[] = [];
   if (level >= 4) {
     asks.push('List the parts of this problem, in the order you would build them.');
@@ -205,7 +212,6 @@ export function renderDecompose(lessonId: string, spec: DecomposeSpec, level: Sc
     asks.push('Pick two of the parts above and say in one line what each one actually does.');
   }
   asks.push(...(spec.turns ?? []));
-  asks.push(...spec.connect);
 
   const block = lessonId + ':dc1';
   const turns = asks.map((q, i) => turn(lessonId, 'dc1', i + 1, q)).join('');
@@ -223,9 +229,6 @@ export function renderDecompose(lessonId: string, spec: DecomposeSpec, level: Sc
   const askLead = concept
     ? '<strong>First, before anything else:</strong> cut that into parts small enough '
     : '<strong>First, before any code:</strong> cut that into parts small enough ';
-  const connectLead = concept
-    ? '<h4>Connect it to something you already know</h4>'
-    : '<h4>Connect it to something you already built</h4>';
 
   return (
     '<div class="activity decompose" data-level="' + level + '" data-parts="' + spec.parts.length +
@@ -242,13 +245,12 @@ export function renderDecompose(lessonId: string, spec: DecomposeSpec, level: Sc
     parts +
     (spec.why ? '<p class="dc-why">' + prose(spec.why) + '</p>' : '') +
     (spec.sizeTest ? '<p class="dc-size">' + prose(spec.sizeTest) + '</p>' : '') +
-    '<div class="dc-connect">' +
-    connectLead +
-    '<p>Very little in this course is new. Most of it is something you have already done, ' +
-    'pointed in a different direction — and saying which one out loud is how you stop ' +
-    'relearning it every time.</p>' +
-    turns +
-    '</div>' +
+    (turns
+      ? '<div class="dc-turns">' +
+        '<h4>Your turn</h4>' +
+        turns +
+        '</div>'
+      : '') +
     '</div>'
   );
 }

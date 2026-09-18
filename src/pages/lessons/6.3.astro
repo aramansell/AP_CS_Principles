@@ -159,11 +159,6 @@ const DECOMPOSE = {
     'feel good" cannot be looked up — it is four unrelated numbers with two of them being timers. ' +
     '"Compare a timestamp against the clock with a tolerance" can, and you have already written ' +
     'that subtraction once, in 3.3.',
-  connect: [
-    'In 2.2 you handed the body a velocity and let physics do the moving, and the rule was that a velocity takes no `Time.deltaTime` because it is measured per second. Gravity Scale is not a rate at all — it is a multiplier. What is the equivalent rule for it, and which part of today\'s split does it decide?',
-    'In 3.3 the turret wrote the moment of each shot into a field and compared the clock against it. Two of today\'s six parts are that exact move. Which are they — and which one of the two asks a different question of the same subtraction?',
-    'In 1.3 you learned that a field declared inside a method is built fresh every time that method runs. Which two parts of today\'s split does that rule decide, and what does your jump do for the rest of the run if you put either of them in the wrong place?',
-  ],
   turns: [
     'Two of the four numbers are windows measured in seconds and two are multipliers. Which half of that split would you hand to a teammate as a spreadsheet, and which half do they have to feel for themselves?',
     'Coyote time and the jump buffer both let a press count when a strict reading of the rules says it should not. Pick the one you would set longer than the other, and say what the player would think had gone wrong if you set it to zero.',
@@ -267,14 +262,6 @@ const WALK = {
         { code: '// Prove the windows are state, not luck', what: 'Add `Debug.Log("grounded at " + lastGroundedTime + " now " + Time.time);` for one run and watch the two numbers while you walk off a ledge and land. The gap between them is your coyote window, live. Then **delete the print** — `Update()` runs sixty times a second and a log that survives into the next lesson is noise you will be reading past.' },
       ],
     },
-  ],
-  pitfalls: [
-    { mistake: 'the rising branch left out, so `gravityScale` is only ever multiplied', symptom: 'The first jump of a run looks right, and every jump after it barely leaves the floor — and the longer you play, the worse it gets, because the heavy fall gravity is still in force while the next rise begins.', fix: 'Always write the `else`. The multiplier is meant to apply to the fall only; the moment the body stops falling, gravity has to go back to `baseGravity`. A branch that only ever multiplies is a body whose gravity ratchets upward.' },
-    { mistake: '`body.gravityScale` written in `Update()` instead of `FixedUpdate()`', symptom: 'It works, which is the problem. Nothing is obviously wrong on your machine, and the jump behaves slightly differently on a slower laptop or with the editor busy compiling something.', fix: 'Gravity Scale is a value the physics engine reads, on the physics clock — fifty times a second here (Fixed Timestep `0.02`). Write it in `FixedUpdate()`, where the thing that consumes it lives. This is the same argument 6.1 and 6.2 both made about the ground check.' },
-    { mistake: 'the buffer written with `Input.GetKey(KeyCode.Space)` instead of `GetKeyDown`', symptom: 'Holding the jump key makes the character jump again the instant it touches down, forever, with no second press — the memory has been refreshed on every frame the key was held.', fix: '`GetKeyDown` is true on the one frame the key goes down. A press is a moment; a held key is a state. The window is supposed to store **when the player asked**, and a held key is not a new ask.' },
-    { mistake: 'the grace window never spent — `lastGroundedTime` left at its last grounded value', symptom: 'One press, two jumps: the frame after the jump, the window you just used is still open, so the gate is satisfied again and the character leaves the ground a second time from nowhere.', fix: 'Overwrite the moment the instant the jump fires, with a value no subtraction can bring back inside the window. A window you are supposed to forget is a window somebody has to close on purpose — 3.3 never needed this line because its gate closed itself, and this one does not.' },
-    { mistake: '`baseGravity` read before your scene-mode gravity line has run', symptom: 'The fall multiplier does nothing at all in either world, and the body\'s Gravity Scale sits at `0` no matter what the Inspector says — the multiply is faithfully multiplying a zero, and the restore is faithfully putting the zero back.', fix: 'Read the body\'s own value LAST — after whatever decides the gravity for the scene has written it. That is 6.1\'s scene-mode ternary, a line in `Start()`, or the Inspector value the body starts the scene with. `baseGravity` has to be a copy of the number the body is actually using, not of the number it happened to hold a moment before you set one.' },
-    { mistake: '`body.velocity` instead of `body.linearVelocity`', symptom: 'The project does not compile: `error CS1061: \'Rigidbody2D\' does not contain a definition for \'velocity\'`, pointing at the line that reads the vertical half of the fall.', fix: 'Unity 6 renamed it — `linearVelocity` is the current spelling, and the quick reference says so. Every tutorial and Stack Overflow answer written before the rename will hand you the old name, and it will not build.' },
   ],
   finalFile: `using UnityEngine;
 
@@ -485,13 +472,11 @@ ${renderDecompose('6.3', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Socratic: Forgiving Intent Versus Playing For Them</h3>
         <ol>
-            <li>Coyote time and the jump buffer both let a press count when it "should not". Why does that make the player feel more in control, when technically it makes the game more permissive?</li>
-            <li>Set coyote time long enough and you can jump from thin air a metre past a ledge. What is the difference between forgiving the player's <em>intent</em> and playing the game for them?</li>
-            <li>Asymmetric gravity is a lie about physics, told by a multiplier on a law of the universe. Name one other lie your character already tells — and say what each lie buys the player.</li>
-            <li>Which of the four knobs needs to know which way the body is <em>moving</em>, and which of them only need to know about <em>time</em>?</li>
-            <li>Two of these are timers and two are numbers. Does that split tell you anything about where in your script each belongs?</li>
-            <li>Which of the four would a player notice immediately if you removed it from a game they had been playing for an hour?</li>
-        </ol>
+<li>Coyote time and the jump buffer both let a press count when it "should not". Why does that make the player feel more in control, when technically it makes the game more permissive?</li>
+<li>Set coyote time long enough and you can jump from thin air a metre past a ledge. What is the difference between forgiving the player's <em>intent</em> and playing the game for them?</li>
+<li>Asymmetric gravity is a lie about physics, told by a multiplier on a law of the universe. Name one other lie your character already tells — and say what each lie buys the player.</li>
+<li>Which of the four knobs needs to know which way the body is <em>moving</em>, and which of them only need to know about <em>time</em>?</li>
+</ol>
     </div>
 </div>
 
@@ -530,12 +515,10 @@ ${renderDecompose('6.3', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Map Them Before You Build Them</h3>
         <ol>
-            <li>Which example is coyote time, and which is the jump buffer? Be precise — one of them remembers a <em>state</em> and one remembers a <em>press</em>.</li>
-            <li>The lift example remembers a press that arrives too late. In your game, what is the equivalent of "the doors are already closing"?</li>
-            <li>The wind tunnel is asymmetric on purpose. Which of your two directions should be the strong one, and what does the player read into that?</li>
-            <li>The parking meter compares the clock against a past moment. What value do you write down, and what do you compare against it, for each of your two timers?</li>
-            <li>The keyboard repeat delay is a number somebody chose. Where is that number in <em>your</em> project going to live so that somebody else can choose it?</li>
-        </ol>
+<li>Which example is coyote time, and which is the jump buffer? Be precise — one of them remembers a <em>state</em> and one remembers a <em>press</em>.</li>
+<li>The lift example remembers a press that arrives too late. In your game, what is the equivalent of "the doors are already closing"?</li>
+<li>The wind tunnel is asymmetric on purpose. Which of your two directions should be the strong one, and what does the player read into that?</li>
+</ol>
     </div>
 </div>
 
@@ -603,17 +586,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~15 min</span>
     </div>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt</h3>
-        <ol>
-            <li>Delete the branch that restores normal gravity while rising, so only the falling case is written. Jump. Where does the character end up, and why does the <em>next</em> full jump leave you barely off the floor?</li>
-            <li>Never spend the coyote moment after a jump. Stand on the floor and tap the key twice quickly, then walk off a ledge and tap it again. How many jumps did you get, and which single line was supposed to stop that?</li>
-            <li>Set your coyote window to half a second. Jump from the middle of a gap that is nowhere near a ledge. What did you just build, and what word from <a href="6.2.html">6.2</a> describes it?</li>
-            <li>Set the fall multiplier to 10 and land from a full-height jump. Where do the character's feet end up relative to the tile, and what does that tell you about how hard the physics engine is being asked to look?</li>
-            <li>Move the gravity branch out of <code>FixedUpdate()</code> and into <code>Update()</code>, then change its line from an assignment into <code>body.gravityScale *= fallMultiplier;</code>. At 144 frames per second, how many times per physics step is that multiply now applied — and what does the jump look like on your machine compared with a slower one?</li>
-            <li>Set the fall multiplier to 0.4 — the fall is now <em>slower</em> than the rise. Play for a minute and describe the genre you accidentally changed your game into.</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -623,17 +595,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~10 min</span>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Feel Portfolio</h3>
-        <ol>
-            <li>Tune a "heavy knight" and a "nimble rogue" — four numbers each. Hand the numbers to another team and have them build the character from paper only. Can they feel which one they built?</li>
-            <li>What do the four numbers <em>hide</em> when you hand them over? Name the abstraction in one sentence, and name the one thing a teammate cannot recover from the numbers alone.</li>
-            <li>Make the fall multiplier apply only in the cave. Which scene-mode decision from <a href="6.1.html">6.1</a> did that force you to look at again, and is it still the right one?</li>
-            <li>Print the two remembered moments every frame for ten seconds and watch them. What does each one do at the exact moment you land, and what does the other one do?</li>
-            <li>Delete one of the four knobs entirely and play. Which removal is the least noticeable, and which one can you not live without?</li>
-            <li>Commit and push: <code>"6.3: fall multiplier + coyote + buffer"</code>.</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

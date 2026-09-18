@@ -166,11 +166,6 @@ const DECOMPOSE = {
     'jump" cannot be looked up. "Send a ray straight down and find out what is on one layer" can — ' +
     'and the page you land on hands you four inputs in a fixed order and a result type that already ' +
     'knows how to say yes or no.',
-  connect: [
-    'In 6.1 you threw the character upward with one impulse and let gravity spend it. Which part of today\'s split is that same line — and what has to be true before the game lets it run?',
-    'In 5.2 you built `TryInteract()` as a single-frame key check, a measurement and a call, and then folded two refusals into one `&&`. Which part of today is that same fold, and what are the two conditions it joins now?',
-    'In 3.1 the turret measured a distance against a radius and got a yes-or-no answer out of a measurement. Which part of today is the same shape — and what does your check ask about that the turret never did?',
-  ],
   turns: [
     'Two of the four techniques in the table hand you a distance as well as a yes-or-no. Say what a game would do with that distance, and say whether your cave does it.',
     'The answer your check produces is thrown away and computed again sixty times a second. Name the piece of state from 3.3 that worked the same way — and the piece of state in this lesson that deliberately does **not**.',
@@ -252,33 +247,6 @@ const WALK = {
         { code: '', what: '' },
         { code: '// Player ▸ PlayerController  ▸  Ground Check = GroundCheck,  Ground Layer = Ground,  Ground Check Distance = 0.1', what: 'Wire the prefab, not one Player in a scene: drag the `GroundCheck` child into the slot, set the mask dropdown to `Ground` and nothing else, and type the distance you measured. Then press Play, keep the Player selected, and run the **honesty test** — stand still (green), jump (red the moment you leave the ground), land (green), walk off a ledge (red). If any of those four is wrong, your **distance** or your **origin** is wrong. Not your logic.' },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: 'the Ground Check slot left at None in the Inspector',
-      symptom: 'NullReferenceException: Object reference not set to an instance of an object — once per frame, pointing at the raycast line. The Console fills faster than you can read it, the gizmo never draws, and the character will not jump at all.',
-      fix: 'Wire the slot — drag the `GroundCheck` child from the Hierarchy into it, on the **Player prefab**, so every Player you ever place inherits it. An empty slot never complains when the scene loads; it complains at the first line that reads it, and this one is read sixty times a second.',
-    },
-    {
-      mistake: 'the mask field left at Nothing — or left at Everything',
-      symptom: 'Nothing: the jump never fires, the Console is completely clean, and the gizmo line hangs there red forever while you stand on solid floor. Everything: the character jumps in mid-air again, because the ray now starts inside your own collider and reports the Player at distance zero — the jetpack is back, and this time it is wearing the disguise of a working check.',
-      fix: 'Point the mask at `Ground` and nothing else. These are opposite failures and both are silent, which is the whole argument for a mask: it is the one bug in this project that the filter alone prevents. It is the same reason a turret\'s projectile has to ignore the turret that fired it.',
-    },
-    {
-      mistake: 'groundCheckDistance set to two or three tiles',
-      symptom: 'You can jump while standing over thin air near a ledge, and the gizmo is green while the character is visibly floating. Nothing is broken — the ray is honestly reporting a floor that is two tiles below your feet.',
-      fix: 'Measure the real gap from the bottom of your collider to the tile surface and add a hair. A check that reaches that far is not testing "am I standing on something" — it is testing "is there ground somewhere underneath me", and those are two different games.',
-    },
-    {
-      mistake: 'the check point left inside your own collider — usually because it is transform.position',
-      symptom: 'The jump works. Everywhere. Instantly, forever, including in mid-air, with the gizmo glowing green while you fall. The ray is hitting the Player\'s own CircleCollider2D at distance zero and reporting it as ground.',
-      fix: 'Move the check point to the bottom edge of the collider — that is what the `GroundCheck` child is for. This project ships **Queries Start In Colliders** ticked in Project Settings ▸ Physics 2D, so a query that begins inside a collider counts that collider as a hit. Untick it and every query in the project changes behaviour, which is a far bigger decision than moving one empty object.',
-    },
-    {
-      mistake: 'the Ground layer put on Collision and not on Cave Exit',
-      symptom: 'Your check is only ever as honest as the bucket. The cave has two solid tilemaps under its Grid, only one of them carries the tag Ground, and a mask that filters for a bucket nothing is in returns nothing — silently, because the ray is doing exactly what it was told.',
-      fix: 'Put every surface you intend to land on into the layer — including the one somebody else built for a different job. The cave mouth is the easy one to miss precisely because it is untagged and looks like scenery. This is the reason the check is a layer and not a tag.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -456,12 +424,10 @@ ${renderDecompose('6.2', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Socratic: Asking Versus Remembering</h3>
         <ol>
-            <li>A tag and a layer are both just names attached to an object. Why can a raycast be told to ignore everything except one layer, but not "everything except one tag"?</li>
-            <li>The <code>Collision</code> tilemap is tagged <code>Ground</code> and the <code>Cave Exit</code> tilemap beside it is not, and both of them are solid. If you wrote a ground check that compared tags, would it answer yes everywhere you can stand — and what would it cost you every frame you ran it?</li>
-            <li>Your character is standing still on the floor. Is "grounded" a <em>fact you could store</em> when you land, or a <em>fact you should re-check</em> every frame? What could change it without any code of yours running?</li>
-            <li>Standing on <em>a</em> floor is not the same as standing on <em>the</em> floor. Should a crate, a moving platform or an enemy's head count as ground? Who decides — the physics engine or you?</li>
-            <li>A jump that fires in mid-air is not a crash, an error or a warning. What does that tell you about the kind of bug this is, and how you have to find it?</li>
-        </ol>
+<li>A tag and a layer are both just names attached to an object. Why can a raycast be told to ignore everything except one layer, but not "everything except one tag"?</li>
+<li>The <code>Collision</code> tilemap is tagged <code>Ground</code> and the <code>Cave Exit</code> tilemap beside it is not, and both of them are solid. If you wrote a ground check that compared tags, would it answer yes everywhere you can stand — and what would it cost you every frame you ran it?</li>
+<li>Your character is standing still on the floor. Is "grounded" a <em>fact you could store</em> when you land, or a <em>fact you should re-check</em> every frame? What could change it without any code of yours running?</li>
+</ol>
     </div>
 </div>
 
@@ -523,13 +489,11 @@ ${renderDecompose('6.2', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Choose Your Check</h3>
         <ol>
-            <li>Which of the four did you pick, and which one does your character's body argue for? A character with a wide flat collider and one with a small round one do not fail the same way under the same technique.</li>
-            <li>Two of the four can tell you how far the ground is. Name a game behaviour that needs that distance, and say whether your game has it.</li>
-            <li>The circle check would call a wall "ground". Is that a bug you would fix, or a feature a wall-slide or wall-jump would later exploit?</li>
-            <li>The collision-callback check needs no mask and no distance — it is the laziest to write. What does it demand instead, and which Rigidbody2D checkbox can silently break it?</li>
-            <li>The Player's body type was set in <a href="2.1.html">2.1</a> and argued over in <a href="2.2.html">2.2</a>. Read your own answer again: does your body type rule out one of these four techniques entirely?</li>
-            <li>Whichever you choose, the value you compute has to be <em>re-derived every frame</em> rather than stored once when you land. What is the argument for that, and what kind of object would argue the other way?</li>
-        </ol>
+<li>Which of the four did you pick, and which one does your character's body argue for? A character with a wide flat collider and one with a small round one do not fail the same way under the same technique.</li>
+<li>Two of the four can tell you how far the ground is. Name a game behaviour that needs that distance, and say whether your game has it.</li>
+<li>The circle check would call a wall "ground". Is that a bug you would fix, or a feature a wall-slide or wall-jump would later exploit?</li>
+<li>The collision-callback check needs no mask and no distance — it is the laziest to write. What does it demand instead, and which Rigidbody2D checkbox can silently break it?</li>
+</ol>
     </div>
 </div>
 
@@ -607,17 +571,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~15 min</span>
     </div>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: The Flying Ant</h3>
-        <ol>
-            <li>Set your check distance to something huge — two or three tiles. You can now jump while standing on thin air near a ledge. How far from the ground does the character have to be before it stops being "grounded", and what is the honest name for the state you accidentally built?</li>
-            <li>Move your check point up so it sits <em>inside</em> your own collider, and leave the distance short. What does the ray hit first, and what is the character able to do in mid-air now that it could not do a minute ago?</li>
-            <li>Set the mask to <code>Everything</code> and stand on the floor. The ray may now report anything in the scene that has a <code>Collider2D</code>: the <code>Collision</code> tilemap, the <code>Cave Exit</code> tilemap, and the Player itself. It cannot report the backdrop <code>Quad</code>, because a <code>MeshCollider</code> is three-dimensional and Physics2D cannot see it at all. Describe the symptom in one word (jetpack).</li>
-            <li>Put the <code>Ground</code> layer on the <code>No Collision</code> tilemap by mistake, and press Play. Nothing changes, and the Inspector says why: that tilemap has no collider of any kind, so a ray has nothing to hit. Which object in this cave <em>would</em> fool a ground check if you forgot it — solid, under the same <code>Grid</code>, and untagged?</li>
-            <li>If you chose <code>OnCollisionStay2D</code>: leave it firing the jump with no extra rule and hold the key. How many physics steps per second is it being called on, and what does your character do?</li>
-            <li>If you chose <code>IsTouchingLayers</code>: your Player is Dynamic, so the check works. Switch Body Type to <strong>Kinematic</strong> for one Play session and read the Rigidbody2D Inspector for <em>Use Full Kinematic Contacts</em>. With it unticked, what does the check report while you are standing still on solid floor — and where would you have looked first if you had not read this question? Set the body back to Dynamic before you move on.</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -627,16 +580,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~10 min</span>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Check Design</h3>
-        <ol>
-            <li>Fire <em>two</em> checks — one at each foot — instead of one in the centre. Which single-coordinate bug does that fix, and what is the cost to your frame budget on a level with fifty characters?</li>
-            <li>Draw your gizmo in a second colour when the check is false. Why does a designer who never reads your script still benefit from that?</li>
-            <li>Make the check ignore the ground for a moment after a jump so you can drop through a platform. What has to be true about the platform's collider for a "drop through" to be possible at all?</li>
-            <li>Your Animator already has <code>IsWalking</code>, <code>WalkDir</code> and <code>Attack</code>. A jump pose needs a fourth fact. Which parameter type would you add, and which single line in your ground check now earns its keep?</li>
-            <li>Look at <code>Assets/Scripts/Package Scripts/TopDown_EnemyAnimator.cs</code> and read how it decides what to animate. It has no ground check at all — why does the top-down world not need one, and what does that say about the cave?</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

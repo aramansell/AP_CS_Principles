@@ -82,11 +82,6 @@ const DECOMPOSE = {
     'The test: could you look this part up on its own, right now, in one search? "Fire less ' +
     'often" cannot be looked up. "Compare a timestamp against the current time" can — and you ' +
     'wrote that comparison in 1.3.',
-  connect: [
-    'In 3.2 you left the turret firing every frame. Nothing in your firing method is wrong, so which line of your own code decided how many times it ran — and is that line a condition or an event?',
-    'In 2.2 you gave the Player health: a value declared on the class, changed on one frame, and read again on another. Which part of today\'s split is that same move — and what is different about the value you store this time?',
-    'In 1.3 you learned that Start() runs once and Update() runs every frame. Today\'s memory needs a value before the first frame ever runs — which method gives it one, and what does the turret do on the first frame the player walks into range if you skip that step?',
-  ],
   turns: [
     'The reading prices four ways to time this action. Which did you choose, and what does your choice cost you — in your own words, not the table\'s?',
     'Today\'s memory holds a moment on the clock. If the turret had to charge for a second before each shot, what would that field have to hold instead — and which of the four approaches would you reach for?',
@@ -138,33 +133,6 @@ const WALK = {
         { code: '        }', what: '' },
         { code: '    }', what: 'Closes `Update()`. One more `}` closes the class.' },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: 'private float lastAttackTime; declared inside Update() instead of in the class body',
-      symptom: 'The turret fires in a stream again — the 3.2 bug, unchanged — and no value you type in the Inspector makes any difference.',
-      fix: 'Declare it in the class body and only **assign** to it from inside a method. A variable declared inside a method is created fresh every time that method runs, so it cannot carry a moment from one frame to the next. Same rule as `nextReportTime` in 1.3.',
-    },
-    {
-      mistake: 'the stamp line left out — nothing ever writes the new moment',
-      symptom: 'The turret goes straight back to a stream of bullets. The condition that was meant to close the gate is still true on the next frame, and on every frame after it.',
-      fix: 'Something has to write the current moment at the instant the shot happens — `lastAttackTime = Time.time;`. It is the only line that closes the gate, and the one line in this lesson worth memorising.',
-    },
-    {
-      mistake: 'Time.time == lastAttackTime + cooldown used instead of >=',
-      symptom: 'The turret fires rarely, at random, or never — and turning the cooldown knob down makes it worse, which looks like the opposite of what should happen.',
-      fix: 'Use `>=`. Frames do not land on exact clock values, so equality is almost never true: the clock jumps past the moment you asked for and is then unequal again.',
-    },
-    {
-      mistake: 'the range check replaced by the cooldown check instead of combined with it',
-      symptom: 'The turret fires on cadence at nothing, from across the map, with the player nowhere near it.',
-      fix: 'The two conditions combine with `&&`, and both have to be true. The cooldown does not replace the range test — it is attached to it.',
-    },
-    {
-      mistake: 'a Time.time gate comparing against a field you decrement with Time.deltaTime',
-      symptom: 'The turret fires every frame, or never, and the number in the Inspector has nothing to do with the gap you measure with a stopwatch.',
-      fix: 'One row, one clock. A **timestamp** is compared against `Time.time`; a **countdown** is the field that has `Time.deltaTime` subtracted from it every frame. Both are correct — in their own row. Mixing them gives you a field with two meanings and neither behaviour.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -313,15 +281,10 @@ ${renderDecompose('3.3', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Choosing a Timing Model</h3>
         <ol>
-            <li>Trace your own 3.2 build. If the player stood inside the radius for one second at 60 frames per second, how many projectile clones did <code>Instantiate</code> create — and which line of your code is responsible for that number?</li>
-            <li>Why can't you call a "wait one second" function inside <code>Update()</code>? Describe what the player would see on screen during that wait, and explain why a game engine refuses to let you block the frame.</li>
-            <li>Row (a) stores a <em>moment</em>; row (b) stores a <em>duration</em>. Which one can you print in the Console and have a player immediately understand, and which one is easier to compare against a designer's tuning value?</li>
-            <li>Read the docs for <code>InvokeRepeating</code>. It has no idea where the player is. What has to move inside your firing method if you choose row (c), and what happens if you forget?</li>
-            <li>Row (d) is described as the tool for sequences rather than single actions. What behaviour in this game is a <em>sequence</em> rather than a single action — and which approach do you think the boss in Unit 8 will need?</li>
-            <li>Which of the four approaches lets a designer change the fire rate from the Inspector without touching code? Which of them makes that rate hard to change while the game is running?</li>
-            <li>Your knob is <code>2</code> and your timestamp field was stamped at <code>12</code>. What is the earliest value of <code>Time.time</code> at which the gate opens?</li>
-            <li>Row (a) compares against <code>Time.time</code>; row (b) subtracts <code>Time.deltaTime</code> on every frame. Both measure a gap. Which of the two is tied to how often the frame runs — and which one reports the same wall-clock gap when the frame rate changes?</li>
-        </ol>
+<li>Trace your own 3.2 build. If the player stood inside the radius for one second at 60 frames per second, how many projectile clones did <code>Instantiate</code> create — and which line of your code is responsible for that number?</li>
+<li>Why can't you call a "wait one second" function inside <code>Update()</code>? Describe what the player would see on screen during that wait, and explain why a game engine refuses to let you block the frame.</li>
+<li>Row (a) stores a <em>moment</em>; row (b) stores a <em>duration</em>. Which one can you print in the Console and have a player immediately understand, and which one is easier to compare against a designer's tuning value?</li>
+</ol>
     </div>
 </div>
 
@@ -389,17 +352,6 @@ ${renderWalkthrough(WALK)}
         If you get ten lines at a two-second cooldown, the gate works.
     </p>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: Timer Faults</h3>
-        <ol>
-            <li>Comment out the line that records the new firing time. Step into range. What does the Console look like after one second, and which earlier lesson's bug have you just rebuilt?</li>
-            <li>Set your cooldown knob to <code>0.5</code> in the Inspector and test again. How many shots per second is that, and at what point does the encounter stop being hard and start being unfair?</li>
-            <li>Seed your timestamp field with a large value such as <code>100f</code>. How long must the player stand in range before the very first shot — and what does that tell you about what the field actually means?</li>
-            <li>Set the cooldown to <code>0</code>. Is a zero-second cooldown different from no cooldown at all? Which one still protects your frame budget, and which one is the bug you started with?</li>
-            <li>If you chose <code>InvokeRepeating</code>: walk out of range mid-burst. Are projectiles still being created? Who owns the timing in that design, you or the engine?</li>
-            <li>If you chose the countdown: move the decrement line inside the range check and walk out of range for ten seconds. What is the timer's value when you walk back in, and how long until the next shot?</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -409,16 +361,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~10 min</span>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Choosing Between Timers</h3>
-        <ol>
-            <li>Build the countdown version as well, so you can swap between two of the table's rows in the same script. Which one could you read and predict correctly after three weeks away from the project?</li>
-            <li>Now imagine the turret has to charge for one second before each shot, fire three shots 0.15 seconds apart, then rest for two seconds. Which row of the table makes that sequence easy, and which two make it painful? Write the answer down — you will need it for the boss.</li>
-            <li>Print the remaining time (or the elapsed time) to the Console every frame while the turret waits. Which of the two styles gives you a number that reads as a countdown a player would understand?</li>
-            <li>Every system that runs in <code>Update()</code> performs its action once per frame. Which two places in your game is that correct for — and which system in Unit 4 will you have to decide about?</li>
-            <li>Commit and push: <code>"3.3: turret fire rate + cooldown"</code>.</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

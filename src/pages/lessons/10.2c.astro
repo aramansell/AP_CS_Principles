@@ -160,11 +160,6 @@ const DECOMPOSE: DecomposeSpec = {
     'The test: could you look this part up on its own, right now, in one search? "Shuffle a deck" ' +
     'cannot — it is an algorithm, a list operation and a boundary case wearing one name. "How does ' +
     'C# Remove an item from a List" can, and you have already read the row that answers it.',
-  connect: [
-    'In 10.2a you counted the starter\'s six Lists and translated APPEND, REMOVE and LENGTH on sight. Four of today\'s five parts are that table used for real. Which parts — and which row of it does the empty-deck guard stand on?',
-    'In 10.2b each card became a ScriptableObject asset, and the point was that a card dragged into three lists is still one card. Today the deck holds `Card_data` and the hand holds `Card`. Which part of the split breaks if you make the hand hold `Card_data` too — and what does the screen lose?',
-    'In 2.1 the coin count moved onto a `StatManager` singleton written in `Awake()`, which is the same pattern GameManager is running in this file — and in 8.3 a `foreach` walked every collider an area query handed back. Today\'s traverse is that loop pointed at your own hand. What does an index loop let you do that 8.3\'s `foreach` could not, and which part of the split is that?',
-  ],
   turns: [
     'The shuffle is the one algorithm in this unit whose bug is invisible in a single play: a silently biased deck deals the same card first again and again and still looks random. How would you test for that — and what did 9.5 teach you about believing a claim about randomness?',
     'Your hand is a `List<Card>` and your deck is a `List<Card_data>`. If you build the discard pile the starter already declares a field for, which overload does reshuffling it need, and what does your answer say about where a shuffle method belongs?',
@@ -287,14 +282,6 @@ const WALK = {
         { code: '// Prove the shuffle is not rigged:', what: 'Play the scene ten times and watch which card is dealt first. Ten identical first cards is not luck — it is the off-by-one in `Range(0, i)` (see the pitfalls). Ten different ones is a shuffle you can trust. The Tinker asks you to make this a real count rather than ten glances.' },
       ],
     },
-  ],
-  pitfalls: [
-    { mistake: '`Random.Range(0, i)` written instead of `UnityEngine.Random.Range(0, i + 1)`', symptom: 'The deck comes back shuffled, and one card never moves. Play the scene a few times and the same card is dealt first again and again — the shuffle looks random and is not.', fix: 'Unity\'s int overload is **max-exclusive**, so `Range(0, i)` returns `0..i-1` and the slot at `i` can never be chosen on that pass. The AP\'s `RANDOM(a, b)` includes both ends, so the translation is `Range(a, b + 1)` — the same row the exam reference sheet prints, with the warning attached.' },
-    { mistake: 'a bare `Random.Range(...)` inside GameManager.cs', symptom: 'The project does not compile: `error CS0104: \'Random\' is an ambiguous reference between \'UnityEngine.Random\' and \'Unity.Mathematics.Random\'`, pointing at the random-pick line.', fix: 'This template has `com.unity.mathematics` installed (transitively — `Packages/packages-lock.json` pins it at depth 2) and `GameManager.cs` has `using Unity.Mathematics;` at the top, so the short name genuinely names two classes. Write `UnityEngine.Random.Range(0, i + 1)`, or delete the `using Unity.Mathematics;` line. Qualifying the one call is the habit that survives somebody adding the `using` back.' },
-    { mistake: 'only one of the two `Shuffle` overloads implemented', symptom: 'Everything looks right, and a `Shuffle(player_hand)` somewhere later does nothing at all. No error, no warning, no Console message — the list comes back in the order it went in, and only the deck is ever actually shuffled.', fix: 'Fill in both. C# picks the overload from the argument\'s type at the call site, and an empty method body with an unused parameter is entirely legal C# — which is exactly why this one is invisible. If your deck shuffles and your hand does not, this is why.' },
-    { mistake: '`Draw` written with no guard against an empty deck', symptom: '`ArgumentOutOfRangeException` from the line that reads `deck[0]`, the moment somebody draws from a deck that has run out — a crash rather than a rule.', fix: 'Check the count and return before you touch index 0. The guard is the only reason a player who discards everything can still press draw without killing the game, and the same check is what a reshuffle-the-discard-pile feature will hang off later.' },
-    { mistake: '`deck.RemoveAt(0)` written before `deck[0]` is read', symptom: 'The draw works, the counts are right, and the cards are subtly wrong: you are drawing the **second** card every time and silently dropping the top one. Nothing errors, and the missing card only shows up when the deck is empty early.', fix: 'Read `deck[0]` first, use it, and remove last. `RemoveAt(0)` shifts every remaining card down a slot, so the order of these statements decides which card index 0 refers to.' },
-    { mistake: 'a card visual instantiated without its `Card_data` assigned', symptom: '`NullReferenceException` in `Card.Start()`, from a file you were not editing — the new card exists on screen and never gets a name, a cost or a sprite.', fix: '`Card.Start()` reads `data.card_name` on the first frame, so `data` has to be set before then. `Draw` sets it on the line right after the `Instantiate`, in the same frame — which is why `Instantiate` and the assignment belong in the same method and in that order.' },
   ],
   finalFile: `using System.Collections;
 using System.Collections.Generic;
@@ -524,31 +511,6 @@ ${renderWalkthrough(WALK)}
     goes wrong next — and every one of these four is a bug somebody
     in this room will actually write.</p>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: The shuffle bugs</h3>
-        <ol>
-            <li><code>Random.Range(0, i)</code> instead of
-                <code>(0, i + 1)</code>. Trace <code>i</code>'s
-                first value: which slot is never chosen on that
-                pass, and which single card can therefore NEVER
-                move at all? And while you are in that line — why
-                does a bare <code>Random.Range</code> not compile
-                in this file, when it compiles fine everywhere
-                else in the course?</li>
-            <li>Swapping with a temp VARIABLE FORGOTTEN: list[i] =
-                list[r]; list[r] = list[i]; — what does the deck
-                become, and why does it LOOK shuffled at a
-                glance?</li>
-            <li>Removing while traversing: a discard-all loop
-                over the hand while removing from it. Which
-                cards get SKIPPED — and why does looping backward
-                fix it exactly (<a href="10.2a.html">10.2a</a>'s
-                warning, now real)?</li>
-            <li>Draw from an empty deck: what does deck[0] DO when
-                Count is 0? (Try it — read the exception. Then
-                thank the guard clause you wrote.)</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -558,17 +520,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~5 min</span>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Shuffle science</h3>
-        <ol>
-            <li>Test the shuffle like a scientist: shuffle a
-                3-card deck 60 times, tally the orders. Six
-                possible orders — how close to 10 each? (This is
-                <a href="9.5.html">9.5</a> thinking: a claim
-                about randomness, CHECKED.)</li>
-            <li>Commit + push: <code>"10.2c: shuffle + draw + render hand"</code>.</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>

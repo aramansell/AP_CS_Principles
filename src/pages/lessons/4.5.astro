@@ -75,12 +75,6 @@ const DECOMPOSE = {
     'The test: could you look this part up on its own, right now, in one search? "Make the ' +
     'enemy switch between behaviours" cannot be looked up. "Declare an enum, hold one value of ' +
     'it, and switch on that value" can — and the reference page writes out all four pieces.',
-  connect: [
-    'In 4.1 your patrol ran on every frame, with nothing anywhere deciding that it should. What did the enemy store so it knew when to turn around — and is that a state, or a condition?',
-    'In 4.3 the chase hid inside an `if`, and the patrol was whatever ran when that `if` stopped matching. Which of the two could move the enemy while the other was also running — and what did the player see on screen?',
-    'In 4.4 the damage arrived from a physics callback, gated by a cooldown you first met in 3.3. Is ATTACK something the enemy is **doing**, or something that happens to it while it is doing something else — and which of those two did you actually write?',
-    'The turret in 3.1 fired the instant a distance check passed, and in 3.3 you gave it a memory so it could not fire every frame. What is the difference between a condition that is re-tested every frame and a state that lasts until something changes it?',
-  ],
   turns: [
     'The pieces table prices three ways to hold the states. Which did you choose, and what does your choice cost you — in your own words, not the table\'s?',
     'ATTACK is entered by a physics callback rather than by a comparison. If you make it a real state, what changes about when the enemy moves — and is that the fight you designed in 4.4?',
@@ -184,38 +178,6 @@ const WALK = {
         { code: '        state = EnemyState.Attack;', what: 'The one new line here: the machine is now attacking. **This is what makes ATTACK reachable** — without it the state exists, compiles, and is never entered.', why: '**This is the row of your diagram that your code does not implement the way you drew it.** You drew an arrow from CHASE to ATTACK as if chasing led to attacking. In your file the arrow comes from physics instead: the enemy enters ATTACK from PATROL just as readily, which is why walking into a guard on its beat costs you health. Say that out loud once and you will never again mistake the diagram for the code.' },
         { code: '    }', what: 'Closes the callback.' },
       ],
-    },
-  ],
-  pitfalls: [
-    {
-      mistake: 'state declared inside Update() instead of in the class body',
-      symptom: 'The enemy is stuck in one behaviour, or snaps back to PATROL on every frame, and walking in and out of the radius changes it only for an instant.',
-      fix: 'Declare it in the class body and only **assign** to it from inside a method. A variable declared inside a method is created fresh every time that method runs, so it cannot carry a state from one frame to the next. Same rule as `lastAttackTime` in 3.3.',
-    },
-    {
-      mistake: 'a case left without its break;',
-      symptom: 'The enemy chases and attacks in the same frame, and printing the state shows two names arriving in one frame. It reads as a movement bug, not as a selection bug.',
-      fix: 'Every case ends with `break;`. C# falls through to the next case otherwise — no error, no crash, just two behaviours in one frame, which is the bug this lesson exists to delete.',
-    },
-    {
-      mistake: 'the state assigned in more than one place — the chase code also writes it',
-      symptom: 'The enemy flickers between two states every frame, and which one wins changes when you move a line of code.',
-      fix: 'One arrow, one assignment, and every assignment sits inside the case it leaves. If two places can write `state`, you have two machines arguing over one field — the two-writers problem from 4.3, wearing a new hat.',
-    },
-    {
-      mistake: 'the same side of the comparison used to enter and to leave a state',
-      symptom: 'Standing exactly on the aggro radius, the printed state alternates sixty times a second and the enemy stutters on the line instead of committing to a behaviour.',
-      fix: 'Enter with `distance <= aggroRadius` and leave with `distance > aggroRadius` — opposite sides of the same boundary. If it still flickers in play, that is the signal to leave a gap: chase in at one radius, give up at a larger one. That gap is a number you choose, not an accident.',
-    },
-    {
-      mistake: 'ATTACK left in the enum with nothing anywhere that enters it',
-      symptom: 'The state name never prints in the Console, and the contact damage behaves exactly as it did in 4.4 — the state is decoration.',
-      fix: 'Something has to assign `EnemyState.Attack`, and in this enemy that something is the contact callback — the one place physics tells you a hit landed. A state nothing enters is a box on a diagram, not part of the machine.',
-    },
-    {
-      mistake: 'the 4.3 early return kept in front of the machine',
-      symptom: 'Destroy the player and the enemy stands still forever — mid-beat, still animating, doing nothing. No state is ever consulted again.',
-      fix: 'The guard\'s job is now to force the state, not to stop the update: set `state = EnemyState.Patrol;` and let the selection run. "No target" is a fallback state, not an exit.',
     },
   ],
   finalFile: `using UnityEngine;
@@ -424,13 +386,10 @@ ${renderDecompose('4.5', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Socratic: Naming the Machine</h3>
         <ol>
-            <li>Right now, is there any field in <code>EnemyController.cs</code> that holds what the enemy is currently doing? If not, what <em>is</em> holding it — and what does that cost you when you want to debug?</li>
-            <li>With two behaviours, a single bool is perfectly readable. How many combinations do four booleans describe, and how many of those are real states? What does that ratio tell you about scaling the flag approach?</li>
-            <li>Your attack is a callback, not a state. Can it fire while the enemy is patrolling? Walk into a patrolling enemy and find out — then say whether your diagram is a description of the code or a description of the player's experience.</li>
-            <li>Your chase ends when the <code>if</code> stops matching. There is no "return to patrol" line in the file. Is an exit that exists as the <em>absence</em> of a match easier or harder to reason about than an explicit transition? Argue both sides.</li>
-            <li>The AP exam names sequencing, selection and iteration as the building blocks of algorithms. Where is each one in your enemy? One of them is sneaky — think about what calls <code>Update()</code>.</li>
-            <li>If you print a state name every frame, what do you expect to see at exactly the boundary of the aggro radius? Which number would you change to calm it down, and what did you build in 4.3 that already fixes it?</li>
-        </ol>
+<li>Right now, is there any field in <code>EnemyController.cs</code> that holds what the enemy is currently doing? If not, what <em>is</em> holding it — and what does that cost you when you want to debug?</li>
+<li>With two behaviours, a single bool is perfectly readable. How many combinations do four booleans describe, and how many of those are real states? What does that ratio tell you about scaling the flag approach?</li>
+<li>Your attack is a callback, not a state. Can it fire while the enemy is patrolling? Walk into a patrolling enemy and find out — then say whether your diagram is a description of the code or a description of the player's experience.</li>
+</ol>
     </div>
 </div>
 
@@ -508,12 +467,10 @@ ${renderDecompose('4.5', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-            <li>Example 1 prints a phase name. What would the equivalent print look like in your <em>current</em> file — and what could you print today that comes closest?</li>
-            <li>Example 2 says the type forbids a fourth state. Which illegal situation would your flag-based version allow but an enum would not?</li>
-            <li>Example 4 says the order is the behaviour. Which part of your enemy is a <em>sequence</em> rather than a set of conditions — and what would break if the order changed?</li>
-            <li>Example 5 says a two-bool signal will eventually show green and red together. Where in your own enemy could two of your bools disagree, and which one wins on that frame?</li>
-            <li>Example 3 lists an <code>OutOfStock</code> state that is not really part of a cycle. Which state in your enemy is like that — reachable, but not part of the loop you drew?</li>
-        </ol>
+<li>Example 1 prints a phase name. What would the equivalent print look like in your <em>current</em> file — and what could you print today that comes closest?</li>
+<li>Example 2 says the type forbids a fourth state. Which illegal situation would your flag-based version allow but an enum would not?</li>
+<li>Example 4 says the order is the behaviour. Which part of your enemy is a <em>sequence</em> rather than a set of conditions — and what would break if the order changed?</li>
+</ol>
     </div>
 </div>
 
@@ -580,17 +537,6 @@ ${renderWalkthrough(WALK)}
         — as a sequence of names you chose.
     </p>
 
-    <div class="bug-hunt">
-        <h3>Bug Hunt: Breaking the Machine</h3>
-        <ol>
-            <li>Delete the transition back to PATROL. What does the enemy do after you escape? How is "no transition at all" different from "the wrong transition"?</li>
-            <li>If you chose the enum, also add a <code>bool isChasing</code> and drive the chase from it. Now two sources of truth exist — where do they disagree, and which one wins?</li>
-            <li>Set the aggro radius smaller than the distance at which the enemy can actually touch you. Can the machine ever reach your ATTACK state? Trace the arrows on your diagram to prove it.</li>
-            <li>Remove the exit from ATTACK. What does the enemy do forever, and what would a game designer call that state?</li>
-            <li>Print the state every frame and walk slowly across the boundary. Where does the printed state flicker, and which single number would you change to stop it?</li>
-            <li>If you chose flags: add a FLEE flag. How many conditions are now nested in your update, and how do you know which one is in charge on any given frame?</li>
-        </ol>
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -600,16 +546,6 @@ ${renderWalkthrough(WALK)}
         <span class="activity-time">~15 min</span>
     </div>
 
-    <div class="tinker">
-        <h3>Tinker: Design a Fourth State</h3>
-        <ol>
-            <li>Invent FLEE: the enemy runs <em>away</em> when you get within 1.5 units. Which subtraction flips, what does the arrow on your diagram look like, and which state does it exit to?</li>
-            <li>Invent ENRAGE: after being hurt, the enemy moves at double speed for three seconds. Which timing pattern from <a href="3.3.html">3.3</a> do you borrow for the three seconds, and what new field does it need?</li>
-            <li>Add a fourth state to your enum and count how many transitions you had to add. Now imagine the same thing with flags — how many did you save, and how many did you risk?</li>
-            <li>Drive the animator's <code>Attack</code> trigger from the ATTACK state rather than from the contact callback. What changed about when the animation plays, and which ordering do you prefer?</li>
-            <li>Commit and push: <code>"4.5: explicit enemy state machine"</code> — include a photo or an ASCII sketch of your diagram in the repository.</li>
-        </ol>
-    </div>
 
     <div class="checklist">
         <h3>Checkpoint — before moving on, you must be able to:</h3>
