@@ -152,7 +152,7 @@ export const ASK_GROUPS: AskGroup[] = [
   {
     // Unit 9 has no file at the end, so every entry here is level 3: the parts
     // are named and sourced, what each one DOES is the student's to say, and
-    // the lessons render their three questions with `frame: 'concept'`
+    // the lessons render their two questions with `frame: 'concept'`
     // (src/lib/walkthrough.ts) so no code-scaffolding word appears on a page
     // about binary. Levels 1-2 are unreachable here by construction — check 7
     // fails a lesson that declares them without rendering a walkthrough.

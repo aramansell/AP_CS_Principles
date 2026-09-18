@@ -1,5 +1,5 @@
 /**
- * Decompose — the three questions every build lesson asks.
+ * Decompose — the two questions every build lesson asks.
  *
  * WHY THIS EXISTS
  * The year has two learning targets that are bigger than any single API, and
@@ -21,31 +21,28 @@
  *      tables and walkthroughs are deliberately written so that the reading
  *      happens per part rather than per project.
  *
- *   3. CONNECT IT TO SOMETHING YOU HAVE ALREADY BUILT. A spike is a coin
- *      with consequences. A projectile is a coin with a direction. The
- *      course is sequenced so that each lesson reactivates as much prior
- *      knowledge as possible, and that only pays off if somebody says the
- *      connection out loud. So the block asks.
+ * There was a third, CONNECT IT TO SOMETHING YOU HAVE ALREADY BUILT: a spike
+ * is a coin with consequences, a projectile is a coin with a direction. It
+ * was asked in every lesson that carried the block, and at that scale it
+ * stopped being a question and became a formality answered without thinking —
+ * 163 answer boxes of it. The thinking is still good; asking it everywhere is
+ * what was wrong. It now appears only where the connection is what makes the
+ * decomposition make sense, as one of the lesson's own `turns`.
  *
- * Those three questions are always the same three, so they are rendered by
- * one primitive and appear identically in every lesson. What DECAYS is how
- * much of the answer is given — the same ladder as the walkthrough, read
- * from the same `ScaffoldLevel`:
+ * Those two questions are always the same two, so they are rendered by one
+ * primitive and appear identically in every lesson. What DECAYS is how much
+ * of the answer is given — the same ladder as the walkthrough, read from the
+ * same `ScaffoldLevel`:
  *
  *   1  the parts are listed, each with what it does and where to read it
  *   2  the parts are listed, but the one carrying the new idea is a gap
  *   3  the parts are named and sourced, but what each one DOES is yours
  *   4  no parts at all — you do the splitting
  *
- * Beat 3 never decays. Asking "how is this like something we already did?"
- * is the point of the sequence, so it is asked at every level and answered
- * in every lesson. What changes is only how many connections the student has
- * to reach for on their own.
- *
  * The parts are rendered as a plain <ol>. The answer boxes are emitted at
  * the END of the block (see `turns`), all in one place, so the discussion is
- * captured by the same lab-answer mechanism as every bug hunt and tinker
- * challenge — see src/lib/formify.ts.
+ * captured by the same lab-answer mechanism as every bug hunt — see
+ * src/lib/formify.ts.
  */
 
 import type { LessonFrame, ScaffoldLevel } from './walkthrough';
@@ -75,8 +72,8 @@ export interface Part {
 }
 
 /**
- * Which genre of lesson the block is sitting in. The three questions are the
- * same three in both, but the words are not: a lesson that ends in a script
+ * Which genre of lesson the block is sitting in. The two questions are the
+ * same two in both, but the words are not: a lesson that ends in a script
  * can say "before any code" and "something you already built", and a lesson
  * about binary, hex or compression cannot — there is no code to write and
  * nothing was built.
