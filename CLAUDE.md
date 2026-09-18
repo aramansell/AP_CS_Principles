@@ -15,6 +15,11 @@ branch-and-PR round trip buys nothing.
 it — do not wait to be asked, and do not leave finished work sitting
 uncommitted in the tree. A branch is never the answer to "should I be on main?".
 
+**Never push.** Committing is local and always wanted; pushing is Aram's step,
+and it stays that way on purpose — he reviews the diff and pushes himself. So
+commit as work finishes, then stop there and leave the push to him. Do not
+`git push` unless he asks for that specific push.
+
 ## Build and verify
 
 ```bash
