@@ -52,6 +52,7 @@ public/
 scripts/
   verify-site.mjs     # link + completeness checks after build
   new-lesson.mjs      # scaffold a new lesson page
+  lesson-load.mjs     # how much reading a lesson costs, vs HEAD (words, not lines)
 ```
 
 ## Editing the course
@@ -77,6 +78,8 @@ npm run build      # dist/ + PACING.md + sitemap.xml + Pagefind index
 npm run verify     # integrity checks (run after build)
 npm run preview    # serve the built site locally
 npm run new-lesson -- 5.11    # scaffold a lesson page
+node scripts/lesson-load.mjs       # prose words per lesson, vs the copy at HEAD
+node scripts/lesson-load.mjs --src 1.5   # authored words only — no build needed
 ```
 
 ## Deploying to GitHub Pages

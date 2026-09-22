@@ -92,7 +92,7 @@ NEVER link anywhere else. Never use absolute URLs except https://github.com/ and
 
 ## Content quality bar
 
-- Total body length: 40-90 lines of HTML. Jam/studio/CPT build-day lessons should be shorter still (30-50) since they are process days; concept lessons (unit 9) and core build labs may run to 110. If a lesson is longer than that, it is carrying a block that should have been cut — shorten it, do not trim the teaching.
+- Total body length: **1,300-2,000 words** of prose as the student reads it — a solo build (ladder level 4) may run to 2,600-3,800, and jam/studio/CPT process days should be shorter still. Measure, do not eyeball it: `node scripts/lesson-load.mjs <id>` counts the prose words on the built page and prints the change against the copy at HEAD. If a lesson is over the range, it is carrying a block that should have been cut — shorten it, do not trim the teaching. Line count is *not* the measure: a table row or a paragraph can be squeezed onto one line, or broken into five, without a word of the lesson changing.
 - Voice: second person, direct, a little funny, zero fluff. The reader is a high schooler at a computer with Unity open.
 - Every build lesson: a Break It Down block (decompose spec), predict-first where possible (predict before running), then steps with runnable C# that matches the REAL starter code, then a Socratic block of at most 3 real questions, then checklist, then resources.
 - The C# you teach matches the actual starter scripts or builds on them step-by-step. In the starter project, most gameplay systems are NOT pre-written: students build them from scratch. Use canonical Unity naming (xSpeed, ySpeed, maxAttackRange, ChangeHealth, StatManager.manager, etc.) and consistent C# conventions: MonoBehaviour, [SerializeField] private, private helper methods, Debug.Log, CompareTag, Vector2/Vector3, Time.deltaTime.
@@ -316,10 +316,17 @@ resources. What goes: everything above, plus motivational paragraphs, "in this
 lesson you will learn" framing, and any sentence whose job is to say that the next
 sentence matters.
 
-Target: a build lesson's body lands at **40-90 lines of HTML**, and studio, process
-and jam days shorter still. If a lesson is over that, the excess is almost always a
-repeated explanation rather than teaching. `verify` check 13 reports the paragraphs
-in one lesson that say the same thing as each other.
+Target: a build lesson's body lands at **1,300-2,000 words** of prose, and studio,
+process and jam days shorter still. Measure it with
+`node scripts/lesson-load.mjs <id>` — the words the student actually reads, with
+the change against HEAD beside it, so a lesson the pass did not reach reports as
+unchanged instead of looking fine. If a lesson is over the range, the excess is
+almost always a repeated explanation rather than teaching; `verify` check 13
+reports the terms and paragraphs in one lesson that say the same thing.
+
+Line count was the old proxy and it is retired: it is gameable without cutting a
+word (collapse a table onto one line, or split an editor step across five), and
+two writers duly gamed it. Words are what a student pays for.
 
 ### Two things that destroy work silently
 
