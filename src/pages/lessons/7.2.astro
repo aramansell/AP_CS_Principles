@@ -19,6 +19,37 @@
 // Deciding which bucket a thing belongs in is a decision, which is what level 3
 // is for.
 //
+// STRUCTURE (this pass): the discovery, the layer work and the collision matrix
+// are ONE numbered, pane-named "In the Editor" list; the specifications are
+// "In the Code", which is where a lesson with no new file keeps its
+// specification and its Socratic. The old "Read Function-Level Examples" block
+// is CUT WHOLE — airport security, hospital triage, a restaurant pass, a
+// brewery valve and air-traffic altitude bands. Five unanchored snippets, none
+// from a game, all of them illustrating a filter the student is about to tick
+// by hand in a dropdown; the specification callout that lived in that block is
+// anchored in the 6.2 mask the student actually owns, and it MOVED to "In the
+// Code" rather than being cut with the block around it.
+//
+// CULLED, with the reason each was a repeat:
+//   - Six lines of the "Already done for you" callout that restated the table
+//     directly above it (Composite Operation = Merge, Body Type = Static). The
+//     table is the container the student fills by reading the Inspector, so the
+//     table survives and the restatement goes. What is left of the callout is
+//     the one thing the table does NOT say: do not add a second tilemap
+//     collider.
+//   - The "Layer or tag" trap was three paragraphs of prose around one fact. The
+//     fact — an empty mask is not a wide mask — is kept in full, with the
+//     evidence that makes it real (the GetMask error, the Nothing dropdown, the
+//     player who jumps in mid-air forever); the restatement of tag-versus-layer
+//     in three different phrasings collapsed to one closing sentence.
+//   - Two of the six sorting bullets: "which list answers who is allowed to
+//     collide" (already the closing beat of the specification above it, and
+//     already the lesson-lead's premise) and "read them as they are" folded
+//     into the bullet that names the placeholder layers.
+//   - The "is the mask set to Default or Everything" half of the ground-check
+//     bullet, which asked the student to imagine a wrong value they were about
+//     to see for themselves in step 5 and then again in the bullet below it.
+//
 // GROUND TRUTH (read out of AP_CS_P_Starter_Project, Unity 6000.6.0f1):
 //   - Assets/_Scenes/{Start,Overworld,Platformer}.unity; EditorBuildSettings
 //     gives Start 0, Overworld 1, Platformer 2.
@@ -42,16 +73,16 @@
 //     jumps in mid-air forever. An unset Inspector LayerMask is `Nothing`, which
 //     is the same silence by another route. The old text claimed the mask
 //     "defaulted to everything"; that was wrong and is fixed below.
-//   - CORRECTED IN THIS REWRITE: the old Step 1 said "There is no Ground layer
-//     in this project" while the old Step 2 said "You already created Ground
-//     back in 6.2" — a flat self-contradiction. Both halves are now true: the
+//   - CORRECTED IN AN EARLIER REWRITE: the old Step 1 said "There is no Ground
+//     layer in this project" while the old Step 2 said "You already created
+//     Ground back in 6.2" — a flat self-contradiction. Both halves are true: the
 //     project SHIPPED without it, and 6.2 is where it gets made.
 //   - Also corrected: the ground-check callout used to say one of the objects
 //     answering a Default-mask raycast in the Platformer scene "can shoot".
 //     Nothing in that scene shoots — it contains one prefab instance (the
 //     Player), the three tilemaps, Main Camera, a Quad backdrop (a 3D
 //     MeshCollider, invisible to Physics2D) and `Cave Exit`. Turrets live in
-//     the Overworld. The line now describes what is actually there.
+//     the Overworld.
 //   - Sorting layers are literally named Default, Bottom, Layer 2, Player,
 //     Layer 4, Top. `Layer 2`/`Layer 4` are an unrenamed wart pending an editor
 //     rename; this page teaches them as they are and asks the student what a
@@ -71,9 +102,10 @@
 //   checklist                                          9 items (NOT
 //                                          harvested; the two ladder lines
 //                                          match 4.2 and 6.4)
-// The bug-hunt and tinker blocks that used to sit after the socratics were
-// removed by the block cut, so no 7.2:bh1:* or 7.2:tk1:* id is produced any
-// more.
+// Both socratics keep their slots, their order and their wording; the blocks
+// around them moved, which is not a question-block edit. The bug-hunt and
+// tinker blocks that used to sit after the socratics were removed by an earlier
+// block cut, so no 7.2:bh1:* or 7.2:tk1:* id is produced any more.
 import Lesson from '../../layouts/LessonLayout.astro';
 import { renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
@@ -98,7 +130,7 @@ const DECOMPOSE: DecomposeSpec = {
     'none of it is in a script.',
   parts: [
     {
-      name: 'Read the three components you inherited on the solid tilemap',
+      name: 'Read the three components you inherited',
       does:
         'A Tilemap Collider 2D that builds one small shape per painted tile, a Composite Collider 2D that fuses those shapes into a single outline, and the Static Rigidbody 2D that lets the merged outline be a body the physics engine owns. You added none of them, and the floor does not work unless all three are there.',
       doc: 'the component table in the first activity on this page, and the Inspector reading you did on this same tilemap in 6.2',
@@ -111,14 +143,14 @@ const DECOMPOSE: DecomposeSpec = {
       doc: 'the Composite Operation row in the tilemap collider\'s Inspector, and the merge question in the first Socratic on this page',
     },
     {
-      name: 'Create the physics layers the project shipped without',
+      name: 'Create the layers the project shipped without',
       does:
         'Rename empty slots in the Layers list. A layer is project-wide rather than per-scene, so this is done once for the whole game — and a name typed here is the only thing a mask can ever be pointed at.',
       doc: 'the Layers list in Edit → Project Settings → Tags and Layers, and the layer you created there in 6.2',
       href: '6.2.html',
     },
     {
-      name: 'Assign each layer on the prefab, not on one object in a scene',
+      name: 'Assign each layer on the prefab, not the instance',
       does:
         'A layer set on one instance is a fact about that object in that scene; a layer set on the prefab asset is inherited by every copy of it, everywhere, without anybody remembering to do it again.',
       doc: 'the prefab-versus-instance rule from 2.1',
@@ -138,10 +170,10 @@ const DECOMPOSE: DecomposeSpec = {
       doc: 'the layer collision matrix in Edit → Project Settings → Physics 2D',
     },
     {
-      name: 'Separate what is solid from what is only painted',
+      name: 'Separate the solid from the painted',
       does:
         'Paint is not physics until a collider says it is, and this cave already ships one tilemap that is pure paint. Either paint decoration onto that one, or keep it on a solid tilemap and give that tilemap a layer your queries exclude — and then defend the choice.',
-      doc: 'the trap callout at the end of the Build Lab on this page, and the three tilemaps in the Platformer scene',
+      doc: 'the trap callouts in the In the Editor half of this page, and the three tilemaps in the Platformer scene',
       href: '7.1.html',
     },
     {
@@ -164,19 +196,18 @@ const DECOMPOSE: DecomposeSpec = {
     'is also already done. "Which setting feeds the composite" points at one checkbox, and that ' +
     'is a part.',
   turns: [
-    'You are adding four layers, and every one of them is an empty bucket until something is put in it. Name one object in this project that is on `Default` today and should not be — and say what goes wrong the day a mask gets pointed at `Default` instead of at a category you chose.',
-    'The sorting layers in this project are named `Default`, `Bottom`, `Layer 2`, `Player`, `Layer 4` and `Top`. Two of those are placeholder names nobody ever replaced. Leave them or fix them before you build on top of them, and say what a placeholder name costs you three weeks from now.',
+    'You are adding four layers, and every one is an empty bucket until something is put in it. Name one object in this project that sits on `Default` today and should not, and say what goes wrong the day a mask is pointed at `Default` instead of at a category you chose.',
+    'Two sorting layers in this project are placeholders nobody replaced. Fix them before you build on top of them, and say what a placeholder name costs you three weeks from now.',
   ],
 };
 
 const body = `<h1>7.2 — Tile Collision, Layers &amp; Sorting</h1>
 
 <p class="lesson-lead">
-    Your cave is already solid. You did not make it solid, and until today you could not have
-    explained <em>why</em> it is solid. That is the uncomfortable part: three components are
-    quietly doing heavy work under your feet, and a fourth thing — a project-wide list of
-    layers your own code from <a href="6.2.html">6.2</a> is already gambling on — was never
-    finished. Today you find out what you inherited, and you finish what you started.
+    Your cave is already solid, you did not make it solid, and until today you could not have
+    explained <em>why</em>. Three components work quietly under your feet, and the list of layers
+    your own code from <a href="6.2.html">6.2</a> gambles on was never finished. Today you find
+    out what you inherited, and finish what you started.
 </p>
 
 ${renderAskBanner('why is my tilemap solid, and why is my player in front of it?', 3)}
@@ -186,95 +217,129 @@ ${renderDecompose('7.2', DECOMPOSE, 3)}
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">The Problem: Collision You Did Not Build</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~40 min</span>
     </div>
 
     <p>
-        In <a href="7.1.html">7.1</a> you painted a ledge and it held you up. Press Play again and
-        stand on the floor, then select the <code>Collision</code> tilemap and read <em>every</em>
-        component on it. There are three you did not add, and each one is load-bearing:
+        Press Play and stand on the floor, then <strong>Hierarchy →</strong> select
+        <code>Collision</code> and read <em>every</em> component on it in the
+        <strong>Inspector</strong>. Three of them you did not add, and each is load-bearing:
     </p>
 
     <table>
         <tr><th>Component</th><th>What it contributes</th><th>What it costs</th></tr>
         <tr>
             <td><code>Tilemap Collider 2D</code></td>
-            <td>Turns tiles into physics shapes. It builds <strong>one small collider per solid tile</strong> — the whole cave becomes a few hundred separate shapes.</td>
-            <td>Every one of those shapes is a candidate in every physics query. It works, and it is quietly expensive.</td>
+            <td>Turns tiles into physics shapes: <strong>one small collider per solid tile</strong>, so the cave becomes a few hundred shapes.</td>
+            <td>Every shape is a candidate in every physics query. It works, and it is quietly expensive.</td>
         </tr>
         <tr>
             <td><code>Composite Collider 2D</code></td>
-            <td>Fuses those separate shapes into <strong>one merged outline</strong>. The tilemap collider feeds it, and it publishes a single clean polygon.</td>
-            <td>One more component to understand, and one setting that silently decides whether it is used at all.</td>
+            <td>Fuses those shapes into <strong>one merged outline</strong>: the tilemap collider feeds it, and it publishes a single clean polygon.</td>
+            <td>One more component to understand, and one setting that decides whether it is used at all.</td>
         </tr>
         <tr>
             <td><code>Rigidbody 2D</code></td>
-            <td>Unity adds this automatically when a composite appears. It is what lets the merged shape be a body the physics engine owns.</td>
-            <td>Nothing, if you leave it alone. It must stay <strong>Static</strong> — a floor that moves is a bug in a cave.</td>
+            <td>Unity adds this with the composite. It lets the merged shape be a body the physics engine owns.</td>
+            <td>Nothing, if you leave it alone — but it must stay <strong>Static</strong>. A floor that moves is a bug in a cave.</td>
         </tr>
     </table>
 
-    <div class="callout info">
-        <strong>Already done for you — do not do it twice.</strong> If you follow an older
-        tutorial and add a <strong>second</strong> Tilemap Collider 2D to <code>Collision</code>,
-        you do not get twice the colliders — you get a floor with duplicated shapes and bizarre
-        edge behaviour you will blame on your movement code. Before you add any component in this
-        unit, read the Inspector first. Here is the exact state of the shipped tilemap: the
-        tilemap collider's <strong>Composite Operation</strong> is set to <strong>Merge</strong>
-        (older documentation calls this checkbox <em>Used By Composite</em>), and the rigidbody's
-        <strong>Body Type</strong> is <strong>Static</strong>.
-    </div>
-
     <p>
-        So your work this hour is not <em>adding</em> collision. It is three tuning jobs: proving
-        the composite is actually doing its job, finishing the list of physics
-        <strong>layers</strong> this project shipped without, and separating <em>solid</em> from
-        <em>decorative</em> — because right now those two things live under one name.
+        So the work is not <em>adding</em> collision. Work the list in order — every step names
+        its pane.
     </p>
 
-    <div class="socratic">
-        <h3>Socratic: Reading a Component You Did Not Write</h3>
-        <ol>
-<li>The tilemap collider builds a shape per tile. The composite merges them. If the merge setting were switched off, how many physics shapes would the cave have, and what evidence would you look for on screen to detect it?</li>
-<li>The rigidbody is Static. What does Static mean about the body's willingness to move, and why is that the correct choice for a cave floor rather than an oversight?</li>
-<li>Standing on this floor, your ground check from <a href="6.2.html">6.2</a> succeeds. So does the raycast care whether it hit one merged polygon or four hundred separate tile shapes?</li>
-</ol>
+    <ol>
+        <li>
+            <strong>Inspector → the Tilemap Collider 2D →</strong> the
+            <strong>Composite Operation</strong> dropdown. It reads <strong>Merge</strong>, and
+            that setting decides whether the composite above it is used at all (older docs call
+            the checkbox <em>Used By Composite</em>). Set it to <strong>None</strong>, press Play
+            and walk: you still stand up, and the seams come back as lips you catch on. Set it
+            back to <strong>Merge</strong>.
+        </li>
+        <li>
+            <strong>Edit ▸ Project Settings ▸ Tags and Layers →</strong> compare the two lists.
+            <strong>Tags</strong> holds six names, two of them <code>Ground</code> and
+            <code>GroundCheck</code>. <strong>Layers</strong> is where the gap shows: as the
+            project <em>shipped</em> it held the Unity defaults, a run of empty slots and three
+            placeholders called <code>Layer 1</code>, <code>Layer 2</code> and
+            <code>Layer 3</code> — and <strong>no <code>Ground</code> layer at all</strong>.
+            <a href="6.2.html">6.2</a> is where you typed one into the first empty slot; confirm
+            it is still there, because every mask in this unit points at it.
+        </li>
+        <li>
+            <strong>Same window →</strong> finish the list. <code>Ground</code> is one layer, and
+            one bucket is not a layer system. Add <code>Player</code>, <code>Enemy</code>,
+            <code>Projectile</code> and <code>Decoration</code>, renaming empty slots as you go.
+        </li>
+        <li>
+            <strong>Project window → <code>Assets/Prefabs</code> → Inspector on each prefab →</strong>
+            assign them at the source. The two solid tilemaps become <code>Ground</code>, the
+            Player prefab <code>Player</code>, the enemy and turret prefabs <code>Enemy</code>,
+            the projectile prefab <code>Projectile</code>, and anything you paint that is only
+            scenery <code>Decoration</code>. A layer set on one instance is a fact about that
+            object; <strong>on the prefab</strong>, every copy inherits it.
+        </li>
+        <li>
+            <strong>Hierarchy → the Player → Inspector →</strong> the 6.2 ground-check component.
+            Point its mask field at <code>Ground</code> and nothing else, then test the claim:
+            stand next to an enemy and ask the ground check whether you are grounded.
+        </li>
+        <li>
+            <strong>Edit ▸ Project Settings ▸ Physics 2D →</strong> the layer collision matrix,
+            the grid of tick-boxes. Decide, pair by pair, who collides with whom, then justify two
+            ticks: <code>Enemy</code> against <code>Enemy</code>?
+            <code>Projectile</code> against <code>Decoration</code>?
+        </li>
+    </ol>
+
+    <div class="callout info">
+        <strong>Already done for you — do not do it twice.</strong> Follow an older tutorial that
+        adds a <strong>second</strong> Tilemap Collider 2D to <code>Collision</code> and you do
+        not get twice the colliders: you get duplicated shapes and edge behaviour you will blame
+        on your movement code. Read the Inspector before you add any component in this unit.
+    </div>
+
+    <div class="callout trap">
+        <strong>Layer or tag — they are not the same tool, and this project shipped with only
+        one of them.</strong> The <code>Collision</code> tilemap carries the <em>tag</em>
+        <code>Ground</code>, and that tag is what your <code>CompareTag()</code> checks read. But a
+        raycast mask cannot use a tag — it needs a <em>layer</em>, and the project you were
+        handed had none. The part that catches people: a mask naming a layer that does not
+        exist does <strong>not</strong> quietly widen to everything.
+        <code>LayerMask.GetMask("Ground")</code> in a project with no <code>Ground</code> layer
+        logs an error and hands back a mask with <em>no bits set</em> — and an empty mask is not
+        a wide mask. The ray notices nothing, the ground check reads false on a floor you can
+        see, and the player jumps in mid-air forever. An unset Inspector dropdown is the same
+        silence by another route: Unity draws it as <strong>Nothing</strong>. Prove it once, on
+        purpose, by renaming the layer and watching the check stop working. Tags
+        <em>identify</em> one object; layers <em>filter</em> whole categories in a query.
+    </div>
+
+    <div class="callout trap">
+        <strong>Painting decoration onto the solid tilemap is the trap this whole lesson exists to close.</strong>
+        A pebble, a vine, a distant rock — all of them look correct painted on
+        <code>Collision</code>, and all of them become rock. Then the thing standing on the
+        pebble is you. Two fixes are defensible; choose one and defend it: paint
+        decoration onto the <code>No Collision</code> tilemap (simple, and it can never lie to
+        you), or keep it on a solid tilemap and give that tilemap a <code>Decoration</code>
+        layer your queries exclude (more flexible, more to remember).
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Read Function-Level Examples</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
     <p>
-        Read each snippet for what it does in isolation. None of these is from a video game —
-        but all of them are about deciding <em>who is allowed to notice whom</em>.
+        No new file today, so this half holds the two specifications. Write your answers down.
     </p>
-
-    <p><strong>Example 1 — An airport security lane, deciding what gets scanned:</strong></p>
-    <pre><code>// The belt only asks the scanner about bags whose tag says
-// "checked". Every other bag passes the arch untouched.</code></pre>
-
-    <p><strong>Example 2 — A hospital triage desk, filtering by category:</strong></p>
-    <pre><code>if (triageMask.Contains(patient.category))
-    {
-        Debug.Log("Seen by this desk.");
-    }</code></pre>
-
-    <p><strong>Example 3 — A restaurant pass, deciding what is visible to the diner:</strong></p>
-    <pre><code>plate.sortingOrder = -1;  // garnish sits behind the dish</code></pre>
-
-    <p><strong>Example 4 — A one-way valve on a brewery line:</strong></p>
-    <pre><code>// Wort flows down through the valve and cannot flow back up.
-// The valve is not a wall - it is a wall with a direction.</code></pre>
-
-    <p><strong>Example 5 — Air traffic control altitude bands (comment only):</strong></p>
-    <pre><code>// Two aircraft at the same spot are only "conflicting" if they
-// share a band. Different bands, no conflict, no matter how close.</code></pre>
 
     <div class="callout">
         <strong>Architectural specification: the ground check you already own.</strong> In
@@ -283,101 +348,27 @@ ${renderDecompose('7.2', DECOMPOSE, 3)}
         anything</em>:
         <ul>
             <li>What is that mask field currently set to in the Inspector? Not what you intended — what is actually ticked in the dropdown.</li>
-            <li>If the mask is set to <strong>Default</strong> or <strong>Everything</strong> instead of <code>Ground</code>, what is the ray allowed to answer for? Name the two solid surfaces in this cave that a <code>Ground</code> mask includes and a <code>Default</code> mask does not — and say which of the two you would have forgotten to put in the bucket.</li>
-            <li>The mask answers "which layers may I hit". What is the equivalent question for the other side — "which layers may hit me"? Find it in the Physics 2D settings.</li>
+            <li>Name the two solid surfaces in this cave that a <code>Ground</code> mask includes and a <code>Default</code> mask does not — and say which of the two you would have forgotten to put in the bucket.</li>
             <li>The tag <code>Ground</code> already exists and is already on the <code>Collision</code> tilemap. If you could fix this with a tag instead of a layer, what would the raycast call look like, and what would it cost you every frame?</li>
-            <li>There is a real difference between a <em>tag</em> and a <em>layer</em> in Unity. You have been using tags since Unit 2 and you made exactly one layer in <a href="6.2.html">6.2</a>. State the difference in one sentence each.</li>
         </ul>
     </div>
-</div>
-
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Build Lab: Finish the Layer List</span>
-        <span class="activity-time">~25 min</span>
-    </div>
-
-    <p>
-        <strong>Step 1 — the discovery.</strong> Open
-        <code>Edit → Project Settings → Tags and Layers</code> and read the two lists side by
-        side. The <strong>Tags</strong> list holds six names, and two of them are
-        <code>Ground</code> and <code>GroundCheck</code>. The <strong>Layers</strong> list is
-        where the difference shows: as the project <em>shipped</em> it held Default,
-        TransparentFX, Ignore Raycast, Water, UI, a run of empty slots, and three leftover
-        placeholders called <code>Layer 1</code>, <code>Layer 2</code> and <code>Layer 3</code> —
-        and <strong>no <code>Ground</code> layer at all</strong>. That is exactly why
-        <a href="6.2.html">6.2</a> had you type one into the first empty user slot. Confirm yours
-        is still there before you go any further: every mask in this unit gets pointed at it.
-    </p>
-
-    <p>
-        <strong>Step 2 — finish the list.</strong> <code>Ground</code> is the one layer you have,
-        and one bucket is not a layer system. Add the ones the rest of this game needs:
-        <code>Player</code>, <code>Enemy</code>, <code>Projectile</code> and
-        <code>Decoration</code>. Renaming an unused slot is normal and expected.
-    </p>
-    <p>
-        Then go and assign them, object by object: the <code>Collision</code> tilemap becomes
-        <code>Ground</code>; the Player prefab becomes <code>Player</code>; the enemy and turret
-        prefabs become <code>Enemy</code>; the projectile prefab becomes
-        <code>Projectile</code>; and anything you paint that is only scenery becomes
-        <code>Decoration</code>. A layer set only at runtime on one instance is worthless —
-        <strong>assign it on the prefab</strong>, so every copy inherits it.
-    </p>
-    <div class="callout trap">
-        <strong>Layer or tag — they are not the same tool, and this project shipped with only
-        one of them.</strong> The <code>Collision</code> tilemap carries the <em>tag</em>
-        <code>Ground</code>, and that tag is what your <code>CompareTag</code> checks read. But a
-        raycast mask cannot use a tag — it needs a <em>layer</em>, and the project you were
-        handed had none. Here is the part that catches people, so read it twice: a mask naming a
-        layer that does not exist does <strong>not</strong> quietly widen to everything.
-        <code>LayerMask.GetMask("Ground")</code> in a project with no <code>Ground</code> layer
-        logs an error and hands back a mask with <em>no bits set</em>. An empty mask is not a
-        wide mask — the ray is allowed to notice nothing, the ground check reads false on a floor
-        you can see, and the player jumps in mid-air forever. An Inspector dropdown left alone is
-        the same silence by a different route: Unity draws an unset <code>LayerMask</code> as
-        <strong>Nothing</strong>. Prove it to yourself once, on purpose, by renaming the layer
-        and watching the check stop working. Tags are for <em>identifying</em> one object; layers
-        are for <em>filtering</em> whole categories in a query. You will use both, for the rest
-        of the year, and mixing them up produces bugs that fail silently.
-    </div>
-
-    <p>
-        <strong>Step 3 — fix the mask, then try to break it.</strong> Point the 6.2 mask at
-        <code>Ground</code> and nothing else. Then test the claim: stand next to an enemy and ask
-        the ground check whether you are grounded. Before your fix, what did it say? After?
-    </p>
-
-    <p>
-        <strong>Step 4 — the collision matrix.</strong> In
-        <code>Project Settings → Physics 2D</code>, find the layer collision matrix — the grid of
-        tick-boxes. Decide, layer pair by layer pair, who collides with whom. Then justify two
-        specific ticks: should <code>Enemy</code> collide with <code>Enemy</code>? Should
-        <code>Projectile</code> collide with <code>Decoration</code>?
-    </p>
 
     <div class="callout">
         <strong>Architectural specification: sorting, the other kind of layer.</strong>
         <ul>
-            <li>Open <code>Project Settings → Tags and Layers</code> again and read the <strong>Sorting Layers</strong> list. It already contains <code>Bottom</code>, <code>Player</code> and <code>Top</code> — and also <code>Layer 2</code> and <code>Layer 4</code>, which are placeholder names nobody ever replaced. Read them as they are rather than as they should be. What is a sorting layer for, and which of the two lists answers "who draws in front"?</li>
-            <li>Which list answers "who is allowed to collide"? Write both answers down side by side, because confusing them costs every beginner exactly one evening.</li>
-            <li>Your backdrop, your ground, your player and your attack swing all need an order. Assign sorting layers to each, and say why the swing effect needs its own layer above <code>Player</code>.</li>
-            <li>Two sprites on the <em>same</em> sorting layer still need an order. What is that second knob called, and where does it live?</li>
-            <li>A pillar the player walks <em>behind</em> — which layer does it go on, and does it need a collider at all?</li>
-            <li>Is a sorting layer a physics object in any way? Can a change to sorting ever stop the player falling through the floor? Prove your answer from the two lists.</li>
+            <li>Read the <strong>Sorting Layers</strong> list. It contains <code>Bottom</code>, <code>Player</code> and <code>Top</code> — and also <code>Layer 2</code> and <code>Layer 4</code>, placeholders nobody ever replaced. Read them as they are, then say which of the two lists answers "who draws in front".</li>
+            <li>Your backdrop, your ground, your player and your attack swing all need an order. Assign a sorting layer to each, and say why the swing effect needs its own layer above <code>Player</code>. Two sprites on the <em>same</em> layer still need an order: name that second knob and where it lives.</li>
+            <li>Is a sorting layer a physics object in any way — can changing one stop the player falling through the floor? Prove it from the two lists.</li>
         </ul>
     </div>
 
-    <div class="callout trap">
-        <strong>Painting decoration onto the solid tilemap is the trap this whole lesson exists to close.</strong>
-        A pebble, a vine, a distant rock — all of them look correct painted on
-        <code>Collision</code>, and all of them become rock. Then the thing standing on the
-        pebble is you. There are two defensible fixes and you must choose one and defend it:
-        paint decoration onto the <code>No Collision</code> tilemap (simple, and it can never
-        lie to you), or keep it on a solid tilemap and give that tilemap a
-        <code>Decoration</code> layer your queries exclude (more flexible, more to remember).
-        Pick one. Write down why.
+    <div class="socratic">
+        <h3>Socratic: Reading a Component You Did Not Write</h3>
+        <ol>
+<li>The tilemap collider builds a shape per tile, and the composite merges them. With the merge switched off, how many physics shapes would the cave have?</li>
+<li>The rigidbody is Static. What does Static mean about the body's willingness to move, and why is that the correct choice for a cave floor rather than an oversight?</li>
+<li>Standing on this floor, your ground check from <a href="6.2.html">6.2</a> succeeds. So does the raycast care whether it hit one merged polygon or four hundred separate tile shapes?</li>
+</ol>
     </div>
 </div>
 
@@ -389,39 +380,32 @@ ${renderDecompose('7.2', DECOMPOSE, 3)}
     </div>
 
     <p>
-        You want a ledge you can jump <em>up through</em> and then stand on. That is not a
-        layer's job and not a sorting layer's job — it is a collider property with a
-        <strong>direction</strong>. There are three honest ways to build it, and they are not
-        equivalent:
+        A ledge you can jump <em>up through</em> is not a layer's job — it is a collider property
+        with a <strong>direction</strong> (the effector's <strong>Surface Arc</strong> decides
+        which way is up). Three honest ways to build one:
     </p>
 
     <table>
         <tr><th>Approach</th><th>How it works</th><th>What it costs</th><th>When it wins</th></tr>
         <tr>
-            <td><strong>A separate one-way tilemap</strong> with its own Tilemap Collider 2D + Composite Collider 2D + <code>Platform Effector 2D</code>, and <em>Used By Effector</em> ticked on the composite</td>
-            <td>The whole tilemap becomes a membrane you pass upward and stand on downward.</td>
-            <td>A third tilemap to maintain, and the direction applies to every tile on it.</td>
-            <td>When you want many one-way ledges and they all behave the same.</td>
+            <td><strong>A separate one-way tilemap</strong> — its own Tilemap Collider 2D + Composite Collider 2D + <code>Platform Effector 2D</code>, with <em>Used By Effector</em> ticked</td>
+            <td>The tilemap becomes a membrane you pass upward and stand on downward.</td>
+            <td>A third tilemap to maintain, and one direction for every tile on it.</td>
+            <td>Many one-way ledges, all behaving the same.</td>
         </tr>
         <tr>
             <td><strong>Per-tile effector</strong> — <code>Platform Effector 2D</code> plus <em>Used By Effector</em> on the tilemap collider</td>
             <td>Individual tiles in the existing tilemap gain a direction.</td>
-            <td>It fights the composite merge, and you now have two kinds of tile on one grid.</td>
+            <td>It fights the composite merge, and you get two kinds of tile on one grid.</td>
             <td>Rarely. Know it exists; do not reach for it first.</td>
         </tr>
         <tr>
-            <td><strong>A loose object</strong> — a plain GameObject with a Box Collider 2D + <code>Platform Effector 2D</code>, placed over a gap in the tiles</td>
+            <td><strong>A loose object</strong> — a GameObject with a Box Collider 2D + <code>Platform Effector 2D</code>, placed over a gap in the tiles</td>
             <td>One platform, one object, zero tilemap surgery.</td>
-            <td>The platform is no longer part of the painted level, so it can drift out of alignment with the grid.</td>
-            <td>When you need exactly one or two, and you need them now.</td>
+            <td>It is no longer part of the painted level, so it can drift out of alignment with the grid.</td>
+            <td>You need exactly one or two, and you need them now.</td>
         </tr>
     </table>
-
-    <p>
-        Whatever you pick, the effector has a <strong>Surface Arc</strong> and an
-        <strong>Offset</strong> that decide which direction counts as "up". Predict what happens
-        when the arc is rotated 90°, and then try it on a wall.
-    </p>
 
     <div class="socratic">
         <h3>Choose, Then Justify</h3>
@@ -439,8 +423,8 @@ ${renderDecompose('7.2', DECOMPOSE, 3)}
 <div class="checklist">
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
-        <li>Name the three components already on <code>Collision</code> and say what each does</li>
-        <li>Explain what a composite fixes, and name the setting that switches it on</li>
+        <li>Name the three components already on <code>Collision</code>, and what each does</li>
+        <li>Explain what a composite fixes, and the setting that switches it on</li>
         <li>Say out loud why <code>Ground</code> being a tag was not enough, and extend the physics layers</li>
         <li>Explain the difference between a physics layer and a sorting layer, with one use of each</li>
         <li>Fix your 6.2 ground-check mask and prove the fix with a test</li>
@@ -456,10 +440,10 @@ ${renderDecompose('7.2', DECOMPOSE, 3)}
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a> — colliders and layers</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the <code>Rigidbody2D</code>, collision-callback and <code>CompareTag</code> rows behind today's components</li>
+        <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a></li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — collider, layer and <code>CompareTag()</code> rows</li>
     </ul>
-    <p>Next: <a href="7.3.html">7.3 — Ladders I: The Climbing State</a>, where you build a ladder out of the tileset you just learned to paint, and a trigger zone you did not paint at all.</p>
+    <p>Next: <a href="7.3.html">7.3 — Ladders I: The Climbing State</a>.</p>
 </div>`;
 ---
 <Lesson id="7.2" title="7.2 Tile Collision, Layers &amp; Sorting — AP CS Principles" root=".." css="../style.css">

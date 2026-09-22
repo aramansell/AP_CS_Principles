@@ -270,6 +270,20 @@ the line without an annotation — safe only because those lines carry no `why`,
 `hint` or `doc`. The final file under the walkthrough keeps the same section
 comments, so the student can see the whole shape in one place.
 
+### Prose markup, and why a stray asterisk is a defect
+
+Every field the student reads from a spec — `what`, `why`, `hint`, `doc`, `does`,
+`big`, `sizeTest`, `turns`, a step's `title` and `lead` — goes through the same
+`prose()` in `src/lib/walkthrough.ts` and `src/lib/decompose.ts`, which escapes it
+and then allows `` `inline code` ``, `**bold**` and `*italic*`. Body HTML does not:
+it is rendered exactly as written, so use `<em>` and `<strong>` there.
+
+The asterisks only work in pairs, and a pair that never reaches `prose()` arrives on
+the page as punctuation the student reads as a typo — with the source looking
+identical either way. `verify` check 14 fails any built lesson that shows one. Its
+pattern is deliberately narrower than the renderer's: `3 * 4 * 5` has a space inside
+the pair and `Assets/Scripts/*.cs` has a slash, so neither is reported.
+
 ### A method is always named as a call
 
 In prose, tables, specs and checklists: `CompareTag("Coin")`,
@@ -278,6 +292,13 @@ position, Quaternion rotation)`. Never the bare noun — `CompareTag` alone hide
 that it takes an argument, what type that argument is, and what it returns, which
 is the whole of what the student needs to know. `CompareTag()` at minimum.
 `verify` check 11 enforces this in any lesson carrying the "In the Code" label.
+
+The one name the check cannot resolve on its own is `Start`, which is both a Unity
+lifecycle method and the name of this project's hub scene. The convention that
+settles it: the method is `Start()`, and the scene is always **`Start (index 0)`** —
+never `Start` bare, and never `Start()` for the scene. That is how 5.3 wrote it and
+every lesson that names the scene follows it (7.3, 7.4, 7.6, 8.5, 8.6). A scene is a
+build index, so the spelling says something true as well as passing the check.
 
 ### Teach it once: say it, move on
 

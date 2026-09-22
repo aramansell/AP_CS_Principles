@@ -4,14 +4,79 @@
     You have a swing animation and an axe sprite, and neither of them has ever hurt anything.
     Today the swing stops being decoration: a click opens a short damage window, a shape in front
     of the player asks the physics engine what it is standing in, and the number you built in
-    <a href="8.2.html">8.2</a> goes <em>down</em>. The combat loop — "I hit it, it hurt" — is
-    small. The reason this lesson is long is that the shape you use to ask that question has a
-    side effect most people get wrong, and it will quietly break the jump you wrote in Unit 6.
+    <a href="8.2.html">8.2</a> goes <em>down</em>. "I hit it, it hurt" is a small loop — and the
+    shape you ask that question with has a side effect most people get wrong.
 </p>
 
 <div class="ask-banner" data-scaffold="2"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I make my swing actually hurt something?&rdquo;</span><span class="ask-banner-level">Guided build</span></div>
 
-<div class="activity decompose" data-level="2" data-parts="5" data-given="4" data-docs="5"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Guided build</span></div><p class="dc-big">You have a swing animation, an axe sprite, and — since 8.2 — a boss whose health goes down when something subtracts from it. Nothing joins them up. "Make my swing hurt something" is really four smaller questions: where is the blade, who is allowed to be in the answer, when is the swing live, and what do you do with the collider you found? Three of those you have built before. One you have not.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Stand a shape where the blade is</span><span class="dc-does">An empty child of the Player called <code>AttackHitbox</code> carrying a <code>BoxCollider2D</code> with <strong>Is Trigger</strong> ticked, about one tile in front and parented to the root. A trigger reports overlaps instead of pushing things — the coin's collider from 2.1 doing a new job.</span><span class="dc-doc">Read: <a href="2.1.html">the trigger collider you added to the coin in 2.1 — the same component, on an object that exists for a fifth of a second instead of forever</a></span></li><li class="dc-part"><span class="dc-name">Decide who the question may notice</span><span class="dc-does">A <code>LayerMask</code> on the query rather than on the shape. The buckets are already in the project — <code>Ground</code> from 6.2, and <code>Player</code>, <code>Enemy</code>, <code>Projectile</code> and <code>Decoration</code> from 7.2 — so this part is a decision about which one the boss is really in, plus a mask that names it and nothing else.</span><span class="dc-doc">Read: <a href="7.2.html">the layers you made in 7.2, and the four-tool table in the first activity on this page — the argument for narrowing the question instead of the world</a></span></li><li class="dc-part"><span class="dc-name">Open a window and let it close itself</span><span class="dc-does">Two floats and two comparisons: one that stops a swing happening sixty times a second, and one that keeps the shape live for a moment longer than the single frame you clicked on. The turret's fire rate from 3.3 is the same mechanism under a different name.</span><span class="dc-doc">Read: <a href="3.3.html">the cooldown you built in 3.3 — <code>cooldown</code>, <code>lastAttackTime</code>, and the seeded first value that means "there has been no last shot"</a></span></li><li class="dc-part dc-part-blank"><span class="dc-gap">write this part</span><span class="dc-doc">Read: the <code>Physics2D.OverlapBoxAll</code> page in the Unity scripting reference — a point, a size, an angle and a <code>LayerMask</code>, handing back an <strong>array</strong> of colliders — and the third architectural specification in the build lab on this page</span></li><li class="dc-part"><span class="dc-name">Turn what you found into a number going down</span><span class="dc-does">From each collider the query handed back to the script that owns the boss's health, then one call to its signed-amount method. A positive amount hurts and a negative one heals — the rule from 5.3, and the method 8.2 had you write.</span><span class="dc-doc">Read: <a href="8.2.html">the boss health method you wrote in 8.2, and the signed-amount rule that moved onto <code>StatManager</code> in 5.3</a></span></li></ol><p class="dc-why">Four of those five parts are work you have already done or already read. Only one has no precedent in this course, and it is a small change with a large consequence: every query you have written so far — the ground check from 6.2, the turret's range check from 3.1, the pickups in 2.1 — asks about a <strong>point</strong> or a <strong>line</strong>, and the answer is always one thing. This query asks about an <strong>area</strong>, and the answer is a list. That is why the part after it is a loop and not an <code>if</code>, and why those two parts are separate problems rather than one.</p><p class="dc-size">The test: could you look this part up on your own, right now, in one search? "Make the swing hurt the boss" cannot be looked up. "Give me every collider inside a box, on one layer" can — and the page you land on hands you four arguments in a fixed order and a result type that is already an array.</p><div class="dc-turns"><h4>Your turn</h4><p>Your ground check from 6.2 and today's swing query both ask the physics engine about colliders. Say which of the two can come back with more than one answer, and what each one does with the answer it gets.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.3:dc1:q1" data-block="decompose" data-question="Your ground check from 6.2 and today's swing query both ask the physics engine about colliders. Say which of the two can come back with more than one answer, and what each one does with the answer it gets." placeholder="write your answer, then keep going"></textarea></label><p>The window is what stops a swing being decided by a single frame. Name one other place in this project where state exists for a short time and then closes — and say what would break if it never did.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.3:dc1:q2" data-block="decompose" data-question="The window is what stops a swing being decided by a single frame. Name one other place in this project where state exists for a short time and then closes — and say what would break if it never did." placeholder="write your answer, then keep going"></textarea></label></div></div>
+<div class="activity decompose" data-level="2" data-parts="5" data-given="4" data-docs="5"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Guided build</span></div><p class="dc-big">You have a swing animation, an axe sprite, and — since 8.2 — a boss whose health goes down when something subtracts from it. Nothing joins them up. "Make my swing hurt something" is really five smaller questions: where is the blade, who is allowed to be in the answer, when is the swing live, how do you ask that question, and what do you do with the collider you found? Four of those you have built before. One you have not.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Stand a shape where the blade is</span><span class="dc-does">An empty child of the Player called <code>AttackHitbox</code> carrying a <code>BoxCollider2D</code> with <strong>Is Trigger</strong> ticked, about one tile in front and parented to the root. A trigger reports overlaps instead of pushing things — the coin's collider from 2.1 doing a new job.</span><span class="dc-doc">Read: <a href="2.1.html">the trigger collider you added to the coin in 2.1 — the same component, on an object that exists for a fifth of a second instead of forever</a></span></li><li class="dc-part"><span class="dc-name">Decide who the question may notice</span><span class="dc-does">A <code>LayerMask</code> on the query rather than on the shape. The buckets are already in the project — <code>Ground</code> from 6.2, and <code>Player</code>, <code>Enemy</code>, <code>Projectile</code> and <code>Decoration</code> from 7.2 — so this part is a decision about which one the boss is really in, plus a mask that names it and nothing else.</span><span class="dc-doc">Read: <a href="7.2.html">the layers you made in 7.2, and the four-tool table in the activity above the walkthrough — the argument for narrowing the question instead of the world</a></span></li><li class="dc-part"><span class="dc-name">Open a window and let it close itself</span><span class="dc-does">Two floats and two comparisons: one that stops a swing happening sixty times a second, and one that keeps the shape live for a moment longer than the single frame you clicked on. The turret's fire rate from 3.3 is the same mechanism under a different name.</span><span class="dc-doc">Read: <a href="3.3.html">the cooldown you built in 3.3 — <code>cooldown</code>, <code>lastAttackTime</code>, and the seeded first value that means "there has been no last shot"</a></span></li><li class="dc-part dc-part-blank"><span class="dc-gap">write this part</span><span class="dc-doc">Read: the <code>Physics2D.OverlapBoxAll</code> page in the Unity scripting reference — a point, a size, an angle and a <code>LayerMask</code>, handing back an <strong>array</strong> of colliders — and the third architectural specification in the build lab on this page</span></li><li class="dc-part"><span class="dc-name">Turn what you found into a number going down</span><span class="dc-does">From each collider the query handed back to the script that owns the boss's health, then one call to its signed-amount method. A positive amount hurts and a negative one heals — the rule from 5.3, and the method 8.2 had you write.</span><span class="dc-doc">Read: <a href="8.2.html">the boss health method you wrote in 8.2, and the signed-amount rule that moved onto <code>StatManager</code> in 5.3</a></span></li></ol><p class="dc-why">Four of those five parts are work you have already done or already read. Only one has no precedent in this course, and it is a small change with a large consequence: every query you have written so far — the ground check from 6.2, the turret's range check from 3.1, the pickups in 2.1 — asks about a <strong>point</strong> or a <strong>line</strong>, and the answer is always one thing. This query asks about an <strong>area</strong>, and the answer is a list. That is why the part after it is a loop and not an <code>if</code>, and why those two parts are separate problems rather than one.</p><p class="dc-size">The test: could you look this part up on your own, right now, in one search? "Make the swing hurt the boss" cannot be looked up. "Give me every collider inside a box, on one layer" can — and the page you land on hands you four arguments in a fixed order and a result type that is already an array.</p><div class="dc-turns"><h4>Your turn</h4><p>Your ground check from 6.2 and today's swing query both ask the physics engine about colliders. Say which of the two can come back with more than one answer, and what each one does with the answer it gets.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.3:dc1:q1" data-block="decompose" data-question="Your ground check from 6.2 and today's swing query both ask the physics engine about colliders. Say which of the two can come back with more than one answer, and what each one does with the answer it gets." placeholder="write your answer, then keep going"></textarea></label><p>The window is what stops a swing being decided by a single frame. Name one other place in this project where state exists for a short time and then closes — and say what would break if it never did.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.3:dc1:q2" data-block="decompose" data-question="The window is what stops a swing being decided by a single frame. Name one other place in this project where state exists for a short time and then closes — and say what would break if it never did." placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Every physics question in Unity is asked about a shape, and this one is placed by hand —
+        it is the only object in this lesson that the code does not make for itself.
+    </p>
+
+    <ol>
+        <li>
+            <strong>Hierarchy →</strong> the boss you assembled in <a href="8.2.html">8.2</a>,
+            then <strong>Inspector →</strong> its <strong>Layer</strong> field. Read which bucket
+            it is really in instead of assuming <code>Enemy</code>: a mask can only find what is
+            genuinely in the layer it names, and the buckets themselves are already built —
+            <code>Ground</code> from 6.2, and <code>Player</code>, <code>Enemy</code>,
+            <code>Projectile</code> and <code>Decoration</code> from <a href="7.2.html">7.2</a>.
+        </li>
+        <li>
+            <strong>Project window →</strong> double-click <code>Assets/Prefabs/Player</code> to
+            open the prefab itself, then <strong>Hierarchy →</strong> right-click the
+            <strong>Player root</strong> ▸ <strong>Create Empty</strong> — as a child of the root,
+            not of the child called <em>Sprite</em> — and <strong>Inspector →</strong> rename it
+            <code>AttackHitbox</code>. It is a <code>Transform</code> and nothing else, no renderer
+            and no script, exactly like the <code>GroundCheck</code> empty you made in
+            <a href="6.2.html">6.2</a>. Where you parent it decides what its position means:
+            <em>Sprite</em> is scaled to <code>2</code>, so a box sized one tile inside it would
+            arrive as two.
+        </li>
+        <li>
+            <strong>Inspector →</strong> <strong>Add Component ▸</strong>
+            <code>Box Collider 2D</code>, set <strong>Size</strong> to about
+            <code>(1.2, 1)</code>, and tick <strong>Is Trigger</strong>. A trigger reports
+            overlaps instead of pushing things — the coin's collider from
+            <a href="2.1.html">2.1</a> wearing a new job.
+        </li>
+        <li>
+            <strong>Inspector →</strong> <strong>Transform ▸ Position</strong> to about
+            <code>(0.6, 0, 0)</code>: one tile in front, on +x. The box runs from the player's
+            centre outward on purpose — a blade that only reaches where the player is not is a
+            blade that misses — and that also means it overlaps the Player's own
+            <code>CircleCollider2D</code>. This project ships <strong>Queries Start In Colliders</strong>
+            ticked, so a query that starts inside your own body can report your own body — one of
+            the reasons the mask in the code half is doing real work.
+        </li>
+        <li>
+            <strong>Inspector →</strong> the <strong>Layer</strong> dropdown on
+            <code>AttackHitbox</code>: leave it on <em>Default</em>. The layer decision belongs on
+            the query, not on the shape.
+        </li>
+        <li>
+            <strong>Inspector →</strong> the <code>PlayerController</code> on the Player prefab,
+            <em>after</em> the code half: six slots to fill from the fields you are about to
+            declare. <code>Attack Hitbox</code> = the <code>AttackHitbox</code> child,
+            <code>Hitbox Size</code> = <code>(1.2, 1)</code>, <code>Attack Damage</code> =
+            <code>1</code>, <code>Boss Layer</code> = the layer you just read,
+            <code>Attack Cooldown</code> = <code>0.5</code>, <code>Damage Window</code> =
+            <code>0.2</code>. Wire them before you press Play: an empty slot throws on the first
+            line that reads it.
+        </li>
+    </ol>
+</div>
 
 <!-- ============================================================ -->
 <div class="activity discovery">
@@ -21,11 +86,11 @@
     </div>
 
     <p>
-        An attack hitbox is a shape that exists for about a fifth of a second and then
-        disappears. You already know how to make one from <a href="2.1.html">2.1</a>: a
-        Collider2D with <strong>Is Trigger</strong> ticked, so it reports overlaps instead of
-        shoving things. What you have not met yet is that a trigger is not a private object. It
-        is a full participant in every physics question anyone asks.
+        An attack hitbox is a shape that exists for about a fifth of a second and then disappears.
+        You know how to make one from <a href="2.1.html">2.1</a>: a <code>Collider2D</code> with
+        <strong>Is Trigger</strong> ticked, so it reports overlaps instead of shoving things. What
+        you have not met yet is that a trigger is not a private object — it is a full participant
+        in every physics question anyone asks.
     </p>
 
     <p>
@@ -40,22 +105,19 @@
     <div class="callout trap">
         <strong>A trigger absolutely can confuse a raycast. Do not build on the opposite belief.</strong>
         You may have heard that ground checks are safe from triggers because "triggers are not
-        what raycasts look for". That is the wrong model, and it produces one of the nastiest
-        bugs in this project. Your ground check asks a question — <em>what is directly under my
-        feet?</em> — and a raycast returns the <em>first</em> collider it meets. Put your attack
-        hitbox near the player's feet and it becomes a candidate answer. The ray hits the hitbox,
-        your <code>CompareTag("Ground")</code> check fails, and for that frame your player
-        believes they are standing in mid-air.
-        <br><br>
-        The symptom is a jump that works <em>most</em> of the time — usually failing exactly when
-        you are swinging, or standing still, or both. You spent Unit 6 chasing that class of bug.
-        This is where it comes back.
+        what raycasts look for". That is the wrong model. Your ground check asks <em>what is
+        directly under my feet?</em>, and a raycast returns the <em>first</em> collider it meets —
+        so a hitbox near the player's feet is a candidate answer. The ray hits the hitbox, your
+        <code>CompareTag("Ground")</code> check fails, and for that frame your player believes
+        they are standing in mid-air. The symptom is a jump that works <em>most</em> of the time,
+        usually failing exactly when you are swinging or standing still. You spent Unit 6 chasing
+        that class of bug; this is where it comes back.
     </div>
 
     <p>
-        So the question is not <em>whether</em> the engine will hand your hitbox to a query. It
-        will. The question is which tool you use to make it stop. There are four, and they are
-        not equivalent:
+        So the question is not <em>whether</em> the engine will hand your hitbox to a query — it
+        will. The question is which tool you use to make it stop. There are four, and they are not
+        equivalent:
     </p>
 
     <table>
@@ -87,11 +149,10 @@
 
     <div class="callout info">
         <strong>Which tool is "correct"?</strong> There is no universal answer, and you should be
-        able to argue for the one you pick. The professional default is (a) — narrow the
-        <em>question</em>, not the <em>world</em>. Option (c) changes the game for every system
-        you will ever write, to solve a problem in one of them; that is a large price for a small
-        fix. Option (b) is the cheapest thing that works today and is a perfectly defensible
-        choice for a project this size. Pick one, write down why, and be able to say what it cost.
+        able to argue for the one you pick — the four cost columns above are the whole argument.
+        The professional default is (a): narrow the <em>question</em>, not the <em>world</em>.
+        Option (c) changes the game for every system you will ever write in order to solve a
+        problem in one of them. Pick one, then be able to say what it cost.
     </div>
 
     <div class="socratic">
@@ -105,58 +166,7 @@
 </div>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Read Function-Level Examples</span>
-        <span class="activity-time">~15 min</span>
-    </div>
-
-    <p>
-        Every one of these is about a sensor that reports more than the operator wanted. Read
-        them for the <em>shape</em> of the fix, then decide which one your hitbox is.
-    </p>
-
-    <p><strong>Example 1 — The warehouse metal detector arch (narrow the question, not the world):</strong></p>
-    <pre><code>// The arch reports everything that walks through it, trolleys
-// included. You fix that by telling the arch which aisle to watch,
-// not by hoping the trolley walks quietly.</code></pre>
-
-    <p><strong>Example 2 — A corridor motion light (a sensor with a wider cone than you want):</strong></p>
-    <pre><code>// The light triggers on the building's own curtain moving.
-// Nobody fixes this by trusting the sensor less - they narrow
-// what it is pointed at.</code></pre>
-
-  <p><strong>Example 3 — A stamping press (the cycle, not the finger, is the limit):</strong></p>
-    <pre><code>// A press stamps once per cycle. Holding the button down does not
-// stamp twice - the cooldown is mechanical, so it cannot be cheated.</code></pre>
-
-    <p><strong>Example 4 — A stadium turnstile (one entry per rotation):</strong></p>
-    <pre><code>// The turnstile counts one person per rotation, not one per person
-// leaning on it. Same counting problem as a held mouse button.</code></pre>
-
-    <p><strong>Example 5 — A crane's limit switch (a guard that fires regardless of intent):</strong></p>
-    <pre><code>// The hoist stops at the top of its travel whether or not the
-// operator is still holding the lever. The guard outranks the input.</code></pre>
-
-    <div class="socratic">
-        <h3>Predict Before Building</h3>
-        <ol>
-<li>In examples 3 and 4, the limit is mechanical rather than a rule someone remembers to follow. How would you make your attack's rate limit mechanical in the same way?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.3:sc2:q1" data-block="socratic" data-question="In examples 3 and 4, the limit is mechanical rather than a rule someone remembers to follow. How would you make your attack's rate limit mechanical in the same way?" placeholder="write your answer, then keep going"></textarea></label></li>
-<li>You already built a fire-rate cooldown for the turret in <a href="3.3.html">3.3</a>. Which parts of that idea transfer to a swing, and which part does not — what is different about a projectile that travels and a hitbox that appears?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.3:sc2:q2" data-block="socratic" data-question="You already built a fire-rate cooldown for the turret in 3.3 . Which parts of that idea transfer to a swing, and which part does not — what is different about a projectile that travels and a hitbox that appears?" placeholder="write your answer, then keep going"></textarea></label></li>
-<li>Example 5's guard outranks the operator. If the player holds the mouse button down for two full seconds, what should happen — and which of your variables enforces that?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="8.3:sc2:q3" data-block="socratic" data-question="Example 5's guard outranks the operator. If the player holds the mouse button down for two full seconds, what should happen — and which of your variables enforces that?" placeholder="write your answer, then keep going"></textarea></label></li>
-</ol>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">Build It With Me</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I make my swing actually hurt something?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. One empty child object carrying a trigger box, six Inspector fields, a branch you already wrote in 1.6 with three lines added to it, and one new method. The only line here with no precedent in the course is the query itself: every question you have asked the physics engine until now has come back with a single answer, and this one comes back with a list.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Build the shape the question is asked about — this step is not code</h4><p class="wt-lead">Every physics question in Unity is asked about a shape, and this is the only thing in the lesson you place by hand.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">// Assets/Prefabs/Player ▸ right-click ▸ Create Empty     rename it  AttackHitbox</span>
-<span class="wt-line wt-line-why" data-n="2">// AttackHitbox ▸ Add Component ▸ Box Collider 2D     ▸ Is Trigger ticked     ▸ Size about (1.2, 1)</span>
-<span class="wt-line wt-line-why" data-n="3">// AttackHitbox ▸ Transform ▸ Position about (0.6, 0, 0)   // one tile in front, on +x</span>
-<span class="wt-line" data-n="4"></span>
-<span class="wt-line wt-line-why" data-n="5">// AttackHitbox ▸ Layer stays Default</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Make it a <strong>child of the Player root</strong>, not of the child called <code>Sprite</code>. It is a <code>Transform</code> and nothing else — no renderer, no script — exactly like the <code>GroundCheck</code> empty you made in 6.2.</span><span class="wt-why"><strong>Where you parent it decides what its position means.</strong> <code>Sprite</code> is scaled to 2 on this prefab, and a child of a scaled object is scaled with it — so a box you size as one tile would arrive as two. Parented to the root, one unit is one unit. Read the <code>Sprite</code> child's Transform while you are there; 6.2 had you look at the same numbers for the same reason.</span></li>
-<li><span class="wt-ref">2</span><span class="wt-what">A <code>BoxCollider2D</code> a little wider than one tile and one tile tall, with <strong>Is Trigger</strong> ticked. A trigger reports overlaps instead of pushing things, which is the coin's collider from 2.1 wearing a new job.</span><span class="wt-why"><strong>Ticking Is Trigger is what makes this shape harmless — and it is also what leaves it visible to every query in the game.</strong> This project ships <code>Queries Hit Triggers</code> ticked, which is the fact the first activity on this page is built on. A trigger is a full participant in every physics question anyone asks, and that is exactly why the mask in the next step is not optional.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">Put it in front of the player, on the right. Step 3 moves it from code when the player faces the other way, so this is a starting position rather than a fixed one.</span><span class="wt-why"><strong>Look at what the box covers: it runs from the player's centre outward.</strong> That is deliberate — a blade that only reaches where the player is not is a blade that misses. It also means the box overlaps the Player's own <code>CircleCollider2D</code> from 2.1, and this project also ships <code>Queries Start In Colliders</code> ticked, so a query that starts inside your own body can report your own body. Two reasons the mask is doing real work here.</span></li>
-<li><span class="wt-ref">5</span><span class="wt-what"><strong>The layer decision lives on the query, not on the shape.</strong> The four-tool table at the top of this page priced all four options; you are choosing the first one — narrow the question rather than the world.</span><span class="wt-why"><strong>You already own the buckets, so there is nothing new to create.</strong> <code>Ground</code> came from 6.2, and <code>Player</code>, <code>Enemy</code>, <code>Projectile</code> and <code>Decoration</code> came from 7.2. What has never happened yet is a query naming one of them. Check which layer your boss is actually on while you are here: it was assembled from an enemy prefab in 8.2, so it should be <code>Enemy</code> — and "should be" is not a reading. Open its Inspector and look.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Declare the shape, the reach, the damage, the filter and two clocks</h4><p class="wt-lead">Eight lines in the class body, beside <code>moveSpeed</code> and the ground-check fields from 6.2. Six are <code>[SerializeField]</code> knobs — the pattern from 1.3 — and two are the state that makes a swing a moment rather than a frame.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    [SerializeField] private Transform attackHitbox;</span>
+<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I make my swing actually hurt something?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. Six Inspector fields, a branch you already wrote in 1.6 with three lines added to it, and one new method. The only line here with no precedent in the course is the query itself: every question you have asked the physics engine until now has come back with a single answer, and this one comes back with a list. The shape it is asked about is the child you placed by hand in the editor half above — the code cannot make that object for you.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Declare the shape, the reach, the damage, the filter and two clocks</h4><p class="wt-lead">Eight lines in the class body, beside <code>moveSpeed</code> and the ground-check fields from 6.2. Six are <code>[SerializeField]</code> knobs — the pattern from 1.3 — and two are the state that makes a swing a moment rather than a frame.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    [SerializeField] private Transform attackHitbox;</span>
 <span class="wt-line wt-line-why" data-n="2">    [SerializeField] private Vector2 hitboxSize = new Vector2(1.2f, 1f);</span>
 <span class="wt-line wt-line-why" data-n="3">    [SerializeField] private int attackDamage = 1;</span>
 <span class="wt-line wt-line-why" data-n="4">    [SerializeField] private LayerMask bossLayer;</span>
@@ -164,14 +174,14 @@
 <span class="wt-line" data-n="6">    [SerializeField] private float attackCooldown = 0.5f;</span>
 <span class="wt-line" data-n="7">    [SerializeField] private float damageWindow = 0.2f;</span>
 <span class="wt-line wt-line-why" data-n="8">    private float nextAttackTime;</span>
-<span class="wt-line wt-line-why" data-n="9">    private float windowClosesAt;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The slot that holds the empty child from step 1. The same kind of slot as <code>groundCheck</code> in 6.2: a reference to another object, wired from the Inspector instead of looked up in code.</span><span class="wt-why"><strong>Wire it before you press Play, not after.</strong> An empty slot says nothing when the scene loads and throws a <code>NullReferenceException</code> on the first line that reads it — and step 3 reads this one every time you click.</span></li>
-<li><span class="wt-ref">2</span><span class="wt-what">The size of the box the query will ask about — the same two numbers you typed into the collider in step 1. A <code>Vector2</code> is a pair of floats: you have been building them since 1.4.</span><span class="wt-why"><strong>The query takes a size, not a collider</strong>, so these numbers now exist twice in your project: once on the shape you can see, once on the question you ask. Keep them equal — and know which one the physics engine actually reads. It is this one, not the collider's.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">How much one landed swing takes off the boss. An <code>int</code>, because the method you call in step 4 takes an <code>int</code>.</span><span class="wt-why"><strong>And a positive number, because that amount is signed.</strong> 5.3 made the rule explicit when the method moved onto <code>StatManager</code>: a positive amount hurts and a negative one heals. Pass <code>-1</code> here and your attack becomes a healing spell the boss will thank you for.</span></li>
+<span class="wt-line wt-line-why" data-n="9">    private float windowClosesAt;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The slot that holds the <code>AttackHitbox</code> child you made in the editor half. The same kind of slot as <code>groundCheck</code> in 6.2: a reference to another object, wired from the Inspector instead of looked up in code.</span><span class="wt-why"><strong>Wire it before you press Play, not after.</strong> An empty slot says nothing when the scene loads and throws a <code>NullReferenceException</code> on the first line that reads it — and the click branch below reads this one every time you click.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">The size of the box the query will ask about — the same two numbers you typed into the collider in the editor half. A <code>Vector2</code> is a pair of floats: you have been building them since 1.4.</span><span class="wt-why"><strong>The query takes a size, not a collider</strong>, so these numbers now exist twice in your project: once on the shape you can see, once on the question you ask. Keep them equal — and know which one the physics engine actually reads. It is this one, not the collider's.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">How much one landed swing takes off the boss. An <code>int</code>, because the damage method below takes an <code>int</code>.</span><span class="wt-why"><strong>And a positive number, because that amount is signed.</strong> 5.3 made the rule explicit when the method moved onto <code>StatManager</code>: a positive amount hurts and a negative one heals. Pass <code>-1</code> here and your attack becomes a healing spell the boss will thank you for.</span></li>
 <li><span class="wt-ref">4</span><span class="wt-what"><strong>What the query is allowed to notice.</strong> The same type as <code>groundLayer</code> in 6.2, drawn in the Inspector as a dropdown of layer names rather than a number.</span><span class="wt-why"><strong>Leave it empty and the query reports nothing, with no error at all.</strong> That is a mask's failure mode, and it is why 6.2 had you test the ground check with a deliberately empty one. Point it at the layer the boss is on — and at nothing else, unless you have decided a swing should also hit scenery.</span></li>
 <li><span class="wt-ref">6</span><span class="wt-what">The shortest gap between two swings — your turret's fire rate from 3.3, moved onto a melee attack. The value is a starting guess you tune against the animation.</span></li>
 <li><span class="wt-ref">7</span><span class="wt-what">How long the shape stays live after a click. A fifth of a second, which is also a starting guess rather than a measurement.</span></li>
-<li><span class="wt-ref">8</span><span class="wt-what">The earliest <code>Time.time</code> at which another swing may start. <code>Time.time</code> is the seconds since the game started — the clock from 3.3.</span><span class="wt-why"><strong>It needs no seed, and that is worth noticing.</strong> 3.3 wrote its first value as one cooldown *before* the clock started, because a turret could otherwise fire on frame one. A <code>float</code> field already starts at <code>0</code>, and <code>Time.time</code> is past zero on the first frame you could possibly click — so <code>0</code> is a time in the past, which is exactly what "there has been no last swing" means.</span></li>
-<li><span class="wt-ref">9</span><span class="wt-what">The <code>Time.time</code> value at which the damage window shuts. While the clock is below it, the swing is live.</span><span class="wt-why"><strong>A deadline, not a <code>bool</code>.</strong> <code>isAttacking = true</code> has to be set back to <code>false</code> by something, and that something is always a second place that has to remember to do it. A deadline needs nothing to switch it off: it arrives. The only place you write this field is the click that opens it and the hit that closes it early.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Open the window inside the click branch you already wrote</h4><p class="wt-lead"><code>CheckAttack()</code> in your file already reads mouse button 0 and fires the <code>Attack</code> trigger — that is 1.6. Today it gets a gate in front of it and three lines inside it.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">        if (Input.GetMouseButtonDown(0) &amp;&amp; Time.time &gt;= nextAttackTime)</span>
+<li><span class="wt-ref">8</span><span class="wt-what">The earliest <code>Time.time</code> at which another swing may start. <code>Time.time</code> is the seconds since the game started — the clock from 3.3.</span><span class="wt-why"><strong>It needs no seed, and that is worth noticing.</strong> 3.3 wrote its first value as one cooldown <em>before</em> the clock started, because a turret could otherwise fire on frame one. A <code>float</code> field already starts at <code>0</code>, and <code>Time.time</code> is past zero on the first frame you could possibly click — so <code>0</code> is a time in the past, which is exactly what "there has been no last swing" means.</span></li>
+<li><span class="wt-ref">9</span><span class="wt-what">The <code>Time.time</code> value at which the damage window shuts. While the clock is below it, the swing is live.</span><span class="wt-why"><strong>A deadline, not a <code>bool</code>.</strong> <code>isAttacking = true</code> has to be set back to <code>false</code> by something, and that something is always a second place that has to remember to do it. A deadline needs nothing to switch it off: it arrives. The only place you write this field is the click that opens it and the hit that closes it early.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Open the window inside the click branch you already wrote</h4><p class="wt-lead"><code>CheckAttack()</code> in your file already reads mouse button 0 and fires the <code>Attack</code> trigger — that is 1.6. Today it gets a gate in front of it and three lines inside it.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">        if (Input.GetMouseButtonDown(0) &amp;&amp; Time.time &gt;= nextAttackTime)</span>
 <span class="wt-line" data-n="2">        {</span>
 <span class="wt-line" data-n="3">            animator.SetTrigger("Attack");</span>
 <span class="wt-line wt-line-why" data-n="4">            nextAttackTime = Time.time + attackCooldown;</span>
@@ -180,7 +190,7 @@
 <span class="wt-line" data-n="7">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The click from 1.6 with one term added: the clock must have passed the earliest time the next swing is allowed. Two questions in one <code>if</code> — the same folded <code>&amp;&amp;</code> guard you built into the lever in 5.2 and the jump in 6.2.</span><span class="wt-why"><strong><code>GetMouseButtonDown</code> is true on exactly one frame, so this gate is not protecting against the click — it is protecting against the player clicking again.</strong> Hold the button down and <code>Down</code> fires once; tap it as fast as you like and the clock is what refuses. 3.3 gave you both halves of that: the one-frame read, and the comparison against a stored time.</span></li>
 <li><span class="wt-ref">4</span><span class="wt-what">Write the next allowed time into the clock: <strong>now, plus the cooldown</strong>. Exactly the line you wrote for the turret in 3.3.</span><span class="wt-why"><strong>"Now plus the cooldown" — both halves matter.</strong> Store <code>Time.time</code> on its own and the gate never closes. Store the cooldown on its own and you are comparing a duration against a timestamp, which is a comparison that means nothing and gives the same answer forever.</span></li>
 <li><span class="wt-ref">5</span><span class="wt-what"><strong>Open the damage window</strong>: the moment of the swing, plus how long it stays live. This one line is the whole of "the swing is a moment rather than a frame", and without it the swing would be a single instant.</span><span class="wt-why"><strong>This is what stops a hit depending on one frame.</strong> The click lands on one frame, and the animation, the physics step and your frame rate do not have to agree about which one. A window gives the shape time to still be there when the query looks, which is the difference a player feels between "my swing missed" and "my swing connected" — and it is a difference they will never be able to explain to you.</span></li>
-<li><span class="wt-ref">6</span><span class="wt-what">Move the shape to the side the player faces. <code>spriteRenderer.flipX</code> is the flag you set from the input in 1.6 and cached in <code>Start()</code> back then — and <code>true</code> means the sprite is mirrored, which means <strong>facing left</strong>. The <code>? :</code> is the conditional expression from 6.2's gizmo: a yes/no branch written as a value.</span><span class="wt-why"><strong><code>flipX</code> mirrors the picture and moves nothing else.</strong> It is a rendering instruction, so no collider, no child object and no transform follows it. That is precisely why the hitbox has to be placed by hand, and why a swing that damages things *behind* you is the first bug a playtester will report — usually while insisting the animation looks fine, because it does.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Ask what is inside the shape</h4><p class="wt-lead">One method, one question, one call. Everything above this step exists to give it something to ask with.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    void TryHitBoss()</span>
+<li><span class="wt-ref">6</span><span class="wt-what">Move the shape to the side the player faces. <code>spriteRenderer.flipX</code> is the flag you set from the input in 1.6 and cached in <code>Start()</code> back then — and <code>true</code> means the sprite is mirrored, which means <strong>facing left</strong>. The <code>? :</code> is the conditional expression from 6.2's gizmo: a yes/no branch written as a value.</span><span class="wt-why"><strong><code>flipX</code> mirrors the picture and moves nothing else.</strong> It is a rendering instruction, so no collider, no child object and no transform follows it. That is precisely why the hitbox has to be placed by hand, and why a swing that damages things <em>behind</em> you is the first bug a playtester will report — usually while insisting the animation looks fine, because it does.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Ask what is inside the shape</h4><p class="wt-lead">One method, one question, one call. Everything above this step exists to give it something to ask with.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    void TryHitBoss()</span>
 <span class="wt-line" data-n="2">    {</span>
 <span class="wt-line wt-line-why wt-blank" data-n="3"><span class="wt-gap">        Collider2D[] hits = ____;</span></span>
 <span class="wt-line wt-line-why" data-n="4">        foreach (Collider2D hit in hits)</span>
@@ -194,15 +204,15 @@
 <span class="wt-line" data-n="12">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">A method whose whole job is one question and one call. Same shape as <code>CheckGround()</code> in 6.2: empty parameter list, <code>void</code>, and everything it needs is already a field.</span></li>
 <li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">3</span><span class="wt-what">Ask the engine what is inside the shape, and keep <strong>everything</strong> it hands back. The question is about a box that sits where the <code>attackHitbox</code> child is, is as big as <code>hitboxSize</code>, is not rotated at all, and is allowed to notice only the layers in <code>bossLayer</code> — and the answer is every collider in that box, not the first one it meets. Four arguments, and they are the same four inputs this page has been pricing since the table at the top: where, how big, at what angle, and what may it see. Store the result in <code>hits</code>; the loop below is what reads it.</span><span class="wt-hint">You want the <code>Physics2D</code> query whose name ends in <code>All</code> — the one that hands back an <strong>array</strong> of every collider inside a box, where the raycast you wrote in 6.2 handed back only the first thing along a line. Pass the four arguments in the order the third architectural specification in the build lab lists them: the centre point (the hitbox child's <code>position</code> — a <code>Vector3</code> is accepted where a <code>Vector2</code> is asked for, exactly as it was for the raycast), then the size field, then the angle (<code>0f</code>, an unrotated box), then the mask. Read the Unity page for it before you write it; the argument order on that page is the order the method wants.</span><span class="wt-why"><strong>Two things are new in this line.</strong> It asks about an <strong>area</strong> rather than a point or a line, which is the only reason a swing can hit something the player is not standing exactly on top of. And an area can contain more than one thing, so the answer is an <strong>array</strong> rather than a single collider — which is why the next line is a <code>foreach</code>, and why this cannot be assigned into a <code>bool</code> the way 6.2's raycast was. Notice also what the line still does not do: it finds colliders and touches nothing. The damage is the next statement, and it is a separate part because "what is there" and "what to do about it" are two different problems.</span></li>
 <li><span class="wt-ref">4</span><span class="wt-what">A <code>foreach</code> over the array — the loop you met in Unit 3. It runs once for <strong>every</strong> collider the query found, in whatever order the physics engine felt like handing them over.</span><span class="wt-why"><strong>A loop and not an <code>if</code>, and that is the difference this whole lesson exists to show you.</strong> <code>Physics2D.Raycast</code> reports the first collider along a line, so 6.2 could assign its answer straight into a <code>bool</code>. An area query reports everything inside the area, so the answer is a list — and the only way to look at a list is one item at a time.</span></li>
-<li><span class="wt-ref">6</span><span class="wt-what">From the collider to the script that owns the boss's number. <code>GetComponentInParent</code> walks <strong>up</strong> from the object it found, which matters because a collider and a script do not have to sit on the same object — 2.1 taught you that about the coin's renderer. The type name here is whatever you called your boss health script in 8.2.</span><span class="wt-why"><strong>This can come back as nothing, and that is a normal case rather than an error.</strong> The query found a collider of the *kind* you asked for, and it tells you nothing about what is attached to it. The next line skips those, and silence is also the honest response to a swing that lands on a wall.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what">From the collider to the script that owns the boss's number. <code>GetComponentInParent</code> walks <strong>up</strong> from the object it found, which matters because a collider and a script do not have to sit on the same object — 2.1 taught you that about the coin's renderer. The type name here is whatever you called your boss health script in 8.2.</span><span class="wt-why"><strong>This can come back as nothing, and that is a normal case rather than an error.</strong> The query found a collider of the <em>kind</em> you asked for, and it tells you nothing about what is attached to it. The next line skips those, and silence is also the honest response to a swing that lands on a wall.</span></li>
 <li><span class="wt-ref">7</span><span class="wt-what"><code>continue</code> skips to the next collider in the loop without running the rest of the body — the same early-guard shape as the null check in front of 6.2's ground-check gizmo.</span></li>
 <li><span class="wt-ref">8</span><span class="wt-what">The call that makes the swing hurt: a positive <code>attackDamage</code>, taken off the boss's health. The sign rule is 5.3's, and the method itself is the one 8.2 had you write.</span></li>
 <li><span class="wt-ref">9</span><span class="wt-what"><strong>Close the window</strong>, by writing a deadline that has already passed so the next frame reads it as shut.</span><span class="wt-why"><strong>Without this line one swing deals damage on every frame the window is open</strong> — a dozen hits from a single click, and the fight is over before the swing animation finishes. This is the "one swing, one hit" rule, and a deadline is how you say it. It sits inside the loop but the <code>break</code> below ends the loop, so it is written exactly once per swing.</span></li>
-<li><span class="wt-ref">10</span><span class="wt-what">Stop looking. One swing hits one boss.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 5</span>Run the question while the window is open</h4><p class="wt-lead">Four lines in <code>Update()</code>, beside the ground check from 6.2. This is what turns the method above from a script into an attack.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">        if (Time.time &lt; windowClosesAt)</span>
+<li><span class="wt-ref">10</span><span class="wt-what">Stop looking. One swing hits one boss.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Run the question while the window is open</h4><p class="wt-lead">Four lines in <code>Update()</code>, beside the ground check from 6.2. This is what turns the method above from a script into an attack.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">        if (Time.time &lt; windowClosesAt)</span>
 <span class="wt-line" data-n="2">        {</span>
 <span class="wt-line wt-line-why" data-n="3">            TryHitBoss();</span>
-<span class="wt-line" data-n="4">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The window, read once per frame: <strong>is the deadline still ahead of me?</strong> <code>Time.time</code> is the clock from 3.3. Nothing sets a flag and nothing clears one — the comparison answers itself, and it goes back to false on its own the moment the clock passes the deadline.</span><span class="wt-why"><strong>Notice how different this is from the cooldown in step 3.</strong> That gate is checked on a *click*, because a click is when a swing is asked for. This one is checked on every *frame*, because "is the swing live right now?" is a fact about right now — the same distinction 6.2 drew between an event and a standing fact. It also means a click that opens the window is read on the same frame that opens it, so the earliest a hit can land is the frame you clicked.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">The call — one question asked per frame for as long as the window is open, and each one asks the physics engine the same thing again.</span><span class="wt-why"><strong>A method you write yourself does nothing until something calls it</strong>, which is the rule 1.6 taught the hard way. Put this call <strong>after</strong> the input is read in <code>Update()</code>: <code>CheckAttack()</code> opens the window and this reads it, in that order, on the same frame. Swap them and the first frame of every window is spent before it is open.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. The gap is the query, and it is the one line here with nothing earlier in the course to copy: a point, a size, an angle and a mask, in that order, handing back an <strong>array</strong> instead of one collider — which is exactly why it is not assigned into a <code>bool</code> the way 6.2's raycast was. Everything around it is yours: where you placed the hitbox, which of the four tools from the table you used for the layer problem, whether damage lands on the click or partway through the swing, and every number. What has to match is the shape, not the text: one shape in front of the player, one mask naming what it may notice, one window that closes itself, and one call to the boss's signed-amount method with a positive number in it.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
+<span class="wt-line" data-n="4">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The window, read once per frame: <strong>is the deadline still ahead of me?</strong> <code>Time.time</code> is the clock from 3.3. Nothing sets a flag and nothing clears one — the comparison answers itself, and it goes back to false on its own the moment the clock passes the deadline.</span><span class="wt-why"><strong>Notice how different this is from the cooldown gate in the click branch above.</strong> That gate is checked on a <em>click</em>, because a click is when a swing is asked for. This one is checked on every <em>frame</em>, because "is the swing live right now?" is a fact about right now — the same distinction 6.2 drew between an event and a standing fact. It also means a click that opens the window is read on the same frame that opens it, so the earliest a hit can land is the frame you clicked.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The call — one question asked per frame for as long as the window is open, and each one asks the physics engine the same thing again.</span><span class="wt-why"><strong>A method you write yourself does nothing until something calls it</strong>, which is the rule 1.6 taught the hard way. Put this call <strong>after</strong> the input is read in <code>Update()</code>: <code>CheckAttack()</code> opens the window and this reads it, in that order, on the same frame. Swap them and the first frame of every window is spent before it is open.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Everything around the query is yours: where you placed the hitbox, which of the four tools you used for the layer problem, whether damage lands on the click or partway through the swing, and every number. What has to match is the shape, not the text: one shape in front of the player, one mask naming what it may notice, one window that closes itself, and one call to the boss's signed-amount method with a positive number in it.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
 //  REFERENCE FILE — Assets/Scripts/PlayerController.cs
 //  Written to be read, not pasted. Build it with the walkthrough
 //  above, one step at a time, then open this and compare.
@@ -316,19 +326,7 @@ public class PlayerController : MonoBehaviour
     }
 
     // ... your jump, your pickups and your animation, unchanged ...
-}
-
-// Assets/Prefabs/Player ▸ AttackHitbox
-//   a child of the PLAYER ROOT, not of the Sprite child
-//   BoxCollider2D, Is Trigger ticked, Size (1.2, 1), Layer Default
-//
-// Inspector, on Assets/Prefabs/Player ▸ PlayerController:
-//   Attack Hitbox    =  AttackHitbox    &lt;- the empty child from step 1
-//   Hitbox Size      =  (1.2, 1)        &lt;- the same numbers as the collider
-//   Attack Damage    =  1               &lt;- positive hurts
-//   Boss Layer       =  Enemy           &lt;- the layer the boss is ACTUALLY on
-//   Attack Cooldown  =  0.5
-//   Damage Window    =  0.2</code></pre></details></div>
+}</code></pre></details></div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
@@ -340,21 +338,20 @@ public class PlayerController : MonoBehaviour
     <p>
         The walkthrough above gives you one working version of every part — and it makes a dozen
         decisions on your behalf along the way. A decision you did not make yourself is a
-        decision you cannot defend, and defending it is the exam task. So the build is finished;
-        what is left is the argument. Work through the three specifications below, answer every
-        question <em>in writing</em>, and change the build wherever your answer disagrees with
-        the one above. The specification is the work; the code is an opinion about the
-        specification.
+        decision you cannot defend, and defending it is the exam task. Work through the three
+        specifications below, answer every question <em>in writing</em>, and change the build
+        wherever your answer disagrees with the one above. The specification is the work; the
+        code is an opinion about the specification.
     </p>
 
     <p>
-        <strong>Start with the shape you actually built.</strong> Re-read the four-tool table at
-        the top of this page with a hitbox now sitting in front of you, and write down which of
-        the four you used and what it cost you. Then check the two things the walkthrough had to
-        assume: that <code>AttackHitbox</code> is parented to the Player <em>root</em> rather
-        than to the scaled <code>Sprite</code> child, and that the boss's collider is genuinely
-        on the layer your mask names. Both are Inspector readings, not opinions — if either one
-        is wrong, the mask is filtering for something that is not there.
+        <strong>Begin with the shape you actually built.</strong> Re-read the four-tool table
+        above with a hitbox now sitting in front of you, and write down which of the four you
+        used and what it cost you. Then check the two readings the walkthrough had to assume:
+        <code>AttackHitbox</code> parented to the Player <em>root</em> rather than to the scaled
+        <em>Sprite</em> child, and the boss's collider genuinely on the layer your mask names.
+        Both are Inspector readings, not opinions — if either one is wrong, the mask is filtering
+        for something that is not there.
     </p>
 
     <div class="callout">
@@ -363,7 +360,6 @@ public class PlayerController : MonoBehaviour
             <li>Does damage land the instant of the click, or partway through the swing? Argue from the player's point of view: which one matches what they <em>see</em>?</li>
             <li>If you use a fixed delay after the click, what is the delay measured against — and what happens to it if the animation is ever retimed?</li>
             <li>Could the window be driven by the animation itself rather than a timer — an event placed on the clip, or a check against the clip's normalised time? What does that buy you, and what does it cost you in complexity?</li>
-            <li>While the window is open, how many frames pass? What stops each of those frames from dealing damage?</li>
             <li>Can the player swing again before the animation finishes? Decide, and name the variable that enforces your decision.</li>
         </ul>
     </div>
@@ -383,11 +379,10 @@ public class PlayerController : MonoBehaviour
         <strong>Architectural specification: how does the hitbox find the boss?</strong>
         <ul>
             <li><code>Physics2D.OverlapBoxAll</code> at an offset, with a layer mask — what are its arguments, and which of them is the layer mask?</li>
-            <li>Does the query hand you back one collider or a list — and if it is a list, what does your code do with a result it cannot use?</li>
-            <li><code>OnTriggerEnter2D</code> on the hitbox itself, with a small script of its own — what does that cost you in objects and scripts?</li>
-            <li><code>OnTriggerStay2D</code> plus a record of what this swing has already hit — how do you stop one swing dealing twenty frames of damage, and what data structure holds "already hit"?</li>
+            <li>Does the query hand you back one collider or a list — and when the list holds something with no boss health component on it, what does your code do? Why is that a normal case rather than an error?</li>
+            <li><code>OnTriggerEnter2D(Collider2D other)</code> on the hitbox itself, with a small script of its own — what does that cost you in objects and scripts?</li>
+            <li><code>OnTriggerStay2D(Collider2D other)</code> plus a record of what this swing has already hit — how do you stop one swing dealing twenty frames of damage, and what data structure holds "already hit"?</li>
             <li>Whichever you choose, how do you get from the <em>thing you found</em> to the boss's health component? What method do you call on it, and what sign does its argument carry?</li>
-            <li>What happens if the query finds something that has no boss health component at all? Why is that a normal case rather than an error?</li>
         </ul>
     </div>
 </div>
@@ -400,7 +395,6 @@ public class PlayerController : MonoBehaviour
     <ul>
         <li>State what <code>Physics2D.queriesHitTriggers</code> defaults to, and what that means for every query you have written</li>
         <li>Explain why a trigger hitbox can corrupt a ground raycast, and name the tool you used to prevent it</li>
-        <li>Name the cost of each of the four tools, and defend the one you chose</li>
         <li>Explain how you get from a collider your query returned to the boss's health, and what sign the argument carries</li>
         <li>Explain why a coin can be collected by a swing that never touches it</li>
         <li>State when damage lands inside the swing, and what stops it landing every frame</li>
@@ -419,7 +413,7 @@ public class PlayerController : MonoBehaviour
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the <code>Time.time</code> cooldown pattern, the one-frame mouse click, and the sprite-mirror line this script already uses</li>
     </ul>
     <p>Next: <a href="8.4.html">8.4 — Boss Attacks: Patterns &amp; Phases</a>, where the thing you are hitting starts hitting back.</p>
-</div><div class="lab-bar" data-lesson="8.3" data-lesson-title="Player Attack: Fight Back" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="8.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="8.2.html"><span class="dir">&#9664; Previous</span><span class="where">8.2 — Boss Body, Health &amp; Phases</span></a><a class="foot-next" href="8.4.html"><span class="dir">Next &#9654;</span><span class="where">8.4 — Boss Attacks: Patterns &amp; Phases</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+</div><div class="lab-bar" data-lesson="8.3" data-lesson-title="Player Attack: Fight Back" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="8.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="8.2.html"><span class="dir">&#9664; Previous</span><span class="where">8.2 — Boss Body, Health &amp; Phases</span></a><a class="foot-next" href="8.4.html"><span class="dir">Next &#9654;</span><span class="where">8.4 — Boss Attacks: Patterns &amp; Phases</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
      restores the hidden bridge textareas first, and mc-quiz.js reads those
      restored values to re-check the radios. Swapping the order breaks
      answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

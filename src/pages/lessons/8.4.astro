@@ -21,6 +21,32 @@
 //     cooldown and nothing else; 3.4's own knob table names the projectile speed
 //     as "the field on Projectile.cs from 3.2", and 3.2's Build Lab is where
 //     that bullet's numbers are tuned. 3.2 is the right place to reread it.
+//
+// STRUCTURE (this pass, editor/code split). The old "Read the Docs" block and
+// the old Build Lab were one thing each doing two jobs — clicks and file. They
+// are now "In the Editor" (the prefabs and their components, every step naming
+// its pane) and "In the Code" (the API, the two decision tables, the two
+// specifications and the Socratic). Culled as repetition:
+//   - the paragraph under the three-beat table. It stated "the player's damage
+//     window is the boss's recovery time", which is the first Socratic question
+//     verbatim, so the question had stopped being a question; the table's
+//     recovery row now names only what the designer fixes and the student
+//     supplies the conclusion.
+//   - the "What you already own" callout, which restated the decompose `why`
+//     ("part two is your own bullet, part four is your own chase") and the two
+//     bullets that had already moved into the editor steps.
+//   - the "boss keeps attacking after it dies" trap callout, whose one new fact
+//     (the wave that spawns a second after the boss is gone) is now the cost
+//     cell of the scheduling table's coroutine row, where the mechanism that
+//     causes it is named.
+//   - the `Initialize(Vector2 direction)` fragment. Level 3 hands over the API
+//     and the specification, not code, and the heading is theirs to name — the
+//     fact it carried now sits in the Instantiate row.
+//
+// Answer-box ids are positional and persisted, so all three socratic blocks
+// keep their three questions in order and the decompose block keeps both of its
+// turns (dc1:q2, dc1:q3) where they were. No `what: ''` line exists here — this
+// lesson renders no walkthrough.
 import Lesson from '../../layouts/LessonLayout.astro';
 import { renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
@@ -30,7 +56,7 @@ import type { DecomposeSpec } from '../../lib/decompose';
 // it to something already built. Level 3, so the renderer withholds what each
 // part DOES and asks the student to say it — the parts and their doc pointers
 // are the level-3 bargain. Every doc pointer is either a lesson the student has
-// finished (3.2, 3.4, 4.3, 4.4, 4.5, 5.3, 8.1, 8.2) or a table inside this
+// finished (3.2, 4.3, 4.4, 4.5, 5.3, 8.1, 8.2) or a table inside this
 // lesson, and nothing here points later than today.
 const DECOMPOSE: DecomposeSpec = {
   big: 'The boss can be hurt and it does not answer back. Give it two attacks — one that travels across the arena and one that is its own body — and hold every timing number in a phase table, so Phase 3 is a change of values rather than a rewrite. As one problem it is not startable: an attack is three timed beats, and neither attack exists in this project yet.',
@@ -50,7 +76,7 @@ const DECOMPOSE: DecomposeSpec = {
     {
       name: 'Re-point the damage at the player',
       does: 'The attack has to hurt the player and not the boss, and the route is one tag check plus one call: the signed-amount method you moved onto `StatManager.Instance` in 5.3, reached with a positive number. The `Turret_Projectile` prefab ships tagged `Enemy`, so read the check rather than assuming it.',
-      doc: 'the damage knob you declared on the projectile in 3.4, and the refactor that moved `TakeDamage` onto `StatManager.Instance` in 5.3',
+      doc: 'the damage knob you declared on the projectile in 3.4, and the refactor that moved the signed-amount method onto `StatManager.Instance` in 5.3',
       href: '5.3.html',
     },
     {
@@ -83,12 +109,8 @@ const DECOMPOSE: DecomposeSpec = {
 const body = `<h1>8.4 — Boss Attacks: Patterns &amp; Phases</h1>
 
 <p class="lesson-lead">
-    The boss can be hurt (<a href="8.3.html">8.3</a>) and does not care. Today it starts
-    answering. You are going to build the two attacks your spec promised, give each one a
-    telegraph the player can read, and move every timing number into a phase table so that Phase
-    3 is a change of <em>values</em> rather than a rewrite. The boss has no attacks in this
-    project yet, and no projectile of its own — everything here is assembled from the pieces you
-    have already built once.
+    The boss can be hurt (<a href="8.3.html">8.3</a>) and does not care. Today it answers back: two
+    attacks, each with a telegraph a player can read, and every timing number in one phase table.
 </p>
 
 ${renderAskBanner('how do I give a boss two attacks and a phase table?', 3)}
@@ -103,50 +125,33 @@ ${renderDecompose('8.4', DECOMPOSE, 3)}
     </div>
 
     <p>
-        A boss that damages you is trivial to build: put a number on a timer and subtract health.
-        That boss is also unplayable, because the player's only possible response is to take the
-        hit and hope. Every good attack is a <em>sentence with three parts</em>, and all three
-        are timing, not geometry:
+        A boss that damages you is trivial to build: a number on a timer, subtracted from your
+        health. It is also unplayable, because the player's only response is to take the hit and
+        hope. Every attack a player can answer has three parts, and all three are timing rather
+        than geometry:
     </p>
 
     <table>
         <tr><th>Beat</th><th>What the boss is doing</th><th>What the player is doing</th><th>What the designer fixes</th></tr>
         <tr>
             <td><strong>Telegraph</strong></td>
-            <td>Announcing the attack — a wind-up pose, a colour flash, a sound, a rearing back.</td>
+            <td>Announcing the attack — a wind-up pose, a colour flash, a sound.</td>
             <td>Reading it, and starting the correct response.</td>
-            <td>How long the tell lasts. Too short and the fight is unfair; too long and it is boring. This is the single most important number in the fight.</td>
+            <td>How long the tell lasts: too short is unfair, too long is boring.</td>
         </tr>
         <tr>
             <td><strong>Strike</strong></td>
             <td>Committing — the wave travels, the body charges.</td>
-            <td>Executing the answer: jumping, sidestepping, or already being somewhere else.</td>
-            <td>What the answer <em>is</em>, and whether the answer is physically possible. Your spec's counterplay sentence lives or dies here.</td>
+            <td>Executing the answer: jumping, sidestepping, or already being elsewhere.</td>
+            <td>What the answer <em>is</em>, and whether it is physically possible. Your spec's counterplay sentence lives or dies here.</td>
         </tr>
         <tr>
             <td><strong>Recovery</strong></td>
             <td>Unable to act — the boss is committed and vulnerable.</td>
-            <td>Attacking. This is where the player's damage comes from.</td>
-            <td>How long the boss is helpless. This number, more than any other, sets the pace of the whole fight.</td>
+            <td>Closing in, if the window is long enough to reach it.</td>
+            <td>How long the boss is helpless. More than any other number, this sets the pace.</td>
         </tr>
     </table>
-
-    <p>
-        Notice what that table implies: <strong>the player's damage window is the boss's recovery
-        time.</strong> If you never give the boss a recovery, you have built a fight where the
-        only correct move is to run, and the only reason you win is patience. Read your
-        <a href="8.1.html">8.1</a> spec again with that in mind — every attack you wrote has a
-        recovery, whether you wrote one down or not.
-    </p>
-
-    <div class="callout info">
-        <strong>What you already own.</strong> You built a turret in Unit 3 that detects the
-        player by distance and fires projectiles on a fire-rate cooldown, and a projectile that
-        spawns, travels, damages what it touches and destroys itself. That <em>is</em> the boss's
-        ranged attack, wearing a different costume. You built an enemy in Unit 4 with a
-        patrol / chase / attack state machine. That <em>is</em> the boss's charge. Nothing in
-        this lesson is a new idea — it is your own code, re-pointed at a new target.
-    </div>
 
     <div class="socratic">
         <h3>Socratic: Why Timing Is the Whole Design</h3>
@@ -166,36 +171,28 @@ ${renderDecompose('8.4', DECOMPOSE, 3)}
     </div>
 
     <p>
-        A telegraph is a promise made in advance. These five come from worlds where being early
-        is the difference between a warning and an incident.
+        A telegraph is a promise made in advance. These three come from worlds where being early is
+        the difference between a warning and an incident.
     </p>
 
     <p><strong>Example 1 — A level crossing (the barrier drops long before the train arrives):</strong></p>
     <pre><code>// The barrier comes down eight seconds before the train. The eight
 // seconds is not slack - it is the whole safety system.</code></pre>
 
-    <p><strong>Example 2 — A stage manager's cue call (a warning that is also an instruction):</strong></p>
-    <pre><code>// "Standby LX 12... LX 12 GO." The standby is the telegraph;
-// the GO is the strike. The operator is never surprised.</code></pre>
-
-    <p><strong>Example 3 — Artillery ranging (one slow shot before the real one):</strong></p>
-    <pre><code>// The first round is deliberately slow and obvious so the crew can
-// adjust. It is not wasted - it is the telegraph.</code></pre>
-
-    <p><strong>Example 4 — A press interlock (the cycle cannot be interrupted, only entered):</strong></p>
+    <p><strong>Example 2 — A press interlock (the cycle cannot be interrupted, only entered):</strong></p>
     <pre><code>// Once the press cycle starts it completes. The operator's only
 // decision was made before the cycle began.</code></pre>
 
-    <p><strong>Example 5 — A two-minute warning (the same event, announced earlier each time):</strong></p>
+    <p><strong>Example 3 — A two-minute warning (the same event, announced earlier each time):</strong></p>
     <pre><code>// Same warning, same meaning, but the window to react is smaller.
 // That is how a sport escalates without changing its rules.</code></pre>
 
     <div class="socratic">
         <h3>Predict Before Building</h3>
         <ol>
-<li>Example 5 escalates by shrinking the window without changing the rules. Which of your three beats will Phase 3 shorten, and what is the floor below which it must not go?</li>
-<li>Example 4 says the decision is made before the cycle begins. In your boss's charge, at what exact moment is the player's decision made — and can they change their mind after it?</li>
-<li>Example 1's eight seconds is a fixed, knowable number. Does the player need to <em>know</em> the number, or only to see the barrier move? What does that tell you about whether your telegraph should be a timer or a visual?</li>
+<li>The two-minute warning escalates by shrinking the window without changing the rules. Which of your three beats will Phase 3 shorten, and what is the floor below which it must not go?</li>
+<li>The press interlock says the decision is made before the cycle begins. In your boss's charge, at what exact moment is the player's decision made — and can they change their mind after it?</li>
+<li>The level crossing's eight seconds is a fixed, knowable number. Does the player need to <em>know</em> the number, or only to see the barrier move? What does that tell you about whether your telegraph should be a timer or a visual?</li>
 </ol>
     </div>
 </div>
@@ -203,64 +200,149 @@ ${renderDecompose('8.4', DECOMPOSE, 3)}
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Read the Docs: Three Ways to Schedule an Attack</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
     </div>
 
+    <ol>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs</code>. There is no attack to
+            drag in — no shockwave, nothing named after a boss anywhere in this project.
+            <strong>Right-click → Create → Prefab</strong>, name it something you will recognize,
+            then <strong>Inspector → Sprite Renderer → Sprite</strong> →
+            <code>Assets/Artwork/Character/Enemy/Turret_Bullet.png</code>.
+        </li>
+        <li>
+            <strong>Inspector → Add Component → Rigidbody 2D</strong> with <strong>Body Type =
+            Kinematic</strong> and <strong>Gravity Scale = 0</strong> — this world has no "down" —
+            then <strong>Add Component → Circle Collider 2D</strong>, tick <strong>Is
+            Trigger</strong>, and size the circle in the <strong>Scene view</strong> until the green
+            outline covers the art. A collider sized from the import bounds will not match a scaled
+            sprite.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> the boss in your arena, <strong>right-click → Create
+            Empty</strong>, and name it for its job (the muzzle). <strong>Scene view →</strong> drag
+            it to the boss's front edge, clear of the boss's own collider, then
+            <strong>Inspector →</strong> drag it into the spawn-point slot on your attack script.
+        </li>
+        <li>
+            <strong>Inspector → Tag</strong> on the attack prefab. Read your own 3.4 callback in
+            <code>Projectile.cs</code> before you set anything: the <code>Turret_Projectile</code>
+            prefab ships tagged <code>Enemy</code>, and assuming beats reading here.
+        </li>
+        <li>
+            <strong>Scene view →</strong> drag a spare copy of the attack to the height it will
+            travel at, and compare that height with the player's jump apex from
+            <a href="6.1.html">6.1</a>. If the arc cannot clear the collider, one of those two
+            numbers is wrong — and an attack nobody can jump is one nobody can answer.
+        </li>
+        <li>
+            <strong>Once the code half is done — Inspector → Game view:</strong> press Play and
+            watch one attack from the player's seat. Can you see the telegraph coming, and is the
+            recovery long enough for one swing from <a href="8.3.html">8.3</a>? Then change a number
+            <em>while the game is running</em> and watch the fight's pace change with it.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <table>
+        <tr><th>API</th><th>What it is</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>Instantiate(Object original, Vector3 position, Quaternion rotation)</code></td>
+            <td>The spawn, from 3.2.</td>
+            <td>A clone at the muzzle, handed a heading the moment it exists.</td>
+            <td>The clone cannot know where the player is, so a projectile that guesses its own direction flies into a wall.</td>
+        </tr>
+        <tr>
+            <td><code>OnTriggerEnter2D(Collider2D other)</code> and <code>other.CompareTag("Player")</code></td>
+            <td>The hit report and the identity check, from 2.1 and 3.4.</td>
+            <td>A hit on the player, and silence on walls, the floor, and the boss that fired it.</td>
+            <td>Exact tag spelling, and a callback name that must agree with the collider's trigger setting — get either wrong and you get silence, not an error.</td>
+        </tr>
+        <tr>
+            <td>The signed-amount method on <code>StatManager.Instance</code></td>
+            <td>The one method that changes the player's health: 2.2's, moved onto the singleton in 5.3.</td>
+            <td>Damage through the same door healing uses, with a positive number.</td>
+            <td>The manager is not in this scene — it is a scene away and still alive — so this reaches across a scene load to hurt the player.</td>
+        </tr>
+        <tr>
+            <td><code>Destroy(Object obj)</code></td>
+            <td>Cleanup, from 3.2.</td>
+            <td>One shot, one hit: the attack goes on contact, or on its lifetime timer if it hits nothing.</td>
+            <td>Both are needed: contact alone leaves strays drifting forever, and a lifetime alone lets one wave hit twice.</td>
+        </tr>
+    </table>
+
     <p>
-        "The boss attacks every three seconds" can be built at least three ways. All three are
-        legitimate, and they are not equally expensive to change later. Pick one and defend it.
+        <strong>Two decisions are left: what fires the attack, and where the numbers live.</strong>
+        Each has a cost that shows up later:
     </p>
 
     <table>
-        <tr><th>Approach</th><th>What it looks like</th><th>What it costs</th><th>When it wins</th></tr>
+        <tr><th>What fires the attack</th><th>What it looks like</th><th>What it costs, and what it buys</th></tr>
         <tr>
-            <td><strong>(a) A timer in <code>Update</code></strong></td>
-            <td>A float holding the last attack time, compared against <code>Time.time</code>. Exactly the shape you used for the turret's fire rate in <a href="3.3.html">3.3</a>.</td>
-            <td>Every attack's state now lives in one method, and the boss will happily fire while it is mid-charge, mid-death, or after the player is gone, unless you guard each case.</td>
-            <td>You have one attack and want it working in ten minutes.</td>
+            <td><strong>(a) A clock in <code>Update()</code></strong></td>
+            <td>A float holding the last attack time, compared against <code>Time.time</code> — exactly the shape from <a href="3.3.html">3.3</a>.</td>
+            <td>Every attack's state lives in one method, so it fires mid-charge or after the boss is gone unless each case is guarded. The quickest to have working.</td>
         </tr>
         <tr>
             <td><strong>(b) A coroutine</strong></td>
-            <td>A method that waits, telegraphs, strikes, recovers, and loops — reading top to bottom like the attack itself.</td>
-            <td>You must keep a handle on it to stop it, or the boss keeps attacking after it dies. And an interrupted coroutine leaves the boss in whatever pose it was in.</td>
-            <td>Your attack is a strict sequence of timed beats and you want the code to read like the timeline.</td>
+            <td>A method that waits, telegraphs, strikes, recovers and loops — reading top to bottom like the attack itself.</td>
+            <td>You must keep the handle to stop it: an interrupted coroutine leaves the boss in its last pose, and an unstopped one spawns a wave a second after the boss dies.</td>
         </tr>
         <tr>
             <td><strong>(c) A state machine</strong></td>
-            <td>The pattern you already built in <a href="4.5.html">4.5</a>: an enum, one state per frame, and transitions on conditions. <code>Telegraph</code>, <code>Strike</code>, <code>Recover</code> become three states.</td>
-            <td>The most structure up front, and the most places to get a transition wrong.</td>
-            <td>You want "the boss is vulnerable during recovery" to be a <em>property of the machine</em> rather than a flag you remember to set — and you already know how to write one.</td>
+            <td>The pattern from <a href="4.5.html">4.5</a>: an enum, one state per frame, transitions on conditions — telegraph, strike and recover become three states.</td>
+            <td>The most structure up front and the most places to get a transition wrong. In exchange, "vulnerable during recovery" becomes a property of the machine rather than a flag you must set.</td>
         </tr>
     </table>
 
-    <p>
-        And separately: <strong>where do the numbers live?</strong> A phase change is not a
-        behaviour change, it is a change of values. There are three ways to hold those values,
-        and the cheapest one to tune is rarely the one people pick first:
-    </p>
-
     <table>
-        <tr><th>Approach</th><th>What it looks like</th><th>What it costs</th><th>When it wins</th></tr>
+        <tr><th>Where the phase numbers live</th><th>What it looks like</th><th>What it costs, and what it buys</th></tr>
         <tr>
-            <td><strong>(a) Reassign fields on phase entry</strong></td>
-            <td>The phase entry method assigns new values to attack interval, movement speed and so on, depending on which phase it is.</td>
-            <td>The numbers are buried in code, so tuning Phase 3 means editing a script rather than a value. Two phases with the same value must both be written out.</td>
-            <td>You have two phases, three numbers, and a deadline.</td>
+            <td><strong>(a) Fields, reassigned on phase entry</strong></td>
+            <td>The phase entry method assigns new values to the attack interval, the movement speed and the rest, depending on which phase it is.</td>
+            <td>The numbers are buried in code, so tuning Phase 3 means editing a script, and two phases sharing a value must both be written out. The fastest of the three to write.</td>
         </tr>
         <tr>
-            <td><strong>(b) A table indexed by phase</strong></td>
-            <td>One array or list of small records — one row per phase, one column per number — and a single reader that looks up the current phase's row.</td>
-            <td>You must design the row's shape before you know all the columns you need, and changing that shape later touches every row.</td>
-            <td>You can see the whole difficulty curve in one place, side by side, and tune it by comparing rows.</td>
+            <td><strong>(b) One table, indexed by phase</strong></td>
+            <td>An array or list of small records — a row per phase, a column per number — and one reader that looks up the current phase's row.</td>
+            <td>You must design the row's shape before you know every column you need, and changing that shape later touches every row. In exchange the whole difficulty curve sits in one place to tune.</td>
         </tr>
         <tr>
             <td><strong>(c) One asset per phase</strong></td>
-            <td>A Unity <code>ScriptableObject</code> asset for each phase, holding that phase's numbers and referenced by the boss.</td>
-            <td>A whole new kind of Unity asset to learn, and three files to keep straight on disk.</td>
-            <td>You want a designer to tune the fight in the Inspector without opening the code at all.</td>
+            <td>A <code>ScriptableObject</code> asset per phase, holding that phase's numbers and referenced by the boss.</td>
+            <td>A whole new kind of Unity asset to learn, and three files to keep straight on disk. In exchange the fight is tunable in the Inspector without opening the code.</td>
         </tr>
     </table>
+
+    <div class="callout">
+        <strong>Architectural specification: the attack the player must be able to answer.</strong>
+        <ul>
+            <li>What does the player see during the telegraph — a thing on screen, not a variable — and how long does it last? Is that longer than a human reaction time, and must the player start moving in it, or already be moving?</li>
+            <li>Write the counterplay sentence with numbers in it: "the player ___s; it works because the attack is ___ and their ___ is ___." Which of those numbers comes from an earlier lesson, and which did you invent today?</li>
+            <li>What does a mistake cost in the player's health, and what fraction of their maximum is that? If a hit takes most of it, the fight allows almost no mistakes and your spec's fight length is a fantasy.</li>
+            <li>How long is the recovery window, and how many swings does <a href="8.3.html">8.3</a>'s cooldown fit inside it? Less than one, and the fight cannot be won.</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the phase table.</strong>
+        <ul>
+            <li>List every number that changes per phase: attack interval, travel speed, telegraph length, recovery length, movement speed. Which must <em>not</em> change, whatever happens — and what breaks if it does?</li>
+            <li>Where is the table stored, and how does the boss read its phase's row? Which numbers change at Phase 2, and which at Phase 3 — and why does one that changes at both need two steps?</li>
+            <li>Phase 3 adds a <em>new attack</em> as well as faster numbers. What in your table says "this attack is available from Phase 3", and what happens if you forget that guard?</li>
+            <li>The phase entry from <a href="8.2.html">8.2</a> is guarded so it fires once per crossing. Does your table read happen there, or every frame, and what is the cost of each?</li>
+        </ul>
+    </div>
 
     <div class="socratic">
         <h3>Choose, Then Justify</h3>
@@ -273,99 +355,15 @@ ${renderDecompose('8.4', DECOMPOSE, 3)}
 </div>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Build Lab: Two Attacks and a Phase Table</span>
-        <span class="activity-time">~30 min</span>
-    </div>
-
-    <p>
-        <strong>Attack 1 — the travelling attack.</strong> Most specs have one. Build it the way
-        you built your turret's projectile in <a href="3.2.html">3.2</a>: spawn it, let it travel,
-        damage what it touches, destroy it on contact or after a lifetime. You already solved
-        every one of those problems once. Two things are different, and both are yours to fix:
-    </p>
-    <ul>
-        <li><strong>Nothing in this project is this attack yet.</strong> You are creating a new
-            prefab. Do not assume a starting point exists — the <code>Turret_Projectile</code>
-            prefab in <code>Assets/Prefabs</code> carries no collider, so even reusing it means
-            adding one yourself, and its script is an empty file. Your own working projectile
-            from Unit 3 is the better starting point.</li>
-        <li><strong>The target is the player, not the boss.</strong> Your turret's projectile
-            already damages the player through the signed-amount damage method your
-            <code>StatManager</code> owns — the number you moved there in
-            <a href="5.3.html">5.3</a>. Confirm which tag it checks before you re-point
-            anything.</li>
-    </ul>
-
-    <p>The whole thing reduces to three beats and one method that sets its heading:</p>
-    <pre><code>public void Initialize(Vector2 direction)   // spawner sets the heading; the
-                                            // projectile does not guess
-// then: travel, damage on contact, destroy - all three you have written before</code></pre>
-
-    <p>
-        <strong>Choose the speed from your own numbers.</strong> There is no projectile speed to
-        copy in this project — read the value you chose for your turret's projectile in
-        <a href="3.2.html">3.2</a>. Your boss's attack should be <em>slower</em>, because it is a
-        rhythm the player has to step out of, not a bullet they have to already be clear of. Then
-        check the height against your jump: the player's apex, from <a href="6.1.html">6.1</a>,
-        has to clear the attack's collider with room to spare. If it does not, one of those two
-        numbers is wrong.
-    </p>
-
-    <p>
-        <strong>Attack 2 — the body attack.</strong> The boss's own collider is the weapon: it
-        announces itself, commits to a direction, moves fast for a short time, then is helpless
-        while it recovers. The direction is the same comparison your enemy's chase already makes
-        in <a href="4.3.html">4.3</a>, flattened to one axis because the arena is flat. The
-        recovery is the state where the player finally gets to use <a href="8.3.html">8.3</a>.
-    </p>
-
-    <div class="callout">
-        <strong>Architectural specification: the attack the player must be able to answer.</strong>
-        <ul>
-            <li>What exactly does the player see during the telegraph? Name it as a thing on screen, not a variable.</li>
-            <li>How long is the telegraph, in seconds, and how does that compare to a human reaction time? What is the player expected to do in that window — start moving, or already be moving?</li>
-            <li>What is the counterplay sentence, with numbers in it: "the player ___s; it works because the attack is ___ and their ___ is ___."</li>
-            <li>What does a mistake cost, in the player's own health — and what fraction of their maximum health is that? If the answer is "most of it", the fight allows almost no mistakes and your spec's fight length is a fantasy.</li>
-            <li>During the recovery, the boss is vulnerable. How long is that window, and how many swings does <a href="8.3.html">8.3</a>'s cooldown fit inside it? If the answer is less than one, the player can never land a hit and the fight cannot be won.</li>
-        </ul>
-    </div>
-
-    <div class="callout">
-        <strong>Architectural specification: the phase table.</strong>
-        <ul>
-            <li>List every number that changes per phase: attack interval, travel speed, telegraph length, recovery length, movement speed. Which of those must <em>not</em> change, no matter what?</li>
-            <li>Where is that table stored, and how does the boss read the row for its current phase?</li>
-            <li>Which numbers change at Phase 2, and which at Phase 3? If a number changes at both, why does it need two steps rather than one?</li>
-            <li>Phase 3 adds a <em>new attack</em> as well as faster numbers. What in your table says "this attack is available from phase 3" — and what happens if you forget that guard?</li>
-            <li>The phase entry from <a href="8.2.html">8.2</a> is guarded so it fires once. Does your table read happen there, or every frame? What is the cost of the wrong choice?</li>
-        </ul>
-    </div>
-
-    <div class="callout trap">
-        <strong>The boss will keep attacking after it dies unless something stops it.</strong>
-        This is the classic coroutine and timer bug: the death path destroys the object or stops
-        the health logic, but the attack scheduler is running on its own and does not know. Watch
-        for a wave that spawns from the boss's last position a second after the boss is gone. The
-        fix is a guard on the scheduler, not a longer delay.
-    </div>
-</div>
-
-
-<!-- ============================================================ -->
 
 <div class="checklist">
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
         <li>Name the three beats of an attack and say which one is the player's damage window</li>
         <li>Defend your choice of scheduling approach, and say what one of the other two would have cost you</li>
-        <li>Explain how the body attack reuses your own enemy chase logic, and how the travelling attack reuses your own projectile</li>
         <li>Say the counterplay sentence for each attack with real numbers in it, including your own jump height and walk speed</li>
         <li>Explain what the phase table changes and what it must never change</li>
         <li>Beat your own boss, and quote the fight time</li>
-        <li>Break this feature into parts small enough to look each one up on its own, and say in one line what each part does</li>
-        <li>Say which earlier lesson each part of this feature came from, and where you would reread it</li>
         <li>Commit and push</li>
     </ul>
 </div>

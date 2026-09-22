@@ -747,6 +747,14 @@ if (!fs.existsSync(askSrcPath)) {
       // the anchor's own text is dropped — a lesson is not made worse by the
       // name of the lesson it points at.
       .replace(/<a\b[^>]*href="\d+\.\d+[a-z]?\.html"[^>]*>[\s\S]*?<\/a>/g, ' ')
+      // Third kind of name, and the same reasoning again: a Unity settings LABEL.
+      // "Queries Start In Colliders" is a checkbox in Physics 2D that the student
+      // has to be able to look up, and it is the only place the lesson can name
+      // it — written as Start() it would be false, and dropped to satisfy this
+      // check it costs the student the exact words to search for. That is a check
+      // being obeyed into a worse page, so the label is stripped like the two
+      // names above. Keep this list to labels that cannot be written as calls.
+      .replace(/Queries Start In Colliders/g, ' ')
       .replace(/<[^>]+>/g, ' ')
       // Entities are decoded after the tags are gone, so a generic call reads
       // as one: `GetComponent&lt;T&gt;()` in the markup is `GetComponent<T>()`
@@ -1013,6 +1021,45 @@ if (!fs.existsSync(askSrcPath)) {
       (repeated.length > 6 ? '\n      ... and ' + (repeated.length - 6) + ' more' : '') +
       '\n    Two instructions that are parallel on purpose also land here — adding the same component to' +
       '\n    two different objects says the same words twice and is not a repeat.');
+  }
+
+  // ---------- 14. emphasis that never reaches the student
+  // The spec renderers turn `code`, **bold** and *italic* into markup. A field
+  // that misses that path — or a renderer added later that escapes and stops
+  // there — reaches the page as literal punctuation, and the source looks
+  // identical either way. That is the shape of the other two silent traps:
+  // correct in the source, wrong in the page, no build error. It is a check
+  // rather than a convention because a convention would not have caught the
+  // forty-one that were already live when the renderers learned italics.
+  //
+  // The pattern is narrower than the renderers' on purpose: a pair of asterisks
+  // hugging non-space on both sides, on one line, with no slash between them.
+  // Arithmetic ("3 * 4 * 5") has a space inside the pair, and a pair of globs
+  // ("Assets/Scripts/*.cs and Assets/Scenes/*.unity") needs a slash, so neither
+  // is reported. A check that fails the build over a file path is worse than
+  // one that misses an emphasised phrase.
+  console.log('14. emphasis that reaches the page...');
+  {
+    const LITERAL = /(?<!\*)\*(?![\s*])([^\s*<>/](?:[^*\n<>]*[^\s*<>])?)(?<!\s)\*(?!\*)/g;
+    const hits = [];
+    for (const f of built) {
+      const text = fs
+        .readFileSync(path.join(dist, 'lessons', f), 'utf8')
+        .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
+        .replace(/<[^>]*>/g, ' ');
+      const m = text.match(LITERAL);
+      if (m) hits.push(f.replace('.html', '') + ': ' + m.length + ' — ' + m.slice(0, 3).join('  '));
+    }
+    if (hits.length) {
+      fail(hits.length + ' lesson page(s) show a student unrendered *emphasis*:\n' +
+        hits.slice(0, 12).map((h) => '      ' + h).join('\n') +
+        (hits.length > 12 ? '\n      ... and ' + (hits.length - 12) + ' more' : '') +
+        '\n    The text between the asterisks is a spec field that never went through prose()' +
+        '\n    in src/lib/walkthrough.ts or src/lib/decompose.ts. Fix the renderer, or drop' +
+        '\n    the asterisks — but do not leave the page showing them.');
+    } else {
+      ok('no lesson shows a student unrendered *emphasis*');
+    }
   }
 }
 

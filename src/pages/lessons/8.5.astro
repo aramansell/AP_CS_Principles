@@ -20,6 +20,43 @@
 // over. The ask banner is the level marker - a level-3 lesson must not render
 // a walkthrough, and verify-site refuses one that does (see the
 // `level >= 3 && wt` rule in scripts/verify-site.mjs).
+//
+// STRUCTURE (this pass, editor/code split). The old "Build Lab" was one block
+// doing two jobs - clicks and file - and the old "Read the Docs" block was the
+// third. They are now "In the Editor" (build the exit object, every step naming
+// its pane) and "In the Code" (the death-rule table, its one callout, the two
+// architectural specifications and the Socratic), with the win/loss tables in
+// the Problem block. Culled as repetition:
+//   - the "Your respawn loop will kill the player instantly" trap callout. Its
+//     first paragraph named the symptom, which the table's (a) row now carries
+//     where the mechanism is named; its second paragraph answered the loss-path
+//     specification - "the death path, the singleton's own start-up, or a spawn
+//     routine on the player" was the three-placement question the spec asks, so
+//     the specification had stopped being one.
+//   - the two bullets that restated the level-3 decompose turns ("break this
+//     feature into parts..." and "say which earlier lesson each part came
+//     from"), which the Break It Down block already asks in its own words.
+//   - the parenthetical about the Overworld instance being wired and a fresh
+//     Switch being silent, which is the premise of the first Socratic block's
+//     third question - the question survives because it makes the student state
+//     the fact rather than read it.
+//   - "the boss does not know what a door is", which was Build Lab step 1's
+//     design note AND is now the win table's (a) row, where the cost and the
+//     design point are one column.
+//   - Playtest runs 1 and 2, which asked whether the player read the telegraphs
+//     and noticed the phase change - both are 8.4's subject, tested in 8.4.
+//
+// The death audit moved out of the old Build Lab to the Playtest block, where
+// the stopwatch is, and the checkpoint moved out of the Playtest block to the
+// end of the page, where 2.4 and 6.5 keep theirs. The checkpoint is a
+// .checklist div and carries no answer box, so moving it is id-neutral.
+//
+// Answer-box ids are positional and persisted, so all three socratic blocks
+// keep their position, their order and their three questions (sc1:q1..q3,
+// sc2:q1..q3, sc3:q1..q3); sc3:q3 was reworded in place so it asks what the
+// loss-path specification does not. The decompose block keeps both of its turns
+// (dc1:q2, dc1:q3). No `what: ''` line exists here - this lesson renders no
+// walkthrough.
 import Lesson from '../../layouts/LessonLayout.astro';
 import { renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
@@ -33,10 +70,7 @@ import type { DecomposeSpec } from '../../lib/decompose';
 // "connect it" beat is checked for forward references by verify-site.mjs, so
 // no part of it names a lesson that has not happened yet.
 const DECOMPOSE: DecomposeSpec = {
-  big:
-    'The boss can be beaten and the player can die, and neither ending is real yet: ' +
-    'a health value reaches zero, an object disappears, and nothing a player would call a win ' +
-    'or a loss ever happens. The fight has two exits and today both of them are walls.',
+  big: 'The boss can be beaten and the player can die, and neither ending is real yet: a health value reaches zero, an object disappears, and nothing a player would call a win or a loss ever happens. The fight has two exits and today both of them are walls.',
   parts: [
     {
       name: 'Build the thing the win happens to',
@@ -69,18 +103,8 @@ const DECOMPOSE: DecomposeSpec = {
       href: '7.5.html',
     },
   ],
-  why:
-    'Notice the shape: one ending is a cause looking for an effect, and the other is an effect ' +
-    'looking for a reset. Four of these five parts are machinery you already own - a UnityEvent ' +
-    'with an Inspector listener from 5.2, a death rule from 2.2, a scene load and a singleton from ' +
-    '5.3, an audit from 7.5. What is genuinely new today is that two of those pieces disagree: the ' +
-    'singleton keeps health across a load, and the death rule was written back when a load wiped ' +
-    'everything. Naming that disagreement is the work; the win itself is a few lines of wiring.',
-  sizeTest:
-    'The split is finished when each part names something you could point at and defend: an object ' +
-    'in the Hierarchy, one method on one script, a scene index, a number off a stopwatch. "Make the ' +
-    'endings real" points at nothing. "The frame the boss\'s health reaches zero" points at one ' +
-    'method in one file, and that is a part.',
+  why: 'Notice the shape: one ending is a cause looking for an effect, and the other is an effect looking for a reset. Four of these five parts are machinery you already own - a UnityEvent with an Inspector listener from 5.2, a death rule from 2.2, a scene load and a singleton from 5.3, an audit from 7.5. What is genuinely new today is that two of those pieces disagree: the singleton keeps health across a load, and the death rule was written back when a load wiped everything. Naming that disagreement is the work; the win itself is a few lines of wiring.',
+  sizeTest: 'The split is finished when each part names something you could point at and defend: an object in the Hierarchy, one method on one script, a scene index, a number off a stopwatch. "Make the endings real" points at nothing. "The frame the boss\'s health reaches zero" points at one method in one file, and that is a part.',
   turns: [
     'The lever fires on a keypress and the boss would fire on a health value. Which of the two is the better model for your win - and what would the boss\'s script have to know about your level in order to do it the other way?',
     'Your win happens in a scene and your coins live in a singleton. Name one thing the player should deliberately keep across a win and one thing you should deliberately reset, and say where each of those two decisions is written down today.',
@@ -90,10 +114,9 @@ const DECOMPOSE: DecomposeSpec = {
 const body = `<h1>8.5 — Win, Lose &amp; the Death Loop</h1>
 
 <p class="lesson-lead">
-    Every fight ends one of two ways, and today both of them have to be real: the boss dies and
-    the game acknowledges it, or you die at ninety percent and discover what your death loop
-    actually costs. This is the lesson where the systems you built in five separate units meet
-    each other for the first time — and where two of them turn out to disagree.
+    Every fight ends one of two ways, and today both have to be real: the boss dies and the game
+    acknowledges it, or you die and find out what your death loop costs. Systems from five units
+    meet here — and two of them disagree.
 </p>
 
 ${renderAskBanner('how do I make winning and dying both real?', 3)}
@@ -108,63 +131,43 @@ ${renderDecompose('8.5', DECOMPOSE, 3)}
     </div>
 
     <p>
-        Write down what happens in your game when the boss's health reaches zero. Not what
-        <em>should</em> happen — what your code currently <em>does</em>. For most builds the
-        honest answer is: the boss's object disappears and the Console prints nothing a player
-        would ever see.
+        Write down what your game does when the boss's health reaches zero. Not what <em>should</em>
+        happen — what the code <em>does</em>. For most builds the boss's object disappears and the
+        Console prints nothing.
     </p>
     <p>
-        The obvious fix is "open the exit door". So before you plan that, check whether the exit
-        door exists. It does not. This project has no boss door, no arena gate and no locked
-        exit anywhere in it. What it <em>does</em> have is machinery you have already used once:
-        <code>Assets/Prefabs/Switch.prefab</code> carries a working <code>Lever.cs</code> with a
-        trigger collider and two UnityEvents — <code>onLeverOn</code> and
-        <code>onLeverOff</code> — that are <strong>empty on the prefab</strong>. (The one already
-        sitting in your Overworld was wired up for you — you read that wiring in
-        <a href="5.2.html">5.2</a>. A <em>fresh</em> instance you drag in will be silent until you
-        give it a listener.) Today you point that machinery at a new cause.
+        The obvious fix is "open the exit", so check whether an exit exists: this project has no
+        boss door, no arena gate and no locked exit. What it has is machinery you have used once —
+        <code>Assets/Prefabs/Switch.prefab</code> carries a working <code>Lever.cs</code> whose two
+        UnityEvents, <code>onLeverOn</code> and <code>onLeverOff</code>, ship <strong>empty on the
+        prefab</strong>. Today you point that machinery at a new cause.
     </p>
 
     <table>
-        <tr><th>How the win lands</th><th>What you build</th><th>What it costs</th><th>When it wins</th></tr>
+        <tr><th>How the win lands</th><th>What you build</th><th>What it costs, and what it buys</th></tr>
         <tr>
             <td><strong>(a) A lever-style event</strong></td>
-            <td>An exit object in the arena, and a UnityEvent fired from the boss's death path instead of from a keypress. The listener does whatever your game's win means — it disables the barrier, plays an animation, or reveals the way onward.</td>
-            <td>An object to build and wire, and a listener you must configure in the Inspector where you cannot see it in the code.</td>
-            <td>You want the boss to have no idea what a door is — cause and effect separated by an event. This is the cleanest design of the three.</td>
+            <td>An exit object in the arena, and a UnityEvent fired from the boss's death path instead of from a keypress. The listener does whatever your win means — disable a barrier, play an animation, reveal the way onward.</td>
+            <td>An object to build and a listener you configure in the Inspector, where the code cannot see it. In exchange, the boss has no idea what a door is.</td>
         </tr>
         <tr>
             <td><strong>(b) Load a scene directly</strong></td>
-            <td>The death path calls a scene load — the same idea as the <code>SceneSwitch</code> script that has been moving you between scenes since <a href="5.3.html">5.3</a>.</td>
-            <td>It is a hard cut with no ceremony, and it skips anything you wanted to show the player first. Also: you must check which scene you are loading <em>into</em> before you write it.</td>
-            <td>Your "win" is simply returning to the hub with the fight behind you.</td>
+            <td>The death path calls a scene load — the same idea as the <code>SceneSwitch</code> script that has moved you between scenes since <a href="5.3.html">5.3</a>.</td>
+            <td>A hard cut with no ceremony, and it skips anything you wanted to show the player. Check which scene you are loading <em>into</em> before you write it.</td>
         </tr>
         <tr>
             <td><strong>(c) Nothing but a statement</strong></td>
             <td>A single line printed when the boss dies, and the fight simply stops.</td>
-            <td>The player is left standing in a quiet room with no confirmation the game noticed. That is a real cost, and it is not small.</td>
-            <td><strong>Today.</strong> Prove the fight can be won before you spend a session on ceremony.</td>
+            <td>The player is left in a quiet room, with no confirmation the game noticed. It is also today's fallback: prove the fight can be won before you spend a session on ceremony.</td>
         </tr>
     </table>
-
-    <div class="callout trap">
-        <strong>Scene loading is not stateless — and this project proves it.</strong>
-        Open <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code> and read how it decides
-        where to drop the player when a new scene arrives. Notice the word <code>static</code> on
-        its variables: they survive the scene change, and it repositions the player based on
-        <em>which scene it believes you came from</em>. That works perfectly when you walk through
-        a cave entrance, because the entrance just set those variables a frame earlier. But when
-        <em>your own code</em> loads a scene — a death loop, a win screen — nothing updated them,
-        and SceneSwitch will still act on whatever it last remembered. Before you write a single
-        scene-loading line, work out what that means for your death loop, and then test it.
-    </div>
 
     <div class="socratic">
         <h3>Socratic: Two Endings, Two Paths</h3>
         <ol>
-<li>Write your win and your loss as two separate sentences. Which of the three approaches above does each of them need — and do they need to be the same approach?</li>
-<li>All three of your scenes contain a Player, so no scene can strand you. But only one of them contains your HUD. What does the player see if your death loop sends them somewhere else — and does that change which death rule you chose in <a href="2.2.html">2.2</a>?</li>
-<li>The lever's UnityEvents are empty on the prefab but already wired on the instance sitting in your Overworld. What does that tell you about where a behaviour lives? If you drag in a fresh Switch for your boss door, which of the two do you inherit?</li>
+<li>Write your win and your loss as two separate sentences. Which of the three approaches above does each need — and do they need to be the same approach?</li>
+<li>All three of your scenes contain a Player, so no scene can strand you. But only one contains your HUD. What does the player see if your death loop sends them somewhere else — and does that change which death rule you chose in <a href="2.2.html">2.2</a>?</li>
+<li>The lever's UnityEvents are empty on the prefab and already wired on the instance in your Overworld. What does that tell you about where a behaviour lives — and if you drag in a fresh Switch, which of the two do you inherit?</li>
 </ol>
     </div>
 </div>
@@ -177,8 +180,8 @@ ${renderDecompose('8.5', DECOMPOSE, 3)}
     </div>
 
     <p>
-        The end of a fight is a <em>procedure</em>, and procedures have a shape. Five procedures
-        from other worlds — ask of each one: who decides, and who acts?
+        The end of a fight is a <em>procedure</em>, and procedures have a shape. Five from other
+        worlds — ask of each: who decides, who acts?
     </p>
 
     <p><strong>Example 1 — A fire alarm and the door magnets (the alarm does not know what a door is):</strong></p>
@@ -189,11 +192,11 @@ ${renderDecompose('8.5', DECOMPOSE, 3)}
     <pre><code>// The whistle ends the match. Everything after it is a separate
 // procedure - the whistle itself does not clear the pitch.</code></pre>
 
-    <p><strong>Example 3 — A railway dead-man's handle (the safe outcome is the default):</strong></p>
+    <p><strong>Example 3 — A dead-man's handle (the safe outcome is the default):</strong></p>
     <pre><code>// If the driver's hand leaves the handle, the brake applies by
 // itself. Safety is what happens when nobody does anything.</code></pre>
 
-    <p><strong>Example 4 — Shift-end lockout at a factory (restarting is deliberate):</strong></p>
+    <p><strong>Example 4 — Shift-end lockout (restarting is deliberate):</strong></p>
     <pre><code>// The klaxon locks the line out. Starting it again takes a person
 // turning a key - it is never a side effect of the klaxon.</code></pre>
 
@@ -214,121 +217,88 @@ ${renderDecompose('8.5', DECOMPOSE, 3)}
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Read the Docs: What Your Death Rule Does Now</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Hierarchy →</strong> create the exit object — <strong>right-click → Create
+            Empty</strong>, or drag a sprite in from <code>Assets/Artwork</code> — then
+            <strong>Scene view →</strong> place it where the player will see it. There is no door
+            in the arena, so what you are placing is the door.
+        </li>
+        <li>
+            <strong>Inspector → Add Component →</strong> whatever your exit needs: a <strong>Box
+            Collider 2D</strong> with <strong>Is Trigger</strong> ticked if the win is "the player
+            arrives somewhere", or a <strong>Sprite Renderer</strong> alone if the exit is a thing
+            that appears.
+        </li>
+        <li>
+            <strong>Project window → <code>Assets/Prefabs</code> →</strong> <code>Switch.prefab</code>
+            is 5.2's machinery. Drag a fresh instance into the <strong>Scene view</strong> if you
+            want its two events, then <strong>Inspector →</strong> the event's list: <strong>+</strong>
+            adds a slot, the object field takes the exit, the dropdown takes the method.
+        </li>
+        <li>
+            <strong>Inspector → Game view →</strong> press Play and win the fight any way you can,
+            then watch whether your exit changes. A win path you have never seen fire is a theory.
+        </li>
+        <li>
+            <strong>GitHub Desktop →</strong> commit the win path before you touch the death rule.
+            One ending is about to make the other harder to debug.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~25 min</span>
     </div>
 
     <p>
-        In <a href="2.2.html">2.2</a> you chose one of three death designs. At the time, the
-        choice was simple, because everything about the player lived on <code>PlayerController</code>
-        and died with the scene. Then in <a href="5.3.html">5.3</a> you deliberately moved your
-        stats out of the player and into a <code>StatManager</code> singleton with
-        <code>DontDestroyOnLoad</code> — because your health and coins were being wiped every
-        time you changed scenes. That refactor was correct. It also changed what your death rule
-        <em>means</em>, and nobody told you.
+        Read your own death rule before you change it. In <a href="2.2.html">2.2</a> you chose one of
+        three designs, and the choice was simple then: everything about the player lived on
+        <code>PlayerController</code> and died with the scene. Then <a href="5.3.html">5.3</a> moved
+        your stats into a <code>StatManager</code> singleton that survives a load — and nobody told
+        you what that did to this rule.
     </p>
 
     <table>
         <tr><th>Your <a href="2.2.html">2.2</a> choice</th><th>What it did then</th><th>What it does now that stats are a singleton</th></tr>
         <tr>
             <td><strong>(a) Reload the current scene</strong></td>
-            <td>The scene is rebuilt from scratch: the player, the coins, and their health all reset. Death was a clean slate.</td>
-            <td>The scene is rebuilt, but the health number is <em>not</em> — it lives in the singleton, which survived the load. Follow it through: the scene reloads, the player spawns, and their health is still whatever it was when they died.</td>
+            <td>The scene was rebuilt from scratch: the player, the coins and their health all reset. Death was a clean slate.</td>
+            <td>The scene is rebuilt, but the health number is <em>not</em> — it lives in the singleton, which survived the load. Follow it through: the player spawns with the health they died on, and the next frame that checks it kills them again, forever.</td>
         </tr>
         <tr>
             <td><strong>(b) Load a scene by name</strong></td>
             <td>Whatever scene you named was loaded, and everything about the player was rebuilt there.</td>
-            <td>Same persistence problem, plus the scene-identity problem: check whether the scene you named is the one the fight is in. All three scenes contain a Player, so you cannot be stranded — but if you load <code>Start</code>, the player arrives in the hub and the arena is a load away from them.</td>
+            <td>Same persistence problem, plus the scene-identity problem: check whether the scene you named is the one the fight is in. All three scenes contain a Player, so you cannot be stranded — but load <code>Start</code> (the hub scene) and the arena is a load away.</td>
         </tr>
         <tr>
             <td><strong>(c) No reload at all</strong></td>
             <td>Health was reset by hand and the player was moved back to a start position. Coins were kept on purpose.</td>
-            <td>This is the only one of the three that already does the right thing, because you were already resetting health explicitly. Check that the reset writes to the singleton rather than to a field on the player.</td>
+            <td>The only one of the three that already does the right thing, because you were already resetting health explicitly. Check that the reset writes to the singleton, not to a field on the player.</td>
         </tr>
     </table>
 
-    <div class="callout trap">
-        <strong>Your respawn loop will kill the player instantly, and it will look like a crash.</strong>
-        Health now lives in a singleton that survives scene loads. If your death path reloads the
-        scene and nothing re-arms the health, the player spawns on zero and dies again on the
-        first frame that checks it — forever. The screen reloads in a loop and the Console fills
-        with death messages. Nothing is corrupted and nothing is a Unity bug: two systems you
-        built in different units simply disagree about who owns the reset.
-        <br><br>
-        The fix is one deliberate step, in the right place: something must set health back to its
-        maximum as part of the respawn, and that something must write to the singleton rather
-        than to a copy on the player. Decide <em>where</em> that step belongs before you write it —
-        in the death path, in the singleton's own start-up, or in a spawn routine on the player.
-        All three work; only one of them will still be correct when you add a second scene that
-        needs the same behaviour.
-    </div>
-
     <div class="callout info">
         <strong>The boss does not have this problem, and that is the point.</strong> The boss's
-        health is scene-local — the decision you made in <a href="8.2.html">8.2</a>. So when the
-        player dies and the arena scene reloads, the boss genuinely comes back at full health,
-        because the boss was rebuilt along with the scene. That is the arcade rule: the fight is
-        the test, and a wipe resets the test. You may keep it or change it, but say which one you
-        chose and why — it is a design decision, not a side effect.
+        health is scene-local — the decision you made in <a href="8.2.html">8.2</a> — so the arena
+        reload brings it back at full health. That is the arcade rule: a wipe resets the test. Keep
+        it or change it, but say which, because it is a decision rather than a side effect.
     </div>
-
-    <div class="socratic">
-        <h3>Ascertaining the Loop</h3>
-        <ol>
-<li>Die on purpose and watch the Console. What is the player's health on the first frame of the new scene, and how do you know?</li>
-<li>Which of the three <a href="2.2.html">2.2</a> death designs did you choose, and what does it now fail to reset?</li>
-<li>Where should the health reset live — the death path, the singleton's start-up, or the player's spawn? Name what breaks in the other two placements.</li>
-</ol>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Build Lab: Win, Lose, and the Walk Back</span>
-        <span class="activity-time">~25 min</span>
-    </div>
-
-    <p>
-        <strong>Step 1 — win.</strong> Build the exit. If you chose approach (a), create the
-        object that represents the exit in your arena, then add a UnityEvent to the boss's death
-        path and have the death path invoke it, exactly the way the lever's events fire on a
-        keypress in <a href="5.2.html">5.2</a>. Wire the listener in the Inspector. Design point
-        worth noticing: the boss does not know what a door is, and it never will.
-    </p>
-
-    <p>
-        <strong>Step 2 — lose.</strong> Rebuild your <a href="2.2.html">2.2</a> death rule so it
-        is correct in a world with a singleton. Then run it: die, respawn, and check the health
-        number on the first frame.
-    </p>
-
-    <p>
-        <strong>Step 3 — the death audit, boss edition.</strong> The walk back is the real cost of
-        dying here. Take a stopwatch and time the whole route: from the moment the player's
-        health hits zero to the moment they are standing in the arena ready for the first
-        exchange. That number is what a wipe actually costs, and it is the number that decides
-        whether your boss is a challenge or a chore. If it is over a minute, pick one fix and
-        defend it:
-    </p>
-    <ul>
-        <li><strong>A shortcut</strong> — a route that only exists after the player has already
-            reached the arena once.</li>
-        <li><strong>A checkpoint</strong> — a trigger near the arena that becomes the respawn
-            point, which means your death rule needs to know about a respawn position rather than
-            a whole scene.</li>
-        <li><strong>Shorter approach</strong> — cut the length of the level between the last
-            checkpoint and the arena. The <a href="7.5.html">7.5</a> audit, applied to your own
-            cave.</li>
-    </ul>
 
     <div class="callout">
         <strong>Architectural specification: the win path.</strong>
         <ul>
-            <li>What exactly does the listener do — disable an object, move a barrier, load a scene, print a line? Write the one sentence that describes it.</li>
+            <li>What exactly does the listener do — disable an object, move a barrier, load a scene, print a line? Write that as one sentence.</li>
             <li>Who can hear the event? If two objects in the arena both listen, what happens — and is that useful or confusing?</li>
-            <li>The death path probably also destroys the boss's object. Should that happen before or after the event fires? What breaks if the object is gone when the listener runs?</li>
-            <li>Anything the boss spawned and left in flight — attacks, projectiles — outlives the boss unless something stops it. What pattern from <a href="5.2.html">5.2</a> would you use to find them all at once?</li>
+            <li>The death path probably also destroys the boss's object. Before or after the event fires — and what breaks if the object is gone when the listener runs?</li>
+            <li>Anything the boss spawned and left in flight — attacks, projectiles — outlives the boss unless something stops it. Which pattern from <a href="5.2.html">5.2</a> finds them all at once?</li>
             <li>Is the win state reachable twice? What happens if the death path runs a second time, and what guards it?</li>
         </ul>
     </div>
@@ -337,54 +307,71 @@ ${renderDecompose('8.5', DECOMPOSE, 3)}
         <strong>Architectural specification: the loss path.</strong>
         <ul>
             <li>What condition means "the player is dead" now that health lives in the singleton — and where is that condition checked?</li>
-            <li>Which scene does the respawn land in, does that scene contain a Player, and does it contain the arena? Those may be two different scenes, and if so you have a decision to make.</li>
-            <li>What sets health back to maximum, and where does that step live? Write down which of the three placements you chose.</li>
-            <li>What happens to the coins under your rule? State it as a rule the player could be told, not as a side effect of where the number is stored.</li>
-            <li>How many times can the player die in a row without the game becoming unplayable? Test the loop three times in a row before you call it done.</li>
+            <li>Which scene does the respawn land in, does it contain a Player, and does it contain the arena? Those may be two different scenes, and if so that is a decision.</li>
+            <li>What sets health back to maximum, and where does that step live — the death path, the singleton's own start-up, or the player's spawn?</li>
+            <li>What happens to the coins under your rule? State it as a rule the player could be told, not as a side effect of where the number lives.</li>
+            <li>How many times can the player die in a row before the game becomes unplayable? Test the loop three times.</li>
         </ul>
     </div>
-</div>
 
+    <div class="socratic">
+        <h3>Ascertaining the Loop</h3>
+        <ol>
+<li>Die on purpose and watch the Console. What is the player's health on the first frame of the new scene, and how do you know?</li>
+<li>Which of the three <a href="2.2.html">2.2</a> death designs did you choose, and what does it now fail to reset?</li>
+<li>Your death rule loads a scene, and <code>SceneSwitch</code> repositions the player from <code>static</code> fields that your load never updated. Where does the player actually arrive — and is that where you meant?</li>
+</ol>
+    </div>
+</div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Playtest</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-label">Playtest &amp; the Death Audit</span>
+        <span class="activity-time">~20 min</span>
     </div>
 
     <p>
-        Hand the game to a partner. Watch for exactly one thing per run — write down what you see
-        before you say anything.
+        Hand the game to a partner. Watch for one thing per run — write down what you see before you
+        say anything.
     </p>
 
     <ul>
-        <li><strong>Run 1 — did they read the telegraphs?</strong> Count the dodges that looked
-            deliberate against the ones that looked lucky. A lucky dodge is a bug in your tell.</li>
-        <li><strong>Run 2 — did the phase change change their behaviour?</strong> If they only
-            noticed the boss was faster, and not that it did something <em>new</em>, your phase
-            escalation is a difficulty slider rather than a phase.</li>
-        <li><strong>Run 3 — the ending.</strong> Did they know they had won without being told?
-            Did they know they had lost without being told? If either answer is no, your win and
-            loss paths are invisible.</li>
-        <li><strong>Run 4 — the wipe.</strong> Let them die once and say nothing. Time how long
+        <li><strong>Run 1 — the ending.</strong> Did they know they had won without being told? Did
+            they know they had lost? If either answer is no, your win and loss paths are
+            invisible.</li>
+        <li><strong>Run 2 — the wipe.</strong> Let them die once and say nothing. Time how long
             before they are back in the fight, and watch their face at the moment of death.</li>
     </ul>
 
+    <p>
+        <strong>Then time the walk back yourself.</strong> Stopwatch, from the frame health hits
+        zero to the frame they stand in the arena ready for the first exchange. That number is what
+        a wipe costs, and it decides whether your boss is a challenge or a chore. Over a minute?
+        Pick one fix and defend it:
+    </p>
+    <ul>
+        <li><strong>A shortcut</strong> — a route that only exists after the player has already
+            reached the arena once.</li>
+        <li><strong>A checkpoint</strong> — a trigger near the arena that becomes the respawn
+            point, so your death rule needs a respawn position, not a whole scene.</li>
+        <li><strong>Shorter approach</strong> — cut the level between the last checkpoint and the
+            arena. The <a href="7.5.html">7.5</a> audit, applied to your own cave.</li>
+    </ul>
+</div>
 
-    <div class="checklist">
-        <h3>Checkpoint — before moving on, you must be able to:</h3>
-        <ul>
-            <li>Explain what your win path does, and name the object you had to build because it did not exist</li>
-            <li>Explain why the boss comes back at full health after a wipe, and whether that is your design or an accident</li>
-            <li>Explain what your death rule does <em>now</em> that stats live in a singleton — and where the health reset lives</li>
-            <li>Explain what <code>SceneSwitch</code>'s <code>static</code> variables do to a scene that your own code loads</li>
-            <li>Quote your death-audit time from a stopwatch, and defend the fix you chose</li>
-            <li>Break this feature into parts small enough to look each one up on its own, and say in one line what each part does</li>
-            <li>Say which earlier lesson each part of this feature came from, and where you would reread it</li>
-            <li>Commit and push</li>
-        </ul>
-    </div>
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain what your win path does, and name the object you had to build for it</li>
+        <li>Explain why the boss comes back at full health after a wipe, and whether that is design or accident</li>
+        <li>Explain what your death rule does <em>now</em>, and where the health reset lives</li>
+        <li>Explain what <code>SceneSwitch</code>'s <code>static</code> variables do when your own code loads a scene</li>
+        <li>Quote your death-audit time from a stopwatch, and defend the fix you chose</li>
+        <li>Commit and push</li>
+    </ul>
 </div>
 
 <!-- ============================================================ -->

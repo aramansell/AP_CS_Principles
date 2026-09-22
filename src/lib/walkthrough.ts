@@ -173,11 +173,19 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-/** Escape, then allow `code` and **bold** in prose. Escape always comes first. */
+/** Escape, then allow `code`, **bold** and *italic* in prose. Escape always comes first. */
 function prose(s: string): string {
-  return esc(s)
+  const out = esc(s)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Italics run last and never inside a code span: `*` is multiplication in C#,
+  // so `` `a*b*c` `` has to survive untouched, and the "no space just inside the
+  // markers" rule is what keeps prose arithmetic like `3 * 4 * 5` from turning
+  // into emphasis. Both are load-bearing; neither is decoration.
+  return out
+    .split(/(<code>[\s\S]*?<\/code>)/g)
+    .map((part, i) => (i % 2 ? part : part.replace(/(?<!\*)\*(?!\s)([^\s*](?:[^*\n]*[^\s*])?)(?<!\s)\*(?!\*)/g, '<em>$1</em>')))
+    .join('');
 }
 
 /** How many lines across a spec the student has to write themselves. */

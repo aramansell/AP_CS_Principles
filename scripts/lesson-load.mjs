@@ -51,10 +51,16 @@ const prose = (html) => html
   .split(/\s+/).filter((w) => w.length > 1);
 
 // The authored body: drop the C# the student types, keep every word they read.
+// Order matters: the code strings and the finished file are removed BEFORE the
+// comment strip, because `//`-line removal does not know it is inside a template
+// literal. A `finalFile` whose last line is a comment had its closing backtick
+// eaten by the comment strip, the `finalFile` pattern then never matched, and the
+// whole C# file — comments included — was billed to the author's prose. Six
+// lessons were carrying a whole file in their body count for this reason.
 const source = (src) => prose(src
-  .replace(/^\s*\/\/.*$/gm, ' ')
   .replace(/finalFile: `[\s\S]*?`,/g, ' ')
-  .replace(/code: '(?:[^'\\]|\\.)*'/g, ' '));
+  .replace(/code: '(?:[^'\\]|\\.)*'/g, ' ')
+  .replace(/^\s*\/\/.*$/gm, ' '));
 
 // The split. A lesson's prose is two different quantities wearing one number:
 // the author's own words, and the walkthrough's annotation, which is one
@@ -64,10 +70,30 @@ const source = (src) => prose(src
 // bounded by the ladder and read for repeats by verify check 13. Counting them
 // together flagged lessons whose annotation was the teaching, which is how a
 // metric talks a writer into deleting the thing the lesson exists to say.
-const SPEC_FIELD = /\b(what|why|hint|doc|lead|intro|does|big|sizeTest)\s*:\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`)/g;
+// A spec field's value is often several literals concatenated across lines
+// (`'...' +` / `'...'`), which is how a long `why` stays readable in the source.
+// So the field name is the anchor and the literals after it are walked as a
+// chain: take the first, then keep going while a `+` joins the next. Reading
+// only the first literal counted the rest of a wrapped value as body, which made
+// the metric depend on how the author happened to break the line — the one thing
+// a word count must never measure. (It was found the honest way: 8.5's decompose
+// spec read as 144 body words it had never written.)
+const SPEC_HEAD = /\b(what|why|hint|doc|lead|intro|does|big|sizeTest)\s*:\s*/g;
+const LITERAL = /^(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`)/;
 const specWords = (src) => {
   let n = 0;
-  for (const m of src.matchAll(SPEC_FIELD)) n += prose(m[2] ?? m[3] ?? m[4] ?? '').length;
+  for (const m of src.matchAll(SPEC_HEAD)) {
+    let i = m.index + m[0].length;
+    for (;;) {
+      const lit = src.slice(i).match(LITERAL);
+      if (!lit) break;
+      n += prose(lit[1] ?? lit[2] ?? lit[3] ?? '').length;
+      i += lit[0].length;
+      const plus = src.slice(i).match(/^\s*\+\s*/);
+      if (!plus) break;
+      i += plus[0].length;
+    }
+  }
   return n;
 };
 

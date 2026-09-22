@@ -6,6 +6,53 @@
 // Canvas + Text (TMP) the student built in 5.3: it lives in Start and reads
 // the PLAYER's stats via StatManager. (The Overworld ships a Canvas of its
 // own, wired to the lever - see 5.3.) There is no boss UI anywhere.
+//
+// NO LADDER LEVEL, ON PURPOSE. 8.6 is a studio day, not a build lesson: the
+// page declares no ask banner and no Break It Down block, because
+// src/data/asks.ts has no entry for 8.6 and verify-site fails any lesson that
+// declares a ladder level without one. So this pass gives it the editor/code
+// split, the pane names and the call naming, and nothing else - the same
+// treatment 6.5 got as a converted studio day.
+//
+// STRUCTURE (this pass, editor/code split). The old "Studio Brief" was a
+// paragraph and three unlabelled bullets, and it is now "In the Editor": the
+// numbered steps name their pane (Project window for the clip, Inspector for
+// the sprite colour and the text slot, Hierarchy for Main Camera and the
+// Canvas, Game view for the run). The code half is new, and it carries the one
+// decision in this studio that is made in a file rather than a field - the
+// clear screen - as an architectural specification. Nothing else was added:
+// the review questions, the two Socratic blocks, the single-coin inventory and
+// the resources are unchanged in substance.
+//
+// GROUND TRUTH corrected in this pass (three questions presumed a build the
+// student may not have made, and one named a place the number no longer
+// appears):
+//   - "Draw your boss's state machine from memory" presumed the 8.4 choice. A
+//     state machine is one of THREE scheduling options there (a clock in
+//     Update(), a coroutine, or the enum machine from 4.5), so the question now
+//     asks for whichever one they built.
+//   - "the boss, the arena and the boss door were not in the starter; you built
+//     all three" presumed the exit was built, and 8.5 offers three ways for the
+//     win to land, two of which build no exit object at all.
+//   - "what did you do about it in your ground check (8.3)" credited the ground
+//     check to 8.3. The ground check is 6.2's; 8.3 is where queriesHitTriggers
+//     is taught and where the student chooses the tool that keeps it out of that
+//     ground check, so the question cites both.
+//   - "from the moment of contact to the number appearing in the Console": since
+//     5.3 the coin count is read by HudController onto a Canvas in Start, and
+//     2.1's Debug.Log is no longer the only place the total appears. The
+//     question now asks for the trace to the number going up, which is true
+//     whichever of the two the student is looking at.
+//
+// The checkpoint moved out of the Final Review block to the end of the page,
+// where 2.4 and 6.5 keep theirs. It is a .checklist div and carries no answer
+// box, so moving it is id-neutral.
+//
+// Answer-box ids are positional and persisted, so both socratic blocks keep
+// their position, their order and their three questions (sc1:q1..q3 in the
+// editor half, sc2:q1..q3 in the review). No question moved between blocks and
+// no block was added, so no id changed. No `what: ''` line exists here - this
+// lesson renders no walkthrough, and no ladder level and no title was touched.
 import Lesson from '../../layouts/LessonLayout.astro';
 
 const body = `<h1>8.6 — Boss Studio + Final Review</h1>
@@ -18,9 +65,9 @@ const body = `<h1>8.6 — Boss Studio + Final Review</h1>
 </p>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
+<div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Studio Brief</span>
+        <span class="activity-label">In the Editor</span>
         <span class="activity-time">~30 min</span>
     </div>
 
@@ -37,23 +84,42 @@ const body = `<h1>8.6 — Boss Studio + Final Review</h1>
         a real cost in a project this size:
     </p>
 
-    <ul>
-        <li><strong>Sound.</strong> A hit sound on the swing connecting, a wind-up sound under the
-            telegraph, a sound when the boss dies. Audio is half of "feel" and none of
-            "mechanics" — and it would be the <em>first</em> audio in this project, so budget for
-            learning <code>AudioSource</code> from scratch rather than assuming it is one line.</li>
-        <li><strong>Hit feedback.</strong> The boss flashes on taking a hit, and the camera nudges
-            on the charge. Be careful with the second one: your camera is driven by a finished
-            script in <code>Assets/Scripts/Package Scripts/</code>, so a shake has to work
-            <em>with</em> somebody else's follow logic rather than around it.</li>
-        <li><strong>The clear screen.</strong> When the boss dies, something on screen says so.
-            You own the whole mechanism already: 5.3 put a Canvas, a <code>Text (TMP)</code> and a
-            one-slot script into <code>Start</code>. The hard part is not the UI system — it is that
-            your HUD reads the <em>player's</em> stats and knows nothing about a boss, and it is not
-            in the scene the boss dies in. So this is either one honest printed line, or the day you
-            decide a second HUD is worth solving that scene problem again. TextMesh Pro is already
-            installed, which removes one obstacle and not the other four.</li>
-    </ul>
+    <ol>
+        <li>
+            <strong>Project window →</strong> nothing in this project makes a sound yet, so there is
+            no clip to drag in — import one of your own into <code>Assets</code> first. Then
+            <strong>Inspector → Add Component → AudioSource</strong> on the object that should make
+            the noise (open the attack prefab itself to put the swing sound on every instance), and
+            drag the clip into the AudioSource's slot. Audio is half of "feel" and none of
+            "mechanics", and it is the first audio in this project — budget for learning the
+            component rather than assuming it is one line.
+        </li>
+        <li>
+            <strong>Inspector → Sprite Renderer → Color</strong> on the boss for the hit flash,
+            or an <strong>Animator</strong> state if you would rather flash with an animation. Test
+            it against the telegraph you already tuned: a flash that lands on the same frame as the
+            wind-up is a tell competing with a tell.
+        </li>
+        <li>
+            <strong>Hierarchy → Main Camera → Inspector →</strong> the follow script from
+            <code>Assets/Scripts/Package Scripts</code> for the camera nudge on the charge. Be
+            careful here: that script is finished and it is not yours, so a shake has to work
+            <em>with</em> somebody else's follow logic rather than around it.
+        </li>
+        <li>
+            <strong>Hierarchy → the Canvas in <code>Start (index 0)</code> → Inspector →</strong> the
+            text slot on <code>HudController</code>, if the message belongs on the HUD you already
+            own. If it belongs in the arena instead, you are building a second Canvas:
+            <strong>right-click → UI → Text - TextMeshPro</strong> makes the Canvas, the text object
+            and an EventSystem together. Which one it is, is the decision in the code half — make it
+            there before you build either.
+        </li>
+        <li>
+            <strong>Game view →</strong> one full run, from the first control you ever wrote to the
+            fight resolving, with a notes file open. Then <strong>GitHub Desktop →</strong> tag the
+            build. The playable build is the portfolio.
+        </li>
+    </ol>
 
     <p>
         <strong>Ship-freeze rules for the review:</strong> no new attacks, no new systems, no
@@ -81,6 +147,29 @@ const body = `<h1>8.6 — Boss Studio + Final Review</h1>
     </div>
 </div>
 
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        One upgrade on that list is a file decision rather than a field, and it is the only code
+        this studio asks for. The rest of the polish is an Inspector slot.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: the clear screen.</strong>
+        <ul>
+            <li>Which file owns the message — the boss's death path, the HUD, or the listener on the event you wired in <a href="8.5.html">8.5</a>? Pick one and say what the other two would have to know that they do not.</li>
+            <li>The HUD you own is a Canvas in <code>Start (index 0)</code> reading the <em>player's</em> stats through <code>StatManager</code>, and the boss dies in the arena. What would it take for that HUD to hear about a boss in a different scene?</li>
+            <li>If you print a line instead, who is it for — the player, or a tester with the Console open? Say which, honestly, then decide whether that is enough for a final build.</li>
+            <li>If you build the second Canvas, what does the player see after a wipe sends them back to <code>Start (index 0)</code> — and are both Canvases reading the same numbers, or two different ones?</li>
+            <li>The ship-freeze applies to code too, so this is the last script you write this semester. Can you test it inside the single run above — and if not, is that a reason to print a line and stop?</li>
+        </ul>
+    </div>
+</div>
 
 <!-- ============================================================ -->
 <div class="activity assessment">
@@ -95,12 +184,12 @@ const body = `<h1>8.6 — Boss Studio + Final Review</h1>
         without looking anything up.
     </p>
     <ol>
-        <li>Trace collecting a coin from the moment of contact to the number appearing in the
-            Console. Name every method it passes through — and say which object the number now
-            lives on, and why it moved there (<a href="2.1.html">2.1</a>,
-            <a href="5.3.html">5.3</a>).</li>
-        <li>Draw your boss's state machine from memory, with the transition condition written on
-            every arrow (<a href="4.5.html">4.5</a>, <a href="8.4.html">8.4</a>).</li>
+        <li>Trace collecting a coin from the moment of contact to the number going up. Name every
+            method it passes through — and say which object the number now lives on, and why it
+            moved there (<a href="2.1.html">2.1</a>, <a href="5.3.html">5.3</a>).</li>
+        <li>Draw whatever schedules your boss's attacks, from memory — a state machine with the
+            transition condition on every arrow, a coroutine in order, or the clock in
+            <code>Update()</code> (<a href="4.5.html">4.5</a>, <a href="8.4.html">8.4</a>).</li>
         <li>Explain <code>Time.deltaTime</code> to someone who has never written code
             (<a href="1.5.html">1.5</a>).</li>
         <li>Why is your jump "tight"? Name the three values you tuned
@@ -111,8 +200,9 @@ const body = `<h1>8.6 — Boss Studio + Final Review</h1>
         <li>Where does the boss's health live, and where does the player's? Explain the
             difference in one sentence using the word <em>lifetime</em>
             (<a href="8.2.html">8.2</a>).</li>
-        <li>What does <code>Physics2D.queriesHitTriggers</code> default to, and what did you
-            do about it in your ground check (<a href="8.3.html">8.3</a>)?</li>
+        <li>What does <code>Physics2D.queriesHitTriggers</code> default to, and which tool did you
+            use to stop it corrupting your ground check from <a href="6.2.html">6.2</a>
+            (<a href="8.3.html">8.3</a>)?</li>
         <li>If you built a UnityEvent on your boss's death, what does it decouple? If you did
             not, say what you did instead and what it cost you
             (<a href="5.2.html">5.2</a>, <a href="8.5.html">8.5</a>).</li>
@@ -125,21 +215,23 @@ const body = `<h1>8.6 — Boss Studio + Final Review</h1>
         <ol>
 <li>Your game is a program built by forking a starter. What did you <strong>inherit</strong> unchanged, what did you <strong>extend</strong> by turning its knobs, and what did you <strong>create</strong> from nothing?</li>
 <li>Which of the three categories is the largest in your project — and is that the answer you expected in September?</li>
-<li>The boss, the arena and the boss door were not in the starter; you built all three. Where is the line between "using a library" and "authorship" — and which side of it does your boss fall on?</li>
+<li>Your boss was not in the starter, and neither was the arena it fights in. Where is the line between "using a library" and "authorship" — and which side of it does your boss fall on?</li>
 </ol>
     </div>
+</div>
 
+<!-- ============================================================ -->
 
-    <div class="checklist">
-        <h3>Checkpoint — the semester, complete:</h3>
-        <ul>
-            <li>One full run, from first control to the fight resolving, played and bug-listed</li>
-            <li>Spec graded line by line; every remaining gap has a reason, not an excuse</li>
-            <li>All nine review answers said out loud, without notes</li>
-            <li>The single-coin fact known and described accurately, not discovered by someone else</li>
-            <li>Repo tagged and pushed — the playable build is the portfolio</li>
-        </ul>
-    </div>
+<div class="checklist">
+    <h3>Checkpoint — the semester, complete:</h3>
+    <ul>
+        <li>One full run, from first control to the fight resolving, played and bug-listed</li>
+        <li>Spec graded line by line; every remaining gap has a reason, not an excuse</li>
+        <li>All nine review answers said out loud, without notes</li>
+        <li>The single-coin fact known and described accurately, not discovered by someone else</li>
+        <li>The clear-screen decision made in a file, and tested in the run</li>
+        <li>Repo tagged and pushed — the playable build is the portfolio</li>
+    </ul>
 </div>
 
 <!-- ============================================================ -->

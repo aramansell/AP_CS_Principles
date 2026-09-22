@@ -123,12 +123,17 @@ export interface DecomposeSpec {
 
 /** HTML-escape, then allow `code` and **bold** — same rules as a lesson body. */
 function prose(s: string): string {
-  return s
+  const out = s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Italics last, and never inside a code span — see the note in walkthrough.ts.
+  return out
+    .split(/(<code>[\s\S]*?<\/code>)/g)
+    .map((part, i) => (i % 2 ? part : part.replace(/(?<!\*)\*(?!\s)([^\s*](?:[^*\n]*[^\s*])?)(?<!\s)\*(?!\*)/g, '<em>$1</em>')))
+    .join('');
 }
 
 /** How many parts the student is handed, as opposed to working out. */
