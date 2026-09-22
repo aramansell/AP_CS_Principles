@@ -11,9 +11,38 @@
 //
 // The decompose block is ADDED, not substituted: it opens a new answer-id
 // namespace (9.7:dc1:qN) and leaves every protected block in the counts and
-// positions it already had. Items inside socratic 1, bug-hunt 1 and tinker 1
-// were REWORDED — never reordered, renumbered, added or removed — because two
-// of them made claims about the project that are false. See GROUND TRUTH.
+// positions it already had. Items inside the socratic block were REWORDED —
+// never reordered, renumbered, added or removed — because two of them made
+// claims about the project that are false. See GROUND TRUTH.
+//
+// STRUCTURE (this pass, editor/code split): the page now names its two halves
+// in the order a student works them, the way 8.3 does.
+//
+//   "In the Editor" is a numbered, pane-named <ol> — the six readings that were
+//   prose in the old Build Lab step 1-3, plus the Profiler opening they assumed.
+//   Pane work written as prose is pane work a student does not do; each step
+//   now starts with the window it happens in.
+//
+//   "In the Code" is the four-stage pipeline code block and the paragraph it
+//   predicts, a three-row API table (Update / FixedUpdate / Time.deltaTime) and
+//   one architectural-specification callout. The pipeline block and its
+//   paragraph MOVED here out of the Concept Lab — a code block is excluded from
+//   every word count, so teaching written into one is teaching that hides. The
+//   socratic moved with them; it is still the page's only socratic, so
+//   9.7:sc1:q1 is unchanged.
+//
+//   CULLED FOR REPETITION: the Concept Lab's "Inside those 16.67 ms: every
+//   Update in the scene, the physics step, the culling, and the GPU draw"
+//   enumerated the same four stages the code half now sets in order. The
+//   enumeration is gone and the code half's pipeline is its survivor; the
+//   Concept Lab keeps only the claim that was its own — how the budget divides
+//   is a measurement, which is why the Profiler is the editor half's first step.
+//
+//   Check 10 wants both halves or neither, so this page has both. Check 11
+//   scans lessons carrying "In the Code": the two calls it flagged here are
+//   fixed (`OnTriggerEnter2D(Collider2D other)`, `AddForce()`). The bare word
+//   "Update" is the lifecycle stage used as a noun all over this lesson and is
+//   deliberately left alone — see verify-site.mjs's METHODS list.
 //
 // GROUND TRUTH — read out of the starter at
 // /Users/Aram/Documents/GitHub/curriculum/AP_CS_P_Starter_Project on 2026-09-15,
@@ -97,7 +126,7 @@ const DECOMPOSE: DecomposeSpec = {
     {
       name: 'Work out which organ ran out, before you change anything',
       does: 'A frame that got worse as the logic got heavier is the CPU; a frame that got worse as the pixels got bigger is the GPU. They take different fixes, so the diagnosis comes first.',
-      doc: 'the Profiler steps in this lesson\'s Build Lab, and the Update vs FixedUpdate row of the Unity + C# quick reference',
+      doc: 'the Profiler steps in this lesson\'s editor half, and the Update vs FixedUpdate row of the Unity + C# quick reference',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
@@ -109,7 +138,7 @@ const DECOMPOSE: DecomposeSpec = {
     {
       name: 'Say where in the frame a thing runs',
       does: 'Input, then your Update, then the physics step, then the draw. A thing born in one of those stages cannot be seen by an earlier one, and that ordering is a prediction about timing bugs rather than trivia.',
-      doc: 'the pipeline list in this lesson\'s Concept Lab, and the lifecycle split you met in 1.3',
+      doc: 'the pipeline list in this lesson\'s code half, and the lifecycle split you met in 1.3',
       href: '1.3.html',
     },
   ],
@@ -196,11 +225,83 @@ ${renderDecompose('9.7', DECOMPOSE, 3)}
     (<a href="1.5.html">1.5</a>) exist because the frame rate is a
     NEGOTIATION with hardware, not a constant.</p>
 
-    <p>Inside those 16.67 ms: every <code>Update()</code> in the scene,
-    the physics step, the culling, and the GPU draw. How the budget
-    divides between them is a MEASUREMENT, not a constant — it moves
-    with the scene, the machine, and what the player is doing — and
-    taking that measurement is what the Profiler is for.</p>
+    <p>How one frame's 16.67 ms divides between the code, the physics and
+    the draw is a MEASUREMENT, not a constant — it moves with the scene,
+    the machine, and what the player is doing — and taking that
+    measurement is what the Profiler is for. The code half below is the
+    order those jobs run in, and why the order is a prediction rather
+    than a list.</p>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        Everything the Concept Lab priced is a number you can read out of a window you already
+        have open. These six readings are the diagnosis this lesson exists for: which organ ran
+        out, and how you know.
+    </p>
+
+    <ol>
+        <li>
+            <strong>Window → Analysis → Profiler</strong>, and leave it attached while the game
+            plays: one bar per frame, and the height of the bar is the 16.67 ms being spent.
+            <strong>Profiler → CPU</strong> is where the bar is split into the bands that filled
+            it, so your Update cost, the physics cost and the render cost are three bands on one
+            bar.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play on a scene that is doing almost nothing, and
+            read the frame time. On a simple scene most of a quiet frame is render. Then
+            <strong>Scene view →</strong> let the turrets fire at once and watch the logic band
+            jump: the spike is scheduled work, not a constant cost.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> drag the enemy prefab in and <strong>Ctrl+D</strong> until
+            you have 200 of them, each running its own Update and a distance check to the player.
+            <strong>Game view →</strong> read the frame rate fall, then
+            <strong>Profiler → Hierarchy</strong> to see which method the milliseconds are being
+            charged to.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> delete them, and spawn 200 large sprites instead —
+            scaled up in the <strong>Scene view</strong> until they cover the camera.
+            <strong>Game view →</strong> the frame drops again, and it drops differently: the cost
+            is in draw calls rather than in logic, which is what the two bands on the same
+            Profiler bar are there to tell apart.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/_Scenes/Overworld</code>, then
+            <strong>Game view →</strong> Play. What RAM holds is the scene you loaded: eight
+            tilemaps bounding 15,793 cells, of which the layer that actually stops you is 105 by
+            91 — 9,555 cells — and the rest are the cave and door alternates of the same level,
+            kept in memory so that opening a door is a swap rather than a rebuild.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> the door's <code>SceneSwitch</code> from
+            <a href="5.3.html">5.3</a>, then walk through it with the Profiler still open. The old
+            scene UNLOADS — that is the hitch you sometimes see mid-door, and it is RAM being
+            handed over — and the singleton survives it because
+            <code>DontDestroyOnLoad(gameObject)</code> says this one is not scene-RAM any more.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        The four stages above are the code half of this lesson: your C# occupies exactly one of
+        them, and the API below is what decides which.
+    </p>
 
     <p><strong>The frame pipeline, in order:</strong></p>
     <pre><code>1. Input    → your GetAxis/GetKeyDown (Input System)
@@ -214,10 +315,41 @@ ${renderDecompose('9.7', DECOMPOSE, 3)}
     Sprite Renderer and <code>Projectile.cs</code> and nothing else: no
     collider and no Rigidbody2D, so until <a href="3.4.html">3.4</a>
     gave it a shape it was not in the simulation at all. Once you did,
-    the hit arrives through <code>OnTriggerEnter2D</code> — and that is
-    a physics callback, so a bullet born during one frame's Update
-    cannot be tested against anything until a LATER frame's physics
-    pass. Nothing is instant; everything is scheduled.</p>
+    the hit arrives through <code>OnTriggerEnter2D(Collider2D other)</code>
+    — and that is a physics callback, so a bullet born during one frame's
+    Update cannot be tested against anything until a LATER frame's
+    physics pass. Nothing is instant; everything is scheduled.</p>
+
+    <table>
+        <tr><th>API</th><th>What it is</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>Update()</code></td>
+            <td>The callback Unity runs once per rendered frame — the one every script you have written this year lives in.</td>
+            <td>Work that keeps pace with the frame, because the frame is what calls it.</td>
+            <td>Its cost is paid 60 times a second whether or not anything changed, so every check you add here is a per-frame check forever.</td>
+        </tr>
+        <tr>
+            <td><code>FixedUpdate()</code></td>
+            <td>The callback on the physics clock rather than the render clock — the clock <code>Time.fixedDeltaTime</code> measures.</td>
+            <td>A steady timestep, so a force applied here is not larger on a slow frame.</td>
+            <td>It does not run on every frame, so anything that has to look smooth — input, a cooldown, an animation — stutters if it lives here.</td>
+        </tr>
+        <tr>
+            <td><code>Time.deltaTime</code></td>
+            <td>The seconds the last frame took, from <a href="1.5.html">1.5</a> — a measurement of the deadline being met.</td>
+            <td>A number that turns per-frame work into per-second work, which is why your movement does not change speed with the frame rate.</td>
+            <td>Nothing, except that it reports the past: it describes the frame that just finished, not the one you are in.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification: which stage does this work belong in?</strong>
+        <ul>
+            <li>Name the stage each system you built runs in — movement from 1.4, the turret's cooldown from 3.3, the enemy's chase from 4.3, the jump from 6.1 — and the callback that puts it there.</li>
+            <li>The bullet's hit is reported in the physics stage of a LATER frame than the Update that spawned it. Name one thing in your own game that depends on that delay, and one bug that would appear if the delay were a frame longer.</li>
+            <li>Your frame rate is a negotiation with the hardware, not a constant. Which of the numbers in this lesson would change on a machine twice as fast — and which would not?</li>
+        </ul>
+    </div>
 
     <div class="socratic">
         <h3>Socratic</h3>
@@ -225,48 +357,10 @@ ${renderDecompose('9.7', DECOMPOSE, 3)}
             Unity calls Update before physics and FixedUpdate on the
             physics clock. Why would physics need a FIXED timestep
             while your Update does not — and which of your systems
-            (a cooldown counting Time.time vs. an AddForce jump)
+            (a cooldown counting Time.time vs. an <code>AddForce()</code> jump)
             would break if you moved it into the wrong one?
         </p>
     </div>
-</div>
-
-<!-- ============================================================ -->
-<div class="activity expand-app">
-    <div class="activity-header">
-        <span class="activity-label">Build Lab</span>
-        <span class="activity-time">~20 min</span>
-    </div>
-
-    <p><strong>Step 1 — watch the budget.</strong> Unity's Window →
-    Analysis → Profiler (attach while playing): see the frame time
-    ms by ms. Find your Update cost, the physics cost, the render
-    cost. On a simple scene it is mostly render. Where does the
-    spike happen when all three turrets fire simultaneously?</p>
-
-    <p><strong>Step 2 — feel CPU vs GPU.</strong> Make each
-    expensive in turn:</p>
-    <ol>
-        <li>CPU: spawn 200 enemies (each has Update + Distance to
-            player). Watch fps fall — the CPU is saturated by
-            per-frame LOGIC</li>
-        <li>GPU: spawn 200 large sprites over a huge particle
-            burst. The frame drops differently — draw calls, not
-            logic. Read the Profiler's Hierarchy to see which
-            organ is complaining</li>
-    </ol>
-
-    <p><strong>Step 3 — RAM meets your scene data.</strong> Load the
-    overworld: RAM holds it. That scene is not a small thing to hold.
-    Its eight tilemaps bound 15,793 cells between them — the layer
-    that actually stops you is 105 by 91, which is 9,555 cells, and
-    the rest are the cave and door alternates of the same level,
-    kept in memory so that opening a door is a swap rather than a
-    rebuild. Load the Platformer scene (<a href="5.3.html">5.3</a>):
-    the old scene UNLOADS — that is the hitch you sometimes see
-    mid-door. The singleton survives because DontDestroyOnLoad says
-    "this one is not scene-RAM anymore."</p>
-
 </div>
 
 <!-- ============================================================ -->
