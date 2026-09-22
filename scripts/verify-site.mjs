@@ -992,14 +992,21 @@ if (!fs.existsSync(askSrcPath)) {
       dense.slice(0, 25).map((d) => '      ' + d.id + ': ' + d.term + ' — ' + d.sentences +
         ' sentences across ' + d.where).join('\n') +
       (dense.length > 25 ? '\n      ... and ' + (dense.length - 25) + ' more' : '') +
-      '\n    Say it once and let them build. A third section is allowed only for a genuinely new context,');
+      '\n    Say it once and let them build. A third section is allowed only for a genuinely new context,' +
+      '\n    and a lesson whose own SUBJECT is the term will always be listed here — a lesson about the' +
+      '\n    Animator must name it in the plan, the pane, the code it types and the checkpoint. Read the' +
+      '\n    rows before acting: the ones to cut are the sections re-explaining the term, not the ones' +
+      '\n    that have to name it. Gutting the subject out of its own lesson is how this warning gets' +
+      '\n    obeyed into a worse site.');
   }
   if (repeated.length) {
     warn(repeated.length + ' pair(s) of paragraphs in a converted lesson say the same thing, worst first:\n' +
       repeated.slice(0, 6).map((r) => '      ' + r.id + ' ' + Math.round(r.overlap * 100) + '% — "' + r.a.where +
         '" vs "' + r.b.where + '"\n        A: ' + r.a.text.slice(0, 90) + '\n        B: ' + r.b.text.slice(0, 90))
         .join('\n') +
-      (repeated.length > 6 ? '\n      ... and ' + (repeated.length - 6) + ' more' : ''));
+      (repeated.length > 6 ? '\n      ... and ' + (repeated.length - 6) + ' more' : '') +
+      '\n    Two instructions that are parallel on purpose also land here — adding the same component to' +
+      '\n    two different objects says the same words twice and is not a repeat.');
   }
 }
 
