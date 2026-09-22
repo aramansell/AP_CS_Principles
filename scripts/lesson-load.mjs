@@ -36,6 +36,7 @@ const srcDir = path.resolve('src/pages/lessons');
 const args = process.argv.slice(2);
 const all = args.includes('--all');
 const fromSrc = args.includes('--src');
+const split = args.includes('--split');
 const wanted = args.filter((a) => !a.startsWith('--'));
 
 const prose = (html) => html
@@ -54,6 +55,21 @@ const source = (src) => prose(src
   .replace(/^\s*\/\/.*$/gm, ' ')
   .replace(/finalFile: `[\s\S]*?`,/g, ' ')
   .replace(/code: '(?:[^'\\]|\\.)*'/g, ' '));
+
+// The split. A lesson's prose is two different quantities wearing one number:
+// the author's own words, and the walkthrough's annotation, which is one
+// annotation per code line and so is set by the file the lesson walks through
+// and by the ladder level (a level-1 lesson withholds no line, a level-3 lesson
+// renders no walkthrough at all). The ceiling governs the first; the second is
+// bounded by the ladder and read for repeats by verify check 13. Counting them
+// together flagged lessons whose annotation was the teaching, which is how a
+// metric talks a writer into deleting the thing the lesson exists to say.
+const SPEC_FIELD = /\b(what|why|hint|doc|lead|intro|does|big|sizeTest)\s*:\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`)/g;
+const specWords = (src) => {
+  let n = 0;
+  for (const m of src.matchAll(SPEC_FIELD)) n += prose(m[2] ?? m[3] ?? m[4] ?? '').length;
+  return n;
+};
 
 const read = (id) => fromSrc ? fs.readFileSync(path.join(srcDir, id + '.astro'), 'utf8')
   : fs.readFileSync(path.join(dist, id + '.html'), 'utf8');
@@ -74,6 +90,18 @@ const ids = (wanted.length ? wanted : fs.readdirSync(dist)
   .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
 let was = 0, now = 0;
+if (split) {
+  console.log('lesson    body   annotation   total   (the ceiling governs `body`)');
+  for (const id of ids) {
+    const src = fs.readFileSync(path.join(srcDir, id + '.astro'), 'utf8');
+    const total = source(src).length;
+    const ann = specWords(src);
+    const body = total - ann;
+    console.log(id.padEnd(8) + String(body).padStart(6) + String(ann).padStart(13) + String(total).padStart(8) +
+      (body > 2000 ? '   OVER' : ''));
+  }
+  process.exit(0);
+}
 console.log('lesson   ' + (fromSrc ? 'authored' : 'prose   ') + ' words HEAD -> now      cut');
 for (const id of ids) {
   const w2 = measure(read(id));
