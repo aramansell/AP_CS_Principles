@@ -193,10 +193,8 @@ const body = `<h1>10.2d — Turn Logic: Selection + Iteration</h1>
 <p class="lesson-lead">
     The starter's other empty method: <code>AI_Turn()</code>. Your
     opponent's brain, and the last thing between your card game and a
-    game somebody can play alone at home. Today you assemble it out of
-    parts you have had since Unit 4 — visit a list, decide with a rule,
-    do one thing — and give the game the thing it has never had: a turn
-    that belongs to somebody else.
+    game somebody can play alone at home. Your job is to give the game
+    the thing it has never had: a turn that belongs to somebody else.
 </p>
 
 ${renderAskBanner('how do I make the computer take a turn?', 3)}
@@ -210,8 +208,8 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
         <span class="activity-time">~15 min</span>
     </div>
 
-    <p><strong>Three layers, three exam words.</strong> An AI turn is not
-    a new mechanism. It is the exam's own algorithm definition —
+    <p><strong>Three layers, three exam words.</strong> The method you
+    are about to write is the exam's own algorithm definition —
     sequencing, selection and iteration — assembled into one method you
     can point at on the exam as yours. Name the layers before you name
     any code:</p>
@@ -227,23 +225,13 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
     </ol>
 
     <p><strong>Read your file before you write a line of it.</strong>
-    Open <code>Assets/Scripts/GameManager.cs</code> and notice what is
-    there. <code>AI_Turn()</code> is an empty body, and that is yours
-    today. <code>ai_hand</code> is a real
-    <code>List&lt;Card&gt;</code> — empty in the template, and finally
-    filled by the <code>Draw</code> you wrote in
-    <a href="10.2c.html">10.2c</a>. And
-    <code>ai_discard_pile</code> is a real
-    <code>List&lt;Card&gt;</code> that nothing in the project has ever
-    touched: a played card already has somewhere to go.</p>
-
-    <p><strong>Now notice what is NOT there.</strong> There is no energy
-    system. No <code>playerTurn</code> bool, no <code>EndTurn()</code>,
-    no <code>PlayCard()</code>, no <code>Pass()</code> — and
-    <code>Update()</code> is empty too. The starter does not ship a
-    broken turn or a half-written one; it ships no turn at all. Whose
-    turn it is, and what a turn is allowed to cost, are decisions this
-    lesson hands to you along with the API for them.</p>
+    Open <code>Assets/Scripts/GameManager.cs</code>:
+    <code>AI_Turn()</code> is an empty body and yours today,
+    <code>ai_hand</code> and <code>ai_discard_pile</code> are real
+    <code>List&lt;Card&gt;</code> fields, and no turn state exists
+    anywhere — no energy system, and <code>Update()</code> is empty
+    too. Whose turn it is, and what a turn costs, are yours to
+    decide.</p>
 
     <div class="callout trap">
         <strong>If your AI's move needs a random number, the call is
@@ -261,8 +249,7 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
         script does not build — while the identical line compiles happily
         in every other script you have written this year. Two legal
         fixes: qualify the call, or delete the
-        <code>using Unity.Mathematics;</code> line. The AP exam never
-        tests namespace resolution. Every real C# codebase does.
+        <code>using Unity.Mathematics;</code> line.
     </div>
 
     <div class="socratic">
@@ -286,25 +273,23 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
         <span class="activity-time">~15 min</span>
     </div>
 
-    <p>This is the level-3 substitute for a walkthrough, and it is
-    deliberate: the API is laid out below and the method is not, because
-    there is no mechanism in it you have not already built. Every row
-    here is a thing you have typed before, wearing this file's names.
-    Read the <strong>what it costs</strong> column before you choose —
-    that is where the bugs in this method live.</p>
+    <p>This is the level-3 substitute for a walkthrough: the API is laid
+    out below and the method is not. Read the <strong>What it
+    costs</strong> column before you choose — that is where the bugs in
+    this method live.</p>
 
     <table>
         <tr><th>API</th><th>Signature</th><th>What you get</th><th>What it costs</th></tr>
         <tr>
             <td><code>ai_hand</code></td>
             <td><code>public List&lt;Card&gt; ai_hand</code> — a field on GameManager, filled in the Inspector and by <code>Draw</code></td>
-            <td>The opponent's hand: a real ordered list of the <code>Card</code> components in front of the AI, and the only thing this method should be deciding from.</td>
+            <td>The opponent's hand: a real ordered list of the <code>Card</code> components in front of the AI.</td>
             <td>It ships EMPTY. The starter's <code>Deal()</code> creates one visual per side and drops the reference, so until <a href="10.2c.html">10.2c</a>'s <code>Draw</code> runs there is nothing in it at all.</td>
         </tr>
         <tr>
             <td><code>foreach</code></td>
             <td><code>foreach (Card c in ai_hand)</code></td>
-            <td>Every card, in order, with no index to manage — the loop for when the body only cares about the element.</td>
+            <td>Every card, in order, with no index to manage.</td>
             <td>It never tells you WHERE the card was. If your rule needs the position, this is the wrong loop, and the fix is the index loop below.</td>
         </tr>
         <tr>
@@ -316,13 +301,13 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
         <tr>
             <td><code>Card.cost</code>, <code>Card.damage</code>, <code>Card.health</code></td>
             <td>Three <code>public int</code> fields on <code>Assets/Scripts/Card.cs</code></td>
-            <td>The three numbers an AI decision can actually be made from. <code>Card.Start()</code> copies each one out of the asset, so they are real by the time a card is sitting in a hand.</td>
+            <td>The three numbers an AI decision can be made from.</td>
             <td>They are COPIES. Change the asset while the game runs and the card already on screen keeps the number it copied — the asset is the source of truth, and the component is a snapshot of it.</td>
         </tr>
         <tr>
             <td>running best</td>
             <td><code>int best = int.MinValue;</code> then <code>if (score &gt; best) best = score;</code></td>
-            <td>Pattern 3 of the <a href="../docs/unit-10/lists-arrays.html">Lists &amp; Arrays</a> reference: score every option, keep the winner. <code>int.MinValue</code> is the impossible starting value, so the first real card always replaces it.</td>
+            <td>Pattern 3 of the <a href="../docs/unit-10/lists-arrays.html">Lists &amp; Arrays</a> reference: score every option, keep the winner.</td>
             <td>It keeps the best SCORE, not the card that earned it. If you need to remove the winner afterwards, track which card it was as well — or you will find yourself with the winning number and no card to play.</td>
         </tr>
         <tr>
@@ -334,7 +319,7 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
         <tr>
             <td><code>List&lt;T&gt;.Add</code></td>
             <td><code>void Add(T item)</code> — <code>ai_discard_pile.Add(card)</code>, the AP's <code>APPEND(aList, item)</code></td>
-            <td>Appends to the end of the list. The AI now has a place to put the card it just played, on a field the starter already declared.</td>
+            <td>Appends to the end of the list.</td>
             <td>Nothing brings a card back out of a discard pile. A reshuffle would be a feature you write, and until you do, a card in there is gone for the rest of the game.</td>
         </tr>
         <tr>
@@ -350,17 +335,6 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
             <td>It is state, so it survives every frame and it has to be set at the right MOMENT. Flip it early and the player takes a second action while the AI is still resolving the first one.</td>
         </tr>
     </table>
-
-    <div class="callout info">
-        <strong>The sixth part, and you have already written it.</strong>
-        <code>Draw</code> in <a href="10.2c.html">10.2c</a> opens with a check
-        that returns when the deck is empty, because <code>deck[0]</code> on an
-        empty list is an exception and not a null. <code>AI_Turn</code> opens
-        with the same three words pointed at <code>ai_hand</code> — and in this
-        template that is not a hypothetical edge case. The starter's own
-        <code>Deal()</code> never fills a hand, so an AI turn on the project as
-        it shipped runs with an empty list on the very first frame.
-    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -370,12 +344,9 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
         <span class="activity-time">~35 min</span>
     </div>
 
-    <p>This one is on you, and there is no code in this section on purpose.
-    Every piece of it has been built once already — a <code>foreach</code>
-    over a list is 10.2a, a running best is pattern 3 of the reference, a
-    boundary guard is 10.2c, and a state field is 4.5. What is new is the
-    <em>arrangement</em>, and the specification below names the field, the
-    rule and the case. The rest is your file.</p>
+    <p>This one is on you. The three specifications below are the whole
+    brief — the decision, the move and the turn gate. The rest is your
+    file.</p>
 
     <div class="callout">
         <strong>Architectural specification: the decision.</strong>
@@ -384,7 +355,6 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
             <li>Write your rule aloud in one sentence before you write it in C#: "the AI plays the card with the ______". If you cannot say it in one sentence, it is two rules and one of them is hiding a bug.</li>
             <li>What does the rule compare — <code>damage</code>, <code>cost</code>, <code>health</code>, or a combination? What does your choice say about the opponent a player is about to face, and can you defend it as a design decision rather than an accident?</li>
             <li>What value does your "best so far" variable start at, and why can it not start at <code>0</code>? What happens to the first card your loop visits if it does?</li>
-            <li>Do you need the card itself or only its score at the end? If you need the card, what else has to be updated inside the loop every time the best changes?</li>
             <li>Two cards tie for best. Which one does your loop keep, is that the one you WANT, and is it the same one every time you press Play? Why does a repeatable choice matter more than a clever one here?</li>
             <li><code>AI_Turn()</code> is declared with no parameters at all. A procedure that takes none cannot be pointed at a difficulty level, a card pool, or a second kind of opponent later. If you added one parameter, what would it be — and what does adding it turn this method into?</li>
         </ul>
@@ -393,8 +363,6 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
     <div class="callout">
         <strong>Architectural specification: the move.</strong>
         <ul>
-            <li>Which list does the played card leave, and which one does it join? Both fields already exist — name them and say which lesson put something into the first one.</li>
-            <li>Which order do the two operations happen in, and what goes wrong if you remove the card before you have read what you needed off it?</li>
             <li>Your loop removed an item from the list it was traversing. Did your loop survive that — and if it was a forward loop over an index, which card did it skip? What is the fix, and is your case even affected?</li>
             <li>Does the card disappear from the screen? The AI's card was instantiated by <code>Deal()</code> and parented to the canvas, so a card removed from <code>ai_hand</code> is still a GameObject in the scene. What is your game supposed to show — and what would you change your field to hold if the screen has to know?</li>
             <li>Nothing reads <code>damage</code>, <code>cost</code> or <code>health</code> yet — they go from the asset into a text label. Your rule is the first thing in the project that reads one of them as a NUMBER. Which one, and what does that make your AI's rule responsible for that the text labels were not?</li>
@@ -408,19 +376,16 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
             <li>Who flips it, and at exactly which moment? Write the sequence of one full turn in order, from the player pressing a card to the AI having played, and mark the flip points. Which flip is the one that is easy to put one line too early?</li>
             <li>The player's click path has to read that field before it does anything. If your field is a <code>bool</code>, what do the two values MEAN — and is there a third state your game will grow into (game over, resolving, the AI thinking) that a <code>bool</code> could not express?</li>
             <li>The AI playing the instant the player's turn ends feels like a bug even when it is correct. Which earlier lesson's timestamp pattern gives the turn a beat, and which number do you tune — the delay, or the moment the flip happens?</li>
-            <li>Why is "the player may take one action per turn" not written as an <code>if</code> inside the click handler? Say what breaks the second time somebody adds a second way to play a card.</li>
         </ul>
     </div>
 
     <p><strong>Then prove it, in the Console, before you trust it.</strong>
-    One run with a <code>Debug.Log</code> at the top of <code>AI_Turn()</code>
+    One run with a <code>Debug.Log(...)</code> at the top of <code>AI_Turn()</code>
     printing <code>ai_hand.Count</code> and the name of the card your rule
-    picked tells you three things at once: whether the hand is empty (the
-    guard), whether your rule picked anything (the decision), and whether
-    the card left the hand (the move). Take the AI's turn twice in a row
-    without the player moving and watch what the second one does. Then
-    <strong>delete the log</strong> — a print that survives into the next
-    lesson is noise you will read past.</p>
+    picked answers the guard, the decision and the move in one pass. Take the
+    AI's turn twice in a row without the player moving and watch what the
+    second one does. Then <strong>delete the log</strong> — a print that
+    survives into the next lesson is noise you will read past.</p>
 
 </div>
 
@@ -436,12 +401,8 @@ ${renderDecompose('10.2d', DECOMPOSE, 3)}
         <h3>Checkpoint — before moving on, you must be able to:</h3>
         <ul>
             <li>Implement a greedy AI: traverse, compare, keep the best, act</li>
-            <li>Say where the AI's numbers come from (<code>Card.data</code> copied in <code>Start()</code>) and what a card in <code>ai_hand</code> actually is</li>
-            <li>Guard the empty hand, and explain why it is turn one rather than a corner case</li>
             <li>Move a played card out of the hand into <code>ai_discard_pile</code>, in the order that does not lose it</li>
-            <li>Explain the turn loop as a bool state gate, and say why the gate is not an <code>if</code> in the click handler</li>
             <li>Say why <code>UnityEngine.Random</code> has to be spelled out in <code>GameManager.cs</code></li>
-            <li>Label sequencing, selection and iteration inside your own <code>AI_Turn</code> on sight</li>
             <li>Say what one parameter would let <code>AI_Turn</code> do that it cannot do with none</li>
         </ul>
     </div>
