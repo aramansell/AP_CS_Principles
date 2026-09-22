@@ -92,7 +92,8 @@ NEVER link anywhere else. Never use absolute URLs except https://github.com/ and
 
 ## Content quality bar
 
-- Total body length: **under ~2,000 words** of prose as the student reads it — most build lessons land in the 1,300-2,000 band, a solo build (ladder level 4) may run to 2,600-3,800, and jam/studio/CPT process days should be shorter still. One shape takes its floor from something other than the author: a walkthrough that re-walks a whole file the student wrote across several earlier lessons needs one annotation per code line, so its length is set by that file — 4.5 is the only such lesson, it lands near 3,700, and its authored prose outside the walkthrough is in band. Shorter is never a fault: a level-3 lesson with no walkthrough can honestly land near 1,100, and padding one back up to the band is the failure this rule exists to prevent. Measure, do not eyeball it: `node scripts/lesson-load.mjs <id>` counts the prose words on the built page and prints the change against the copy at HEAD. If a lesson is over the cap, it is carrying a block that should have been cut — shorten it, do not trim the teaching. The one overage that is not a block is a whole-file walkthrough's per-line annotation, and cutting that is cutting the teaching. Line count is *not* the measure: a table row or a paragraph can be squeezed onto one line, or broken into five, without a word of the lesson changing.
+- Total length: **under ~2,000 words of the author's own prose** — everything around the walkthrough: the lesson lead, the editor steps, the code-half explanation, callouts, the checkpoint, the resources. Most build lessons land in the 900-1,900 band, and jam/studio/CPT process days should be shorter still. Shorter is never a fault: a level-3 lesson with no walkthrough can honestly land near 1,100, and padding one back up to the band is the failure this rule exists to prevent. Measure, do not eyeball it: `node scripts/lesson-load.mjs --split <id>` prints the author's prose beside the walkthrough's annotation, and the plain form prints the change against the copy at HEAD. If a lesson is over the cap, it is carrying a block that should have been cut — shorten it, do not trim the teaching. Line count is *not* the measure: a table row or a paragraph can be squeezed onto one line, or broken into five, without a word of the lesson changing.
+- Walkthrough annotation is counted **separately, and is not capped**, because its length is not the author's to choose: a level-1 lesson withholds no line, a level-2 lesson withholds one, a level-3 lesson renders no walkthrough at all, and the number of lines is the size of the file the lesson walks through. Annotate every line the ladder asks for. Never shorten a per-line annotation to make a total land under a round number — that is how a build lesson stops being buildable, and this rule was written once as a single total over both quantities, which duly failed lessons whose annotation *was* the teaching. What governs annotation instead is check 13: the same idea explained again in a second annotation on the same page is a repeat, and a repeat gets cut.
 - Voice: second person, direct, a little funny, zero fluff. The reader is a high schooler at a computer with Unity open.
 - Every build lesson: a Break It Down block (decompose spec), predict-first where possible (predict before running), then steps with runnable C# that matches the REAL starter code, then a Socratic block of at most 3 real questions, then checklist, then resources.
 - The C# you teach matches the actual starter scripts or builds on them step-by-step. In the starter project, most gameplay systems are NOT pre-written: students build them from scratch. Use canonical Unity naming (xSpeed, ySpeed, maxAttackRange, ChangeHealth, StatManager.manager, etc.) and consistent C# conventions: MonoBehaviour, [SerializeField] private, private helper methods, Debug.Log, CompareTag, Vector2/Vector3, Time.deltaTime.
@@ -316,17 +317,18 @@ resources. What goes: everything above, plus motivational paragraphs, "in this
 lesson you will learn" framing, and any sentence whose job is to say that the next
 sentence matters.
 
-Target: a build lesson's body lands **under about 2,000 words** of prose, and
-studio, process and jam days shorter still. It is a ceiling, not a quota —
-nothing is too short, and padding a lean lesson up to the band is the failure
-this rule exists to prevent. Measure it with
+Target: a build lesson lands **under about 2,000 words of the author's own
+prose** — everything except the walkthrough's per-line annotation, which
+`node scripts/lesson-load.mjs --split <id>` prints beside it. It is a ceiling,
+not a quota — nothing is too short, and padding a lean lesson up to the band is
+the failure this rule exists to prevent. Measure it with
 `node scripts/lesson-load.mjs <id>` — the words the student actually reads, with
 the change against HEAD beside it, so a lesson the pass did not reach reports as
 unchanged instead of looking fine. If a lesson is over the cap, the excess is
 almost always a repeated explanation rather than teaching; `verify` check 13
 reports the terms and paragraphs in one lesson that say the same thing. The
-exception is a whole-file walkthrough, where the count is one annotation per
-line the student typed (see the content-quality bar).
+walkthrough annotation itself is set by the ladder, not capped here — but a
+repeat inside it is still a repeat.
 
 Line count was the old proxy and it is retired: it is gameable without cutting a
 word (collapse a table onto one line, or split an editor step across five), and

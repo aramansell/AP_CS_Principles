@@ -52,7 +52,8 @@ public/
 scripts/
   verify-site.mjs     # link + completeness checks after build
   new-lesson.mjs      # scaffold a new lesson page
-  lesson-load.mjs     # how much reading a lesson costs, vs HEAD (words, not lines)
+  lesson-load.mjs     # how much reading a lesson costs: author's prose and
+                      # walkthrough annotation, counted apart (words, not lines)
 ```
 
 ## Editing the course
@@ -80,6 +81,7 @@ npm run preview    # serve the built site locally
 npm run new-lesson -- 5.11    # scaffold a lesson page
 node scripts/lesson-load.mjs       # prose words per lesson, vs the copy at HEAD
 node scripts/lesson-load.mjs --src 1.5   # authored words only — no build needed
+node scripts/lesson-load.mjs --split 5.2 # author's prose beside walkthrough annotation
 ```
 
 ## Deploying to GitHub Pages
