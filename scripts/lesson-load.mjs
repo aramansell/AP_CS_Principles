@@ -69,16 +69,26 @@ const prose = (html) => html
 // <pre> here, on the authored tags and before the comment strip, removes the whole
 // class and matches what prose() already does to the built page.
 //
-// One way this could bite, checked and not present: a `//` header comment that
-// mentions `<pre>` in a file that also has a real `</pre>` would strip the prose
-// between them. No lesson does — the three that mention the tag (4.2, 6.2, 6.3)
-// contain no `</pre>` at all — and keeping the pattern identical to prose()'s is
-// worth more than guarding against a shape the markup never uses.
-const source = (src) => prose(src
+// One shape did bite, and it is why the header and the body are stripped as two
+// strings rather than one. A `//` header comment that names the tag (`<pre>`) used
+// to match, lazily, the first `</pre>` far down in the body — deleting every word
+// between them from the count. 9.7 read 149 for a body of 1,705 and 10.2b read
+// NEGATIVE 545. The subagent that hit it did the right thing for the wrong reason:
+// it reworded its own header notes to say "a code block" instead of naming the tag,
+// so the metric would behave. That is a writer changing true prose to satisfy a
+// measurement, which is the one thing this file must never cause. Splitting the two
+// regions kills the interaction at the root — a comment can no longer reach into
+// the body — so authors can name the tag in a note without costing themselves a
+// count, and the header/body boundary is the same one the site itself uses.
+const STRIP = (s) => s
   .replace(/finalFile: `[\s\S]*?`,/g, ' ')
   .replace(/code: '(?:[^'\\]|\\.)*'/g, ' ')
   .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
-  .replace(/^\s*\/\/.*$/gm, ' '));
+  .replace(/^\s*\/\/.*$/gm, ' ');
+const source = (src) => {
+  const i = src.indexOf('const body =');
+  return i < 0 ? prose(STRIP(src)) : prose(STRIP(src.slice(0, i)) + ' ' + STRIP(src.slice(i)));
+};
 
 // The split. A lesson's prose is two different quantities wearing one number:
 // the author's own words, and the walkthrough's annotation, which is one
