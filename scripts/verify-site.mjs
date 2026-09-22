@@ -28,12 +28,16 @@
  *     lesson that names one of them names the other
  * 11. every method in the prose is named as a call — CompareTag(String tag),
  *     not CompareTag — because the shape of the call is the thing being taught
+ * 12. no saved answer was orphaned — an answer box may only be appended after
+ *     or trimmed from the end of its block, never inserted into or moved, so a
+ *     student's saved text never reappears under a question it does not answer
  *
  * Ported from the AP CS A Guide's verify-site.mjs, minus the legacy-site
  * URL parity checks (this site has no legacy twin).
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { execSync, spawnSync } from 'node:child_process';
 
 const dist = path.resolve(process.argv[2] ?? 'dist');
 const root = path.resolve('src/data/curriculum.ts');
@@ -732,6 +736,117 @@ if (!fs.existsSync(askSrcPath)) {
     fail('method(s) named without their call in a converted lesson:\n    ' + bareMethods.join('\n    '));
   } else {
     ok('no method in the ' + split.length + ' converted lesson(s) is named without its parentheses');
+  }
+
+  // ---------- 12. nobody's saved answer was orphaned
+  // Answer-box ids are positional — formify derives them from document order
+  // (lessonId:sc1:q2) — and public/js/lab-forms.js saves student work in
+  // localStorage under them. So editing the middle of a question block does not
+  // lose a box, it loses the *text inside it*: the box survives under an id that
+  // now belongs to a different question, and the student's answer quietly
+  // reappears beneath a prompt it does not answer. Nothing about the page looks
+  // wrong, which is why this is a check and not a habit.
+  //
+  // The baseline is the copy of the page committed at HEAD (dist/ is tracked, so
+  // the previous render is always there to compare against). During a rewrite of
+  // this size that is the only thing that knows what the ids used to mean.
+  //
+  // Two ways to orphan an answer, both caught:
+  //   (a) inserting into or deleting from the middle of a block shifts every id
+  //       after it, so the id sequence stops being an append-or-trim of the old
+  //       one;
+  //   (b) moving a question to a different slot keeps the ids but swaps which
+  //       question each one belongs to — caught by noticing text that has left
+  //       its old id but is still on the page under a new one.
+  //
+  // Rewording a question is not flagged: its old text is simply gone, and the
+  // answer still sits under the id it was typed into. Trimming from the end and
+  // appending to the end are both allowed, and are how a block is meant to
+  // change.
+  console.log('12. saved answers still belong to their question...');
+  const boxesOf = (html) => [...html.matchAll(/data-q="([^"]+)"[^>]*data-question="([^"]*)"/g)]
+    .map((m) => ({ id: m[1], q: m[2] }));
+  const flat = (s) => s.replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ').trim().toLowerCase();
+  const seq = (boxes) => {
+    // group by the block key (lessonId:sc1), keeping document order, so a
+    // comparison is per-block and a whole block disappearing is its own case.
+    const byBlock = new Map();
+    for (const b of boxes) {
+      const key = b.id.replace(/:q\d+$/, '');
+      if (!byBlock.has(key)) byBlock.set(key, []);
+      byBlock.get(key).push(b.id);
+    }
+    return byBlock;
+  };
+  let hasHead = true;
+  try {
+    execSync('git rev-parse --verify --quiet HEAD^{commit}', { stdio: ['ignore', 'ignore', 'ignore'] });
+  } catch {
+    hasHead = false;
+  }
+  if (!hasHead) {
+    ok('skipped — no commit to compare against (not a git checkout?)');
+  } else {
+    const orphans = [];
+    for (const f of built) {
+      const id = f.replace('.html', '');
+      const atHead = (p) => {
+        const r = spawnSync('git', ['show', 'HEAD:' + p], { encoding: 'utf8' });
+        return r.status === 0 ? r.stdout : null;
+      };
+      const was = atHead('dist/lessons/' + f);
+      if (was === null) continue; // a lesson page that did not exist at HEAD has no saved answers
+      const oldBoxes = boxesOf(was);
+      if (oldBoxes.length === 0) continue;
+      const nowBoxes = boxesOf(fs.readFileSync(path.join(dist, 'lessons', f), 'utf8'));
+      const nowText = new Map(nowBoxes.map((b) => [b.id, flat(b.q)]));
+      const nowLive = new Set(nowBoxes.map((b) => flat(b.q)));
+      const oldSeq = seq(oldBoxes);
+      const newSeq = seq(nowBoxes);
+
+      for (const [block, oldIds] of oldSeq) {
+        const newIds = newSeq.get(block);
+        if (newIds && !(oldIds.every((x, i) => newIds[i] === x) || newIds.every((x, i) => oldIds[i] === x))) {
+          orphans.push(id + ' ' + block + ': ids are no longer an append-or-trim of the committed ones (' +
+            oldIds.join(', ') + ' → ' + newIds.join(', ') + ') — anything after the change moved under a new id, ' +
+            'and the answers already typed into those boxes are now attached to other questions');
+          continue;
+        }
+        // Ids can survive intact and still be orphaned, by two questions trading
+        // places: box q1 now shows what used to be q2's prompt, and the student's
+        // answer to q1 is sitting under a question it does not answer. Every id
+        // is present, the count is right, the page reads fine.
+        //
+        // A reworded question is not flagged — its new text matches no old prompt
+        // in the block. A moved one is: the new text under this id is verbatim
+        // the old text of a different id in the same block. That is the shape of
+        // a trade, and it is the only way that text gets there.
+        const oldText = new Map(oldBoxes.filter((b) => b.id.startsWith(block + ':')).map((b) => [b.id, flat(b.q)]));
+        for (const [oldId, wasText] of oldText) {
+          const isText = nowText.get(oldId);
+          if (isText === undefined || isText === wasText || isText === '') continue;
+          const cameFrom = [...oldText].find(([k, t]) => k !== oldId && t === isText);
+          if (!cameFrom) continue; // reworded, or the question this replaces was rewritten too
+          orphans.push(id + ': ' + oldId + ' now shows the question that used to live under ' + cameFrom[0] +
+            ' — the two traded slots, so every saved answer in that pair is reading the other prompt');
+        }
+      }
+      for (const b of oldBoxes) {
+        const stillThere = nowText.has(b.id);
+        const text = flat(b.q);
+        if (stillThere || !nowLive.has(text)) continue;
+        const landed = nowBoxes.find((n) => flat(n.q) === text);
+        orphans.push(id + ': the question under ' + b.id + ' is unchanged but now answers as ' + landed.id +
+          ' — the text moved slots, so saved answers are reading the wrong prompt (trim or append, never move)');
+      }
+    }
+    if (orphans.length) {
+      fail(orphans.length + ' answer box(es) orphaned against the committed page:\n    ' + orphans.join('\n    '));
+    } else {
+      ok('every answer box in the ' + built.length + ' built lesson(s) still belongs to the question it did');
+    }
   }
 }
 
