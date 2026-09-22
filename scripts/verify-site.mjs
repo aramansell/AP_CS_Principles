@@ -948,12 +948,21 @@ if (!fs.existsSync(askSrcPath)) {
       }
     }
     // (a) density: how many sections lean on one term, and how hard
+    //
+    // <pre> comes out first. Code the student types is not prose they read: a
+    // lesson ABOUT the Animator must type `GetComponentInChildren<Animator>()`
+    // in the walkthrough, and counting that as a mention meant a lesson could
+    // not get its own subject below three sections however well it was written
+    // — the warning fired hardest on exactly the lessons that were right. The
+    // sections still count as sections, because the student does meet the term
+    // there; only the sentence tally is prose.
+    const readable = (h) => h.replace(/<pre[\s\S]*?<\/pre>/g, ' ').replace(/<[^>]+>/g, ' ');
     for (const term of TERMS) {
-      const inBlocks = blocks.filter((b) => b.html.replace(/<[^>]+>/g, ' ').includes(term));
+      const inBlocks = blocks.filter((b) => readable(b.html).includes(term));
       if (inBlocks.length <= SECTIONS_MAX) continue;
       let sentences = 0;
       for (const b of blocks) {
-        for (const s of b.html.replace(/<[^>]+>/g, ' ').split(/(?<=[.!?])\s+/)) {
+        for (const s of readable(b.html).split(/(?<=[.!?])\s+/)) {
           if (s.includes(term)) sentences++;
         }
       }
