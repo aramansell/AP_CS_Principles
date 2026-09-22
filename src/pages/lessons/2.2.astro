@@ -54,13 +54,12 @@ import { renderDecompose } from '../../lib/decompose';
 // the skill being practised, not guessing it.
 const DECOMPOSE = {
   big:
-    'Take damage when I touch a spike — "how do I take damage when I touch a spike?" — for a ' +
-    'character that is currently a ghost: the physics engine knows it is standing there and has ' +
-    'never once been asked to move it.',
+    'Take damage when I touch a spike — for a character that is currently a ghost: the physics ' +
+    'engine knows it is standing there and has never once been asked to move it.',
   parts: [
     {
       name: 'Give the spike a shape that pushes back',
-      does: 'A Collider2D on the Spikes prefab, sized to the art, with `Is Trigger` left **off**. That checkbox is where the spike stops being a coin: a trigger reports an overlap and pushes nothing, while a solid collider pushes — and a push is the only thing that can stop you. It has to sit on the object carrying the `Spikes` tag.',
+      does: 'A Collider2D on the Spikes prefab, sized to the art, with `Is Trigger` left **off**, on the object carrying the `Spikes` tag.',
       doc: 'the `OnCollisionEnter2D(Collision2D c)` row in the quick reference, and the `Is Trigger` setting you used on the coin in 2.1.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
@@ -84,10 +83,9 @@ const DECOMPOSE = {
     },
   ],
   why:
-    'Note which part is the gap and which three are last lesson\'s coin pickup wearing a different ' +
-    'tag. You already know how to check a tag and how to change a value that lives in the class ' +
-    'body. What is genuinely new is who moves the Player — and until that changes, a solid spike ' +
-    'is a picture you can stand inside.',
+    'Note which part is the gap and which three are last lesson\'s coin pickup wearing a ' +
+    'different tag. What is genuinely new is who moves the Player — and until that changes, a ' +
+    'solid spike is a picture you can stand inside.',
   sizeTest:
     'The test: does the part name the thing that does the work? "Take damage" is an effect, not a ' +
     'part. "Hand the movement to the physics engine" is a part — and it is the only one here that ' +
@@ -110,7 +108,7 @@ const WALK = {
   steps: [
     {
       title: 'Declare a reference to the body',
-      lead: 'You gave the Player a Rigidbody2D in 2.1. To hand it instructions you need a reference to it — and you look that up once, not sixty times a second.',
+      lead: 'You gave the Player a Rigidbody2D in 2.1. To hand it instructions you need a reference to it.',
       lines: [
         { code: '// PlayerController.cs — class body, above Start(), with your other fields.', what: '' },
         { code: '    private Rigidbody2D body;', what: 'A field to hold the Player\'s Rigidbody2D component. `private` and no `[SerializeField]`, because nothing outside this script needs to see it.' , why: 'Class body, not inside a method — the same rule from 1.3. This reference has to still be here on the next frame, so it belongs to the object.' },
@@ -214,24 +212,17 @@ public class PlayerController : MonoBehaviour
             Debug.Log("Player died.");
         }
     }
-}
-
-// Inspector, on Assets/Prefabs/Player ▸ Rigidbody 2D:
-//   Body Type          =  Dynamic     <- only Dynamic is stopped by the world
-//   Gravity Scale      =  0           <- top-down world, no down
-//   Freeze Rotation Z  =  ON          <- solid hits impart spin
-//   Interpolate        =  Interpolate`,
+}`,
   finalNote:
-    'Compare against your own file rather than copying it. The gap is the `linearVelocity` line, and it is not right by luck: there is no `deltaTime` because velocity is per second, and the frozen rotation exists because solid collisions push.',
+    'Compare against your own file rather than copying it. The gap is the `linearVelocity` line: there is no `deltaTime` because velocity is per second, and the frozen rotation exists because solid collisions push.',
 };
 
 const body = `<h1>2.2 — Spikes: Physics, Damage &amp; Death</h1>
 
 <p class="lesson-lead">
-    You built a coin you can walk through. Now build a spike you <em>cannot</em>. That sounds
-    like a small change — one checkbox — and it is going to break your game, because it will
-    reveal something you have been carrying since <a href="1.4.html">1.4</a>:
-    <strong>your character is a ghost.</strong>
+    You built a coin you can walk through. Now build a spike you <em>cannot</em>: one checkbox,
+    and it breaks your game — because it reveals something you have been carrying since
+    <a href="1.4.html">1.4</a>. <strong>Your character is a ghost.</strong>
 </p>
 
 ${renderAskBanner('how do I take damage when I touch a spike?', 2)}
@@ -258,10 +249,9 @@ ${renderDecompose('2.2', DECOMPOSE, 2)}
             Drag the size handles until the green outline matches the art.
         </li>
         <li>
-            <strong>Inspector → Box Collider 2D → Is Trigger ☐ OFF.</strong> Leave it off. This is
-            the one setting that separates a spike from a coin — a solid collider pushes, and a push
-            is the only thing that can stop you. Leave it on and the spike is a coin with a nastier
-            colour.
+            <strong>Inspector → Box Collider 2D → Is Trigger ☐ OFF.</strong> Leave it off: this is
+            the one setting that separates a spike from a coin, because a push is the only thing
+            that can stop you.
         </li>
         <li>
             <strong>Project window →</strong> <code>Assets/Prefabs/Player</code>, then
@@ -270,38 +260,28 @@ ${renderDecompose('2.2', DECOMPOSE, 2)}
         </li>
         <li>
             <strong>Inspector → Rigidbody 2D → Constraints → Freeze Rotation Z ☑ ON.</strong> In 2.1
-            you left Constraints alone because nothing in the world was solid to you. A solid
-            collider pushes, an off-centre push imparts torque, and without this your character
-            tumbles like a dropped coin the first time it hits a wall at an angle.
+            you left Constraints alone because nothing in the world was solid to you. An off-centre
+            push imparts torque, and without this your character tumbles like a dropped coin the
+            first time it hits a wall at an angle.
         </li>
         <li>
             <strong>Press Play and walk into your spike.</strong> You walk straight through it. That
             is the bug this whole lesson exists to fix.
         </li>
     </ol>
-
-    <div class="callout trap">
-        <strong>This is the most important bug in the unit — do not patch around it.</strong>
-        Your character is a ghost the physics engine knows about but is never asked to move.
-        <code>transform.Translate(movement)</code> edits coordinates directly; it never consults
-        physics, so it will happily place you inside a wall. Every collision feature from here to
-        the end of the year — spikes, walls, doors, enemies, the boss — depends on the decision you
-        make next. Make it deliberately, and be ready to defend it.
-    </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">Read the Docs: Choose Your Movement Method</span>
+        <span class="activity-label">In the Code: Choose Your Movement Method</span>
         <span class="activity-time">~15 min</span>
     </div>
 
     <p>
         You read this table in <a href="1.5.html">1.5</a> as a <em>prediction</em>. Now it is a
-        decision you live with for the rest of the year, so read the last two columns carefully —
-        and read the note underneath about the documentation being wrong, because someone already
-        fell into it for you.
+        decision you live with for the rest of the year — so read the last two columns, and the
+        warning underneath, because someone already fell into it for you.
     </p>
 
     <table>
@@ -322,7 +302,7 @@ ${renderDecompose('2.2', DECOMPOSE, 2)}
             <td><code>Rigidbody2D.MovePosition(position)</code></td>
             <td>Sweeps the body to a target position and tests the path as it goes.</td>
             <td>Yes &mdash; <strong>but only on a Dynamic body</strong></td>
-            <td>A Rigidbody2D with Body Type <strong>Dynamic</strong>. The docs recommend Kinematic, and that is the one body type where it does <em>not</em> work.</td>
+            <td>A Dynamic Rigidbody2D — the opposite of what the docs recommend.</td>
         </tr>
         <tr>
             <td><code>Rigidbody2D.AddForce(vector)</code></td>
@@ -334,25 +314,20 @@ ${renderDecompose('2.2', DECOMPOSE, 2)}
 
     <div class="callout warn">
         <strong>The documentation recommends the one combination that does not work.</strong>
-        Unity's page for <code>MovePosition(position)</code> ends with the note that it
-        <em>"is intended for use with kinematic rigidbodies."</em> The same page also says that
-        <em>"if the rigidbody is kinematic then any collisions won't affect the rigidbody
-        itself"</em> — and the manual on body types says a Kinematic body <em>"only collides with
-        Dynamic Rigidbody 2Ds and not the other Body Types."</em>
-        <br><br>
-        Put together: on a Kinematic body, you arrive wherever you asked and <strong>nothing stops
-        you on the way</strong>. The recommended pairing is the broken one. The rule that survives
-        contact with all of it is simpler: <strong>for anything in the world to stop you, your body
-        must be Dynamic.</strong> That is why this course uses <code>linearVelocity</code> — it
-        needs no fine print.
+        Unity's page for <code>MovePosition(position)</code> says it <em>"is intended for use with
+        kinematic rigidbodies"</em> — and the same page admits that on a kinematic body
+        <em>"collisions won't affect the rigidbody itself"</em>. The manual goes further: a
+        Kinematic body <em>"only collides with Dynamic Rigidbody 2Ds."</em> On a Kinematic body you
+        arrive wherever you asked and <strong>nothing stops you on the way.</strong> The rule that
+        survives all of it: <strong>for anything to stop you, your body must be Dynamic</strong> —
+        which is why this course uses <code>linearVelocity</code>.
     </div>
 
     <div class="callout info">
-        <strong>Why your coins still work either way.</strong> Triggers are the exception to every
-        rule above: a collider with <strong>Is Trigger</strong> ticked reports the overlap to
-        <em>any</em> body type, including Kinematic. So a coin picks up whether you are Dynamic or
-        Kinematic, while a wall and a cave door only notice a Dynamic you. This is exactly why "it
-        works in my game" is not the same as "it is right."
+        <strong>Why your coins still work either way.</strong> Triggers are the exception: a
+        collider with <strong>Is Trigger</strong> ticked reports the overlap to <em>any</em> body
+        type, including Kinematic. A coin picks up either way; a wall and a cave door only notice a
+        Dynamic you.
     </div>
 
     <div class="socratic">
@@ -376,19 +351,18 @@ ${renderWalkthrough(WALK)}
     </div>
 
     <p>
-        This one is on you, in the same shape as the walkthrough above — but there is no
-        gap-by-gap guide, because every piece of it you have already built once. A field in the
-        class body is 2.1. A method that changes a value is 1.3. A callback that checks a tag is
-        2.1. Specification:
+        This one is on you, in the same shape as the walkthrough above — no gap-by-gap guide,
+        because every piece of it you have built once. A field in the class body is 2.1. A method
+        that changes a value is 1.3. A callback that checks a tag is 2.1. Specification:
     </p>
 
     <div class="callout">
         <strong>Health.</strong>
         <ul>
             <li>A field on <code>PlayerController</code>, beside <code>coins</code> — what type, what starting value, and how is it exposed as a tuning knob?</li>
-            <li>One method that changes health by a <em>signed</em> amount, so the spike and (next lesson) the potion call the same method with different signs. Why one method rather than separate heal and damage methods?</li>
+            <li>One method that changes health by a <em>signed</em> amount, so a later heal is the same call with a different sign. Why one method rather than separate heal and damage methods?</li>
             <li>Which callback holds the spike check, and how do you identify the spike from inside it — given the parameter is a <code>Collision2D</code> and not a collider?</li>
-            <li>What condition means "already dead", and what should the method do at that exact moment? What would the Console print on a second spike without that guard?</li>
+            <li>What condition means "already dead", and what should the method do at that exact moment?</li>
             <li>After subtracting health, what do you print so a player can watch the number change with no UI at all?</li>
         </ul>
     </div>
@@ -404,13 +378,13 @@ ${renderWalkthrough(WALK)}
             <td><strong>Solid spike</strong></td>
             <td>You stop against it. Damage once per touch.</td>
             <td><code>OnCollisionEnter2D(Collision2D collision)</code></td>
-            <td>You can get wedged against the spike, and sliding along it may not register at all.</td>
+            <td>You can get wedged against it, and sliding along it may not register at all.</td>
         </tr>
         <tr>
             <td><strong>Trigger spike</strong></td>
             <td>You walk through it. Damage once per entry.</td>
             <td><code>OnTriggerEnter2D(Collider2D other)</code></td>
-            <td>Standing inside the spike deals no further damage — usually wrong for a hazard.</td>
+            <td>Standing inside it deals no further damage — usually wrong for a hazard.</td>
         </tr>
         <tr>
             <td><strong>Trigger spike + cooldown</strong></td>
@@ -420,33 +394,21 @@ ${renderWalkthrough(WALK)}
         </tr>
     </table>
 
-    <div class="callout info">
-        <strong>The parameter types differ, and it matters.</strong>
-        <code>OnTriggerEnter2D(Collider2D other)</code> and <code>OnTriggerStay2D(Collider2D other)</code>
-        hand you a <code>Collider2D</code>, which has <code>.gameObject</code> and
-        <code>.CompareTag(String tag)</code> directly. <code>OnCollisionEnter2D(Collision2D collision)</code>
-        hands you a <code>Collision2D</code>, a data container carrying contact points and
-        <code>relativeVelocity</code> — which is why one lets you write
-        <code>other.CompareTag("Spikes")</code> and the other makes you write
-        <code>collision.gameObject.CompareTag("Spikes")</code>.
-    </div>
-
     <p>
         Death has more than one defensible design. <strong>Pick one and defend it:</strong>
         <strong>(a)</strong> reload the current scene with
         <code>SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex)</code> — everything
-        resets, coin count included; <strong>(b)</strong> reload a scene by name, after answering
-        which scene is index 0 and whether it contains a Player; <strong>(c)</strong> do not reload
-        at all — reset health, move the player back to the start, keep the coins.
+        resets, coin count included; <strong>(b)</strong> reload a scene by name — which scene, and
+        does it contain a Player?; <strong>(c)</strong> do not reload at all — reset health, move
+        the player back to the start, keep the coins.
     </p>
 
     <div class="socratic">
-        <h3>Justify Your Choice — this is your written decision record</h3>
+        <h3>Your Decision Record</h3>
         <ol>
-            <li>Which movement method did you choose? Name the exact API call you now use.</li>
-            <li>What did you have to change in the Rigidbody2D Inspector to make it work, and what broke when you got one of those settings wrong?</li>
-            <li>What evidence from your build proves the choice works? Say what you ran into, and what happened.</li>
-        </ol>
+<li>Which Rigidbody 2D settings did you have to change, and what did you see when one of them was wrong?</li>
+<li>What evidence from your own build proves your choice works &mdash; what did you run into, and what happened?</li>
+</ol>
     </div>
 </div>
 
@@ -457,7 +419,6 @@ ${renderWalkthrough(WALK)}
     <ul>
         <li>Explain why <code>transform.Translate(vector)</code> ignores colliders, and quote the documentation saying so</li>
         <li>Compare the four movement methods, and name the one setting they all depend on</li>
-        <li>Say which body type your Player uses, and why a cave door depends on that answer</li>
         <li>Explain why <code>linearVelocity</code> does not get multiplied by <code>Time.deltaTime</code> when <code>transform.Translate(vector)</code> did</li>
         <li>Explain <code>OnCollisionEnter2D(Collision2D collision)</code> versus <code>OnTriggerEnter2D(Collider2D other)</code> by their parameter types</li>
         <li>State exactly what resets and what survives when your player dies</li>

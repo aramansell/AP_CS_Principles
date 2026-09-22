@@ -48,45 +48,44 @@ const DECOMPOSE = {
   parts: [
     {
       name: 'Give the coin a shape the engine can test',
-      does: 'A Circle Collider 2D on the prefab root, its radius dragged until the green outline covers the art, with `Is Trigger` ticked. A trigger reports an overlap; a solid collider pushes.',
+      does: 'A Circle Collider 2D on the prefab root, its radius dragged until the green outline covers the art, with `Is Trigger` ticked.',
       doc: 'the `Collider2D` row in the quick reference, and the Is Trigger checkbox in the Inspector.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
       name: 'Give the Player a shape and a body',
-      does: 'A Circle Collider 2D and a Rigidbody 2D (Body Type Dynamic, Gravity Scale 0), both on the Player root — the root, not the Sprite child, because a tag is asked of whichever object owns the collider. Two colliders with no body anywhere produce silence.',
+      does: 'A Circle Collider 2D and a Rigidbody 2D (Body Type Dynamic, Gravity Scale 0), both on the Player root — not the Sprite child, because a tag is asked of whichever object owns the collider.',
       doc: 'the Body Type warning in the quick reference — it is the first thing to check when nothing happens.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
       name: 'Confirm the thing that triggered was a coin',
-      does: '`OnTriggerEnter2D(Collider2D other)` runs on the first frame two shapes overlap, and its parameter is the other object\'s collider. The `other.CompareTag("Coin")` check is what turns "something touched me" into "a coin touched me".',
+      does: '`OnTriggerEnter2D(Collider2D other)` runs on the first frame two shapes overlap; the `other.CompareTag("Coin")` check is what turns "something touched me" into "a coin touched me".',
       doc: 'the `OnTriggerEnter2D(Collider2D other)` and `other.CompareTag("Coin")` rows in the quick reference.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
       name: 'Change the count',
-      does: '`coins = coins + 1;` inside the check, with `coins` declared as a `[SerializeField] private int` in the class body. No type in front of the line in the method: this assigns to a field that already exists.',
+      does: 'Inside the check: `coins = coins + 1;`, against a `[SerializeField] private int` declared in the class body — the declare-versus-assign split from 1.3.',
       doc: 'the `[SerializeField] private float speed;` row in the quick reference, and the declare-vs-assign rule you met in 1.3.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
       name: 'Remove the coin from the world',
-      does: '`Destroy(other.gameObject)` — `other` is a Collider2D, not a GameObject, so `.gameObject` walks up to the whole coin. Write `Destroy(gameObject)` by mistake and you delete the Player instead.',
+      does: '`Destroy(other.gameObject)`: `other` is a Collider2D, so `.gameObject` walks up to the whole coin.',
       doc: 'the `Destroy(gameObject)` row in the quick reference, and the pickup pattern underneath it.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
   ],
   why:
-    'Three of these five parts are the pickup pattern in miniature — a check, a change, a destroy — ' +
-    'and you will write them in that order all year. The first two are what this lesson is really ' +
-    'about: Unity\'s rule is a collider on both objects and a body on at least one, and until it is ' +
-    'satisfied the method never runs at all. That is why the split has to include the Inspector.',
+    'The last three parts are the pickup pattern in miniature — a check, a change, a destroy — and ' +
+    'you will write them in that order all year. The first two are why the split has to reach into ' +
+    'the Inspector: until they are done, the method never runs at all.',
   sizeTest:
     'The test: when the coin does nothing, is there one part above you can point at and test on its ' +
     'own? A silent failure with no error in the Console is a physics problem, not a script problem.',
   turns: [
-    'Part three is the line that turns "something touched me" into "a coin touched me". In one sentence, say what the Player would do on the first frame it walked into a wall if that line were missing.',
+    'In one sentence: what would the Player do on the first frame it walked into a wall if that tag check were missing?',
   ],
 };
 
@@ -99,7 +98,7 @@ const WALK = {
   file: 'Assets/Scripts/PlayerController.cs',
   label: 'In the Code',
   intro:
-    'The editor work above is what lets the two objects notice each other. This is the script half: two additions to PlayerController.cs, each one anchored by a comment telling you where in the file it goes.',
+    'The editor work above is what lets the two objects notice each other. This is the script half: two additions to PlayerController.cs, each anchored by a comment telling you where in the file it goes.',
   level: 1,
   steps: [
     {
@@ -168,13 +167,7 @@ public class PlayerController : MonoBehaviour
             Destroy(other.gameObject);
         }
     }
-}
-
-// Inspector changes made in this lesson:
-//   Assets/Prefabs/Coin    : + Circle Collider 2D (Is Trigger ON, radius fitted)
-//   Assets/Prefabs/Player  : + Circle Collider 2D on the ROOT (radius fitted)
-//                            + Rigidbody 2D (Body Type Dynamic, Gravity Scale 0,
-//                              Interpolate = Interpolate)`,
+}`,
   finalNote:
     'Compare against your own file. The two things to check hardest: that `coins` sits in the class body with your other fields rather than beside the method, and that the destroy says `other.gameObject`.',
 };
@@ -183,9 +176,9 @@ const body = `<h1>2.1 — Coins: Triggers, Tags &amp; Your First Stat</h1>
 
 <p class="lesson-lead">
     Your character can walk, but it cannot <em>touch</em> anything. Walk straight over the coin
-    and nothing happens — not because your code is wrong, but because nothing in this entire
-    project is built to notice a collision. Today you make the first object in the game that
-    reacts to the player, and in doing so you switch the physics engine on for good.
+    and nothing happens: nothing in this entire project is built to notice a collision. Today you
+    make the first object in the game that reacts to the player, and in doing so you switch the
+    physics engine on for good.
 </p>
 
 ${renderAskBanner('how do I detect a collision, and make something happen?', 1)}
@@ -201,8 +194,7 @@ ${renderDecompose('2.1', DECOMPOSE, 1)}
 
     <p>
         Do this first. Two objects have to be able to notice each other <em>in the Inspector</em>
-        before a single line of code can run — and the Console will not tell you what you missed.
-        Each step below names the pane it happens in.
+        before a single line of code can run.
     </p>
 
     <ol>
@@ -213,8 +205,8 @@ ${renderDecompose('2.1', DECOMPOSE, 1)}
         </li>
         <li>
             <strong>Inspector → Add Component → Circle Collider 2D.</strong> That is the coin's
-            <strong>shape</strong> — before this the engine has no idea the coin occupies any space
-            at all. Drag <strong>Radius</strong> until the green outline covers the art.
+            <strong>shape</strong>. Drag <strong>Radius</strong> until the green outline covers the
+            art.
         </li>
         <li>
             <strong>Inspector → Circle Collider 2D → Is Trigger ☑ ON.</strong> This changes what an
@@ -223,8 +215,8 @@ ${renderDecompose('2.1', DECOMPOSE, 1)}
         </li>
         <li>
             <strong>Project window →</strong> <code>Assets/Prefabs/Player</code>. Select the
-            <strong>Player</strong> root in the prefab, not the Sprite child. The tag is asked of
-            whichever object owns the collider, and the root is the object tagged <code>Player</code>.
+            <strong>Player</strong> root in the prefab, not the Sprite child — the root is the
+            object tagged <code>Player</code>.
         </li>
         <li>
             <strong>Inspector → Add Component → Circle Collider 2D</strong> (if the Player does not
@@ -234,16 +226,11 @@ ${renderDecompose('2.1', DECOMPOSE, 1)}
             <strong>Inspector → Add Component → Rigidbody 2D</strong> (if it has not been added).
             This is the <strong>body</strong>, and it is the one everyone forgets. Then set:
             <strong>Body Type = Dynamic</strong>, <strong>Gravity Scale = 0</strong>,
-            <strong>Interpolate = Interpolate</strong>. Gravity Scale defaults to 1, and leaving it
-            there slides your character off the bottom of the screen the moment you press Play.
+            <strong>Interpolate = Interpolate</strong>. Your world is seen from directly above —
+            there is no "down" for anything to fall toward — and Gravity Scale defaults to 1, which
+            slides your character off the bottom of the screen the moment you press Play.
         </li>
     </ol>
-
-    <div class="callout info">
-        <strong>Why Gravity Scale is 0.</strong> Your world is seen from directly above. There is no
-        "down" for anything to fall toward, so the Player must not be pulled anywhere unless a
-        script asks for it.
-    </div>
 
     <div class="callout trap">
         <strong>Press Play, then walk into a cave entrance. The scene will change.</strong>
@@ -259,7 +246,7 @@ ${renderDecompose('2.1', DECOMPOSE, 1)}
         <ol>
 <li>A Transform stores position, rotation and scale. What does a Collider2D store that a Transform has no way to express?</li>
 <li>The physics engine runs on its own schedule, not inside your <code>Update()</code>. Why would Unity be built that way, instead of letting your script test for overlaps once a frame?</li>
-<li>A trigger pushes nothing — it only reports. Which two game behaviours besides a coin pickup would want a report-only overlap like that?</li>
+<li>A trigger pushes nothing — it only reports. Which two other game behaviours would want a report-only overlap like that?</li>
 </ol>
     </div>
 </div>
@@ -276,8 +263,8 @@ ${renderWalkthrough(WALK)}
 
     <p>
         You just made a real design decision without being told to: the coin count lives on
-        <code>PlayerController</code>. Here are the three honest places a number like that can live,
-        and what each one costs.
+        <code>PlayerController</code>. Here are the three honest places a number like that can
+        live, and what each one costs.
     </p>
 
     <table>
@@ -285,17 +272,17 @@ ${renderWalkthrough(WALK)}
         <tr>
             <td><strong>A field on <code>PlayerController</code></strong></td>
             <td><code>[SerializeField] private int coins;</code></td>
-            <td>Anything else that wants the number must find the player first. <strong>This is what you built, and it is the right call today</strong> — the only thing that touches coins <em>is</em> the player.</td>
+            <td>Anything else that wants the number must find the player first. <strong>This is what you built, and it is the right call today</strong> — nothing else touches coins yet.</td>
         </tr>
         <tr>
             <td><strong>A separate <code>PlayerStats</code> component</strong></td>
             <td>Numbers live in a component whose only job is numbers.</td>
-            <td>One more component, one more reference to cache, one more thing to keep in sync. Worth it when movement code and stat code start fighting over the same file.</td>
+            <td>One more component to cache and keep in sync — worth it once movement and stats start fighting over the same file.</td>
         </tr>
         <tr>
             <td><strong>A global singleton <code>StatManager</code></strong></td>
             <td>Any script, anywhere, reads the numbers from one shared object.</td>
-            <td>Everything can reach it, so nothing protects it — and to be worth having it must survive a scene change. That is a Unit 5 problem, not a Unit 2 one.</td>
+            <td>Everything can reach it, so nothing protects it — and a stat that has to survive a scene change is a Unit 5 problem, not a Unit 2 one.</td>
         </tr>
     </table>
 

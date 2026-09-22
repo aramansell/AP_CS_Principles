@@ -10,93 +10,97 @@
 // ignores walls and chooses a replacement. Adding a rigidbody here would
 // contradict both lessons.
 //
-// The old "Read Function-Level Examples" block (racing kart, pendulum clock)
-// has been removed — it was three more unanchored snippets in a lesson that
-// needed one complete, explained build instead.
+// STRUCTURE (tightening pass): the clicks are "In the Editor" — open the file,
+// feel the diagonal bug in play mode, tune the Move Speed box while the game
+// runs, bisect to a number, enter it in edit mode, commit. The file work is
+// "In the Code": the four-technique table, the do-not-switch warning, the
+// socratic and the walkthrough. The old "Read the Docs", "What deltaTime is
+// really doing" and "Tuning Lab" labels are absorbed into those two.
+//
+// CULLED FOR REPETITION AND PRE-EXPLANATION: the "What deltaTime is really
+// doing" activity (three paragraphs) explained frame-rate independence that the
+// technique table's velocity row, the walkthrough's `movement` note and 1.3's
+// Update() row had each already said — the one clause worth keeping is now in
+// the walkthrough line where the student types the multiplication. The
+// "Note what MovePosition buys you" paragraph restated its own table row and
+// pre-explained 2.2, and is gone. The old "Read Function-Level Examples" block
+// (racing kart, pendulum clock) was three more unanchored snippets and is gone.
 import Lesson from '../../layouts/LessonLayout.astro';
 import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
 
 // The two recurring questions, applied to the diagonal-speed bug. Level 1,
-// so every part is given in full. The split is 1.4's three parts with the new
-// one wedged in the middle on purpose: the vector 1.4 built is correct as a
+// so every part is given in full. The split is the four parts of 1.4 with the
+// resize wedged in the middle on purpose: the vector 1.4 built is correct as a
 // direction and wrong as a length, so "make it the right length" has to be its
-// own step, and it can only be its own step if speed is kept OUT of the
-// direction until the last part. That ordering is the lesson.
+// own part, and it can only be its own part if speed is kept OUT of the
+// direction until the last one. That ordering is the lesson — and it is why the
+// walkthrough is a single step (the fix is three lines in one place in Update())
+// while the split above it stays at four.
 const DECOMPOSE = {
   big:
-    'My character moves faster on the diagonal than it does in a straight line — "why does my ' +
-    'character move faster diagonally, and how do I fix it?" The movement from 1.4 already works, ' +
-    'and that is exactly what makes the wrongness hard to see.',
+    'My character moves faster on the diagonal than in a straight line. The movement from 1.4 ' +
+    'already works, and that is what makes the wrongness hard to see.',
   parts: [
     {
       name: 'Read which way the player is pushing',
-      does: 'The two `Input.GetAxis` reads from 1.4, assigned to the `inputX` and `inputY` fields you already declared in the class body. Unchanged, and nothing here is the bug.',
+      does: 'The two axis reads from 1.4, assigned to the `inputX` and `inputY` fields you already declared. Unchanged — nothing here is the bug.',
       doc: 'the `Input.GetAxis("Horizontal")` row in the quick reference.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
       name: 'Build a direction vector out of the two numbers',
-      does: 'Pack both axes into one `Vector2`. At this point it is pure direction — no speed and no time multiplied in — and its length is whatever the input happens to be, which is the whole problem.',
-      doc: 'the `Vector2` row in the quick reference, and the vector you built yourself in 1.4.',
+      does: 'Pack both axes into one `Vector2`: pure direction, with no speed and no time multiplied in. Its length is whatever the input happens to be — the whole problem.',
+      doc: 'the `Vector2` row in the quick reference, and the vector you built in 1.4.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
       name: 'Rescale that vector to a length of exactly 1',
-      does: '`direction = direction.normalized;` keeps the arrow pointing the same way and throws its length away, so "up and right" is `(0.707, 0.707)` instead of `(1, 1)`. This is the fix, and it is general, not a special case for diagonals: eight directions, a half-pushed stick, anything.',
-      doc: 'the `(a - b).normalized` row in the quick reference — direction, length exactly 1, whatever you hand it.',
+      does: '`direction = direction.normalized;` keeps the arrow pointing the same way and throws its length away, so "up and right" is `(0.707, 0.707)` instead of `(1, 1)`. The fix is general, not a special case for diagonals.',
+      doc: 'the `(a - b).normalized` row in the quick reference — direction, length exactly 1.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
       name: 'Scale that unit direction into a distance, and apply it',
-      does: 'One multiplication: `direction * moveSpeed * Time.deltaTime`. Because the direction is always length 1, this distance is identical whichever way you are facing. Then `transform.Translate` applies it, exactly as it did in 1.4.',
-      doc: 'the `Time.deltaTime` and `transform.Translate(v)` rows in the quick reference.',
+      does: 'One multiplication: `direction * moveSpeed * Time.deltaTime`. Because the direction is always length 1, this distance is identical whichever way you face. Then the Transform applies it, as in 1.4.',
+      doc: 'the `Time.deltaTime` and translate rows in the quick reference.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
   ],
   why:
-    'Four parts, and the new one sits in the middle rather than at the end. The vector from 1.4 ' +
-    'was two numbers stapled together, which is fine until you do arithmetic with them: (1, 0) is ' +
-    'length 1 and (0, 1) is length 1, but (1, 1) is 1.41 — so pressing two keys moved you 41% ' +
-    'further. A direction and a distance are different quantities, and the moment you keep them in ' +
-    'separate parts, the fix is one line.',
+    'The new part sits in the middle rather than at the end. The vector from 1.4 was two numbers ' +
+    'stapled together, which is fine until you do arithmetic with them: (1, 0) is length 1, (0, 1) ' +
+    'is length 1, but (1, 1) is 1.41 — so two keys moved you 41% further. Keep direction and ' +
+    'distance in separate parts and the fix is one line.',
   sizeTest:
-    'The test: is "which way" still in the same part as "how far"? If you cannot point at the one ' +
-    'line where speed is applied, the direction and the distance are still tangled — and that ' +
-    'tangling is what made the bug invisible in 1.4.',
+    'Is "which way" still in the same part as "how far"? If you cannot point at the one line where ' +
+    'speed is applied, the two are still tangled.',
   turns: [
-    'The diagonal-speed fix was one line, and it landed in the middle part rather than the last ' +
-      'one. Why does a bug get easy to find exactly when the problem has been split into the ' +
-      'right parts?',
+    'The fix was one line, and it landed in the middle part rather than the last one. Why does a ' +
+      'bug get easy to find exactly when the problem has been split into the right parts?',
   ],
 };
 
 const WALK = {
   ask: 'why does my character move faster diagonally, and how do I fix it?',
   file: 'Assets/Scripts/PlayerController.cs',
-  intro: 'You already have working movement from 1.4. This walkthrough replaces two of those lines with a clearer version that moves at exactly the same speed in every direction.',
+  label: 'In the Code',
+  intro: 'You have working movement from 1.4. This replaces two of those lines; the fields and the input reads do not change.',
   level: 1,
   steps: [
-    {
-      title: 'See the problem first',
-      lead: 'Hold W and D together. You are moving up and right at the same time — but how far are you actually travelling?',
-      lines: [
-        { code: '// Straight right:      (1, 0)   -> length 1', what: 'Pressing D alone gives a direction of length 1.' },
-        { code: '// Straight up:         (0, 1)   -> length 1', what: 'Pressing W alone gives a direction of length 1.' },
-        { code: '// Up and right:        (1, 1)   -> length 1.41', what: 'Pressing both gives a direction of length **1.41**, not 1. Your character is travelling 41% further per frame in that direction — so diagonal movement is 41% faster than it should be.' },
-      ],
-    },
     {
       title: 'Separate direction from speed',
       lead: 'In 1.4 you multiplied the input by speed in two separate places. Pull those apart: first work out which way to go, then decide how far.',
       lines: [
-        { code: '        Vector2 direction = new Vector2(inputX, inputY);', what: 'Builds a vector pointing whichever way the player is holding. At this point it is pure **direction** — no speed, no time. Its length is whatever the input happens to be.' },
+        { code: '// PlayerController.cs — inside Update(), replacing the two displacement lines from 1.4.', what: '' },
+        { code: '        Vector2 direction = new Vector2(inputX, inputY);', what: 'A vector pointing whichever way the player holds. Pure **direction** — no speed, no time — and its length is whatever the input happens to be: D alone gives `(1, 0)`, but W and D together give `(1, 1)`, which is **1.41 long, not 1**. That extra 41% is the bug you can feel.' },
         { code: '', what: '' },
-        { code: '        direction = direction.normalized;', what: 'The fix. `.normalized` keeps the vector pointing the same way but **rescales it to a length of exactly 1**. Now "up and right" is `(0.707, 0.707)` instead of `(1, 1)` — same direction, correct length.' , why: 'This is the general solution, not a special case for diagonals. It works for eight directions, for a controller stick pushed halfway, for anything. Notice there is no second `Vector2` in front of `direction` — the variable already exists, so this line **assigns** to it, exactly like `inputX` from 1.3.' },
+        { code: '        direction = direction.normalized;', what: 'The fix: `.normalized` keeps the vector pointing the same way but **rescales it to a length of exactly 1**, so "up and right" becomes `(0.707, 0.707)`.', why: 'There is no second `Vector2` in front of `direction` — the variable already exists, so this line **assigns** to it, as `inputX` did in 1.3.' },
         { code: '', what: '' },
-        { code: '        Vector2 movement = direction * moveSpeed * Time.deltaTime;', what: 'Now scale that unit direction up to a real distance: one second\'s worth of travel (`moveSpeed`), scaled down to a single frame (`Time.deltaTime`).' , why: 'One clean multiplication replaces the two long lines from 1.4. Because `direction` is always length 1, this distance is identical no matter which way you are facing.' },
+        { code: '        Vector2 movement = direction * moveSpeed * Time.deltaTime;', what: 'Scales that unit direction up to a real distance: one second of travel (`moveSpeed`), cut down to one frame (`Time.deltaTime`).', why: 'Because `direction` is always length 1, and `Time.deltaTime` is the seconds the last frame took, this is the same real-world speed at 30 FPS and at 240 FPS.' },
         { code: '', what: '' },
-        { code: '        transform.Translate(movement);', what: '' },
+        { code: '// PlayerController.cs — unchanged from 1.4: the finished distance goes to the Transform.', what: '' },
+        { code: '        transform.Translate(movement);', what: 'Hands the distance to the Player\'s own Transform, which adds it to the current position. Unchanged from 1.4.' },
       ],
     },
   ],
@@ -123,17 +127,12 @@ public class PlayerController : MonoBehaviour
     }
 }`,
   finalNote:
-    'Compare against your own file. The only lines that should differ from 1.4 are the three that now build `direction` and `movement` — your fields, your input reads, and your `transform.Translate` are unchanged.',
+    'The only lines that should differ from 1.4 are the ones building `direction` and `movement` — fields, input reads and translate call are unchanged.',
 };
 
 const body = `<h1>1.5 — Movement II: Speed, deltaTime &amp; Tuning</h1>
 
-<p class="lesson-lead">
-    Your character moves — but it walks through walls, and it does not yet <em>feel</em> like
-    anything. Today you fix a speed bug you can probably already feel, learn what
-    <code>Time.deltaTime</code> is really doing for you, and tune the character until it feels
-    right to control.
-</p>
+<p class="lesson-lead">Your character moves, and one thing about that is wrong: hold two direction keys at once and it travels 41% faster. Today you find out why, fix it in one line, and tune the number that decides how the character feels.</p>
 
 ${renderAskBanner('why does my character move faster diagonally, and how do I fix it?', 1)}
 
@@ -141,70 +140,40 @@ ${renderDecompose('1.5', DECOMPOSE, 1)}
 
 <!-- ============================================================ -->
 <div class="activity discovery">
-    <div class="activity-header">
-        <span class="activity-label">Read the Docs</span>
-        <span class="activity-time">~15 min</span>
+    <div class="activity-header"><span class="activity-label">In the Editor</span><span class="activity-time">~20 min</span></div>
+    <ol>
+        <li><strong>Project window →</strong> <code>Assets/Scripts</code>, and open <code>PlayerController.cs</code> — the file you built in 1.4.</li>
+        <li><strong>Game view →</strong> press <strong>Play</strong> and hold <strong>D</strong> for two seconds, then <strong>W and D together</strong>. The diagonal covers visibly more ground — you can see the bug before you write anything.</li>
+        <li><strong>Hierarchy →</strong> select the <strong>Player</strong>, then <strong>Inspector → Move Speed</strong>. Change the number <em>while the game runs</em> and walk again: too low is sluggish, too high is twitchy.</li>
+        <li><strong>Inspector → Move Speed</strong> again, bisecting toward a number that feels right for a world this size — <code>4</code> to <code>7</code> is a good starting range. Write it down.</li>
+        <li><strong>Game view →</strong> stop the game, then enter that number in the same box in edit mode so it persists. Then <strong>GitHub Desktop →</strong> commit and push the fix and the tuned speed.</li>
+    </ol>
+    <div class="callout trap">
+        <strong>Play mode is a dream, edit mode is reality</strong> (1.2). A value changed while the Play button is blue resets when you stop: play mode to <em>find</em> your number, edit mode to <em>keep</em> it.
     </div>
+</div>
 
-    <p>
-        In Unity there is rarely just one way to solve a problem. Each of these four movement
-        techniques exists because it solves a problem the others handle badly. Read the
-        trade-offs — including which ones demand a component your character does not have yet:
-    </p>
-
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">~15 min</span></div>
+    <p>Unity offers four ways to move an object, each because it handles something the others handle badly. You use the first today.</p>
     <table>
         <tr><th>Technique</th><th>How it works</th><th>Needs a Rigidbody2D?</th><th>Best for</th></tr>
-        <tr>
-            <td><code>transform.Translate(vector)</code></td>
-            <td>Directly offsets the object's coordinates. Skips the physics engine entirely.</td>
-            <td><strong>No</strong></td>
-            <td>Simple top-down games, moving UI, linear projectiles, bullets without gravity</td>
-        </tr>
-        <tr>
-            <td><code>Rigidbody2D.MovePosition(position)</code></td>
-            <td>Drives the physics body to a target position along the path. A <strong>Dynamic</strong> body is stopped cleanly by solid colliders on the way; a Kinematic body ignores them and arrives anyway.</td>
-            <td>Yes — and <strong>Dynamic</strong> if you want a wall to stop it</td>
-            <td>Moving platforms, lifts and scripted set pieces that must arrive at an exact position rather than travel at a speed</td>
-        </tr>
-        <tr>
-            <td><code>Rigidbody2D.linearVelocity = vector</code></td>
-            <td>Assigns a velocity to the physics body. The physics engine does the moving — and unlike <code>Translate</code>, the number is per <em>second</em>, not per frame.</td>
-            <td>Yes — and <strong>Dynamic</strong> if you want a wall to stop it</td>
-            <td>Snappy platformers, arcade physics, carrying momentum across surfaces</td>
-        </tr>
-        <tr>
-            <td><code>Rigidbody2D.AddForce(vector)</code></td>
-            <td>Applies a physical push or impulse, factoring in mass, drag, and inertia.</td>
-            <td>Yes — and <strong>Dynamic</strong>; a Kinematic body ignores forces entirely</td>
-            <td>Jumping, thrusters, ice physics, knockback from explosions or enemy hits</td>
-        </tr>
+        <tr><td><code>transform.Translate(vector)</code></td><td><strong>Offsets coordinates directly</strong>, skipping the physics engine.</td><td><strong>No</strong></td><td>Simple top-down games, moving UI, linear projectiles</td></tr>
+        <tr><td><code>Rigidbody2D.MovePosition(position)</code></td><td><strong>Drives the body to a target position</strong>, so whatever is in the way gets a say: a <strong>Dynamic</strong> body is stopped by a solid collider, a Kinematic one arrives anyway.</td><td>Yes — <strong>Dynamic</strong> if you want a wall to stop it</td><td>Moving platforms and scripted set pieces that must arrive at an exact position</td></tr>
+        <tr><td><code>Rigidbody2D.linearVelocity = vector</code></td><td><strong>Assigns a velocity</strong> and lets the physics engine move the body. The number is per <em>second</em>, not per frame.</td><td>Yes — <strong>Dynamic</strong> if you want a wall to stop it</td><td>Snappy platformers, arcade physics, momentum across surfaces</td></tr>
+        <tr><td><code>Rigidbody2D.AddForce(vector)</code></td><td><strong>Applies a physical push</strong>, factoring in mass, drag and inertia.</td><td>Yes — <strong>Dynamic</strong>; a Kinematic body ignores forces</td><td>Jumping, thrusters, ice physics, knockback</td></tr>
     </table>
-
-    <p>
-        Note what <code>MovePosition</code> buys you: it drives the body along the path rather
-        than teleporting it there, so whatever is in the way gets a say. On a
-        <strong>Dynamic</strong> body that is the difference between walking into a wall and
-        walking through one — but the call is not what stops you. Put the same line on a
-        <strong>Kinematic</strong> body and it walks through the wall exactly as
-        <code>Translate</code> did.
-    </p>
-
     <div class="callout warn">
-        <strong>Do not switch methods today.</strong> You have not added the component three of
-        these four need, and you have a good reason not to yet — you will add it in
-        <a href="2.1.html">2.1</a> for a different purpose entirely (picking up coins), and
-        <a href="2.2.html">2.2</a> is where you will use it to stop walking through walls.
-        Today you are learning what the options <em>are</em>, so that decision is an informed
-        one when it arrives.
+        <strong>Do not switch methods today.</strong> Three of these need a Rigidbody2D your Player does not have, and you will not add one yet: 2.1 adds it for a different purpose (coins) and 2.2 is where it stops you walking through walls.
     </div>
-
     <div class="socratic">
         <h3>Socratic: Choosing the Right Tool for the Job</h3>
         <ol>
-<li>You proved in <a href="1.4.html">1.4</a> that <code>transform.Translate</code> walks through walls. <code>MovePosition</code> does get stopped by a wall — but only when the body is <strong>Dynamic</strong>. In your own words, what is that call consulting that <code>Translate</code> never consults?</li>
-<li>Look at the third column. Three of these four options need a component your Player does not have yet. What would you have to add to your character, and where would you add it — on the Player, or on the child Sprite?</li>
-<li>Why would a game about a spaceship drifting through space prefer <code>AddForce</code> over <code>Translate</code>?</li>
-</ol>
+            <li>You proved in <a href="1.4.html">1.4</a> that the translate call walks through walls, while <code>Rigidbody2D.MovePosition(position)</code> is stopped by one — on a <strong>Dynamic</strong> body. What does that call consult that the Transform never does?</li>
+            <li>Three of these four need a component your Player does not have. What would you add, and where — on the Player, or on the child Sprite?</li>
+            <li>Why would a spaceship drifting through space prefer <code>Rigidbody2D.AddForce(vector)</code> to the translate call?</li>
+        </ol>
     </div>
 </div>
 
@@ -212,74 +181,16 @@ ${renderDecompose('1.5', DECOMPOSE, 1)}
 ${renderWalkthrough(WALK)}
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">What deltaTime is really doing</span>
-        <span class="activity-time">~10 min</span>
-    </div>
-
-    <p>
-        You have been typing <code>* Time.deltaTime</code> since 1.4 because you were told to.
-        Here is the actual reason, in one paragraph you should be able to repeat back.
-    </p>
-
-    <p>
-        <code>Update()</code> does not run at a fixed rate. On your laptop it might run 60 times
-        a second; on the machine next to you, 240; on a phone that is getting hot, 30. If your
-        code moved the character <code>moveSpeed</code> units <em>every time Update runs</em>,
-        then the character would travel four times as far per second on the 240 FPS machine.
-        The game would literally be easier or harder depending on the computer.
-    </p>
-
-    <p>
-        <code>Time.deltaTime</code> is the number of seconds the last frame took. At 60 FPS it
-        is about <code>0.0167</code>; at 240 FPS it is about <code>0.0042</code>. Multiplying by
-        it converts "this much per frame" into "this much per <em>second</em>" — which is the
-        same number on every machine. <code>deltaTime</code> is an <strong>abstraction</strong>:
-        it hides the messy, unpredictable reality of frame timing behind a single number you
-        can just multiply by.
-    </p>
-
-</div>
-
-<!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Tuning Lab: Find the Feel</span>
-        <span class="activity-time">~20 min</span>
-    </div>
-
-    <p>
-        Numbers you guess at in the editor are almost never the numbers that feel right in
-        motion. Professional designers tune <em>while the game runs</em>. Here is the workflow
-        you will use for the rest of the year:
-    </p>
-    <ol>
-        <li>Press Play in Unity, then walk around the overworld.</li>
-        <li>While the game is still running, select the Player in the Hierarchy and change <code>moveSpeed</code> in the Inspector. Walk again. Too sluggish?</li>
-        <li>Try a much larger number. Notice how twitchy and uncontrollable it becomes.</li>
-        <li>Bisect your way to a number that feels right for exploring a world this size. Try somewhere between 4 and 7 as a starting point.</li>
-        <li><strong>Write the number down, exit Play mode</strong>, and set that value in edit mode so it persists.</li>
-    </ol>
-
-    <div class="callout trap">
-        <strong>Remember the play-mode rule from <a href="1.2.html">1.2</a>:</strong> any value
-        you change while the Play button is blue resets when you stop the game. Use play mode
-        to <em>find</em> your number, then enter it in edit mode to <em>keep</em> it.
-    </div>
-
-
-    <div class="checklist">
-        <h3>Checkpoint — before moving on, you must be able to:</h3>
-        <ul>
-            <li>Compare four ways to move an object in Unity: <code>Translate</code>, <code>MovePosition</code>, <code>linearVelocity</code>, <code>AddForce</code></li>
-            <li>Say which of the four need a Rigidbody2D, which body type a wall can actually stop, and explain what moving along a path does differently from a teleport</li>
-            <li><strong>Explain, in your own words, why (1, 1) is a longer vector than (1, 0) — and what <code>.normalized</code> does about it</strong></li>
-            <li>Explain how <code>Time.deltaTime</code> produces the same real-world speed at different frame rates</li>
-            <li>Explain the relationship between a code default and a serialized Inspector value</li>
-            <li>Save your tuned speed and commit your changes</li>
-        </ul>
-    </div>
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Compare four ways to move an object: <code>transform.Translate(vector)</code>, <code>Rigidbody2D.MovePosition(position)</code>, <code>Rigidbody2D.linearVelocity</code>, <code>Rigidbody2D.AddForce(vector)</code></li>
+        <li>Say which of the four need a Rigidbody2D, which body type a wall can stop, and what moving along a path does differently from a teleport</li>
+        <li><strong>Explain, in your own words, why (1, 1) is a longer vector than (1, 0) — and what <code>.normalized</code> does about it</strong></li>
+        <li>Explain how <code>Time.deltaTime</code> produces the same real-world speed at different frame rates</li>
+        <li>Explain the relationship between a code default and a serialized Inspector value</li>
+        <li>Tune your speed while the game runs, save it in edit mode, and commit</li>
+    </ul>
 </div>
 
 <!-- ============================================================ -->

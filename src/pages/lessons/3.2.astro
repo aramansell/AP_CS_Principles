@@ -10,10 +10,17 @@
 // so any physics-based movement option costs the student an added component.
 // Turret.prefab has a child "SpawnPoint" that serves as the muzzle.
 //
-// The parts below are NOT rendered at level 4 (see src/lib/decompose.ts) —
-// they are written out because they are the record of the intended split, and
-// because they are what the lesson hands over verbatim if it is ever taught
-// at a lower rung. Do not delete them as "unused".
+// STRUCTURE (this pass, "teach it once"): one editor block, one code block. The
+// wiring and the first run are the last steps of the same editor list, marked
+// "Once the code half is done". Culled as repetition: the paragraph introducing
+// each half, and the six-item reread list — its lessons are already linked from
+// the decompose block, the resources block and the steps themselves.
+//
+// The parts below are NOT rendered at level 4 (see src/lib/decompose.ts) — they
+// are the record of the intended split. Do not delete them as "unused".
+//
+// 3.2 had no socratic block at all, so sc1 is new: three questions at the end of
+// the code half. The decompose block keeps its single turn (dc1:q2).
 import Lesson from '../../layouts/LessonLayout.astro';
 import { renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
@@ -26,13 +33,13 @@ const DECOMPOSE = {
     {
       name: 'Notice the player is close enough',
       does: 'Compare the distance between turret and player against a radius, every frame.',
-      doc: 'You already wrote this in 3.1 — Distance() and a range check in Update.',
+      doc: 'You already wrote this in 3.1 — Vector3.Distance(a, b) and a range check in Update().',
       href: '3.1.html',
     },
     {
       name: 'Stamp out a copy of the bullet',
       does: 'Clone the projectile prefab into the scene at the muzzle, at the moment of firing.',
-      doc: 'Instantiate(). Met in 2.4 when you spawned pickups; the exact overload is in the quick reference.',
+      doc: 'Instantiate(Object original, Vector3 position, Quaternion rotation), met in 2.4 when you spawned pickups.',
       href: '2.4.html',
     },
     {
@@ -44,13 +51,13 @@ const DECOMPOSE = {
     {
       name: 'Move it, every frame',
       does: 'Advance the projectile along its stored direction at a speed, without depending on frame rate.',
-      doc: 'Your movement method from 2.2, or transform.Translate from 1.4 with deltaTime. The trade-off is yours to make.',
+      doc: 'transform.Translate(Vector3 translation) from 1.4 with deltaTime, or your movement method from 2.2. The trade-off is yours to make.',
       href: '2.2.html',
     },
     {
       name: 'Get rid of it',
       does: 'Schedule the clone to destroy itself after a few seconds so misses do not accumulate.',
-      doc: 'Destroy() — the same call that made a coin vanish in 2.1.',
+      doc: 'Destroy(Object obj) — the same call that made a coin vanish in 2.1.',
       href: '2.1.html',
     },
   ],
@@ -71,9 +78,9 @@ const DECOMPOSE = {
 const body = `<h1>3.2 — Projectiles: Instantiate, Fire, Destroy</h1>
 
 <p class="lesson-lead">
-    Your turret knows when you are near; now it needs teeth. This is the lesson where the
-    course stops holding your hand: everything a projectile needs, you have already written
-    once, somewhere else. Your job today is to recognise that — and then prove it.
+    Your turret knows when you are near; now it needs teeth. Everything a projectile needs, you
+    have already written once, somewhere else. Your job today is to recognise that, and then prove
+    it — no API table this time, two files, and neither of them new.
 </p>
 
 ${renderAskBanner('how do I shoot a projectile?', 4)}
@@ -83,102 +90,92 @@ ${renderDecompose('3.2', DECOMPOSE, 4)}
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">The Problem</span>
-        <span class="activity-time">~10 min</span>
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~15 min</span>
     </div>
-
-    <p>
-        No specification this time, and no API table. You have earned the version of this
-        lesson where you are handed the <em>behaviour</em> and nothing else. Here is what
-        the finished feature does, from the player's seat:
-    </p>
 
     <ol>
-        <li>I walk into the turret's range, and something appears at the <strong>end of the
-            barrel</strong> — not at the turret's centre, and not at the world origin.</li>
-        <li>It flies toward <strong>where I was standing when it was fired</strong>. If I keep
-            moving, it does not follow me — it commits to the shot it took.</li>
-        <li>It travels at <strong>the same speed whether I am standing next to the turret or
-            at the far edge of its range.</strong></li>
-        <li>It <strong>cleans itself up</strong> a few seconds later if it hits nothing.</li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/Turret_Projectile</code>, then
+            <strong>Inspector →</strong> an empty <strong>Projectile</strong> component and nothing
+            else — no collider, no body. Whatever your bullet needs to move, you add it yourself.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> a <strong>Turret</strong> instance in the
+            <strong>Overworld</strong>, then <strong>Inspector → Turret Controller</strong>: two
+            slots sit empty, and they fill up in step 3. Expand the turret and click the child
+            <strong>SpawnPoint</strong> — that is the muzzle, not the turret's centre and not the
+            world origin.
+        </li>
+        <li>
+            <strong>Once the code half is done — Inspector → Turret Controller →</strong> drag
+            <code>Assets/Prefabs/Turret_Projectile</code> from the <strong>Project window</strong>
+            into the prefab slot, and the <strong>Hierarchy's</strong> SpawnPoint into the muzzle
+            slot. Do both turrets. An empty slot says nothing at startup and throws the instant you
+            step into range, which looks like a firing bug and is a setup bug.
+        </li>
+        <li>
+            <strong>Game view → press Play</strong> and walk into range: a projectile appears at the
+            muzzle and travels. Do not celebrate the fire rate — you are firing every frame, because
+            the range check runs every frame, and that is the next lesson's problem.
+        </li>
     </ol>
-
-    <p>
-        Read those four again with your list of parts next to them. Every one of them is a
-        part you named, and every one of them is testable by playing the game — which is the
-        other half of breaking a problem down. A part you cannot test is not a part yet.
-    </p>
-
-    <div class="callout">
-        <strong>Architectural constraint (the only thing I will hand you):</strong>
-        you are editing two files, and they do not know about each other's details.
-        <code>TurretController.cs</code> decides <em>when</em> to fire and <em>where</em>
-        the bullet starts. <code>Projectile.cs</code> owns everything about the bullet
-        after that: which way it goes, how fast, and when it dies. If you find yourself
-        writing the bullet's speed into the turret, stop — the turret should not know
-        that number exists.
-    </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: Alone</span>
+        <span class="activity-label">In the Code</span>
         <span class="activity-time">~35 min</span>
     </div>
 
-    <p>
-        Open <code>Assets/Prefabs/Turret_Projectile</code>. You will find an empty
-        <code>Projectile</code> component <em>already attached</em> — the same pattern as the
-        turret and the coin. Nothing new needs creating. Fill it in, then extend the range
-        check you wrote in <a href="3.1.html">3.1</a> so it fires.
-    </p>
+    <p><strong>What the finished feature does, from the player's seat:</strong></p>
 
-    <p><strong>When you are stuck, this is the order to reread:</strong></p>
     <ol>
-        <li><a href="2.4.html">2.4</a> — prefabs, and cloning one at runtime</li>
-        <li><a href="2.1.html">2.1</a> — the whole pickup pattern, including the destroy</li>
-        <li><a href="1.5.html">1.5</a> — vectors and normalizing, where the diagonal bug was fixed</li>
-        <li><a href="2.2.html">2.2</a> — your movement line, and why velocity takes no deltaTime</li>
-        <li><a href="3.1.html">3.1</a> — the range check you are extending</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — when you know the name and need the exact spelling</li>
+        <li>
+            Something appears at the <strong>end of the barrel</strong> — not at the turret's centre,
+            and not at the world origin.
+        </li>
+        <li>
+            It flies toward <strong>where I was standing when it was fired</strong>. If I keep
+            moving, it does not follow me: it commits to the shot it took.
+        </li>
+        <li>
+            It travels at <strong>the same speed</strong> whether I am against the turret or at the
+            far edge of its range.
+        </li>
+        <li>
+            It <strong>cleans itself up</strong> a few seconds later if it hits nothing.
+        </li>
     </ol>
 
-    <p>
-        That list is the point of the lesson. When you have forgotten how to clone something,
-        you do not ask a person and you do not guess — you go and read the lesson where you
-        already did it. A working programmer spends most of the day reading, and this list is
-        what "reading the documentation for each part" looks like when the documentation is
-        your own course.
-    </p>
-
-    <div class="callout warn">
-        <strong>Wire the slots before you press Play.</strong> An unassigned prefab or muzzle
-        slot does not complain at startup — it throws at the exact moment you step into range,
-        which looks like a firing bug and is really a setup bug. Assign them, <em>then</em> play.
+    <div class="callout">
+        <strong>Architectural constraint (the only thing I will hand you):</strong> you are editing
+        two files and neither knows the other's details. <code>TurretController.cs</code> decides
+        <em>when</em> to fire and <em>where</em> the bullet starts. <code>Projectile.cs</code> owns
+        everything after that — which way it goes, how fast, and when it dies. If you find yourself
+        writing the bullet's speed into the turret, stop: the turret should not know that number
+        exists.
     </div>
 
-    <p>
-        Save, wire the slots, and press Play. Walk into range: a projectile appears at the
-        muzzle and travels. Do not celebrate the fire rate yet — you are currently firing
-        <em>every single frame</em>, because your range check runs every frame. That is exactly
-        the problem the next lesson solves.
-    </p>
-
+    <div class="socratic">
+        <h3>Two Files, One Shot</h3>
+        <ol>
+<li>The turret fires from its muzzle rather than from its centre. Which of your parts does that change, and what would a bullet spawned at the turret's centre look like to the player?</li>
+<li>The bullet commits to the direction it was fired in and does not follow you. Which line of your plan makes that true, and what would you have to add to make it home in on the player instead?</li>
+<li>To turn this into a shotgun that fires five bullets in a spread, which of the two files do you rewrite — and what does your answer prove about why the split is worth having?</li>
+</ol>
+    </div>
 </div>
 
 <!-- ============================================================ -->
-
 <div class="checklist">
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
-        <li>Break a feature into parts small enough to look each one up on its own</li>
-        <li>Name which part of this feature was lifted from a lesson you had already done</li>
-        <li>Say where you would look up a Unity API you have forgotten, without asking a person</li>
-        <li>Explain the role of <code>Instantiate</code> in stamping runtime clones</li>
+        <li>Break a feature into parts small enough to look each one up on its own, and say where you reread the part you lifted from an earlier lesson</li>
+        <li>Explain why the bullet starts at the muzzle and commits to one direction instead of following the player</li>
         <li>Explain why a direction vector is normalized, and what goes wrong without it</li>
-        <li>Name two ways to move a projectile and state what each one costs</li>
-        <li>Explain why your turret currently fires every frame</li>
+        <li>Name two ways to move a projectile, state what each one costs you in components, and explain why your turret currently fires every frame</li>
         <li>Commit and push</li>
     </ul>
 </div>
@@ -188,9 +185,9 @@ ${renderDecompose('3.2', DECOMPOSE, 4)}
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — every question this course answers, in the words you would search with</li>
         <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — the projectile lifecycle and aiming in depth</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Instantiate, Destroy and Mathf</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the clone call, the destroy call, and Mathf</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
     </ul>
     <p>Next: <a href="3.3.html">3.3 — Fire Rate: Cooldowns &amp; Time</a>, where you fix the bullet hose you just built.</p>
 </div>`;

@@ -8,6 +8,31 @@
 // SCOPE AND LIFETIME — where you declare a variable decides whether it can
 // remember anything between frames. 1.4's movement bug (declaring the input
 // variable inside Update) is a symptom of this concept not landing here.
+//
+// STRUCTURE (tightening pass): the clicks — create the file, attach it, open
+// the Console, press Play — are "In the Editor"; the file half is "In the
+// Code": the scope rule, the lifecycle API table, the socratic, then the
+// walkthrough (whose code blocks open with comments saying where in
+// PlayerLogger.cs each piece goes) and the bug hunt.
+//
+// CULLED FOR REPETITION (the scope rule was being explained four times):
+//   - the "In the Code" framing paragraph ("the clicks only decide where the
+//     script lives...") — said the next block's job instead of doing it;
+//   - the "Why this bites so hard" paragraph — restated the scope rule and the
+//     Update() table row;
+//   - the "How to decide, every time" callout — a callout repeating the
+//     paragraph above it with a <strong> lead;
+//   - the broken/working counter comparison — a third explanation of scope,
+//     after the rule and before the walkthrough line the student is typing.
+// Scope is now said twice: once in the rule above the table, once in the
+// walkthrough line where the student types it. The bug hunt is the hands-on
+// application, not a third explanation.
+//
+// Answer-box ids are positional and persisted, so the surviving socratic is the
+// FIRST of the two committed blocks (sc1) with its first two questions
+// untouched and a new synthesis question in the third slot; the second block
+// (sc2, which asked the scope question in new words) is deleted whole rather
+// than renumbered.
 import Lesson from '../../layouts/LessonLayout.astro';
 import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
@@ -17,102 +42,104 @@ import { renderDecompose } from '../../lib/decompose';
 // read about it — nobody has split a problem before, so the first split is
 // demonstrated rather than asked for. The four parts are the walkthrough's
 // four steps in order: a file Unity will run, the state that has to be
-// remembered, the once-only setup, and the every-frame gate. The split is
-// doing real teaching, not decoration: part two is the scope rule the whole
-// lesson is built to land, and part four is where the interval lives.
+// remembered, the once-only setup, and the every-frame gate. Part two is the
+// scope rule the lesson turns on; part four is where the interval lives.
 const DECOMPOSE = {
   big:
-    'Get a script of my own printing to the Console — "how do I print text to the console?" — ' +
-    'and keep printing once a second instead of sixty times, so the Console is still readable a ' +
-    'minute later.',
+    'Get a script of my own printing to the Console, and keep printing once a second instead of ' +
+    'sixty times, so the Console is still readable a minute later.',
   parts: [
     {
       name: 'Make the file something Unity will run',
-      does: 'One class in the file, the class name matching the filename exactly, inheriting `MonoBehaviour` so Unity can attach it to a GameObject as a component. A file that gets this wrong never runs at all.',
-      doc: 'the `class Boss : MonoBehaviour` row in the quick reference, and the component list you read in 1.2.',
+      does: 'One class in the file, its name matching the filename exactly, inheriting `MonoBehaviour` so Unity can attach it as a component. Get this wrong and the file never runs.',
+      doc: 'the `class Boss : MonoBehaviour` row in the quick reference.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
       name: 'Put the two values that have to be remembered in the class body',
-      does: 'A `reportDelay` tuning knob and a `nextReportTime` deadline, both declared outside every method. This is the placement decision the lesson turns on: here they are created once and survive the frame, while the same lines inside `Update()` would be rebuilt and thrown away sixty times a second.',
-      doc: 'the declare-vs-assign split in the One Rule section below, and the `[SerializeField] private float speed;` row in the quick reference.',
+      does: 'A `reportDelay` tuning knob and a `nextReportTime` deadline, both declared outside every method: created once and kept for the whole game, where the same lines inside a method would be rebuilt sixty times a second.',
+      doc: 'the declare-vs-assign split in the scope rule below, and the `[SerializeField]` row in the quick reference.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
-      name: 'Give the deadline its first value in Start()',
-      does: '`Start()` runs once, before the first frame. It sets `nextReportTime` to the current game time plus the delay, and prints one line so you know the script attached and ran.',
-      doc: 'the `void Start()` and `Time.time` rows in the quick reference.',
+      name: 'Give the deadline its first value in the once-only setup',
+      does: 'The once-only setup runs before the first frame. It sets `nextReportTime` to the current game time plus the delay, and prints one line so you know the script ran.',
+      doc: 'the once-only setup and `Time.time` rows in the quick reference.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
-      name: 'Gate the print in Update() and re-arm the deadline',
-      does: '`Update()` runs every frame, which is far too often to print. The `if` asks whether the deadline has passed; if it has, print, then push the deadline one second into the future so the gate closes again.',
-      doc: 'the `void Update()`, `Debug.Log` and `Time.time` rows in the quick reference.',
+      name: 'Gate the print and re-arm the deadline',
+      does: 'The every-frame method runs far too often to print. The `if` asks whether the deadline has passed; if it has, print, then push the deadline a second into the future so the gate closes again.',
+      doc: 'the `Time.time` row in the quick reference.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
   ],
   why:
-    'Four parts, and only the last one does anything you can see. The first three exist because ' +
-    'of one question — does anything next frame need to know about this? — asked three times: yes ' +
-    'for the deadline, no for the message, and once for the class itself. Nearly every script you ' +
-    'write this year splits the same way: a thing Unity will run, the state it has to remember, the ' +
-    'setup, and the every-frame work.',
+    'Only the last part does anything you can see. The first three exist because of one question ' +
+    '— does anything next frame need to know about this? — asked three times.',
   sizeTest:
-    'The test for a finished split: could you look this part up on its own, right now, in one ' +
-    'search? "Print to the Console" cannot be looked up. `Debug.Log` can, and so can `Time.time`.',
+    'Could you look this part up on its own, in one search? "Print to the Console" cannot be ' +
+    'looked up; "the seconds since Play" can.',
   turns: [
-    'Four parts, and only the last one does anything you can see. Which of the four would you ' +
-      'have written first if nobody had shown you the split — and what would have gone wrong?',
+    'Which of the four parts would you have written first if nobody had shown you the split — and ' +
+      'what would have gone wrong?',
   ],
 };
 
+// Every code block opens with a comment saying where in PlayerLogger.cs it
+// goes. The file is new and built top to bottom, so the placement lines are the
+// order of the file itself: the class body, then the fields, then Start(), then
+// Update().
 const WALK = {
   ask: 'how do I print text to the console?',
   file: 'Assets/Scripts/PlayerLogger.cs',
-  intro: 'By the end you will have a script that prints to the Console once per second — and you will be able to explain every line of it.',
+  label: 'In the Code',
+  intro: 'Type these in order — the whole file is under twenty lines.',
   level: 1,
   steps: [
     {
-      title: 'Start the file and name the class',
-      lead: 'A C# file holds one class. The name of the class and the name of the file have to match exactly — Unity uses the filename to find your class.',
+      title: 'Name the file and the class',
+      lead: 'A C# file holds one class, and the class name has to match the filename exactly — Unity uses the filename to find your class.',
       lines: [
-        { code: 'using UnityEngine;', what: 'Tells C# where to find everything Unity provides — `MonoBehaviour`, `Debug`, `Time`. Without it, none of those names exist.' },
+        { code: '// Assets/Scripts/PlayerLogger.cs — a new, empty file you create in the Project window.', what: '' },
+        { code: 'using UnityEngine;', what: 'Tells C# where to find everything Unity provides — `MonoBehaviour`, `Debug`, `Time`. Without it, those names do not exist.' },
         { code: '', what: '' },
-        { code: 'public class PlayerLogger : MonoBehaviour', what: 'Declares a class called `PlayerLogger`. The `: MonoBehaviour` part is what makes it a **component** — a script Unity can attach to a GameObject.', why: 'The name after `class` must match the filename exactly, capitals included. `PlayerLogger` in `PlayerLogger.cs` works; `playerLogger` in `PlayerLogger.cs` throws an error the moment you press Play.' },
+        { code: 'public class PlayerLogger : MonoBehaviour', what: 'Declares the class. The `: MonoBehaviour` part makes it a **component** — a script Unity can attach to a GameObject.', why: 'The name after `class` must match the filename exactly, capitals included, or Unity throws an error the moment you press Play.' },
         { code: '{', what: '' },
       ],
     },
     {
-      title: 'Put the tuning knobs in the class body',
-      lead: 'These two lines sit **inside the class braces but outside any method**. That placement is the whole point of this step — see "The One Rule" above.',
+      title: 'Put the values that have to be remembered in the class body',
+      lead: 'Both lines sit inside the class braces but **outside any method** — the placement the scope rule above is about.',
       lines: [
-        { code: '    [SerializeField] private float reportDelay = 1.0f;', what: 'How many seconds between reports. The `[SerializeField]` tag makes a private field editable in the Inspector; the `f` suffix tells C# this is a `float` (a decimal number) and not a `double`.', why: 'It lives in the class body so it is created **once**, when the Player is created, and keeps its value for the whole game. If you moved this line into `Update()`, it would be rebuilt 60 times a second and any change you made to it would be thrown away instantly.' },
-        { code: '    private float nextReportTime;', what: 'When the next report is allowed to happen. `private` means no other script may touch it — this is PlayerLogger\'s own bookkeeping.', why: 'Notice it has **no value yet**. A field does not have to be given a value at the moment you declare it. `Start()` will give it one.' },
+        { code: '// PlayerLogger.cs — class body: inside the class braces, outside every method.', what: '' },
+        { code: '    [SerializeField] private float reportDelay = 1.0f;', what: 'Seconds between reports. `[SerializeField]` makes a private field editable in the Inspector; the `f` suffix marks it as a `float`, not a `double`.' },
+        { code: '    private float nextReportTime;', what: 'When the next report is allowed. `private`: no other script may touch it.', why: 'It has **no value yet**. Declaring and assigning are two separate jobs, and `Start()` is about to do the second one.' },
       ],
     },
     {
       title: 'Write Start() — the once-only setup',
-      lead: '`Start()` is a lifecycle method. Unity calls it for you, exactly once, before the first frame.',
+      lead: '`Start()` is a lifecycle method: Unity calls it for you, exactly once, before the first frame.',
       lines: [
-        { code: '', what: '' },
-        { code: '    void Start()', what: 'The method Unity runs once when the object appears. `void` means it hands nothing back when it finishes.' },
+        { code: '// PlayerLogger.cs — below the fields, above Update().', what: '' },
+        { code: '    void Start()', what: 'The method Unity runs once when the object appears. `void` means it hands nothing back.' },
         { code: '    {', what: '' },
-        { code: '        nextReportTime = Time.time + reportDelay;', what: 'Sets the deadline for the first report: the current game time, plus one second. `Time.time` is how many seconds have passed since you pressed Play.', why: 'This is an **assignment**, not a declaration. `nextReportTime` was already declared up in the class body — here we are only giving it a value. Compare this with the line in the next step that declares *and* assigns at once.' },
-        { code: '        Debug.Log("PlayerLogger is alive.");', what: 'Prints one line to the Unity Console so you know the script attached and ran.' },
+        { code: '        nextReportTime = Time.time + reportDelay;', what: 'The deadline for the first report: current game time plus one second. This is the **assignment** the declaration above left undone.' },
+        { code: '        Debug.Log("PlayerLogger is alive.");', what: 'Prints one line to the Console so you know the script attached and ran.' },
         { code: '    }', what: '' },
       ],
     },
     {
       title: 'Write Update() — the every-frame gate',
-      lead: '`Update()` runs once per frame — roughly 60 times a second. That is far too often to print anything, so the `if` is what keeps the Console readable.',
+      lead: '`Update()` runs once per frame — roughly 60 times a second, far too often to print. The `if` is what keeps the Console readable.',
       lines: [
-        { code: '', what: '' },
-        { code: '    void Update()', what: 'The method Unity runs every single frame, automatically.' },
+        { code: '// PlayerLogger.cs — below Start(). Unity calls this once per frame.', what: '' },
+        { code: '    void Update()', what: 'The method Unity runs every frame, automatically.' },
         { code: '    {', what: '' },
-        { code: '        if (Time.time >= nextReportTime)', what: 'The gate. "Has enough time passed that it is legal to report again?" The `>=` means *at or past*, and the `==` you might expect would be wrong — frames are not exact.' , why: 'Without this check, the `Debug.Log` below would fire ~60 times per second and bury your Console.' },
+        { code: '        if (Time.time >= nextReportTime)', what: 'The gate: "has enough time passed to report again?" `>=` means *at or past*; the `==` you might expect would be wrong, because frames are not exact.' },
         { code: '        {', what: '' },
-        { code: '            Debug.Log("Player has been running for " + Time.time + " seconds.");', what: 'Prints the message. The `+` glues the text and the number into one string.' },
-        { code: '            nextReportTime = Time.time + reportDelay;', what: 'Moves the deadline one second into the future, so the gate above closes again.' , why: 'Delete this line and the Console floods: the gate would still be open on the next frame, so it would print on every single frame from then on. This is the most common bug in the whole lesson.' },
+        { code: '            Debug.Log("Player has been running for " + Time.time + " seconds.");', what: 'Prints the message. The `+` glues text and number into one string.' },
+        { code: '            nextReportTime = Time.time + reportDelay;', what: 'Moves the deadline a second into the future, so the gate closes again.', why: 'Delete this line and the Console floods: the gate stays open, so it prints on every frame from then on.' },
         { code: '        }', what: '' },
         { code: '    }', what: '' },
       ],
@@ -122,16 +149,19 @@ const WALK = {
 
 public class PlayerLogger : MonoBehaviour
 {
+    // ---- class body: every field lives up here, outside every method --------
     [SerializeField] private float reportDelay = 1.0f;
 
     private float nextReportTime;
 
+    // ---- Start(): Unity calls this once, before the first frame ------------
     void Start()
     {
         nextReportTime = Time.time + reportDelay;
         Debug.Log("PlayerLogger is alive.");
     }
 
+    // ---- Update(): Unity calls this every frame ----------------------------
     void Update()
     {
         if (Time.time >= nextReportTime)
@@ -142,27 +172,12 @@ public class PlayerLogger : MonoBehaviour
     }
 }`,
   finalNote:
-    'This is the finished file. Do not paste it in — compare it against what you built. If a line differs from yours, you should now be able to say exactly what yours would do differently.',
+    'Do not paste it in — compare it against what you built, and be able to say what any differing line would do instead.',
 };
 
 const body = `<h1>1.3 — Your First Script: Variables &amp; Update</h1>
 
-<p class="lesson-lead">
-    Today you write your first C#. This is the lesson where everything else in the year
-    starts, so we are going to go slowly: you will build one small script, and every
-    single line of it gets explained before you type the next one. Nobody is expected
-    to guess anything today.
-</p>
-
-<div class="callout info">
-    <strong>Reading this on your own?</strong> This lesson covers the ground your teacher
-    demonstrated live in class. Work through it in order and you will end up in exactly
-    the same place as everyone else. The script you build here (<code>PlayerLogger.cs</code>)
-    is a throwaway diagnostic tool, not part of the game. Its job is to teach you how a
-    script attaches to a GameObject, what <code>Start()</code> and <code>Update()</code>
-    actually do, and how to make the Console tell you what your code is thinking —
-    three things you will rely on for the rest of the year.
-</div>
+<p class="lesson-lead">Today you write your first C#: one throwaway script, <code>PlayerLogger.cs</code>, that prints to the Console once a second. It teaches the three things every later lesson leans on — how a script attaches to a GameObject, what <code>Start()</code> and <code>Update()</code> do, and where a value has to live to be remembered.</p>
 
 ${renderAskBanner('how do I print text to the console?', 1)}
 
@@ -170,167 +185,37 @@ ${renderDecompose('1.3', DECOMPOSE, 1)}
 
 <!-- ============================================================ -->
 <div class="activity discovery">
-    <div class="activity-header">
-        <span class="activity-label">Read the Docs</span>
-        <span class="activity-time">~12 min</span>
-    </div>
-
-    <p>
-        Every script in Unity that attaches to a GameObject inherits from <code>MonoBehaviour</code>.
-        That base class is what connects your code to the engine's game loop. These are the
-        five pieces of it you need today — keep this table open while you build:
-    </p>
-
-    <table>
-        <tr><th>Engine API</th><th>Signature / Type</th><th>Description &amp; Behavior</th></tr>
-        <tr>
-            <td><code>Start()</code></td>
-            <td><code>void Start()</code></td>
-            <td>Lifecycle hook. Called automatically by Unity exactly once, before the first frame. Used for setup and for giving your fields their starting values.</td>
-        </tr>
-        <tr>
-            <td><code>Update()</code></td>
-            <td><code>void Update()</code></td>
-            <td>Lifecycle hook. Called automatically every single frame. At 60 FPS this runs 60 times per second. Used for polling input, checking timers, and continuous logic.</td>
-        </tr>
-        <tr>
-            <td><code>Debug.Log()</code></td>
-            <td><code>void Debug.Log(object message)</code></td>
-            <td>Prints a value to the Unity Console window. Developer feedback — the only way to see what your code is doing while it runs.</td>
-        </tr>
-        <tr>
-            <td><code>Time.time</code></td>
-            <td><code>float</code> (read-only)</td>
-            <td>Total elapsed seconds since the game entered Play mode. Constantly increases while the game runs; resets when you stop.</td>
-        </tr>
-        <tr>
-            <td><code>[SerializeField]</code></td>
-            <td>Attribute: <code>[SerializeField] private float speed;</code></td>
-            <td>Tells Unity to show a private field as an editable control in the Inspector, without exposing it to other scripts.</td>
-        </tr>
-    </table>
-
-    <div class="socratic">
-        <h3>Socratic: Lifecycle and Timing</h3>
-        <ol>
-            <li>If your computer runs the game at 120 FPS, how many times will <code>Update()</code> execute in a single second? What if it runs on a battery-saving laptop at 30 FPS?</li>
-            <li>If you write <code>Debug.Log("hello")</code> directly inside <code>Update()</code> with no check around it, what happens to your Unity Console in 5 seconds?</li>
-            <li>Why does software engineering encourage <code>[SerializeField] private</code> rather than making every field <code>public</code>? (Hint: who should be allowed to change a component's internal variables?)</li>
-        </ol>
+    <div class="activity-header"><span class="activity-label">In the Editor</span><span class="activity-time">~15 min</span></div>
+    <ol>
+        <li><strong>Project window →</strong> <code>Assets/Scripts</code>, right-click → Create → C# Script, name it <strong>PlayerLogger</strong>. Unity fills the new file with a class of the same name.</li>
+        <li><strong>Hierarchy →</strong> select the <strong>Player</strong>, then <strong>Inspector → Add Component →</strong> search <code>PlayerLogger</code> and add it. Dragging the script file onto the object in the Hierarchy does the same thing.</li>
+        <li><strong>Console window → Window → General → Console.</strong> Every log line lands here. Turn on <strong>Clear on Play</strong> so each run starts empty.</li>
+        <li><strong>Game view →</strong> press <strong>Play</strong> and watch the Console count the seconds, then press <strong>Play</strong> again to stop — stopping wipes the Console too.</li>
+        <li><strong>Inspector →</strong> with the Player selected, find <strong>Player Logger (Script)</strong> and change the <strong>Report Delay</strong> box while the game runs. That box is the private field, tuned without touching code.</li>
+    </ol>
+    <div class="callout trap">
+        <strong>A script on no object never runs.</strong> Skip step 2 and the Console stays empty, with no error to tell you why — so check the Inspector's component list before hunting a bug in the code.
     </div>
 </div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">The One Rule</span>
-        <span class="activity-time">~15 min</span>
-    </div>
-
-    <p>
-        <strong>Before you write any code today, read this section twice.</strong> Almost every
-        confusing bug you will hit in the next two weeks comes from one misunderstanding, and
-        it is not about Unity at all — it is about <em>where</em> you declare a variable.
-        Get this right and the rest of the unit is straightforward.
-    </p>
-
-    <p>
-        <strong>The rule:</strong> a variable declared <em>inside a method</em> is born when the
-        method starts and destroyed when the method ends. It cannot remember anything between
-        calls. A variable declared <em>in the class body</em> — outside every method — belongs
-        to the object: it is created once and lives as long as the object does.
-    </p>
-
-    <p>
-        Why this bites so hard: <code>Update()</code> runs about 60 times every second. So a
-        variable declared inside <code>Update()</code> is created 60 times a second, and each
-        copy starts from scratch and is thrown away. Watch what that does to a counter:
-    </p>
-
-    <div class="concept-compare">
-        <div class="cc-side bad">
-            <span class="cc-tag">Declared inside the method — broken</span>
-<pre><code>void Update()
-{
-    int framesSeen = 0;
-    framesSeen = framesSeen + 1;
-    Debug.Log(framesSeen);
-}</code></pre>
-            <p>
-                Prints <code>1</code>, <code>1</code>, <code>1</code>, <code>1</code>… forever.
-                The <code>0</code> is re-applied every frame, so the counter is
-                <em>reborn at zero</em> before it ever gets to add anything. It has no memory.
-            </p>
-        </div>
-        <div class="cc-side good">
-            <span class="cc-tag">Declared in the class body — works</span>
-<pre><code>private int framesSeen = 0;
-
-void Update()
-{
-    framesSeen = framesSeen + 1;
-    Debug.Log(framesSeen);
-}</code></pre>
-            <p>
-                Prints <code>1</code>, <code>2</code>, <code>3</code>, <code>4</code>… The
-                field belongs to the object, so it survives from one frame to the next and
-                actually accumulates.
-            </p>
-        </div>
-    </div>
-
-    <p>
-        <strong>Now the part that catches everyone.</strong> Look closely at this line:
-    </p>
-
-<pre><code>float steeringIntent = Input.GetAxis("Horizontal");</code></pre>
-
-    <p>
-        That single line is doing <em>two separate jobs at once</em>. Reading it as one action
-        is where people go wrong. Pull the two jobs apart:
-    </p>
-
-    <ul>
-        <li><strong>Declaring</strong> — <code>float steeringIntent</code> — creates the variable and says it holds a decimal number.</li>
-        <li><strong>Assigning</strong> — <code>= Input.GetAxis("Horizontal")</code> — gives it a value.</li>
-    </ul>
-
-    <p>
-        Writing them on one line is legal, and it is perfectly fine when you only need the
-        value for the next line or two. But when you need a value to <em>still be there on the
-        next frame</em> — the direction the player is holding, how much health is left, how many
-        coins you have collected — you must split the two jobs and put them in different places:
-    </p>
-
-<pre><code>private float steeringIntent;              // DECLARE: in the class body, created once
-
-void Update()
-{
-    steeringIntent = Input.GetAxis("Horizontal");   // ASSIGN: in Update, refreshed each frame
-}</code></pre>
-
-    <p>
-        Same two jobs, deliberately separated. The variable now exists on the object, so it
-        survives between frames, and <code>Update()</code> simply gives it a fresh value 60
-        times a second. <em>This split is the shape you will use for every piece of state in
-        this game.</em> You will meet it again in <a href="1.4.html">1.4</a>, where getting it
-        wrong is the difference between a character that moves and one that twitches.
-    </p>
-
-    <div class="callout warn">
-        <strong>A rule of thumb you can carry.</strong> If you want a value to be <em>read and
-        used right now</em>, declaring it inside the method is fine. If you want it to be
-        <em>remembered</em>, it goes in the class body. Ask "does anything next frame need to
-        know about this?" — the answer tells you where the line belongs.
-    </div>
-
+    <div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">~20 min</span></div>
+    <p><strong>The scope rule:</strong> a variable declared <em>inside a method</em> is created when the method starts and destroyed when it ends, so it cannot remember anything between calls. One declared <em>in the class body</em>, outside every method, belongs to the object and lives as long as the object does. Declaring says the name exists, assigning gives it a value, and one line may do both only when nothing next frame needs the value.</p>
+    <table>
+        <tr><th>API</th><th>What it is</th><th>What you get</th><th>What it costs</th></tr>
+        <tr><td><code>Start()</code></td><td>Lifecycle hook Unity calls once, before the first frame.</td><td>One-time setup: a field's starting value, one line proving the script ran.</td><td>It runs once, so it cannot watch anything that changes while the game runs.</td></tr>
+        <tr><td><code>Update()</code></td><td>Lifecycle hook Unity calls every frame — roughly 60 times a second.</td><td>Continuous work: polling input, checking a timer, moving something.</td><td>Not a fixed rate — a heavy frame changes how often it runs, so nothing inside may assume one.</td></tr>
+        <tr><td><code>Debug.Log(object message)</code></td><td>Prints a value into the Console.</td><td>Developer eyes: with no UI yet, the only way to see what the code is doing.</td><td>A real side effect — one log inside <code>Update()</code> prints sixty messages a second.</td></tr>
+        <tr><td><code>Time.time</code></td><td>A <code>float</code>: seconds elapsed since you pressed Play.</td><td>A clock to compare against: "has my deadline passed?"</td><td>It resets when you stop, and keeps counting while paused.</td></tr>
+        <tr><td><code>[SerializeField] private float reportDelay = 1.0f;</code></td><td>A field declaration plus the attribute that serializes it.</td><td>A private field with an Inspector box, tunable without touching code.</td><td>The box beats the code default once set, and exists only on the object carrying the script.</td></tr>
+    </table>
     <div class="socratic">
-        <h3>Check the Rule Landed</h3>
+        <h3>Socratic: Lifecycle and Timing</h3>
         <ol>
-            <li>A student wants to count how many coins the player has collected. Should <code>coinCount</code> be declared in the class body or inside <code>OnTriggerEnter</code>? Say why, in terms of what happens on the next frame.</li>
-            <li>In the broken counter above, the code reads <code>framesSeen = framesSeen + 1;</code> and still prints 1. How would you explain that result to someone who has not read this page?</li>
-            <li>Why is it <em>not</em> a bug to declare a variable inside <code>Update()</code> when you use it immediately on the very next line and then never again?</li>
-            <li>Look back at the <code>[SerializeField] private float speed;</code> row in the table above. Now that you know the rule, why does that line <em>have</em> to live in the class body?</li>
+            <li>If your computer runs the game at 120 FPS, how many times will <code>Update()</code> execute in one second? On a battery-saving laptop at 30 FPS?</li>
+            <li>Write <code>Debug.Log("hello")</code> directly inside <code>Update()</code> with no check around it: what happens to the Console in 5 seconds?</li>
+            <li>Ask the scope question about your own script — does anything next frame need to know about this? Which parts of the Break It Down block answer <em>yes</em>, and which answer <em>no</em>?</li>
         </ol>
     </div>
 </div>
@@ -340,41 +225,28 @@ ${renderWalkthrough(WALK)}
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Bug Hunt</span>
-        <span class="activity-time">~20 min</span>
-    </div>
-
-    <p>
-        You now have a working logger. This section is where you prove to yourself that
-        you understand <em>why</em> it works — by breaking it on purpose, one piece at a time,
-        and predicting what happens before you press Play.
-    </p>
-
+    <div class="activity-header"><span class="activity-label">Bug Hunt</span><span class="activity-time">~20 min</span></div>
     <div class="bug-hunt">
         <h3>Bug Hunt: Break the Logger on Purpose</h3>
-        <p>Predict the result first, then try it, then fix it:</p>
         <ol>
-            <li>Move the line <code>nextReportTime = Time.time + reportDelay;</code> from the class body into the top of <code>Update()</code>, deleting the field. What does the Console do now? Connect this back to the counter example above.</li>
-            <li>Rename the class to <code>playerLogger</code> (lowercase p) while leaving the file named <code>PlayerLogger.cs</code>. What error appears when you press Play?</li>
-            <li>Attach the script to the Turret instead of the Player. Does it still run? What does that prove about the relationship between components and GameObjects?</li>
+            <li>Cut <code>private float nextReportTime;</code> from the class body and declare it inside the method that runs every frame, giving it a starting value there. What does the Console do now?</li>
+            <li>Rename the class to <code>playerLogger</code> (lowercase p), leaving the file named <code>PlayerLogger.cs</code>. What error appears when you press Play?</li>
+            <li>Attach the script to the Turret instead of the Player. Does it still run, and what does that prove about components and GameObjects?</li>
             <li>Comment out <code>nextReportTime = Time.time + reportDelay;</code> inside the <code>if</code>. What happens to the Console within 2 seconds, and why does the gate never close again?</li>
         </ol>
     </div>
+</div>
 
-
-    <div class="checklist">
-        <h3>Checkpoint — before moving on, you must be able to:</h3>
-        <ul>
-            <li>Create a new C# script and attach it to a GameObject as a component</li>
-            <li>Explain what runs when: <code>Start()</code> once vs <code>Update()</code> every frame</li>
-            <li><strong>Explain, without looking, why a variable declared inside <code>Update()</code> cannot remember anything — and where it should go instead</strong></li>
-            <li>Split a declaration from an assignment, and say why you sometimes must</li>
-            <li>Write a <code>[SerializeField] private</code> field and explain how it differs from a public field</li>
-            <li>State the rule that a C# class name must match its filename exactly</li>
-            <li>Use <code>Time.time</code> to run something on an interval instead of every frame</li>
-        </ul>
-    </div>
+<!-- ============================================================ -->
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Create a C# script, attach it to a GameObject, and read its output in the Console</li>
+        <li>Explain which lifecycle method runs once and which runs every single frame</li>
+        <li><strong>Explain, without looking, why a variable declared inside a method cannot remember anything — and where it should go instead</strong></li>
+        <li>Split a declaration from an assignment, and say why you sometimes must</li>
+        <li>Use <code>Time.time</code> to run something on an interval instead of every frame</li>
+    </ul>
 </div>
 
 <!-- ============================================================ -->
