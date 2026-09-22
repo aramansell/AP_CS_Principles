@@ -295,6 +295,21 @@ that it takes an argument, what type that argument is, and what it returns, whic
 is the whole of what the student needs to know. `CompareTag()` at minimum.
 `verify` check 11 enforces this in any lesson carrying the "In the Code" label.
 
+The rule is course-wide; the check is not, and that is deliberate. Run over all 81
+pages, the same scan flags seven lessons, of which five are real and four are the
+rule misreading a true sentence: `Start.unity` (a scene file), "Start with what the
+pixels cost" (the English verb), the ten `Update`s in 9.7 (the lifecycle *stage*
+used as a noun, in the lesson about frame timing), and 10.2c's "the Instantiate
+line". A check that fails those teaches a writer to stop naming the entry point and
+to stop saying a path. So the gate covers where the editor/code split reaches, and
+the real hits outside it were fixed by hand. If the scan is ever widened, those
+four sentences are the ones to exempt first.
+
+One more name the call shape must not touch: a Unity settings **label**. `Queries
+Start In Colliders` is a checkbox in Physics 2D the student has to be able to look
+up; written as `Start()` it is false, and dropped to pass the check it costs them
+the exact words to search for. A label is spelled as the label.
+
 The one name the check cannot resolve on its own is `Start`, which is both a Unity
 lifecycle method and the name of this project's hub scene. The convention that
 settles it: the method is `Start()`, and the scene is always **`Start (index 0)`** —

@@ -705,6 +705,27 @@ if (!fs.existsSync(askSrcPath)) {
   //   - Only lessons that carry the "In the Code" label are scanned, for the
   //     reason in check 10: the rest of the course is still being converted, and
   //     a check that fails 77 lessons teaches nobody anything.
+  //
+  // The label gate was measured against the alternative, so that nobody widens
+  // this scan on the theory that a wider net can only help. Run over all 81 built
+  // pages, the identical strip chain flags exactly seven lessons. Five hits are
+  // real — the bare `Debug.Log` in 11.1b, 11.1c and 12.1b, and two in 9.7 ("the
+  // hit arrives through OnTriggerEnter2D", "an AddForce jump") — but 9.7 is also
+  // where the rule misreads ordinary English, and the rest is all false:
+  //   - 9.3 "Start with what the pixels cost" — the verb, at the head of a
+  //     sentence. `Start()` there would be a typo, not a fix.
+  //   - 9.4 `Start.unity` — the scene FILE, a path, already written exactly right.
+  //   - 9.7 ten of its twelve hits — `Update` as the lifecycle STAGE, a noun
+  //     ("your Update cost", "Update vs FixedUpdate", "Every Update:") in the
+  //     lesson whose subject is frame timing. The naming is the lesson; a check
+  //     that fires on it teaches the writer to stop naming the entry point, which
+  //     is the reasoning that already removed Start(/Update( from check 13's TERMS.
+  //   - 10.2c "the starter's own Instantiate line", "the two Instantiate blocks" —
+  //     nouns about code the student can see, where the call shape adds nothing.
+  // So widening it buys five real findings to four lessons' worth of false ones,
+  // and the false ones cost a student a true sentence. The gate stays where the
+  // mandate's editor/code split reaches; the five real hits were fixed in the
+  // lessons, which is what a wider net was actually for.
   console.log('11. methods named as calls...');
   const METHODS = [
     'CompareTag', 'GetComponent', 'GetComponentInChildren',
