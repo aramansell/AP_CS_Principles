@@ -725,6 +725,28 @@ if (!fs.existsSync(askSrcPath)) {
       .replace(/<script[\s\S]*?<\/script>/g, ' ')
       .replace(/<style[\s\S]*?<\/style>/g, ' ')
       .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
+      // Page chrome is not prose the lesson is teaching with. The <head> holds
+      // the <title> and both navs hold the neighbouring lessons' names, so this
+      // check used to fail a lesson because the NEXT lesson's title happens to
+      // name a method — and the honest-looking fix for that is to misspell the
+      // title, which is how a check gets obeyed and the site gets worse.
+      .replace(/<head[\s\S]*?<\/head>/g, ' ')
+      .replace(/<nav[\s\S]*?<\/nav>/g, ' ')
+      // The h1 is the lesson's NAME, registered in src/data/lessons.ts and reused
+      // by the dashboard, the pacing calendar and the ask index. A name is a
+      // label, not a sentence about a method: "Projectiles: Instantiate, Fire,
+      // Destroy" is three nouns stacked as a title, and rewriting it to
+      // "Instantiate(), Fire, Destroy()" would desync it from the site's own
+      // record of what the lesson is called. (If the h1s should carry the call
+      // shape too, that is a change to the registered titles first, and then to
+      // this rule — not to one page's h1.)
+      .replace(/<h1[\s\S]*?<\/h1>/g, ' ')
+      // Same reasoning one level down: a link to another lesson names that lesson
+      // by its registered title ("Next: 3.2 — Projectiles: Instantiate, Fire,
+      // Destroy"). That is a reference to a name, not prose teaching a method, so
+      // the anchor's own text is dropped — a lesson is not made worse by the
+      // name of the lesson it points at.
+      .replace(/<a\b[^>]*href="\d+\.\d+[a-z]?\.html"[^>]*>[\s\S]*?<\/a>/g, ' ')
       .replace(/<[^>]+>/g, ' ')
       // Entities are decoded after the tags are gone, so a generic call reads
       // as one: `GetComponent&lt;T&gt;()` in the markup is `GetComponent<T>()`
@@ -958,9 +980,9 @@ if (!fs.existsSync(askSrcPath)) {
   if (dense.length) {
     warn(dense.length + ' term(s) explained in three or more sections of one lesson (' + split.length +
       ' converted lesson(s) scanned):\n' +
-      dense.slice(0, 10).map((d) => '      ' + d.id + ': ' + d.term + ' — ' + d.sentences +
+      dense.slice(0, 25).map((d) => '      ' + d.id + ': ' + d.term + ' — ' + d.sentences +
         ' sentences across ' + d.where).join('\n') +
-      (dense.length > 10 ? '\n      ... and ' + (dense.length - 10) + ' more' : '') +
+      (dense.length > 25 ? '\n      ... and ' + (dense.length - 25) + ' more' : '') +
       '\n    Say it once and let them build. A third section is allowed only for a genuinely new context,');
   }
   if (repeated.length) {
