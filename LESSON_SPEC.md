@@ -214,6 +214,92 @@ Unit 12 — Season 2 (May-Jun):
 - 12.2a Placeholder jam day 1 (topic TBA): run as flex jam; the calendar's shock absorber; if no topic is chosen: open studio on your best project.
 - 12.2b Placeholder jam day 2 + Year retro: finish; then the retro: your September commit vs your June build, side by side (git log tour); what would you tell September-you; course feedback.
 
+## The editor half and the code half (every lesson, since the tightening pass)
+
+A student at a computer with Unity open has two different jobs in one lesson, and
+the lesson has to say which one they are doing. Every lesson carries both blocks,
+labelled with these exact strings:
+
+- `<span class="activity-label">In the Editor</span>` — the clicks.
+- `<span class="activity-label">In the Code</span>` — the file.
+
+`npm run verify` fails a lesson that labels one and not the other (check 10), so
+they travel as a pair or not at all.
+
+**In the Editor** is a numbered `<ol>` of imperative steps, and **every step names
+the pane it happens in** — `Hierarchy →`, `Inspector →`, `Project window →`,
+`Scene view →`. A student should never have to guess where to look, and a setting
+that lives in the Inspector says Inspector:
+
+```html
+<li>
+    <strong>Hierarchy →</strong> click the Player, then <strong>Inspector → Add Component →
+    Rigidbody 2D</strong> if it is not already there. Set <strong>Gravity Scale</strong> to 0.
+</li>
+```
+
+Inspector-only settings belong here and never in the code block as a `//` line —
+a comment in a .cs file cannot click a checkbox, and a student who reads it as a
+step will go looking for it in the wrong pane.
+
+**In the Code** is the script work: the API table (`API | What it is | What you
+get | What it costs`, with the call itself — `Mathf.Clamp(value, min, max)` — in
+the first cell), the architectural specification callouts, and the Socratic block.
+At level 3 the code half holds no code on purpose: the API and the spec are
+given, and the file is the student's to write.
+
+### Anchoring code in the file it lands in
+
+Code samples are never a floating fragment. Each one starts with lines that say
+where in the existing script it goes, and the declarations sit where a C#
+developer would actually put them — fields above `Start()` with the other fields,
+callbacks below `Update()` — not dropped into the middle of whatever method is
+being discussed:
+
+```js
+{ code: '// PlayerController.cs — class body, above Start(), with your other fields.', what: '' },
+{ code: '    [SerializeField] private int coins;', what: '...', why: '...' },
+...
+{ code: '// PlayerController.cs — below Update(). Unity calls this; you never do.', what: '' },
+{ code: '    private void OnTriggerEnter2D(Collider2D other)', what: '...' },
+```
+
+A placement line carries `what: ''`, which is how the renderer is told to print
+the line without an annotation — safe only because those lines carry no `why`,
+`hint` or `doc`. The final file under the walkthrough keeps the same section
+comments, so the student can see the whole shape in one place.
+
+### A method is always named as a call
+
+In prose, tables, specs and checklists: `CompareTag("Coin")`,
+`OnTriggerEnter2D(Collider2D other)`, `Instantiate(Object original, Vector3
+position, Quaternion rotation)`. Never the bare noun — `CompareTag` alone hides
+that it takes an argument, what type that argument is, and what it returns, which
+is the whole of what the student needs to know. `CompareTag()` at minimum.
+`verify` check 11 enforces this in any lesson carrying the "In the Code" label.
+
+### Tightening (what "bare bones" means here)
+
+Cut the frame, keep the payload. What stays: the Break It Down spec, the two
+halves, the API table, the architectural specification, one Socratic block of
+three questions (`turns` on the decompose spec is the other place a question
+lives), the checkpoint, the resources. What goes: a second and third Socratic
+block, prose that restates the Break It Down `big`, motivational paragraphs,
+"in this lesson you will learn" framing, and any sentence whose job is to say
+that the next sentence matters. If a paragraph can be replaced by one row of the
+API table, replace it.
+
+### Two things that destroy work silently
+
+Answer-box ids are derived from document order and students' saved answers live
+under them in `localStorage`. So: **never insert into or delete from the middle
+of a question block, and never reorder or move a question.** Reword freely,
+append at the end, trim from the end, or delete the whole block. `verify` check 12
+compares every page against the copy at HEAD and fails a lesson that breaks this.
+
+`what: ''` drops the whole annotation for that line, including `why`, `hint` and
+`doc`. It is for placement comments only.
+
 ## Final checklist per file (verify before you finish)
 
 - [ ] Starts with --- frontmatter, import, const body, closing ---, then the Lesson component — exactly the template above
