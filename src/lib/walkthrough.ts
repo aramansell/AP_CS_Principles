@@ -145,6 +145,16 @@ export interface WalkthroughSpec {
   file: string;
   /** What the student will have at the end of this walkthrough. */
   intro: string;
+  /**
+   * The block's header label. Defaults to "Build It With Me".
+   *
+   * Lessons converted to the editor/code split pass "In the Code", so the file
+   * half of the lesson carries the same explicit name as the "In the Editor"
+   * block above it — a student should never have to work out which half of the
+   * work they are in. verify-site asserts the two labels travel together, so a
+   * half-converted lesson fails rather than reading as one thing.
+   */
+  label?: string;
   /** Scaffolding level — drives the badge, and is asserted by verify-site. */
   level: ScaffoldLevel;
   steps: Step[];
@@ -323,7 +333,7 @@ export function renderWalkthrough(spec: WalkthroughSpec): string {
   return (
     '<div class="activity walkthrough" data-scaffold="' + spec.level + '" data-gaps="' + blanks + '">' +
     '<div class="activity-header">' +
-    '<span class="activity-label">Build It With Me</span>' +
+    '<span class="activity-label">' + (spec.label ?? 'Build It With Me') + '</span>' +
     '<span class="activity-time">' + LEVEL_LABEL[spec.level] + '</span>' +
     '</div>' +
     '<p class="wt-ask"><span class="wt-ask-label">The question this answers</span>' +

@@ -24,6 +24,10 @@
  *  9. the lab form adds up — every lesson renders at least one answer box,
  *     and the count the page prints at build time matches the boxes the
  *     page actually contains
+ * 10. the editor half and the code half of a lesson are labelled apart — a
+ *     lesson that names one of them names the other
+ * 11. every method in the prose is named as a call — CompareTag(String tag),
+ *     not CompareTag — because the shape of the call is the thing being taught
  *
  * Ported from the AP CS A Guide's verify-site.mjs, minus the legacy-site
  * URL parity checks (this site has no legacy twin).
@@ -638,6 +642,96 @@ if (!fs.existsSync(askSrcPath)) {
       " — three is the target, and a fourth only if it is the block's synthesis question");
   } else {
     ok('no Socratic block exceeds four questions');
+  }
+
+  // ---------- 10. the editor half and the code half are labelled apart
+  // A student at a computer with Unity open needs to know which half of the
+  // work they are in: the clicks (and which pane each one happens in) or the
+  // file. The lessons say so with two block labels — "In the Editor" and
+  // "In the Code" — and this check is what keeps the pair honest.
+  //
+  // It is deliberately scoped by the labels themselves rather than by a list of
+  // converted lessons: a lesson that names one half must name the other, so a
+  // half-converted lesson fails while a lesson that has not been through this
+  // pass yet is simply not held to it. That is the only form of this rule that
+  // can be introduced to 81 lessons without a red build for a month.
+  //
+  // It reads the rendered label, not a class or an attribute, so the split
+  // cannot be satisfied by markup without the words a student reads.
+  console.log('10. editor work vs code work...');
+  const editorRe = /activity-label">In the Editor</;
+  const codeRe = /activity-label">In the Code</;
+  const split = [];
+  const half = [];
+  for (const f of built) {
+    const id = f.replace('.html', '');
+    const html = fs.readFileSync(path.join(dist, 'lessons', f), 'utf8');
+    const hasEditor = editorRe.test(html);
+    const hasCode = codeRe.test(html);
+    if (hasEditor && hasCode) split.push(id);
+    else if (hasEditor || hasCode) half.push(id + ' (' + (hasEditor ? 'editor half only' : 'code half only') + ')');
+  }
+  if (half.length) {
+    fail('lesson(s) label one half of the work but not the other: ' + half.join(', ') +
+      ' — every lesson that says "In the Editor" must also say "In the Code", and the reverse');
+  }
+  ok(split.length + ' lesson(s) label the editor half and the code half apart' +
+    (split.length ? ': ' + split.join(', ') : ''));
+
+  // ---------- 11. every method in the prose is named as a call
+  // "CompareTag beats comparing strings" reads as a noun, and the student has no
+  // way to see that it takes an argument, what type that argument is, or that it
+  // returns a bool. Writing CompareTag(String tag) — or CompareTag("Coin") —
+  // shows the shape of the call instead of asking the reader to remember it.
+  //
+  // Two deliberate limits:
+  //   - Code blocks are dropped before the scan. Inside code a method name is
+  //     already in its call, and a comment that says "// Destroy the coin" is
+  //     prose about a line, not a method taught by name.
+  //   - Only lessons that carry the "In the Code" label are scanned, for the
+  //     reason in check 10: the rest of the course is still being converted, and
+  //     a check that fails 77 lessons teaches nobody anything.
+  console.log('11. methods named as calls...');
+  const METHODS = [
+    'CompareTag', 'GetComponent', 'GetComponentInChildren',
+    'OnTriggerEnter2D', 'OnTriggerExit2D', 'OnTriggerStay2D',
+    'OnCollisionEnter2D', 'OnCollisionExit2D', 'OnCollisionStay2D',
+    'Instantiate', 'Destroy', 'Debug.Log',
+    'Mathf.Clamp', 'Mathf.Min', 'Mathf.Max', 'Mathf.Abs',
+    'Input.GetAxis', 'Input.GetAxisRaw', 'Input.GetKey', 'Input.GetKeyDown',
+    'Input.GetMouseButtonDown', 'AddForce', 'MovePosition', 'LoadScene',
+    'FindWithTag', 'SetBool', 'SetInteger', 'SetTrigger',
+    'Start', 'Update',
+  ];
+  const bareMethods = [];
+  for (const id of split) {
+    // strip scripts, styles and every code block, then the remaining tags —
+    // what is left is the prose the student actually reads.
+    const text = fs.readFileSync(path.join(dist, 'lessons', id + '.html'), 'utf8')
+      .replace(/<script[\s\S]*?<\/script>/g, ' ')
+      .replace(/<style[\s\S]*?<\/style>/g, ' ')
+      .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      // Entities are decoded after the tags are gone, so a generic call reads
+      // as one: `GetComponent&lt;T&gt;()` in the markup is `GetComponent<T>()`
+      // in the prose, and the `<` is part of the call's shape.
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+    for (const name of METHODS) {
+      // A name is "named as a call" when what follows it opens one — `(` for a
+      // plain call, `<` for a generic one. Anything else is the bare noun this
+      // check exists to catch.
+      const re = new RegExp('\\b' + name.replace(/\./g, '\\.') + '\\b(?!\\s*[<(])', 'g');
+      const hit = re.exec(text);
+      if (!hit) continue;
+      const near = text.slice(Math.max(0, hit.index - 45), hit.index + 45)
+        .replace(/\s+/g, ' ').trim();
+      bareMethods.push(id + ': ' + name + ' — ...' + near + '...');
+    }
+  }
+  if (bareMethods.length) {
+    fail('method(s) named without their call in a converted lesson:\n    ' + bareMethods.join('\n    '));
+  } else {
+    ok('no method in the ' + split.length + ' converted lesson(s) is named without its parentheses');
   }
 }
 
