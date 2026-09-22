@@ -278,16 +278,48 @@ that it takes an argument, what type that argument is, and what it returns, whic
 is the whole of what the student needs to know. `CompareTag()` at minimum.
 `verify` check 11 enforces this in any lesson carrying the "In the Code" label.
 
-### Tightening (what "bare bones" means here)
+### Teach it once: say it, move on
 
-Cut the frame, keep the payload. What stays: the Break It Down spec, the two
-halves, the API table, the architectural specification, one Socratic block of
-three questions (`turns` on the decompose spec is the other place a question
-lives), the checkpoint, the resources. What goes: a second and third Socratic
-block, prose that restates the Break It Down `big`, motivational paragraphs,
-"in this lesson you will learn" framing, and any sentence whose job is to say
-that the next sentence matters. If a paragraph can be replaced by one row of the
-API table, replace it.
+The lesson's job is to get the student building. Every explanation spent before
+they start is attention they do not have when they get there — and a student who
+has read about `Rigidbody2D` for the fourth time in one lesson has none left for
+the thing they came to make.
+
+So: **a concept is explained at most twice in a lesson**, and the second time only
+when the context is genuinely new — a cost it did not have before, a decision it
+now forces. Anything after that is the same sentence wearing a different heading,
+and it gets culled rather than reworded.
+
+The unit of deletion is the **section or paragraph that repeats an explanation**,
+not the sentence. Before keeping any explanatory paragraph, find where else in the
+same lesson that idea is already explained. Keep the one nearest the student's
+hands — the step they are on right now — and cut the others. The usual offenders:
+
+- a "Why this matters" paragraph restating the Break It Down `big`;
+- the second and third Socratic blocks, which ask the same question in new words;
+- a callout that repeats the paragraph above it with a `<strong>` lead;
+- the API table row for something the surrounding prose has just explained twice.
+  A table row is a *lookup*, not an explanation — a term may sit in a table row
+  plus one explanation, and that is not repetition.
+
+This is not a warning about doing too little. The course teaches by
+**reapplication**: the spike comes back as a thing to collect in 2.4, the pickup
+pattern comes back in 5.1, the counter comes back in 6.4, and the student learns it
+by meeting it again in a new place. Nothing has to be taught to completion the
+first time, so **cut any paragraph that pre-explains a later lesson** — it will be
+said then, when the student has a reason to need it.
+
+What stays: the Break It Down spec, the two halves, the API table, the
+architectural specification, **one** Socratic block of three questions (`turns` on
+the decompose spec is the other place a question lives), the checkpoint, the
+resources. What goes: everything above, plus motivational paragraphs, "in this
+lesson you will learn" framing, and any sentence whose job is to say that the next
+sentence matters.
+
+Target: a build lesson's body lands at **40-90 lines of HTML**, and studio, process
+and jam days shorter still. If a lesson is over that, the excess is almost always a
+repeated explanation rather than teaching. `verify` check 13 reports the paragraphs
+in one lesson that say the same thing as each other.
 
 ### Two things that destroy work silently
 

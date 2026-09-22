@@ -31,6 +31,8 @@
  * 12. no saved answer was orphaned — an answer box may only be appended after
  *     or trimmed from the end of its block, never inserted into or moved, so a
  *     student's saved text never reappears under a question it does not answer
+ * 13. a converted lesson does not explain the same thing twice (a warning, not a
+ *     failure — overlap is a heuristic, so the list goes to a human)
  *
  * Ported from the AP CS A Guide's verify-site.mjs, minus the legacy-site
  * URL parity checks (this site has no legacy twin).
@@ -46,6 +48,14 @@ const lessonsData = path.resolve('src/data/lessons.ts');
 let failures = 0;
 const fail = (msg) => { failures++; console.error('FAIL: ' + msg); };
 const ok = (msg) => console.log('  ok: ' + msg);
+
+// A warning is not a failure. It is used where the detector is a heuristic —
+// it can see that two paragraphs are saying the same thing but not whether the
+// repetition is deliberate — so it hands a list to a human instead of stopping
+// the build. Silence is still not the goal: a warn that never fires is a warn
+// nobody has checked the threshold of.
+let warnings = 0;
+const warn = (msg) => { warnings++; console.log('  WARN: ' + msg); };
 
 // ---------- read the curriculum data via a tiny esbuild-free shim:
 // the .ts file is erasable-syntax TS; strip types crudely and eval in a
@@ -848,13 +858,127 @@ if (!fs.existsSync(askSrcPath)) {
       ok('every answer box in the ' + built.length + ' built lesson(s) still belongs to the question it did');
     }
   }
+
+  // ---------- 13. a lesson does not explain the same thing twice
+  // The lesson that exhausts its reader is not the one with a hard idea in it. It
+  // is the one that explains the same idea in four sections, so the student
+  // arrives at the build with nothing left — the complaint that produced this
+  // check was "how many times do we need to explain Rigidbody2D inside one
+  // lesson". Two signals, both read per converted lesson:
+  //
+  //   (a) density — a concept carried by sentences in three or more sections of
+  //       one lesson. Wording changes from section to section, so looking for
+  //       repeated sentences misses it; counting the sections that talk about a
+  //       term at all does not.
+  //   (b) restatement — two paragraphs in a lesson whose content words are mostly
+  //       the same words, which is what saying the same thing in new words looks
+  //       like from outside.
+  //
+  // It reports rather than fails. Both are heuristics: a comparison table's two
+  // rows share their vocabulary, and a term can legitimately appear in the Break
+  // It Down list, the reference table and the spec. So the reader keeps the
+  // judgment, and the numbers below are tuning knobs rather than rules.
+  //
+  // Reference-table rows are exempt from (b) (a row is a lookup, not an
+  // explanation, per the spec) and code is dropped from both — a walkthrough line
+  // is the instruction, not prose about it. The term list is deliberately short
+  // and is meant to grow as the course's concepts get named; a term nobody
+  // explains twice never needs to be in it.
+  console.log('13. explanations that repeat...');
+  const TERMS = [
+    'Rigidbody2D', 'Collider2D', 'Is Trigger', 'CompareTag', 'Time.deltaTime', 'Animator',
+    'Instantiate', 'Destroy', 'MovePosition', 'AddForce', 'transform.Translate', 'linearVelocity',
+    'SerializeField', 'OnTriggerEnter2D', 'OnCollisionEnter2D', 'Debug.Log', 'Sprite Renderer',
+    'Prefab', 'Tilemap', 'gravityScale', 'Vector2', 'normalized', 'Input.GetAxis',
+    'state machine', 'ScriptableObject', 'Canvas', 'Update(', 'Start(',
+  ];
+  const SECTIONS_MAX = 2;   // the spec allows three sections only if the third is a new context
+  const SENTENCES_MIN = 6;  // and only if the mentions are load-bearing rather than incidental
+  const STOP = new Set(('the a an and or but if then than that this these those it its is are was were be been ' +
+    'being am to of in on at for with from by as not no you your we our they their them us me my do does did ' +
+    'doing have has had can could will would should may might must one two three also so because when where ' +
+    'which who whom what how why there here about into over under again more most other some such only own ' +
+    'same too very just now out up down off still get got gets make makes made use uses used like want wanted ' +
+    'need needs needed see sees saw know knows knew think thinks way ways thing things').split(' '));
+  const tokens = (s) => new Set(s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+    .filter((w) => w.length > 2 && !STOP.has(w)));
+  const PROSE_MIN = 12;   // a paragraph shorter than this cannot carry an explanation
+  const OVERLAP_MIN = 0.5;
+  const dense = [];
+  const repeated = [];
+  for (const id of split) {
+    const html = fs.readFileSync(path.join(dist, 'lessons', id + '.html'), 'utf8');
+    // carve the page into labelled sections so a report can say WHERE the repeat is
+    const marks = [...html.matchAll(/class="activity-label">([^<]*)</g)];
+    const blocks = [];
+    for (let i = 0; i < marks.length; i++) {
+      const from = marks[i].index;
+      const to = i + 1 < marks.length ? marks[i + 1].index : html.length;
+      blocks.push({ where: marks[i][1].trim(), html: html.slice(from, to) });
+    }
+    const units = [];
+    for (const b of blocks) {
+      const prose = b.html.replace(/<pre[\s\S]*?<\/pre>/g, ' ').replace(/<table[\s\S]*?<\/table>/g, ' ');
+      for (const m of prose.matchAll(/<(p|li)\b[^>]*>([\s\S]*?)<\/\1>/g)) {
+        const text = m[2].replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim();
+        const t = tokens(text);
+        if (t.size >= PROSE_MIN) units.push({ where: b.where, text, t });
+      }
+    }
+    // (a) density: how many sections lean on one term, and how hard
+    for (const term of TERMS) {
+      const inBlocks = blocks.filter((b) => b.html.replace(/<[^>]+>/g, ' ').includes(term));
+      if (inBlocks.length <= SECTIONS_MAX) continue;
+      let sentences = 0;
+      for (const b of blocks) {
+        for (const s of b.html.replace(/<[^>]+>/g, ' ').split(/(?<=[.!?])\s+/)) {
+          if (s.includes(term)) sentences++;
+        }
+      }
+      if (sentences < SENTENCES_MIN) continue;
+      dense.push({ id, term, sentences, where: inBlocks.map((b) => b.where).join(' / ') });
+    }
+    // (b) restatement: two paragraphs made of the same content words
+    for (let i = 0; i < units.length; i++) {
+      for (let j = i + 1; j < units.length; j++) {
+        const a = units[i], b = units[j];
+        let shared = 0;
+        for (const w of a.t) if (b.t.has(w)) shared++;
+        const overlap = shared / (a.t.size + b.t.size - shared);
+        if (overlap < OVERLAP_MIN) continue;
+        repeated.push({ id, overlap, a, b });
+      }
+    }
+  }
+  dense.sort((x, y) => y.sentences - x.sentences);
+  repeated.sort((x, y) => y.overlap - x.overlap);
+  if (dense.length === 0 && repeated.length === 0) {
+    ok('no concept in the ' + split.length + ' converted lesson(s) is explained across three sections');
+  }
+  if (dense.length) {
+    warn(dense.length + ' term(s) explained in three or more sections of one lesson (' + split.length +
+      ' converted lesson(s) scanned):\n' +
+      dense.slice(0, 10).map((d) => '      ' + d.id + ': ' + d.term + ' — ' + d.sentences +
+        ' sentences across ' + d.where).join('\n') +
+      (dense.length > 10 ? '\n      ... and ' + (dense.length - 10) + ' more' : '') +
+      '\n    Say it once and let them build. A third section is allowed only for a genuinely new context,');
+  }
+  if (repeated.length) {
+    warn(repeated.length + ' pair(s) of paragraphs in a converted lesson say the same thing, worst first:\n' +
+      repeated.slice(0, 6).map((r) => '      ' + r.id + ' ' + Math.round(r.overlap * 100) + '% — "' + r.a.where +
+        '" vs "' + r.b.where + '"\n        A: ' + r.a.text.slice(0, 90) + '\n        B: ' + r.b.text.slice(0, 90))
+        .join('\n') +
+      (repeated.length > 6 ? '\n      ... and ' + (repeated.length - 6) + ' more' : ''));
+  }
 }
 
 console.log('');
 if (failures === 0) {
-  console.log('VERIFY PASSED — ' + pages.length + ' pages, ' + links + ' links, ' + built.length + ' lessons.');
+  console.log('VERIFY PASSED — ' + pages.length + ' pages, ' + links + ' links, ' + built.length + ' lessons.' +
+    (warnings ? '  ' + warnings + ' warning(s) above — read them.' : ''));
   process.exit(0);
 } else {
-  console.log('VERIFY FAILED — ' + failures + ' problem(s) above.');
+  console.log('VERIFY FAILED — ' + failures + ' problem(s) above.' +
+    (warnings ? '  (' + warnings + ' warning(s) too.)' : ''));
   process.exit(1);
 }
