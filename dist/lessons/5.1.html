@@ -1,81 +1,146 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>5.1 The Axe: Item Pickups &amp; Inventory Bools — AP CS Principles</title><meta name="description" content="Lesson 5.1 The Axe: Item Pickups &amp; Inventory Bools — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="5.1 The Axe: Item Pickups &amp; Inventory Bools — AP CS Principles"><meta property="og:description" content="Lesson 5.1 The Axe: Item Pickups &amp; Inventory Bools — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="4.5.html">&#9664; 4.5</a><span class="lesson-id">5.1</span><a href="5.2.html">5.2 &#9654;</a></div><h1>5.1 — The Axe: Item Pickups &amp; Inventory Bools</h1>
 
 <p class="lesson-lead">
-    Coins and potions changed <em>numbers</em>. The axe changes what you <em>are</em>. It flips a
-    boolean — that half is easy, and you have written the pattern three times already — and then
-    it replaces the entire machine that draws your character. Nothing you have built so far
-    prepares you for the second half, and it is one line long.
+    Coins and potions changed <em>numbers</em>. The axe changes what you <em>are</em>: it flips a
+    boolean — that half you have written three times already — and then it replaces the entire
+    machine that draws your character. That second half is one line long, and nothing you have
+    built so far prepares you for it.
 </p>
 
 <div class="ask-banner" data-scaffold="2"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I add an item to my inventory?&rdquo;</span><span class="ask-banner-level">Guided build</span></div>
 
-<div class="activity decompose" data-level="2" data-parts="6" data-given="5" data-docs="6"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Guided build</span></div><p class="dc-big">The player picks up an axe and becomes an axe-wielder — "how do I add an item to my inventory?" In a game where every pickup so far changed a number this game was keeping, and this one has to change the machine that draws the player.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Give the axe a shape the engine can report on</span><span class="dc-does">A collider on the <code>AxeItem</code> prefab root with <strong>Is Trigger</strong> ticked, sized to the art — the recipe you followed for the coin in 2.1. The prefab already carries the <code>Axe</code> tag, and right now it has no collider at all, which makes it a picture you can walk straight through.</span><span class="dc-doc">Read: <a href="2.1.html">the <code>Collider2D</code> and <code>Is Trigger</code> rows in the quick reference, and the coin you gave a shape to in 2.1</a></span></li><li class="dc-part"><span class="dc-name">Put one where a player can reach it</span><span class="dc-does">An instance of the prefab standing in the Overworld. There are <strong>zero</strong> in any scene, so the mechanic is invisible until you place one — and it has to be somewhere a tester will walk without dying first.</span><span class="dc-doc">Read: <a href="2.4.html">the prefab-versus-instance distinction from 2.1, and the clone you spawned in 2.4 that showed you what a prefab owns</a></span></li><li class="dc-part"><span class="dc-name">Confirm the thing you touched was the axe</span><span class="dc-does"><code>else if (other.CompareTag("Axe"))</code> inside the <code>OnTriggerEnter2D</code> you already have. Your coin check from 2.1 and your potion check from 2.3 are already living in that method, so this is a third branch of an idea you have written twice.</span><span class="dc-doc">Read: <a href="2.1.html">the tag check you wrote in 2.1, and the <code>other.CompareTag("Coin")</code> row in the quick reference for the exact spelling</a></span></li><li class="dc-part"><span class="dc-name">Remember that you have it</span><span class="dc-does">One field in the class body — a <code>bool</code> that starts <strong>false</strong> and is set to <code>true</code> inside the branch. One item, one yes/no: there is no count because nobody has ever needed two axes.</span><span class="dc-doc">Read: <a href="2.1.html">the coin count field you declared in the class body in 2.1, and the <code>bool hasAxe = false;</code> row in the quick reference for the type</a></span></li><li class="dc-part dc-part-blank"><span class="dc-gap">write this part</span><span class="dc-doc">Read: <a href="1.6.html">the Animator component page in the Unity scripting reference — the property whose type is <code>RuntimeAnimatorController</code> — and the unused axe controller that is already sitting in <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/</code></a></span></li><li class="dc-part"><span class="dc-name">Consume the pickup</span><span class="dc-does"><code>Destroy(other.gameObject)</code> — the axe is an item you carry, so it leaves the world the moment you touch it, exactly like the coin and the potion. What stays behind is the boolean: the object is consumed, the capability is not.</span><span class="dc-doc">Read: <a href="2.1.html">the <code>Destroy(gameObject)</code> row in the quick reference, and the destroy line in your own coin branch</a></span></li></ol><p class="dc-why">Five of those six parts are the pickup pattern you have now written three times: a shape, a tag check, a change, a destroy. Only one part has no precedent at all, and it is the reason this lesson exists. Every pickup so far changed a number the game was already keeping — a coin count, health. The boolean is that same shape wearing different clothes: a value that can only hold 0 or 1 is still a value. What is genuinely new is that the axe changes what the player <strong>is</strong>, and that is not done by changing a value at all — it is done by replacing the machine that decides which animation plays. Keeping those two jobs as separate parts is the whole point of the split: "remember the axe" and "become the axe-wielder" are different problems, and only one of them is new.</p><p class="dc-size">The test: could you look this part up on its own, right now, in one search? "Pick up an axe" cannot be looked up. "Change the controller an Animator is playing" can — and the search term for it is a property name you have to go and read rather than guess, which is why the gap above names where to look and not what to type.</p><div class="dc-turns"><h4>Your turn</h4><p>The axe flips a boolean that nothing in your game reads yet. Name one thing that will have to read it, and say what you expect that line of code to look like when something finally does.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.1:dc1:q1" data-block="decompose" data-question="The axe flips a boolean that nothing in your game reads yet. Name one thing that will have to read it, and say what you expect that line of code to look like when something finally does." placeholder="write your answer, then keep going"></textarea></label><p>Take the boolean away and keep only the swap; then take the swap away and keep only the boolean. Which of the two can the game not do without, and what does the other one buy you?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.1:dc1:q2" data-block="decompose" data-question="Take the boolean away and keep only the swap; then take the swap away and keep only the boolean. Which of the two can the game not do without, and what does the other one buy you?" placeholder="write your answer, then keep going"></textarea></label></div></div>
+<div class="activity decompose" data-level="2" data-parts="6" data-given="5" data-docs="6"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Guided build</span></div><p class="dc-big">The player picks up an axe and becomes an axe-wielder — "how do I add an item to my inventory?" Every pickup so far changed a number. This one changes the machine that draws the player.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Give the axe a shape the engine can report on</span><span class="dc-does">A collider on the <code>AxeItem</code> prefab root with <strong>Is Trigger</strong> ticked — the coin's recipe from 2.1. Today the prefab has no collider at all, which makes it a picture you can walk straight through.</span><span class="dc-doc">Read: <a href="2.1.html">the <code>Collider2D</code> and <code>Is Trigger</code> rows in the quick reference, and the coin you gave a shape to in 2.1</a></span></li><li class="dc-part"><span class="dc-name">Put one where a player can reach it</span><span class="dc-does">An instance of the prefab standing in the Overworld. There are <strong>zero</strong> in any scene, so the mechanic is invisible until you place one.</span><span class="dc-doc">Read: <a href="2.4.html">the prefab-versus-instance distinction from 2.1, and the clone you spawned in 2.4</a></span></li><li class="dc-part"><span class="dc-name">Confirm the thing you touched was the axe</span><span class="dc-does"><code>else if (other.CompareTag("Axe"))</code> inside the <code>OnTriggerEnter2D(Collider2D other)</code> you already have — a third branch of an idea you have written twice.</span><span class="dc-doc">Read: <a href="2.1.html">the tag check you wrote in 2.1, and the <code>other.CompareTag("Coin")</code> row in the quick reference for the exact spelling</a></span></li><li class="dc-part"><span class="dc-name">Remember that you have it</span><span class="dc-does">One field in the class body — a <code>bool</code> that starts <strong>false</strong> and is set to <code>true</code> inside the branch. One item, one yes/no.</span><span class="dc-doc">Read: <a href="2.1.html">the coin count field you declared in the class body in 2.1, and the <code>bool hasAxe = false;</code> row in the quick reference for the type</a></span></li><li class="dc-part dc-part-blank"><span class="dc-gap">write this part</span><span class="dc-doc">Read: <a href="1.6.html">the Animator component page in the Unity scripting reference — the property whose type is <code>RuntimeAnimatorController</code> — and the unused axe controller already sitting in <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/</code></a></span></li><li class="dc-part"><span class="dc-name">Consume the pickup</span><span class="dc-does"><code>Destroy(other.gameObject)</code> — the axe leaves the world the moment you touch it, exactly like the coin. The object is consumed, the capability is not.</span><span class="dc-doc">Read: <a href="2.1.html">the <code>Destroy(Object)</code> row in the quick reference, and the destroy line in your own coin branch</a></span></li></ol><p class="dc-why">Only one part of that list has no precedent in this course, and it is the reason this lesson exists. Every pickup so far changed a value — a coin count, health — and a <code>bool</code> is that same shape in different clothes: a value that can only hold 0 or 1 is still a value. The axe changes what the player <strong>is</strong>, and that is not done by changing a value at all. It is done by replacing the machine that decides which animation plays — which is why "remember the axe" and "become the axe-wielder" are separate parts.</p><p class="dc-size">The test: could you look this part up on its own, right now, in one search? "Pick up an axe" cannot be looked up. "Change the controller an Animator is playing" can — and the search term is a property name you have to read rather than guess. That is why the gap above names where to look and not what to type.</p><div class="dc-turns"><h4>Your turn</h4><p>The axe flips a boolean that nothing in your game reads yet. Name one thing that will have to read it, and say what you expect that line of code to look like when something finally does.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.1:dc1:q1" data-block="decompose" data-question="The axe flips a boolean that nothing in your game reads yet. Name one thing that will have to read it, and say what you expect that line of code to look like when something finally does." placeholder="write your answer, then keep going"></textarea></label></div></div>
 
 <!-- ============================================================ -->
 <div class="activity discovery">
     <div class="activity-header">
-        <span class="activity-label">The Problem: A Pickup That Changes You</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
     </div>
 
-    <p>
-        Every pickup in this game so far has been easy to hold in your head, because it changed a
-        number that already existed. Walk into a coin and <code>coins</code> goes up by one. Walk
-        into a potion and <code>health</code> goes up. The axe does not do that. Walk into an axe
-        and <strong>every number in your game stays exactly where it was</strong> — and the
-        character you are controlling becomes somebody else.
-    </p>
+    <ol>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/AxeItem</code>: double-click it to
+            open the prefab asset itself, not a copy standing in a scene, and read the Inspector. A
+            Transform, a Sprite Renderer, and the tag <code>Axe</code> already set. Now notice what
+            every other pickup in this game has and this one does not.
+        </li>
+        <li>
+            <strong>Inspector → Add Component → Box Collider 2D</strong>, on the prefab's root — the
+            object carrying the tag. Then <strong>Scene view →</strong> drag the collider's handles
+            until the green outline covers the axe you can actually see. The sprite is wide and
+            short, so a Box fits it more easily than the coin's Circle did in
+            <a href="2.1.html">2.1</a>.
+        </li>
+        <li>
+            <strong>Inspector → Box Collider 2D → Is Trigger</strong> ☑ ON. A trigger
+            <em>reports</em> an overlap and pushes nothing; leave it off and the axe is a small solid
+            rock that shoves the player aside, and the callback you are about to write never runs at
+            all.
+        </li>
+        <li>
+            <strong>Project window →</strong> drag one <code>AxeItem</code> into the
+            <strong>Overworld</strong> in the Hierarchy, then <strong>Scene view →</strong> place it
+            on a route a tester will walk without dying first. The prefab ships with
+            <strong>zero</strong> instances in any scene, so nothing is a pickup until you put one
+            there — and the path toward a cave mouth is the sensible spot, because
+            <a href="5.2.html">5.2</a> is where that door starts caring.
+        </li>
+        <li>
+            <strong>Hierarchy → Player → Inspector → Animator → Controller</strong>: it is playing
+            <code>Player_Shovel.controller</code> — the state machine <a href="1.6.html">1.6</a>
+            taught you to drive. Then <strong>Project window →</strong>
+            <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/</code>: <strong>two complete
+            controllers</strong>, an axe and a shovel, and only one of them referenced by anything
+            in this project.
+        </li>
+        <li>
+            <strong>Once the walkthrough is done — Project window →</strong>
+            <code>Assets/Prefabs/Player</code>, <strong>Inspector → Player Controller → Axe
+            Controller</strong>, and drag <code>Axe/Player_Axe.controller</code> into the slot. Wire
+            it on the prefab, not on one Player in a scene, so every Player you place inherits it.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play, walk into the axe, and swing. The character
+            should be an axe-wielder the moment you touch it. Then walk through a cave mouth and come
+            back, and check that they still are — <code>SceneSwitch.cs</code> is what puts the
+            controller back.
+        </li>
+    </ol>
+</div>
 
-    <p>
-        So answer the data question before you build anything. Coins needed a counter. A potion
-        needed to change an existing number. What does "the player is carrying an axe" actually
-        need?
-    </p>
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~30 min</span>
+    </div>
 
     <table>
-        <tr><th>Option</th><th>What it stores</th><th>Why you would or would not</th></tr>
+        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
         <tr>
-            <td>An <code>int</code> count</td>
-            <td>How many axes you hold</td>
-            <td>Useless extra information. Nobody has ever needed two axes, so you would be storing a number you will never read.</td>
+            <td><code>[SerializeField] private bool hasAxe = false;</code></td>
+            <td>A class-body field that survives every frame, shows up in the Inspector so you can
+                watch it flip, and holds exactly two answers — the declaration form from
+                <a href="1.3.html">1.3</a> that has held your coin count since
+                <a href="2.1.html">2.1</a>.</td>
+            <td>There is nothing in between the two answers, and the <em>starting value</em> is a
+                design decision rather than a formality: <code>false</code> makes the player earn
+                the capability.</td>
         </tr>
         <tr>
-            <td>A <code>bool</code></td>
-            <td>Yes or no — you have one, or you do not</td>
-            <td>The honest shape of the fact. One item, one yes/no, and the game only ever asks one question about it.</td>
+            <td><code>other.CompareTag("Axe")</code></td>
+            <td>Asks the engine whether the collider you just touched carries that tag. The
+                <code>AxeItem</code> prefab has carried <code>Axe</code> since the day you opened
+                it, so there is nothing to create.</td>
+            <td>Exact spelling against a tag that has to exist in the project, and it is asked of
+                whichever object <em>owns the collider</em> — move it to a child and the answer is
+                false, with nothing in the Console to explain it.</td>
         </tr>
         <tr>
-            <td>A list of items</td>
-            <td>Every item you carry, by name</td>
-            <td>The right answer for sixty items. Overkill for one, and it turns the simplest question in the game — "do I have an axe?" — into a search.</td>
+            <td><code>animator.SetBool("IsWalking", bool)</code><br>
+                <code>animator.SetInteger("WalkDir", int)</code><br>
+                <code>animator.SetTrigger("Attack")</code></td>
+            <td>The three calls from <a href="1.6.html">1.6</a> that make a controller
+                <em>play</em> something.</td>
+            <td>They choose between the states of <strong>one</strong> controller, so none of them
+                can reach a clip that is not already in that machine — which is why a new weapon
+                set is not a parameter, and never can be.</td>
+        </tr>
+        <tr>
+            <td><strong>the Animator's own controller property</strong></td>
+            <td>The property that holds <em>which controller the Animator is playing right now</em>.
+                Read it and you know which weapon set is live; assign to it and the whole state
+                machine — states, transitions, clips — is replaced in one line. Its type is
+                <code>RuntimeAnimatorController</code>, the same type as the Inspector slot.
+                <strong>Find its name on the Animator component page of the scripting reference
+                rather than guessing it</strong> — and do that before you write the line the
+                walkthrough leaves you.</td>
+            <td>It replaces <em>everything</em>, and it saves nothing: a Player rebuilt from the
+                prefab comes back with the controller the prefab was wired with.</td>
         </tr>
     </table>
 
-    <div class="callout trap">
-        <strong>The boolean is the easy half, and it is the half that feels like the lesson.</strong>
-        Everything this game has remembered so far has been a <em>number that changes</em> — a coin
-        count, health, and the moment on the clock you kept on the turret. A <code>bool</code> is
-        that same shape wearing different clothes: a value that can only ever be <code>0</code> or
-        <code>1</code> is still a value, and you have declared one before. The half that has no
-        precedent is what the axe does <em>after</em> the boolean flips: it decides which
-        animation set the player is drawn with. Watch for it, because if you treat this lesson as
-        "a pickup with a different tag", you will build half of it and not notice.
-    </div>
-
-    <div class="callout info">
-        <strong>Go and look before you write a line.</strong> Open
-        <code>Assets/Prefabs/AxeItem</code> and read the Inspector: a Transform, a Sprite Renderer,
-        and the tag <code>Axe</code>. Now notice what is missing — and then count the axes placed
-        in your scenes, because the answer is <strong>zero</strong>. The mechanic does not exist
-        in the world yet; you are going to build it and then go and put it somewhere.
-        <br><br>
-        Then select the <strong>Sprite</strong> child under the Player and read the Animator
-        component. It is playing <code>Player_Shovel.controller</code> — the state machine
-        <a href="1.6.html">1.6</a> taught you to drive. Now open
-        <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/</code> and count what is in
-        there: <strong>two complete controllers</strong>, a shovel and an axe, and only one of
-        them is referenced by anything in this project. Somebody built you the whole weapon set
-        and left the second one on the shelf.
+    <div class="callout">
+        <strong>Architectural specification for <code>PlayerController.cs</code>:</strong>
+        <ul>
+            <li><strong>The pickup.</strong> You gave a collider to an object that has never had one,
+                so you cannot see what the engine sees. How did you check the shape in the Scene view
+                rather than guessing — and what does the player feel if the box is twice the size of
+                the art?</li>
+            <li><strong>The placement.</strong> Where did you put your axe, and how would a tester
+                find it without being told?</li>
+            <li><strong>The scope.</strong> Where does the field live, and what breaks if you move it
+                inside the branch that sets it? Use the word "frame" in your answer.</li>
+            <li><strong>The swap.</strong> Name the property you assigned to, its type, and the page
+                you read it on rather than guessing it.</li>
+            <li><strong>The slot.</strong> What did the Inspector slot have to hold before the swap
+                could work at all — and what does the player see, and hear, if it holds nothing?</li>
+            <li><strong>The animation code.</strong> The three parameters from 1.6 exist on
+                <em>both</em> controllers with the same names and types. How much of your 1.6 code
+                had to change when the axe arrived — and what does that tell you about what a
+                controller owns?</li>
+        </ul>
     </div>
 
     <div class="socratic">
@@ -84,136 +149,33 @@
 <li>Why is a <code>bool</code> the right abstraction for "I have an axe" but the wrong one for "how many coins do I have"?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.1:sc1:q1" data-block="socratic" data-question="Why is a bool the right abstraction for &quot;I have an axe&quot; but the wrong one for &quot;how many coins do I have&quot;?" placeholder="write your answer, then keep going"></textarea></label></li>
 <li>At roughly how many items does a collection of booleans become the wrong design? What breaks first — readability, or the number of branches you have to write?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.1:sc1:q2" data-block="socratic" data-question="At roughly how many items does a collection of booleans become the wrong design? What breaks first — readability, or the number of branches you have to write?" placeholder="write your answer, then keep going"></textarea></label></li>
 <li>Where should this boolean live — on the axe, on the player, or somewhere global? Use the reasoning you applied in <a href="2.1.html">2.1</a>, then check it against what you actually do below.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.1:sc1:q3" data-block="socratic" data-question="Where should this boolean live — on the axe, on the player, or somewhere global? Use the reasoning you applied in 2.1 , then check it against what you actually do below." placeholder="write your answer, then keep going"></textarea></label></li>
-</ol>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Read the Docs: The API for Changing What You Are</span>
-        <span class="activity-time">~15 min</span>
-    </div>
-
-    <p>
-        Six of the seven rows below are things you have already typed somewhere in this course, and
-        the seventh is the one you are going to look up rather than guess. Read the cost column as
-        carefully as the middle one — for the first time in this unit, the cost of the interesting
-        row is <em>what it does to the rest of the game</em>, not what it does to a number.
-    </p>
-
-    <table>
-        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
-        <tr>
-            <td><code>bool</code></td>
-            <td>True or false, one bit of information — the type you first met as <code>isMoving</code> in <a href="1.6.html">1.6</a>, now holding a fact about the player instead of a fact about the input.</td>
-            <td>There is nothing in between. It cannot say how many and it cannot say how long — an <code>int</code> counts, a list holds many, and a <code>bool</code> is only ever the two answers. That is a feature exactly once per fact.</td>
-        </tr>
-        <tr>
-            <td><code>[SerializeField] private bool hasAxe = false;</code></td>
-            <td>A class-body field that survives every frame and appears in the Inspector, so you can watch it flip while the game runs — the declaration form from <a href="1.3.html">1.3</a> and the coin count from <a href="2.1.html">2.1</a>.</td>
-            <td>The <em>starting value</em> is a design decision, not a formality. <code>true</code> and the capability is granted before the player has done anything; <code>false</code> and it is earned. The default is the difference between a reward and a decoration.</td>
-        </tr>
-        <tr>
-            <td><code>Collider2D</code> ▸ <code>Is Trigger</code> ☑ ON</td>
-            <td>The checkbox that changes what an overlap <em>means</em>: a trigger only <strong>reports</strong> that two shapes met, which is what makes <code>OnTriggerEnter2D</code> fire rather than <code>OnCollisionEnter2D</code>.</td>
-            <td>A trigger pushes nothing. On a pickup that is exactly what you want; on the spike in <a href="2.2.html">2.2</a> it was the bug — "it did not push me back" and "it did not notice me" look identical from the player's seat.</td>
-        </tr>
-        <tr>
-            <td><code>other.CompareTag("Axe")</code></td>
-            <td>Asks the engine whether the collider you just touched carries that tag. The <code>AxeItem</code> prefab already has it, so there is nothing to create and no string to invent.</td>
-            <td>Exact spelling against a tag that has to exist in the project, and it is asked of whichever object <em>owns the collider</em> — move the collider down to a child and the answer is false with nothing in the Console to explain it.</td>
-        </tr>
-        <tr>
-            <td><code>animator.SetBool</code> / <code>SetInteger</code> / <code>SetTrigger</code></td>
-            <td>The three calls from 1.6 that make a controller <em>play</em> something: <code>IsWalking</code>, <code>WalkDir</code>, <code>Attack</code>.</td>
-            <td>They choose between the states of <strong>one</strong> controller. None of them can reach a clip that is not in the machine you are currently playing — which is why a whole new weapon set is not a parameter, and never can be.</td>
-        </tr>
-        <tr>
-            <td><strong>the Animator's own controller property</strong></td>
-            <td>The property on the <code>Animator</code> component that holds <em>which controller it is playing right now</em>. Read it and you know which weapon set is live; assign to it and the entire state machine — states, transitions, clips — is replaced in one line. Its type is <code>RuntimeAnimatorController</code>, which is the same type as the Inspector slot you wire. <strong>Find its name on the Animator component page of the Unity scripting reference rather than guessing it</strong> — the Socratic below asks you to, and the walkthrough leaves the line for you to write.</td>
-            <td>It replaces <em>everything</em>: nothing you set on the old controller carries over, so the states and parameters you depend on have to exist in the new one (on this project they do — both controllers carry the same three parameters, which is why 1.6's code needs no edits). And nothing about the swap is saved: a Player rebuilt from the prefab comes back with the controller the prefab was wired with. <code>SceneSwitch.cs</code> exists partly because of that.</td>
-        </tr>
-        <tr>
-            <td><code>Destroy(Object)</code></td>
-            <td>Removes the pickup's GameObject at the end of the frame — the line your coin and your potion already use.</td>
-            <td>It is final, and it takes the <em>object</em> and not the capability. Destroying the axe does not un-set <code>hasAxe</code>: if the axe should ever be lost, some other code has to flip the boolean back, in the place where it is lost.</td>
-        </tr>
-    </table>
-
-    <div class="callout info">
-        <strong>What the axe does not do.</strong> Notice what is missing from the walkthrough you
-        are about to read: no <code>Debug.Log</code> in the pickup, no counter going up, no number
-        changing anywhere. Collect the axe and the Console stays silent, because the axe is not
-        feedback — it is a <strong>permission</strong>. A fact that future code will read before it
-        allows an action. You are not building a score; you are building a capability, and the
-        thing that proves it worked is that the character you are controlling looks different.
-    </div>
-
-    <div class="socratic">
-        <h3>Socratic: Three ways to change a weapon</h3>
-        <p>All three of these are legitimate. Read the cost column before you commit:</p>
-        <table>
-            <tr><th>Approach</th><th>How it works</th><th>What it costs</th></tr>
-            <tr>
-                <td><strong>Assign the other controller at runtime</strong></td>
-                <td>The Animator component has a property holding the controller it is currently playing. Hand it the axe controller when the axe is picked up and the whole state machine — states, transitions, clips — is replaced instantly.</td>
-                <td>Nothing to author, and it works for any weapon set somebody else has already built. You must remember to set it back if the axe is ever lost, and nothing about it survives a scene load unless something puts it back.</td>
-            </tr>
-            <tr>
-                <td><strong>Author the axe states into one controller</strong></td>
-                <td>Add the axe states and transitions into the controller you already have, and drive them with a new parameter.</td>
-                <td>You duplicate an entire state machine by hand, and every future clip has to be added twice. It also means editing an asset somebody else built for you.</td>
-            </tr>
-            <tr>
-                <td><strong>Use an Animator Override Controller</strong></td>
-                <td>A Unity asset built for exactly this: it takes one base controller and swaps the clips it plays, keeping all the logic in one place.</td>
-                <td>One extra asset to create, and one more concept to learn before you can build anything. This is the professional answer, and it is not today's answer.</td>
-            </tr>
-        </table>
-        <ol>
-<li>Which approach does the project's own art layout clearly <em>intend</em> you to take? What is the evidence?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.1:sc2:q1" data-block="socratic" data-question="Which approach does the project's own art layout clearly intend you to take? What is the evidence?" placeholder="write your answer, then keep going"></textarea></label></li>
-<li>Read <code>Assets/Scripts/Package Scripts/SceneSwitch.cs</code>. Find where it saves and restores something related to the Animator. Which property does it touch, and what does that prove is possible at runtime?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.1:sc2:q2" data-block="socratic" data-question="Read Assets/Scripts/Package Scripts/SceneSwitch.cs . Find where it saves and restores something related to the Animator. Which property does it touch, and what does that prove is possible at runtime?" placeholder="write your answer, then keep going"></textarea></label></li>
-<li>Which approach would you choose if this game had four weapons instead of two, and why does the answer change?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.1:sc2:q3" data-block="socratic" data-question="Which approach would you choose if this game had four weapons instead of two, and why does the answer change?" placeholder="write your answer, then keep going"></textarea></label></li>
-</ol>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">Build It With Me</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I add an item to my inventory?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. Two new fields, one new branch inside the pickup callback you already have, and one assignment that replaces the machine drawing your character. The shape is the coin pickup from 2.1 with a different tag; the last line of step 3 is the part nothing before it prepares you for.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Make the axe a pickup — this step is not code</h4><p class="wt-lead">The AxeItem prefab is a picture with a tag on it, and there is not one axe placed in any scene. Nothing you write in the rest of this lesson can fire until both of those change.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">// Assets/Prefabs/AxeItem ▸ the Inspector</span>
-<span class="wt-line" data-n="2"></span>
-<span class="wt-line wt-line-why" data-n="3">Box Collider 2D   ▸ added to the ROOT, sized by hand</span>
-<span class="wt-line wt-line-why" data-n="4">Box Collider 2D   ▸ Is Trigger   ☑ ON</span>
-<span class="wt-line" data-n="5"></span>
-<span class="wt-line" data-n="6">// Overworld ▸ drag one AxeItem from Assets/Prefabs into the scene</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Open the <strong>prefab asset</strong> in <code>Assets/Prefabs</code>, not an instance in the scene. Read the Inspector: a Transform, a Sprite Renderer, and the tag <code>Axe</code> already set. Then notice what is missing — every other pickup in this game has one, and this one does not.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">Add the collider to the root — the object carrying the <code>Axe</code> tag — then drag its handles in the Scene view until the green outline covers the axe you can actually see. The axe sprite is a wide, short shape rather than a round one, so a <strong>Box</strong> fits it more easily than the coin's Circle did in 2.1.</span><span class="wt-why"><strong>The root, not a child.</strong> <code>CompareTag</code> is asked of whichever object owns the collider, and the root is the object tagged <code>Axe</code>. This is the same trap as the coin in 2.1, and it fails the same silent way: the overlap never reports, and nothing in the Console says why.</span></li>
-<li><span class="wt-ref">4</span><span class="wt-what">Tick it. A trigger <strong>reports</strong> an overlap and pushes nothing — the checkbox you met on the coin, and the one that decides which callback fires.</span><span class="wt-why"><strong>This is the difference between a pickup and a wall.</strong> Leave it off and the axe becomes a small solid obstacle: it shoves the player aside, it never leaves the ground, and <code>OnTriggerEnter2D</code> never runs at all. You would get <code>OnCollisionEnter2D</code> instead — the callback you met on the spike in 2.2 — and the axe would just sit there being a rock.</span></li>
-<li><span class="wt-ref">6</span><span class="wt-what"><strong>There are zero axe instances in any scene</strong>, so nothing is a pickup until you place one. Put it somewhere a tester will walk into it without being killed first; the route toward a cave mouth is the sensible place, because 5.2 is where that door starts caring whether you have it.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Declare the state, and the controller you will become</h4><p class="wt-lead">Two lines in the class body, next to your coin count and your health. One of them is what this lesson is about; the other is a reference to an asset that is not wired to anything in the project yet.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    [SerializeField] private bool hasAxe = false;</span>
-<span class="wt-line" data-n="2"></span>
-<span class="wt-line wt-line-why" data-n="3">    [SerializeField] private RuntimeAnimatorController axeController;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what"><strong>The capability.</strong> A <code>bool</code> holds true or false and nothing else, which is the honest shape of "I have an axe": one item, one yes/no. There is no count because nobody has ever needed two axes — the <code>int</code> that serves your coins would be storing a number you would never read.</span><span class="wt-why">Get the starting value the right way round. <code>false</code> means you do not have the axe until you find it. Start it <code>true</code> and the game has granted you the capability before you have walked anywhere — and because your character already looks like an axe-wielder, the pickup appears to do nothing at all — the Build Lab asks you to say exactly what the player gets for free if you pick that value.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">A slot in the Inspector that will hold the controller asset for the axe. Leave it empty for now — step 4 wires it from the Project window. This is the <code>[SerializeField]</code> slot pattern from 1.3, the same one that holds your speed and your coin count.</span><span class="wt-why"><strong>A slot rather than a typed-in path.</strong> The controller is an asset sitting in <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/</code>, and a field wired in the Inspector is a reference to that asset: rename it, move it, and the reference survives. A string path typed into your code would break the moment anybody tidied the folder.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Add the axe to the callback that already handles pickups</h4><p class="wt-lead">One more branch inside the <code>OnTriggerEnter2D</code> you have had since 2.1. The coin check stays exactly where it is; the axe is one more question asked of the same event.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    private void OnTriggerEnter2D(Collider2D other)</span>
-<span class="wt-line" data-n="2">    {</span>
-<span class="wt-line" data-n="3">        if (other.CompareTag("Coin"))</span>
-<span class="wt-line" data-n="4">        {</span>
-<span class="wt-line" data-n="5">            coins = coins + 1;</span>
-<span class="wt-line" data-n="6">            Destroy(other.gameObject);</span>
-<span class="wt-line" data-n="7">        }</span>
-<span class="wt-line wt-line-why" data-n="8">        else if (other.CompareTag("Axe"))</span>
-<span class="wt-line" data-n="9">        {</span>
-<span class="wt-line" data-n="10">            hasAxe = true;</span>
-<span class="wt-line wt-line-why wt-blank" data-n="11"><span class="wt-gap">            animator.____ = ____;</span></span>
-<span class="wt-line" data-n="12">            Destroy(other.gameObject);</span>
-<span class="wt-line" data-n="13">        }</span>
-<span class="wt-line" data-n="14">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">8</span><span class="wt-what"><strong>The new question.</strong> The prefab has carried the tag <code>Axe</code> since the day you opened it, so there is nothing to create and nothing to spell-check — but it is still <code>CompareTag</code> and not <code>==</code>, for the reason from 2.1.</span><span class="wt-why"><code>else if</code> rather than a second <code>if</code>, so each object is asked exactly one question. No collider is a coin and an axe at once, so it makes no difference to the game — it says what you mean: one overlap, one answer.</span></li>
-<li><span class="wt-ref">10</span><span class="wt-what">Sets the capability. No type in front of it: the field already exists in the class body, so this <strong>assigns</strong> to it — the declare-versus-assign rule from 1.3. Declaring it here instead would build a brand-new <code>bool</code>, throw it away at the end of the frame, and leave the real one false forever.</span></li>
-<li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">11</span><span class="wt-what">The last line of the pickup, and the whole of "becoming an axe-wielder". The line above says <strong>that</strong> you have the axe; this one is what puts it in your hands, by handing the Animator a different controller to play. Keep the receiver exactly as written — <code>animator</code> is the field you cached in 1.6, and it is the same Animator that has been playing your shovel. The right-hand side is the slot you declared in step 2.</span><span class="wt-hint">You want the property on <code>animator</code> that holds <strong>which controller it is playing right now</strong> — the same type as the slot you declared, so the two sides of this assignment are the same kind of thing. The Animator component page in the Unity scripting reference lists it among its properties; it is the one whose type is <code>RuntimeAnimatorController</code>.</span><span class="wt-why">Nothing else in this file changes when you pick up the axe — your movement, your input, your health and the coin branch above are all exactly what they were, and the three parameters from 1.6 (<code>IsWalking</code>, <code>WalkDir</code>, <code>Attack</code>) keep driving the new controller without a single edit. That is the surprise: the player does not <strong>transition</strong> into being an axe-wielder, the machine that draws the player is <strong>replaced</strong>. And because it is replaced rather than saved, it is gone the moment a fresh Player is built from the prefab — which is exactly why <code>SceneSwitch.cs</code> saves the controller before it loads a scene and puts it back in <code>Start()</code>. The Build Lab asks you to explain why that code has to exist.</span></li>
-<li><span class="wt-ref">12</span><span class="wt-what">The axe leaves the world the moment you pick it up — the same line as the coin and the potion. What stays behind is the boolean: the object is consumed, the capability is not.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Wire the slot, then prove it is real state</h4><p class="wt-lead">The swap does nothing until the Inspector slot holds a controller. Then find out whether the boolean you wrote is genuinely state, or a value that forgets itself.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">// Assets/Prefabs/Player ▸ PlayerController ▸ Axe Controller  =  Player_Axe</span>
-<span class="wt-line" data-n="2">// Prove it is state, then take the proof out</span>
-<span class="wt-line" data-n="3">// Press Play, collect the axe, and swing</span>
-<span class="wt-line" data-n="4">// Walk through a cave mouth and come back</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Select the Player <strong>prefab</strong>, find the slot you declared in step 2, and drag <code>Axe/Player_Axe.controller</code> from the Project window into it. Wire it on the prefab, not on one Player in a scene, so every Player you ever place inherits it.</span><span class="wt-why">Leave this slot at <strong>None</strong> and you hand the Animator an empty controller the moment you touch the axe: the boolean flips, and the character does not change — and because the Animator now has nothing to play, no swing plays at all. Nothing in the Console points at the line that did it.</span></li>
-<li><span class="wt-ref">2</span><span class="wt-what">Add <code>Debug.Log("Has axe: " + hasAxe);</code> to <code>Update()</code> for one run. Watch the Console repeat <code>false</code> while you walk around, walk into the axe, and watch it flip to <code>true</code> and stay there. Then <strong>delete the print</strong> — the proof is the behaviour, not the message, and a log in <code>Update()</code> runs sixty times a second forever.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">Save, press Play, walk into the axe and click. The character you are controlling should be an axe-wielder now: new walk, new idle, an axe swing instead of a shovel. Nothing else about the player changed — you can still move, still take damage, still collect coins.</span></li>
-<li><span class="wt-ref">4</span><span class="wt-what">The axe should still be in your hands, because <code>SceneSwitch.cs</code> copies the controller off the Player before it loads the scene and hands it back in <code>Start()</code>. Read that method now, while the behaviour is fresh — it is your proof that a controller can be swapped at runtime at all, and it is the code you will be glad existed in 5.3.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Two differences are worth naming, because neither is a mistake. First the shape: this file chains <code>else if</code> in the walkthrough and returns early out of each branch here — both ask every object exactly one question, and any form that ends up setting the boolean and swapping the controller is correct. Second the helper: here the swap lives in a small method called <code>PickUpAxe()</code>, and the walkthrough writes the same two lines inline — the method is there so that "becoming an axe-wielder" has a name you can point at. What is NOT a difference is the gap itself: whichever way you wrote it, the line that changes the player is the assignment to the Animator's controller property, and that name is the one you had to go and read.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
+<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I add an item to my inventory?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. Two new fields and one new branch inside the pickup callback you already have. The shape is the coin from 2.1 with a different tag; the last line of step 2 is the part nothing before it prepares you for.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Declare the state, and the controller you will become</h4><p class="wt-lead">Two lines in the class body, next to your coin count and your health. One of them is what this lesson is about; the other holds an asset that is not wired to anything in the project yet.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">// PlayerController.cs — class body, above Start(), with your other fields.</span>
+<span class="wt-line wt-line-why" data-n="2">    [SerializeField] private bool hasAxe = false;</span>
+<span class="wt-line" data-n="3"></span>
+<span class="wt-line wt-line-why" data-n="4">    [SerializeField] private RuntimeAnimatorController axeController;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">2</span><span class="wt-what"><strong>The capability.</strong> A <code>bool</code> holds true or false and nothing else, which is the honest shape of "I have an axe": one item, one yes/no.</span><span class="wt-why">Get the starting value the right way round. <code>false</code> means you do not have the axe until you find it — and because your character already looks like an axe-wielder, starting it at <code>true</code> makes the pickup appear to do nothing at all.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">A slot in the Inspector for the controller asset that draws the axe. Leave it empty for now — the editor block above wires it from the Project window.</span><span class="wt-why"><strong>A slot rather than a typed-in path.</strong> The controller is an asset sitting in <code>Assets/Artwork/Animations/Top_Down/PlayerAnimator/Axe/</code>, and a field wired in the Inspector is a reference to that asset: rename it, move it, and the reference survives. A string path typed into your code would break the moment anybody tidied the folder.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Add the axe to the callback that already handles pickups</h4><p class="wt-lead">One more branch inside the method that has been handling every pickup since 2.1. The coin check stays exactly where it is; the axe is one more question asked of the same event.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">// PlayerController.cs — below Update(), the pickup callback you already have.</span>
+<span class="wt-line" data-n="2">    private void OnTriggerEnter2D(Collider2D other)</span>
+<span class="wt-line" data-n="3">    {</span>
+<span class="wt-line" data-n="4">        if (other.CompareTag("Coin"))</span>
+<span class="wt-line" data-n="5">        {</span>
+<span class="wt-line" data-n="6">            coins = coins + 1;</span>
+<span class="wt-line" data-n="7">            Destroy(other.gameObject);</span>
+<span class="wt-line" data-n="8">        }</span>
+<span class="wt-line wt-line-why" data-n="9">        else if (other.CompareTag("Axe"))</span>
+<span class="wt-line" data-n="10">        {</span>
+<span class="wt-line" data-n="11">            hasAxe = true;</span>
+<span class="wt-line wt-line-why wt-blank" data-n="12"><span class="wt-gap">            animator.____ = ____;</span></span>
+<span class="wt-line" data-n="13">            Destroy(other.gameObject);</span>
+<span class="wt-line" data-n="14">        }</span>
+<span class="wt-line" data-n="15">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">9</span><span class="wt-what"><strong>The new question.</strong> The prefab has carried the tag <code>Axe</code> since the day you opened it, so there is nothing to create and nothing to spell-check — but it is still <code>other.CompareTag("Axe")</code> and not <code>==</code>, for the reason from 2.1.</span><span class="wt-why"><code>else if</code> rather than a second <code>if</code>, so each object is asked exactly one question. No collider is a coin and an axe at once, so it makes no difference to the game — it says what you mean.</span></li>
+<li><span class="wt-ref">11</span><span class="wt-what">Sets the capability. No type in front of it: the field already exists in the class body, so this <strong>assigns</strong> to it — the declare-versus-assign rule from 1.3.</span></li>
+<li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">12</span><span class="wt-what">The last line of the pickup, and the whole of "becoming an axe-wielder". The line above says <strong>that</strong> you have the axe; this one puts it in your hands by handing the Animator a different controller to play. Keep the receiver exactly as written — <code>animator</code> is the field you cached in 1.6. The right-hand side is the slot you declared in step 1.</span><span class="wt-hint">You want the property on <code>animator</code> that holds <strong>which controller it is playing right now</strong> — the same type as the slot you declared, so both sides of this assignment are the same kind of thing. The Animator component page in the Unity scripting reference lists it among its properties.</span><span class="wt-why">Nothing else in this file changes when you pick up the axe: your movement, your input, your health and the coin branch above are all what they were. That is the surprise — the player does not <strong>transition</strong> into being an axe-wielder, the machine that draws the player is <strong>replaced</strong>. And because it is replaced rather than saved, it is gone the moment a fresh Player is built from the prefab — which is why <code>SceneSwitch.cs</code> saves the controller before it loads a scene and puts it back in <code>Start()</code>.</span></li>
+<li><span class="wt-ref">13</span><span class="wt-what">The axe leaves the world the moment you pick it up — the same line as the coin and the potion. The object is consumed, the capability is not.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Two differences are worth naming, because neither is a mistake. The shape: this file returns early out of each branch and the walkthrough chains <code>else if</code> — both ask every object exactly one question. The helper: here the swap lives in a method called <code>PickUpAxe()</code>, and the walkthrough writes the same two lines inline, so that "becoming an axe-wielder" has a name you can point at. What is NOT a difference is the gap itself: whichever way you wrote it, the line that changes the player is the assignment to the Animator's controller property, and that name is the one you had to go and read.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
 //  REFERENCE FILE — Assets/Scripts/PlayerController.cs
 //  Written to be read, not pasted. Build it with the walkthrough
 //  above, one step at a time, then open this and compare.
@@ -322,8 +284,7 @@ public class PlayerController : MonoBehaviour
     // The whole of "becoming an axe-wielder", and the only line in the game
     // that changes what the player IS. Setting a parameter picks a clip inside
     // one controller; this replaces the whole controller — every state, every
-    // transition, every clip, in one assignment. Swap the slot in the Inspector
-    // and nothing here changes; that is the point.
+    // transition, every clip, in one assignment.
     private void PickUpAxe()
     {
         hasAxe = true;
@@ -347,101 +308,18 @@ public class PlayerController : MonoBehaviour
     }
 }
 
-// Inspector, on Assets/Prefabs/AxeItem:
-//   Tag              =  Axe          &lt;- already on the prefab; do not retype it
-//   Box Collider 2D  =  on the ROOT, Is Trigger ON, sized to the art
-//
-// Inspector, on Assets/Prefabs/Player ▸ PlayerController:
-//   Has Axe          =  off          &lt;- earned in OnTriggerEnter2D, never granted
-//   Axe Controller   =  Player_Axe   &lt;- Assets/Artwork/Animations/Top_Down/
-//                                       PlayerAnimator/Axe/Player_Axe.controller
-//
-// One axe instance must be standing in the Overworld. The prefab ships with
-// zero instances in any scene, and nothing is a pickup until one is placed.</code></pre></details></div>
+// The Inspector half of this lesson is the editor block at the top of the page:
+// a trigger collider on Assets/Prefabs/AxeItem, one axe instance standing in the
+// Overworld, and the Axe Controller slot on Assets/Prefabs/Player.</code></pre></details></div>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Build Lab: Put the Axe in the World</span>
-        <span class="activity-time">~25 min</span>
-    </div>
-
-    <p>
-        <strong>Step 1 — prove the boolean is state, not a message.</strong> The walkthrough had you
-        print <code>hasAxe</code> every frame and then delete the print. Do it in that order, and
-        watch the Console while you do: a value that reads <code>false</code> for as long as you
-        walk around and <code>true</code> from the moment you touch the axe is a value that
-        remembers. Then delete it — <code>Update()</code> runs sixty times a second, and a print
-        that survives into next lesson is noise you will be reading past.
-    </p>
-    <p>
-        <strong>Step 2 — decide where the axe lives.</strong> There were zero axe instances in any
-        scene when you started, and you placed at least one. Now defend the placement like a level
-        designer: which route does the player take to reach it, and what do they meet on the way? An
-        axe nobody can find is the same as no axe at all, and no compiler will ever tell you.
-    </p>
-    <p>
-        <strong>Step 3 — decide what the axe <em>means</em>.</strong> The boolean now exists and
-        nothing in your game reads it. That is the correct state for this lesson and the wrong state
-        for the next one — 5.2 is where a door starts caring. Write down, before you finish, the one
-        piece of future code you are most confident will read this field.
-    </p>
-
-    <div class="callout">
-        <strong>Architectural specification for <code>PlayerController.cs</code>:</strong>
-
-        <p><strong>The pickup — getting it into the world:</strong></p>
-        <ul>
-            <li>The <code>AxeItem</code> prefab carries the tag <code>Axe</code> and nothing else. What is it missing that every other pickup in this game has, and which object does it go on?</li>
-            <li>Trigger or solid — and what is your reason? What exactly would you see and hear if you chose the other one?</li>
-            <li>You added a collider to an object that has never had one, which means you cannot see what the engine sees. How did you check the shape in the Scene view rather than guessing, and what does it cost the player if the box is twice the size of the art?</li>
-            <li>The prefab ships with <strong>zero</strong> instances in any scene. Where did you place yours, and how would a tester find it without being told?</li>
-        </ul>
-
-        <p><strong>The state — one field, and the whole lesson hangs off it:</strong></p>
-        <ul>
-            <li>What type is the field, and why is that the right amount of information rather than an <code>int</code> or a list? Use the table at the top of the lesson.</li>
-            <li>What value does it start at, and what does the player get for free if you pick the other one? Answer in one sentence about their first five seconds of play.</li>
-            <li>Where does the field live, and what breaks if you get that wrong? Use the word "frame" in your answer.</li>
-            <li>Nothing in your game reads this field yet. Name one thing that will, and say what you expect that line of code to look like.</li>
-        </ul>
-
-        <p><strong>The swap — the new mechanism:</strong></p>
-        <ul>
-            <li>Which property on the Animator holds the controller it is currently playing, and where did you read that rather than guess it?</li>
-            <li>What did you have to do in the Inspector before the swap could work at all — and what does the player see if you skip it?</li>
-            <li>The three parameters from 1.6 — <code>IsWalking</code>, <code>WalkDir</code>, <code>Attack</code> — exist on <em>both</em> controllers with the same names and the same types. What does that tell you about how much of your 1.6 code had to change when the axe arrived?</li>
-            <li>The swap is one assignment and it is not saved anywhere. What puts it back when a scene loads, and why does that code have to exist?</li>
-            <li>The axe is one-use: breaking the door in 5.2 consumes it. What has to happen to the controller at that moment, which script should do it, and why must it not be the pickup branch?</li>
-        </ul>
-    </div>
-
-    <p>
-        Save and press Play. Walk into the axe and swing — the character should visibly become
-        someone else the moment you touch it, and stay that way. Then walk through a cave mouth and
-        come back, and check that they still are.
-    </p>
-
-</div>
-
-<!-- ============================================================ -->
-
-<p>
-    You have a mechanic that works and a design that is still entirely yours. These four
-    questions are about the design half — and the first one is a look at what this project
-    <em>does not</em> have, which tells you something about how the person who built it expected
-    weapons to be added.
-</p>
-
-
 <div class="checklist">
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
-        <li>Explain when a bool fits a fact and when it does not, and right-size the data for a new pickup</li>
-        <li>Build an item that grants capability instead of changing a number — trigger collider, tag check, default value and all</li>
-        <li>Compare the three ways to change a weapon set, and defend your choice</li>
+        <li>Explain when a <code>bool</code> fits a fact and when it does not, and right-size the data for a new pickup</li>
+        <li>Build an item that grants a capability instead of changing a number — trigger collider, tag check, starting value and all</li>
         <li>Find a property in the Unity documentation rather than guessing its name</li>
-        <li>Explain what <code>SceneSwitch.cs</code> does about the Animator, and why it must</li>
+        <li>Explain what <code>SceneSwitch.cs</code> does about the Animator, and what the player loses without it</li>
         <li>Commit and push</li>
     </ul>
 </div>
@@ -453,11 +331,11 @@ public class PlayerController : MonoBehaviour
     <ul>
         <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — items, events and scenes</li>
         <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the pickup family, from the coin to the axe</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — bools, triggers and the Animator APIs you have met</li>
-        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — bools, triggers and the Animator APIs</li>
+        <li><a href="../docs/ask.html">How do I…? index</a> — find this lesson by the question you were asking</li>
     </ul>
     <p>Next: <a href="5.2.html">5.2 — The Door: Opening It with Events</a>, where that permission finally gets spent.</p>
-</div><div class="lab-bar" data-lesson="5.1" data-lesson-title="The Axe: Item Pickups &amp; Inventory Bools" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="5.1" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="4.5.html"><span class="dir">&#9664; Previous</span><span class="where">4.5 — The Full State Machine: Patrol, Chase, Attack</span></a><a class="foot-next" href="5.2.html"><span class="dir">Next &#9654;</span><span class="where">5.2 — The Door: Opening It with Events</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+</div><div class="lab-bar" data-lesson="5.1" data-lesson-title="The Axe: Item Pickups &amp; Inventory Bools" data-count="4" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/4 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="5.1" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="4.5.html"><span class="dir">&#9664; Previous</span><span class="where">4.5 — The Full State Machine: Patrol, Chase, Attack</span></a><a class="foot-next" href="5.2.html"><span class="dir">Next &#9654;</span><span class="where">5.2 — The Door: Opening It with Events</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
      restores the hidden bridge textareas first, and mc-quiz.js reads those
      restored values to re-check the radios. Swapping the order breaks
      answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

@@ -72,26 +72,26 @@ const DECOMPOSE = {
   parts: [
     {
       name: 'Give the Player a body that falls in this scene',
-      does: 'Body Type **Dynamic** and Gravity Scale **above zero** - it takes both. Gravity Scale multiplies the project gravity Physics 2D has at `-9.81` on Y. Your body has been Dynamic with Gravity Scale 0 since 2.1, so only the second half changes.',
-      doc: 'the `rb.gravityScale` row of the quick reference, and the 2.1 recipe.',
+      does: 'Body Type **Dynamic** and Gravity Scale **above zero** - it takes both. Gravity Scale multiplies the project gravity Physics 2D has at `-9.81` on Y. Your body has been Dynamic with Gravity Scale 0 since 2.1.',
+      doc: 'the `rb.gravityScale` row of the quick reference.',
       href: '2.1.html',
     },
     {
       name: 'Tell the script which world it woke up in',
-      does: 'The same prefab is played in both worlds, so "am I in the cave?" is a fact about the *scene*: one serialized `bool`, ticked on the cave copy and left alone on the Overworld copy - the `hasAxe` shape from 5.1, pointed at the world instead of at the player.',
-      doc: 'the `[SerializeField] private bool` row in the quick reference, and the field you declared in 5.1.',
+      does: 'The same prefab is played in both worlds, so "am I in the cave?" is a fact about the *scene*: one serialized `bool`, ticked on the cave copy and left alone on the Overworld copy - the `hasAxe` shape from 5.1, pointed at the world.',
+      doc: 'the `[SerializeField] private bool` row in the quick reference.',
       href: '5.1.html',
     },
     {
       name: 'Turn gravity on once, when the scene loads',
-      does: 'A gated write in `Start()`: if the flag is on, hand the body a gravity scale. Once, before the first frame. In `Update()` the same number is written sixty times a second - identical on screen, wrong in the file.',
-      doc: 'the `void Start()` row of the quick reference, and the field 3.3 seeded there.',
+      does: 'A gated write in `Start()`: if the flag is on, hand the body a gravity scale. Once, before the first frame - in `Update()` the same number is written sixty times a second.',
+      doc: 'the `void Start()` row of the quick reference.',
       href: '3.3.html',
     },
     {
       name: 'Notice one press of the jump key',
-      does: '`Input.GetKeyDown(KeyCode.Space)` inside the `Update()` you have been adding to since 1.4. True on the single frame the key goes down; `GetKey` is true on every frame it is held. A jump is a moment, not a state.',
-      doc: 'the `Input.GetKeyDown(KeyCode.Space)` row of the quick reference, and the lever check from 5.2.',
+      does: '`Input.GetKeyDown(KeyCode.Space)` inside the `Update()` you have been adding to since 1.4. True on the single frame the key goes down; `GetKey` is true on every frame it is held - a jump is a moment, not a state.',
+      doc: 'the `Input.GetKeyDown(KeyCode.Space)` row of the quick reference.',
       href: '5.2.html',
     },
     {
@@ -139,19 +139,19 @@ const WALK_GRAVITY = {
       lines: [
         {
           code: '        body = GetComponent<Rigidbody2D>();',
-          what: 'The reference you already cache here - the body you are about to give a gravity scale to. It sits on the same GameObject as this script, which is why the plain lookup finds it.',
+          what: 'The reference you already cache here - the body about to be given a gravity scale. It sits on the same GameObject as this script, which is why the plain lookup finds it.',
         },
         { code: '', what: '' },
         {
           code: '        if (isPlatformer)',
           what: 'The gate. Read it as "if this Player is standing in the cave". It is the only thing separating the two worlds.',
-          why: '**Read once, in a method that runs once.** `Start()` is the once-only setup method from 1.3, and a fact about the scene is exactly the kind of thing it is for.',
+          why: '**Read once, in a method that runs once.** `Start()` is the once-only setup method from 1.3, and a fact about the scene belongs there.',
         },
         { code: '        {', what: '' },
         {
           code: '            body.gravityScale = 1f;',
           what: '**The whole of turning gravity on.** `body.gravityScale` is the Rigidbody2D property behind the Inspector field you have been reading all year, and `1f` means "the project gravity, undiluted".',
-          why: '**Why this has to be code and not just a number in the Inspector.** You could set the cave copy to 1 by hand and write nothing - but a number typed into the Inspector is invisible to a reader of your script and has to be repeated on every new Player anyone places. In code it is decided once, in a file.',
+          why: '**Why this is code and not a number in the Inspector.** You could set the cave copy to 1 by hand and write nothing - but that number is invisible to a reader of your script and has to be repeated on every new Player anyone places.',
         },
         { code: '        }', what: '' },
       ],
@@ -205,7 +205,7 @@ const WALK_JUMP = {
         {
           code: '    [SerializeField] private float jumpForce = 7f;',
           what: '**How hard the flick is.** Named `jumpForce` because that is what it becomes - a force - so no reader mistakes it for the speed the character leaves the ground at.',
-          why: '**A starting guess, not a value.** The number that makes a jump feel right is found in the tuning lab at the bottom of this page, one change at a time. And a force is divided by mass before it becomes motion, so the height `7f` buys you depends on the mass the Inspector is showing.',
+          why: '**A starting guess, not a value.** The number that makes a jump feel right is found in the tuning lab at the bottom of this page. And a force is divided by mass before it becomes motion, so the height `7f` buys you depends on the mass the Inspector shows.',
         },
       ],
     },
@@ -216,34 +216,29 @@ const WALK_JUMP = {
         {
           code: '        if (Input.GetKeyDown(KeyCode.Space))',
           what: '`Input` is the class from 1.4, `KeyCode.Space` names the key, and `GetKeyDown` is true on the **single frame** the key goes down.',
-          why: '**`Input.GetKey(KeyCode.Space)` here is the wrong one, and it fails in the loudest way there is.** Without the `Down` it is true on every frame the key is held, so half a second of holding Space applies thirty pushes and the character leaves the top of the level. The jump looks broken; the condition is. And the check belongs in `Update()`: `FixedUpdate()` is the physics clock, which can run several times inside one frame or skip frames entirely, so a press that lasts one frame can be counted twice or missed.',
+          why: '**`Input.GetKey(KeyCode.Space)` here is the wrong one, and it fails in the loudest way there is.** Without the `Down` it is true on every frame the key is held, so half a second of holding Space applies thirty pushes and the character leaves the top of the level. The jump looks broken; the condition is. And the check belongs in `Update()`: `FixedUpdate()` is the physics clock, which can run several times in one frame or skip frames, so a one-frame press can be counted twice or missed.',
         },
         { code: '        {', what: '' },
         {
           code: '            body.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);',
           what: '**The flick.** `Vector2.up` is `(0, 1)` - straight up - scaled by the field from step 1. Read the call as a sentence: add a force, upward, of this size, as an impulse.',
-          why: '**The second argument is the whole lesson, and leaving it out is the classic bug.** With `ForceMode2D.Impulse` this is one hit, spent at the next physics step. Without it the default is a push that keeps applying while the calls keep coming - and since this line sits inside a check that is true on exactly one frame, you get a dribble so small the character twitches and settles. Nothing errors and nothing warns, and "my jump does nothing" is what you write in the group chat. Calling it from `Update()` is fine, though: the engine queues forces and spends them on its own clock, so this is the one thing touching the body that does not belong in `FixedUpdate()`.',
+          why: '**The second argument is the whole lesson, and leaving it out is the classic bug.** With `ForceMode2D.Impulse` this is one hit, spent at the next physics step. Without it the default is a push that keeps applying while the calls keep coming - and since this line sits inside a check true on exactly one frame, you get a dribble so small the character twitches and settles. Nothing errors, nothing warns, and "my jump does nothing" is what you write in the group chat. Calling it from `Update()` is fine, though: the engine queues forces and spends them on its own clock.',
         },
         { code: '        }', what: '' },
       ],
     },
     {
       title: 'Prove the arc in the Console, then take the proof out',
-      lead: 'There is no UI for vertical velocity, so the Console is your instrument. Two temporary prints and a cleanup.',
+      lead: 'There is no UI for vertical velocity, so the Console is your instrument. One temporary print, at the bottom of `Update()` where every frame runs.',
       lines: [
         {
-          code: '            Debug.Log("v.y = " + body.linearVelocity.y);',
-          what: 'Inside the key block, after the push. `body.linearVelocity` is the movement method you chose in 2.2, read instead of written.',
-          why: '**Read it once and notice it prints the speed from *before* the flick.** A force does not change `linearVelocity` at the instant you call it - the engine applies it at the next step - so this line reports the velocity the body had going into the jump. Not a bug: the clearest proof that a force and a velocity are two different things.',
-        },
-        {
           code: '        Debug.Log("v.y = " + body.linearVelocity.y);',
-          what: 'A second print at the **bottom of `Update()`**, outside the key block, with no condition on it. Watch the number while you play.',
-          why: '**That number is the parabola.** It jumps to a peak the moment you press Space, shrinks as gravity takes it back, crosses zero at the top of the arc, and grows negative all the way down. You have just watched the entire mathematics of a jump without writing a line of it - the apex is not a place in your code, it is the frame this number passes through nothing.',
+          what: 'At the **bottom of `Update()`**, outside the key block, with no condition on it. `body.linearVelocity` is the movement method you chose in 2.2, read instead of written, and `.y` is the half a jump cares about.',
+          why: '**That number is the parabola.** It jumps to a peak when you press Space, shrinks as gravity takes it back, crosses zero at the top of the arc, and grows negative all the way down. The whole mathematics of a jump, watched rather than written: the apex is not a place in your code, it is the frame this number passes through nothing.',
         },
         {
-          code: '// Delete both prints before you move on',
-          what: 'They were an instrument, not a feature. A print left here fills the Console with a thousand lines a minute for the rest of the unit and buries the next real error under them.',
+          code: '// Delete the print before you move on',
+          what: 'An instrument, not a feature. A print left here fills the Console with a thousand lines a minute and buries the next real error under them.',
         },
       ],
     },
@@ -295,8 +290,8 @@ const body = `<h1>6.1 — Gravity &amp; Jump: The First Flick</h1>
 
 <p class="lesson-lead">
     The cave is the first place in this game where <em>down</em> means something. Walk off the
-    edge of the cave floor and you do not fall — you keep walking, level. Today you turn gravity
-    back on for one scene, and then you use the same body to throw the character into the air.
+    edge of the floor and you do not fall — you keep walking, level. Today you turn gravity back
+    on for one scene, and use the same body to throw the character into the air.
 </p>
 
 ${renderAskBanner('how do I jump?', 1)}
@@ -323,19 +318,18 @@ ${renderDecompose('6.1', DECOMPOSE, 1)}
             <strong>Hierarchy →</strong> select the <strong>Player</strong>, then
             <strong>Inspector → Rigidbody2D → Gravity Scale</strong>. Set it to <code>1</code>
             <em>while the game is running</em> and watch the character drop. Then try
-            <code>0.2</code>, and describe the difference out loud.
+            <code>0.2</code> and describe the difference out loud.
         </li>
         <li>
-            <strong>Game view →</strong> stop Play, then <strong>Inspector → Gravity Scale</strong>
-            and look at the number you typed. It is back to <code>0</code>: Inspector edits made
-            during Play are thrown away on Stop (1.2). That is why the cave's gravity has to end
-            up in code.
+            <strong>Game view →</strong> stop Play, then <strong>Inspector → Gravity Scale</strong>:
+            it is back to <code>0</code>. Inspector edits made during Play are thrown away on Stop
+            (1.2) — which is why the cave's gravity has to end up in code.
         </li>
         <li>
             <strong>Hierarchy →</strong> open the <code>Overworld</code> scene — the top-down hub
             — select its <strong>Player</strong>, and set <strong>Inspector → Gravity Scale</strong>
-            to <code>1</code>. Press Play. This is the trap in the other direction: you have just
-            broken the hub. Write down what it cost, then set it back to <code>0</code>.
+            to <code>1</code>. <strong>Game view →</strong> press Play: you have just broken the
+            hub. Write down what it cost, then set it back to <code>0</code>.
         </li>
         <li>
             <strong>Hierarchy →</strong> back in the cave, select the Player and read
@@ -360,8 +354,8 @@ ${renderDecompose('6.1', DECOMPOSE, 1)}
     </div>
 
     <p>
-        Two lookups and two decisions: what the Rigidbody2D is offering, and the four ways a body
-        can leave the ground. You will live with that second choice all year.
+        Two lookups and two decisions: what the Rigidbody2D offers, and the four ways a body can
+        leave the ground.
     </p>
 
     <table>
@@ -399,7 +393,7 @@ ${renderDecompose('6.1', DECOMPOSE, 1)}
         <tr>
             <td><code>AddForce(Vector2.up * thrust, ForceMode2D.Force)</code> every frame while held</td>
             <td>A Dynamic body; some rule that stops it — fuel, ceiling, timer.</td>
-            <td>A rocket, not a jump. Height depends on how long you hold, and this is what you get by accident if you forget the force mode.</td>
+            <td>A rocket, not a jump. Height depends on how long you hold — and this is what you get by accident if you forget the force mode.</td>
         </tr>
         <tr>
             <td><code>MovePosition()</code> in steps</td>
@@ -410,33 +404,31 @@ ${renderDecompose('6.1', DECOMPOSE, 1)}
 
     <div class="callout">
         <strong>Architectural specification: how does your script know it is in the cave?</strong>
-        Your movement code assumes a top-down world; the cave needs the opposite assumptions, and
-        the script has to be told which world it woke up in. All four options below are used in
-        real projects. The walkthrough builds (c) — the one the cave's leftover override says the
-        project itself chose.
+        Your movement code assumes a top-down world, and the script has to be told which world it
+        woke up in. All four options below are used in real projects; the walkthrough builds (c).
         <ul>
             <li><strong>(a) Ask the scene its name</strong> — <code>SceneManager.GetActiveScene().name</code> against <code>"Platformer"</code>. Readable; breaks silently if someone renames the scene.</li>
-            <li><strong>(b) Ask the scene its build index</strong> — the cave is index 2. Survives a rename; lies when the build order changes. <code>SceneSwitch.cs</code> already does this, so read it before you borrow the idea.</li>
+            <li><strong>(b) Ask the scene its build index</strong> — the cave is index 2. Survives a rename; lies when the build order changes. <code>SceneSwitch.cs</code> already does this.</li>
             <li><strong>(c) A serialized bool, ticked per scene instance</strong> — visible in the Inspector without pressing Play. Costs a tick on every new Player somebody places.</li>
             <li><strong>(d) A component that only exists on the cave's Player</strong> — the component's presence <em>is</em> the flag. Costs one more file and one more lookup.</li>
-            <li>Whatever you pick, reuse a scene-mode flag you already built this year. Two flags that both mean "which world am I in" is how a project starts rotting.</li>
+            <li>Whatever you pick, reuse a scene-mode flag you already built this year: two flags meaning "which world am I in" is how a project starts rotting.</li>
         </ul>
     </div>
 
     <div class="callout">
         <strong>Architectural specification: gravity and the flick.</strong>
         <ul>
-            <li>Where does the cave's gravity get turned on? Name the exact point in the lifecycle — a field default, <code>Start()</code>, or every frame — and say what breaks at each of the other two.</li>
-            <li>Which key, and which of <code>GetKey</code> or <code>GetKeyDown</code>? Say in one sentence what holding the key for two seconds does under each.</li>
+            <li>Where does the cave's gravity get turned on? Name the exact point in the lifecycle — a field default, <code>Start()</code>, or every frame — and say what breaks at the other two.</li>
+            <li>Which key, and which of <code>GetKey</code> or <code>GetKeyDown</code>? Say what holding the key for two seconds does under each.</li>
             <li>Is your jump force a serialized field or a magic number? Does its name say <em>force</em> or <em>speed</em> — and what does the name make the next reader believe?</li>
-            <li>How do you know the jump worked? Name the two things you would print, and what each one proves.</li>
+            <li>How do you know the jump worked? Name what you would print, and what it proves.</li>
         </ul>
     </div>
 
     <div class="socratic">
         <h3>Socratic: Gravity Is a Number You Own</h3>
         <ol>
-            <li>Real gravity is a constant of the universe. Unity ships it as an <em>Inspector field</em>. Why would a game engine make a law of physics editable per object?</li>
+            <li>Real gravity is a constant of the universe. Unity ships it as an <em>Inspector field</em>. Why would an engine make a law of physics editable per object?</li>
             <li>Same Player prefab, same script, two worlds: the hub needs Gravity Scale 0 and the cave needs it above 0. Where should that difference live — the script, the scene, or both?</li>
             <li>A Kinematic body ignores gravity, forces and mass entirely. Set Body Type to Kinematic in the cave, and what would your jump code have to do instead to look like a jump?</li>
         </ol>
@@ -484,8 +476,7 @@ ${renderWalkthrough(WALK_JUMP)}
         <li>Explain Gravity Scale, Body Type and Mass as three separate ideas, not one</li>
         <li>Say where the cave's gravity gets turned on, and prove the top-down world still works</li>
         <li>Compare the four ways to leave the ground and defend the one you wrote</li>
-        <li>Explain Force versus Impulse in feel-words</li>
-        <li>Explain the parabola: a velocity that gravity spends, an apex, and a fall</li>
+        <li>Explain Force versus Impulse in feel-words, and the parabola gravity spends</li>
         <li>Commit and push</li>
     </ul>
 </div>
@@ -497,7 +488,6 @@ ${renderWalkthrough(WALK_JUMP)}
     <ul>
         <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the flick, the tuning triangle and the parabola in depth</li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Rigidbody2D, AddForce() with a force mode, and Body Type</li>
-        <li><a href="5.1.html">5.1 — The Axe: Item Pickups &amp; Inventory Bools</a> — the serialized bool the scene flag is modelled on</li>
         <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
     </ul>
     <p>Next: <a href="6.2.html">6.2 — Ground Checks: No Infinite Jumps</a>, where you discover that your jump works perfectly in mid-air too.</p>
