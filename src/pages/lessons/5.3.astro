@@ -151,17 +151,15 @@ const DECOMPOSE = {
   ],
   why:
     'The whole split falls along one line: what belongs to *this room* and what belongs to *this run*. ' +
-    'Four of the five parts are work you have already done — you moved a number into a method in 2.2, ' +
-    'bounded it in 2.3, added a bool in 5.1, and you have been reading the result in the Console since ' +
-    '2.1. Only part three has no precedent at all in this course: an object that the scene loader is not ' +
-    'allowed to destroy. Everything after it is moving house.',
+    'Only one of the five parts has no precedent at all in this course — the object the scene loader ' +
+    'is not allowed to destroy. Everything after it is moving house.',
   sizeTest:
     'The test: could you look this part up on its own, right now, in one search? "Keep my stats between ' +
     'scenes" cannot be looked up. "Do not destroy this object when a new scene loads" can — it is one ' +
-    'row of the quick reference, and every other part of this split is a move you have made before.',
+    'row of the quick reference.',
   turns: [
     'The project already contains one thing that survives a scene load: `SceneSwitch.cs` remembers which scene you came from, in a `static` field. Why is that field allowed to be `static` when your coins are not — what is different about the two things being remembered?',
-    'The design you are about to build keeps the numbers alive across a *scene* load. Quit the game and they are gone. Is that a hole in the design or the design itself — and which of the three storage approaches would you have to reach for to change the answer?',
+    'Today\'s design keeps your numbers alive across a *scene* load, and that is all it keeps them across. Quit the game and they are gone — is that a hole in the design, or the design itself?',
   ],
 };
 
@@ -333,7 +331,7 @@ public class StatManager : MonoBehaviour
 // ...and in the projectile from 3.4, which no longer needs a reference to the
 // player at all: StatManager.Instance.TakeDamage(damage);`,
   finalNote:
-    'Compare against your own file rather than copying it. The two things to check hardest: that the duplicate branch is really there — this project loads a second StatManager the moment you walk back into `Start (index 0)` — and that the fields are gone from `PlayerController` rather than copied. This file writes the guard as an early return (`if (Instance != null && Instance != this)`) where the walkthrough writes it as `if`/`else`; those are the same file on every frame but the one where a duplicate loads, and the only thing that has to match is that the newcomer never survives. Your own damage and death rules move across from 2.2 and 2.3 exactly as you wrote them, and the accessor names — `Instance`, `GetCoins`, `GetHealth`, `GetMaxHealth`, `HasAxe`, `AddCoins`, `TakeDamage`, `SetHasAxe` — are the ones the HUD calls.',
+    'Compare against your own file rather than copying it. Three things have to match: the fields are gone from `PlayerController` rather than copied, the duplicate branch is really there — this project loads a second StatManager the moment you walk back into `Start (index 0)` — and your own damage and death rules came across from 2.2 and 2.3 exactly as you wrote them. The accessor names — `Instance`, `GetCoins`, `GetHealth`, `GetMaxHealth`, `HasAxe`, `AddCoins`, `TakeDamage`, `SetHasAxe` — are the ones the HUD calls.',
 };
 
 // The second walkthrough. UI is the other mechanism with no precedent in this
@@ -431,16 +429,15 @@ public class HudController : MonoBehaviour
     }
 }`,
   finalNote:
-    'Compare against your own file rather than copying it. Three things to check: the `using TMPro;` line is there, the string is built inside `Update()` rather than once in `Start()`, and every value is read from `StatManager.Instance` rather than from the player. This file reads the three values into locals and assigns the whole string in an `if`/`else`, where the walkthrough builds it in one expression and appends the axe line; both write the same characters to the same property, and either is correct. Your label text, your placement and your choice of what to display are yours — the shape is what has to match: a slot for the text, a guard, and a rebuild in `Update()`.',
+    'Compare against your own file rather than copying it. Three things to check: the `using TMPro;` line is there, the string is built inside `Update()` rather than once in `Start()`, and every value is read from `StatManager.Instance` rather than from the player. The walkthrough builds that string in one expression and appends the axe line where this file assigns it in an `if`/`else`; both write the same characters to the same property. Your label text, your placement and what you choose to display are yours — the shape is the slot, the guard, and the rebuild in `Update()`.',
 };
 
 const body = `<h1>5.3 — Into the Cave: Scenes, Persistence &amp; The Refactor</h1>
 
 <p class="lesson-lead">
-    You break the door, you walk in — and everything you own breaks with it. Your coins are gone.
-    Your health is back to full. Your axe has vanished. Nothing is wrong with your code: you have
-    left one scene and entered another, and nothing you were carrying was ever built to survive
-    that. Today you fix it properly, and in doing so you meet the biggest refactor of the year.
+    You break the door, you walk in — and everything you own breaks with it. Your coins are gone,
+    your health is back to full, your axe has vanished. Nothing is wrong with your code: you left
+    one scene and entered another. Today you meet the biggest refactor of the year.
 </p>
 
 ${renderAskBanner('how do I keep my health when I change scenes?', 1)}
@@ -456,59 +453,51 @@ ${renderDecompose('5.3', DECOMPOSE, 1)}
 
     <ol>
         <li>
-            <strong>Game view →</strong> press Play in the <strong>Overworld</strong>, as you
-            always do, and play for a minute: collect a few coins, take a spike hit, pick up the
-            axe. Then walk into one of the cave mouths. <em>Everything you were carrying is
-            gone.</em> Notice what did follow you across — your position, your facing, your animation
-            controller — because somebody already wrote the code to carry those. Nobody wrote
-            anything for your numbers.
+            <strong>Game view →</strong> press Play in the <strong>Overworld</strong> and play for a
+            minute: collect a few coins, take a spike hit, pick up the axe. Then walk into one of the
+            cave mouths. <em>Everything you were carrying is gone.</em> Notice what did follow you
+            across — your position, your facing, your animation controller — and what did not.
         </li>
         <li>
             <strong>File → Build Profiles → Scene List</strong> (older tutorials call this Build
             Settings): three scenes, and their order <em>is</em> the load index —
             <strong>Start (index 0)</strong>, Overworld (index 1), Platformer (index 2).
             <strong>Start (index 0)</strong> is what a built game loads first, and it is the scene
-            that contains the StatManager object. It contains <strong>no Canvas</strong>, which
-            becomes this lesson's second problem further down.
+            that contains the StatManager object — and no Canvas at all.
         </li>
         <li>
             <strong>Hierarchy → Overworld → one of the two cave mouths → Inspector → Scene Switch →
             Scene</strong>: an <code>int</code>, holding <code>0</code> on one mouth and
             <code>2</code> on the other. That number is a <em>position in that list</em>, not a
-            name: nothing in <code>SceneSwitch.cs</code> says "Start (index 0)" anywhere, and
-            nothing checks that index <code>0</code> is still the scene you think it is.
+            name: nothing checks that index <code>0</code> is still the scene you think it is.
         </li>
         <li>
             <strong>Project window →</strong> <code>Assets/Scripts/StatManager.cs</code>: open it.
-            It reads <code>public class StatManager : MonoBehaviour { }</code> — an empty stub that
-            has done nothing since Unit 2, and the object you are about to write.
+            It reads <code>public class StatManager : MonoBehaviour { }</code> — an empty stub since
+            Unit 2, and the object you are about to write.
         </li>
         <li>
             <strong>Once the walkthrough is done — Game view →</strong> press Play from
-            <strong>Start (index 0)</strong>: collect, take damage, grab the axe, walk into a cave,
-            come back. Everything is still there — and then quit the game and start it again, and
-            notice which of those two things is <em>not</em> true.
+            <strong>Start (index 0)</strong>, walk into a cave and come back: everything is still
+            there. Then quit the game and start it again, and notice which of those two things is
+            <em>not</em> true.
         </li>
         <li>
             <strong>Hierarchy (Start (index 0)) → GameObject → UI → Text - TextMeshPro</strong>: one
             menu item makes three objects — a <strong>Canvas</strong>, a <strong>Text (TMP)</strong>
             child, and an <strong>EventSystem</strong>, which the UI wants even when nothing on it
-            is clickable. The Overworld already contains exactly this trio: that is where the Canvas
-            the lever switches off came from.
+            is clickable.
         </li>
         <li>
             <strong>Inspector → Text (TMP) → RectTransform → anchor preset → top-left</strong>, with
-            a small offset from the corner, so the numbers stay put when the window is resized. A
-            centre-anchored label sits in the middle of the player's view at every resolution —
-            which is where the game is, and where the numbers are least readable.
+            a small offset from the corner, so the numbers stay put when the window is resized — a
+            centre-anchored label sits over the middle of the game.
         </li>
         <li>
             <strong>Once <code>HudController.cs</code> exists — Inspector → Canvas → Add Component →
             Hud Controller</strong>, then <strong>Hud Controller → Stats Text →</strong> drag the
-            <code>Text (TMP)</code> object in. The script goes on the Canvas because the Canvas is
-            the sensible home for anything whose whole job is drawing, and an empty slot is a
-            <code>null</code> reference that nothing complains about until the line that reads it
-            runs.
+            <code>Text (TMP)</code> object in. An empty slot is a <code>null</code> reference that
+            nothing complains about until the line that reads it runs.
         </li>
     </ol>
 </div>
@@ -520,77 +509,60 @@ ${renderDecompose('5.3', DECOMPOSE, 1)}
         <span class="activity-time">~45 min</span>
     </div>
 
-    <p>
-        The mechanism you are about to build has no precedent in this course, so read it here
-        first. Five rows, and one of them is the whole idea.
-    </p>
-
     <table>
         <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
         <tr>
             <td><code>public static StatManager Instance;</code></td>
-            <td>A field that belongs to the <strong>class</strong> rather than to an object — so any
-                script can reach it without a reference, a search, or even knowing whether an object
-                exists.</td>
-            <td>There is exactly one, and it starts as <code>null</code>. Nothing claims it for you,
-                and while it is <code>null</code> every caller that reads it throws.</td>
+            <td>A field that belongs to the <strong>class</strong>, not to an object — reachable
+                with no reference and no search.</td>
+            <td>It starts as <code>null</code>, and nothing claims it for you.</td>
         </tr>
         <tr>
             <td><code>private void Awake()</code></td>
             <td>Unity's earliest hook: it runs once per object, and every <code>Awake()</code> in a
                 scene finishes before the first <code>Start()</code> runs.</td>
-            <td>It is early, not omniscient — the order between two objects'
-                <code>Awake()</code> methods is still not promised, and neither is any order among
-                <code>Start()</code> methods.</td>
+            <td>Order between two objects' <code>Awake()</code> methods is still not promised.</td>
         </tr>
         <tr>
             <td><code>DontDestroyOnLoad(gameObject)</code></td>
-            <td>The one call that changes what a scene load is allowed to do: it moves the object
-                into a scene of its own that never unloads, so it survives every load from then
-                on.</td>
-            <td>It takes a whole <strong>GameObject</strong>, not a component. And it survives
-                everything — including a return to the scene it came from, where that scene's own
-                copy will be waiting for it.</td>
+            <td>The object moves into a scene of its own that never unloads, so it survives every
+                load from then on.</td>
+            <td>It takes a whole <strong>GameObject</strong>, not a component.</td>
         </tr>
         <tr>
             <td><code>Destroy(gameObject)</code></td>
             <td>Removes an object — how the newcomer copy takes itself out of the game.</td>
-            <td>The removal is deferred to the end of the frame, not instant: it is gone in every
-                practical sense, but a line that runs later in the same frame can still reach
-                it.</td>
+            <td>The removal is deferred to the end of the frame: a line running later in that same
+                frame can still reach it.</td>
         </tr>
         <tr>
             <td><code>SceneManager.LoadScene(int buildIndex)</code></td>
-            <td>What <code>SceneSwitch.cs</code> calls every time you touch a cave mouth — the line
-                that is destroying your stats, in the shipped code of your own project.</td>
+            <td>What <code>SceneSwitch.cs</code> calls at every cave mouth — the line destroying your
+                stats.</td>
             <td>Hand it an <code>int</code> and it loads whatever scene sits at that
-                <em>position</em> in the build list. Reorder the list and every serialized index
-                silently points somewhere else, with no error to warn you.</td>
+                <em>position</em> in the build list.</td>
         </tr>
     </table>
 
     <div class="callout">
         <strong>Architectural specification — this is a refactor, not a rewrite.</strong>
-        Nothing about what your game <em>does</em> changes: coins still collect, spikes still hurt,
-        the axe still swaps your animation. What changes is <em>where the numbers live</em> — you
-        are moving a responsibility, not adding a feature.
+        Nothing your game <em>does</em> changes; what changes is where the numbers live. Answer these
+        before you open the file.
         <ul>
             <li><strong>The move.</strong> Which fields leave <code>PlayerController</code>, and which
-                stay? Name one thing that must stay, and say why it belongs to the player rather than
-                to the run.</li>
-            <li><strong>The owner.</strong> What is the manager's one shared slot called, which setup
-                hook claims it, and what does the other branch of that hook do with a second copy?</li>
-            <li><strong>The seam.</strong> Which single method is allowed to change health, and what
-                ceiling does it enforce on the value it holds?</li>
-            <li><strong>The screen.</strong> Where does the HUD live, and what does a HUD that reads
-                from the player instead of the manager show after a scene change?</li>
+                stay — and why does the one you keep belong to the player rather than to the run?</li>
+            <li><strong>The owner.</strong> Which setup hook claims the slot, and what does its other
+                branch do with a second copy?</li>
+            <li><strong>The seam.</strong> Which single method may change health, and what ceiling
+                does it enforce?</li>
+            <li><strong>The screen.</strong> Where does the HUD live, and what would one that read
+                from the player show after a scene change?</li>
         </ul>
     </div>
 
     <p>
-        One habit makes it survivable: <strong>move it, then compile</strong>. Delete the fields
-        from <code>PlayerController</code> first, on purpose, and let the compiler hand you the
-        complete list of callers you had forgotten, one error at a time.
+        <strong>Move it, then compile:</strong> delete the fields from
+        <code>PlayerController</code> first, and let the compiler list the callers you had forgotten.
     </p>
 
     <div class="socratic">
@@ -600,18 +572,18 @@ ${renderDecompose('5.3', DECOMPOSE, 1)}
             <tr><th>Approach</th><th>How it works</th><th>What it costs</th></tr>
             <tr>
                 <td><strong>A <code>static</code> field</strong></td>
-                <td>The field belongs to the <em>class</em>, not to any object, so destroying the objects does not touch it.</td>
-                <td>No lifecycle at all — you cannot reset it cleanly, and in the editor it survives between Play sessions, which makes testing lie to you. Nothing owns it.</td>
+                <td>Belongs to the <em>class</em> — destroying the objects does not touch it.</td>
+                <td>No lifecycle: you cannot reset it cleanly, and in the editor it survives between Play sessions, so testing lies to you.</td>
             </tr>
             <tr>
                 <td><strong>A persistent singleton object</strong></td>
-                <td>One object in the scene registers itself as <em>the</em> instance and asks Unity not to destroy it when scenes change.</td>
-                <td>You must handle the case where a scene loads a <em>second</em> copy of it, and you must decide who is allowed to read it.</td>
+                <td>One object registers as <em>the</em> instance and asks Unity not to destroy it.</td>
+                <td>You must handle the <em>second</em> copy a scene load brings.</td>
             </tr>
             <tr>
                 <td><strong>A ScriptableObject asset</strong></td>
-                <td>The data lives in a project asset rather than in a scene, so no scene load can ever touch it.</td>
-                <td>A new concept, and one more asset to manage. It survives scene loads <em>and</em> Play sessions, which is either the point or a nuisance depending on what you want.</td>
+                <td>Lives in a project asset rather than in a scene, so no scene load can touch it.</td>
+                <td>A new concept and one more asset to manage — and it survives Play sessions too, which is either the point or a nuisance.</td>
             </tr>
         </table>
         <ol>
@@ -633,24 +605,21 @@ ${renderWalkthrough(WALK_SINGLETON)}
     </div>
 
     <p>
-        There is a design decision hiding in the HUD, and you have to make it before you finish:
-        <strong>which scene should the game actually begin in?</strong> You have been pressing Play
-        with the Overworld open all year, but <strong>Start (index 0)</strong> is what a built game
-        loads first, and it is where the StatManager object lives. A Canvas is <em>not</em>
-        persistent: it exists only in the scene that contains it.
+        One decision is left, and it is yours: <strong>which scene should the game actually begin
+        in?</strong> A Canvas is <em>not</em> persistent — it exists only in the scene that contains
+        it.
     </p>
 
     <table>
         <tr><th>Approach</th><th>What you do</th><th>What it costs</th></tr>
         <tr>
             <td><strong>Move the Overworld's Canvas into <code>Start (index 0)</code></strong></td>
-            <td>Drag the Canvas and its <code>Text (TMP)</code> child across, then repair the
-                lever's third listener so it stops pointing at nothing.</td>
-            <td>Less setup, and you inherit an object somebody already built — including the fact
-                that the lever was switching it off for reasons nothing explains. That listener
-                lives on the <em>scene instance</em> of <code>CaveSwitch</code>, not on the prefab:
-                drag the Canvas into another scene and the third slot reads <em>Missing</em>, and
-                the lever quietly stops doing one of its three jobs.</td>
+            <td>Drag the Canvas and its <code>Text (TMP)</code> child across, then repair whatever
+                breaks.</td>
+            <td>Less setup, but you inherit the lever's third listener. It lives on the
+                <em>scene instance</em> of <code>CaveSwitch</code>, not on the prefab: move the
+                Canvas and that slot reads <em>Missing</em>, and the lever quietly stops doing one
+                of its three jobs.</td>
         </tr>
         <tr>
             <td><strong>Leave it alone and build a fresh Canvas in <code>Start (index 0)</code></strong></td>
@@ -662,11 +631,9 @@ ${renderWalkthrough(WALK_SINGLETON)}
     </table>
 
     <p>
-        Either is defensible. This lesson builds a fresh one in <strong>Start (index 0)</strong>,
-        because that path leaves the wiring you inherited exactly as you found it — and because the
-        lever's third listener is a question about somebody else's intent, which is not what this
-        lesson is teaching. Whichever you choose, <strong>write down your reason before you
-        start</strong>: the checkpoint asks you for it.
+        Either is defensible. This lesson builds a fresh one, because that path leaves the wiring you
+        inherited exactly as you found it. Whichever you choose, <strong>write down your reason
+        before you start</strong>: the checkpoint asks you for it.
     </p>
 </div>
 
@@ -677,11 +644,11 @@ ${renderWalkthrough(WALK_HUD)}
 <div class="checklist">
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
-        <li>Explain why a scene load <em>replaces</em> your stats rather than losing them, and why that is correct behaviour rather than a bug</li>
+        <li>Explain why a scene load <em>replaces</em> your stats rather than losing them</li>
         <li>Compare static fields, a persistent singleton and a ScriptableObject, and defend your choice</li>
-        <li>Build a singleton with a setup hook, a persistence call and a duplicate guard — and say what runs first, and why it has to</li>
+        <li>Build a singleton with a setup hook, a persistence call and a duplicate guard</li>
         <li>Explain why the duplicate guard is genuinely necessary in <em>this</em> project</li>
-        <li>Put the HUD in the scene where the game begins, say why there, and say what it costs you</li>
+        <li>Put the HUD in the scene where the game begins, and say what that costs you</li>
         <li>Commit and push</li>
     </ul>
 </div>
