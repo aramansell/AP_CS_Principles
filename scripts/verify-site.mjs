@@ -912,7 +912,13 @@ if (!fs.existsSync(askSrcPath)) {
     'Instantiate', 'Destroy', 'MovePosition', 'AddForce', 'transform.Translate', 'linearVelocity',
     'SerializeField', 'OnTriggerEnter2D', 'OnCollisionEnter2D', 'Debug.Log', 'Sprite Renderer',
     'Prefab', 'Tilemap', 'gravityScale', 'Vector2', 'normalized', 'Input.GetAxis',
-    'state machine', 'ScriptableObject', 'Canvas', 'Update(', 'Start(',
+    'state machine', 'ScriptableObject', 'Canvas',
+    // Not 'Update(' or 'Start(': a lesson whose two walkthroughs annotate two
+    // files names both entry points in each, so a two-walkthrough lesson reaches
+    // three sections with nothing repeated. Those two cannot distinguish a repeat
+    // from two files, and a warning that fires on the naming is a warning that
+    // teaches a writer to stop naming the entry point. Check 11 still governs how
+    // they are written.
   ];
   const SECTIONS_MAX = 2;   // the spec allows three sections only if the third is a new context
   const SENTENCES_MIN = 6;  // and only if the mentions are load-bearing rather than incidental
