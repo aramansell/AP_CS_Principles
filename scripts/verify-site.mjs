@@ -708,24 +708,21 @@ if (!fs.existsSync(askSrcPath)) {
   //
   // The label gate was measured against the alternative, so that nobody widens
   // this scan on the theory that a wider net can only help. Run over all 81 built
-  // pages, the identical strip chain flags exactly seven lessons. Five hits are
-  // real — the bare `Debug.Log` in 11.1b, 11.1c and 12.1b, and two in 9.7 ("the
-  // hit arrives through OnTriggerEnter2D", "an AddForce jump") — but 9.7 is also
-  // where the rule misreads ordinary English, and the rest is all false:
-  //   - 9.3 "Start with what the pixels cost" — the verb, at the head of a
-  //     sentence. `Start()` there would be a typo, not a fix.
-  //   - 9.4 `Start.unity` — the scene FILE, a path, already written exactly right.
-  //   - 9.7 ten of its twelve hits — `Update` as the lifecycle STAGE, a noun
-  //     ("your Update cost", "Update vs FixedUpdate", "Every Update:") in the
-  //     lesson whose subject is frame timing. The naming is the lesson; a check
-  //     that fires on it teaches the writer to stop naming the entry point, which
-  //     is the reasoning that already removed Start(/Update( from check 13's TERMS.
-  //   - 10.2c "the starter's own Instantiate line", "the two Instantiate blocks" —
-  //     nouns about code the student can see, where the call shape adds nothing.
-  // So widening it buys five real findings to four lessons' worth of false ones,
-  // and the false ones cost a student a true sentence. The gate stays where the
-  // mandate's editor/code split reaches; the five real hits were fixed in the
-  // lessons, which is what a wider net was actually for.
+  // pages with the list below, it flags five lessons: 11.1b, 11.1c and 12.1b for
+  // a bare `Debug.Log` (real), 9.7 for the two method names in prose (real), and
+  // 10.2c for "the starter's own Instantiate line" and "the two Instantiate
+  // blocks", which are nouns about code the student can already see and where the
+  // call shape adds nothing. So five of the six findings are real and the sixth
+  // costs a student a true sentence — which is a much better ratio than it used
+  // to be, back when `Start` and `Update` were in the list and it also failed
+  // 9.3's "Start with what the pixels cost" and 9.4's scene file `Start.unity`.
+  //
+  // The gate stays anyway, for the reason in check 10 rather than for the false
+  // positives: 43 lessons are still being converted, and a scan that fails a
+  // quarter of the course for not yet having the label teaches nobody anything.
+  // When the conversion finishes, this is the check to re-run with no gate — the
+  // five real hits have been fixed by hand, and 10.2c's two sentences are what
+  // would have to be exempted.
   console.log('11. methods named as calls...');
   const METHODS = [
     'CompareTag', 'GetComponent', 'GetComponentInChildren',
@@ -736,8 +733,26 @@ if (!fs.existsSync(askSrcPath)) {
     'Input.GetAxis', 'Input.GetAxisRaw', 'Input.GetKey', 'Input.GetKeyDown',
     'Input.GetMouseButtonDown', 'AddForce', 'MovePosition', 'LoadScene',
     'FindWithTag', 'SetBool', 'SetInteger', 'SetTrigger',
-    'Start', 'Update',
   ];
+  // `Start` and `Update` are deliberately NOT in that list. What settles it is not
+  // the false positives on their own but that this check's whole justification is
+  // the ARGUMENT SHAPE ("what type that argument is, and that it returns a bool"),
+  // and Start and Update take no arguments and return nothing — so the call shape
+  // teaches a student nothing here, while the bare names are load-bearing in the
+  // performance unit: 9.7 is about frame timing, where ten of its twelve hits are
+  // `Update` as the lifecycle STAGE ("your Update cost", "Every Update:", "Update
+  // vs FixedUpdate"); 9.4's is the scene file `Start.unity`; 9.3's is the verb in
+  // "Start with what the pixels cost". Converting any of those used to turn true
+  // sentences into build failures. Measured the other way too: with the two names
+  // in the list there is no real finding at all in the 38 converted lessons (8.3's
+  // single hit is inside the `Queries Start In Colliders` label, stripped above),
+  // so dropping them costs nothing today and stops the performance unit from being
+  // written around a check instead of around the idea.
+  //
+  // The rule itself stands — LESSON_SPEC still asks for `Update()` and `Start()` in
+  // authoring, and fixes the scene to `Start (index 0)`. It is only this scan that
+  // declines to guess which of the two senses a bare name is in. Same call as
+  // check 13's TERMS, which dropped Start(/Update( for the same reason.
   const bareMethods = [];
   for (const id of split) {
     // strip scripts, styles and every code block, then the remaining tags —
