@@ -57,9 +57,27 @@ const prose = (html) => html
 // eaten by the comment strip, the `finalFile` pattern then never matched, and the
 // whole C# file — comments included — was billed to the author's prose. Six
 // lessons were carrying a whole file in their body count for this reason.
+//
+// The <pre> strip is the same bug one level down, and it was the last one still
+// loose: a code block whose final line is a comment ending in `</code></pre>`
+// ("// (0.192, 0.302, 0.475) as floats → ... #314D79</code></pre>") lost its
+// closing tags to the comment strip, so the block never counted as a block. Ten
+// lessons had that shape, six of them converted, and the damage ran both ways:
+// the unclosed `<pre>` made prose()'s non-greedy match swallow real prose (9.2
+// read 645 for a body of 1,014) or leave code comments counted as prose (8.5 read
+// 1,998 for 1,936 — "// cuts power magnets." was billed to the author). Stripping
+// <pre> here, on the authored tags and before the comment strip, removes the whole
+// class and matches what prose() already does to the built page.
+//
+// One way this could bite, checked and not present: a `//` header comment that
+// mentions `<pre>` in a file that also has a real `</pre>` would strip the prose
+// between them. No lesson does — the three that mention the tag (4.2, 6.2, 6.3)
+// contain no `</pre>` at all — and keeping the pattern identical to prose()'s is
+// worth more than guarding against a shape the markup never uses.
 const source = (src) => prose(src
   .replace(/finalFile: `[\s\S]*?`,/g, ' ')
   .replace(/code: '(?:[^'\\]|\\.)*'/g, ' ')
+  .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
   .replace(/^\s*\/\/.*$/gm, ' '));
 
 // The split. A lesson's prose is two different quantities wearing one number:
