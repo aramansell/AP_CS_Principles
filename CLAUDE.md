@@ -23,7 +23,7 @@ commit as work finishes, then stop there and leave the push to him. Do not
 ## Build and verify
 
 ```bash
-npm run build     # dist/ + PACING.md + sitemap.xml + Pagefind index
+npm run build     # astro build → scripts/highlight-code.mjs → Pagefind, into dist/ + PACING.md + sitemap.xml
 npm run verify    # integrity checks — run AFTER build
 ```
 

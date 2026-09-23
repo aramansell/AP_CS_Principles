@@ -253,7 +253,10 @@ function renderStep(step: Step, index: number): string {
     '<div class="wt-step">' +
     '<h4 class="wt-step-title"><span class="wt-num">Step ' + (index + 1) + '</span>' + prose(step.title) + '</h4>' +
     (step.lead ? '<p class="wt-lead">' + prose(step.lead) + '</p>' : '') +
-    '<pre class="wt-code"><code>' + code + '</code></pre>' +
+    // lang-cs is what gets this coloured: scripts/highlight-code.mjs colours a
+    // block only when the block says what language it is, and this is the one
+    // place that knows these lines are C#. Nothing is inferred from the text.
+    '<pre class="wt-code lang-cs"><code>' + code + '</code></pre>' +
     '<ol class="wt-annot">' + annots + '</ol>' +
     '</div>'
   );
@@ -299,7 +302,7 @@ export function renderWalkthrough(spec: WalkthroughSpec): string {
       : '';
 
   const finalCode =
-    '<pre class="wt-code wt-code-full"><code>' +
+    '<pre class="wt-code wt-code-full lang-cs"><code>' +
     esc(refHeader + (spec.finalFile ?? '')) +
     '</code></pre>';
 

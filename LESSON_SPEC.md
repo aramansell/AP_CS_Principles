@@ -69,7 +69,10 @@ Inside the `const body` template literal:
 - `<div class="checklist"><h3>Checkpoint — before moving on, you must be able to:</h3><ul>...</ul></div>` — 4-6 bullets, always near the end.
 - `<div class="resources"><h3>Reference Docs</h3><p>...</p><ul>...</ul></div>` — LAST block always.
 - Code: `<pre><code>...</code></pre>`. Tables: plain `<table><tr><th>...`. Output annotation: `<span class="output">...</span>` inside code samples for what the Console prints.
-- Do not use any other classes or ids. No inline styles except none at all.
+  - **A code block says what language it is, or it stays plain.** Add the class to the `<pre>`: `lang-cs`, `lang-yaml`, `lang-bash`, `lang-json`. `npm run build` then colours the block the way VS Code does — Shiki runs VS Code's own grammar and its Dark+ palette over it, so the student sees the code as their editor will show it. The walkthrough renderer declares its own blocks (`lang-cs`); only hand-written blocks need the class.
+  - Nothing is guessed from the content, and this is deliberate: half the code blocks in the course are not code — trade analogies, a DNS transcript, Unity scene YAML, AP pseudocode with `←` in it. Colour marks **the course's C#**, plus the few blocks that are genuinely a shell command or a scene file. A block left plain is itself the signal that this is not something you type.
+  - No colour is ever written into a lesson by hand. The palette is eight classes in `public/style.css` and eight hexes in `scripts/highlight-code.mjs`, kept equal by verify check 15 — which also fails if a block declares a language that never got coloured, or if a colour reaches a page neither list can name.
+- Do not use any other classes or ids. No inline styles except none at all. The one exception is the `lang-*` class on a code block above: it is not a style, it is the block declaring what language it is.
 
 ## Link map — the ONLY pages you may link to
 

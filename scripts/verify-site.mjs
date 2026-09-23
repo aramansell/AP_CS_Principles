@@ -33,6 +33,11 @@
  *     student's saved text never reappears under a question it does not answer
  * 13. a converted lesson does not explain the same thing twice (a warning, not a
  *     failure — overlap is a heuristic, so the list goes to a human)
+ * 14. emphasis that never reaches the student — no page shows literal *asterisks*
+ * 15. the syntax colouring is intact — every block that declares a language was
+ *     coloured, the palette in public/style.css and the one in
+ *     scripts/highlight-code.mjs still name the same eight colours, no colour
+ *     reached a page that neither can name, and no marker leaked
  *
  * Ported from the AP CS A Guide's verify-site.mjs, minus the legacy-site
  * URL parity checks (this site has no legacy twin).
@@ -1095,6 +1100,88 @@ if (!fs.existsSync(askSrcPath)) {
         '\n    the asterisks — but do not leave the page showing them.');
     } else {
       ok('no lesson shows a student unrendered *emphasis*');
+    }
+  }
+
+  // ---------- 15. the syntax colouring survived the build
+  // Colour is applied to the BUILT page by scripts/highlight-code.mjs, which
+  // runs between `astro build` and Pagefind. That position is the reason this
+  // check exists: nothing about editing a lesson or a stylesheet fails, loudly
+  // or otherwise, if the colouring step did not run, or ran against a palette
+  // that has since changed. The page just comes out plain, and plain is what it
+  // looked like before there was any colour at all — so the source is right and
+  // the page is wrong, which is the shape of the other silent traps here.
+  //
+  // Four things, all cheap, each one a failure mode that would otherwise be
+  // found by a student:
+  //
+  //   - a `<pre>` that declares a language but carries no `data-lang` was never
+  //     coloured: the attribute is only added by the colouring step, so this is
+  //     "you edited a lesson and did not rebuild".
+  //   - the two lists of hexes (the classes in public/style.css, the map in the
+  //     script) must name the same colours, both directions. The script reads
+  //     the stylesheet's palette; nothing keeps them together but this.
+  //   - a token colour inlined as `style="color:#…"` inside a `<pre>` is a
+  //     colour neither list can name. The script emits it that way on purpose
+  //     for anything unmapped — visible, and caught here.
+  //   - the marker the guided build's blanks are swapped for during tokenizing
+  //     (`zzwtgapmarkerzz`) must never reach a page. If it does, a student sees
+  //     it where their blank goes.
+  console.log('15. the syntax colouring...');
+  {
+    const script = fs.readFileSync(path.resolve('scripts/highlight-code.mjs'), 'utf8');
+    const sheet = fs.readFileSync(path.resolve('public/style.css'), 'utf8');
+    const pairs = (from, re) => [...from.matchAll(re)].map((m) => m[1] + ' ' + m[2]).sort();
+    const inScript = pairs(script, /'(#[0-9A-Fa-f]{6})':\s*'(tk-[a-z]+)'/g);
+    const inSheet = pairs(sheet, /\.(tk-[a-z]+)\s*\{\s*color:\s*(#[0-9A-Fa-f]{6})/g)
+      .map((p) => p.split(' ').reverse().join(' '));
+    const missing = inScript.filter((p) => !inSheet.includes(p));
+    const extra = inSheet.filter((p) => !inScript.includes(p));
+    if (inScript.length < 8) {
+      fail('the palette in scripts/highlight-code.mjs has ' + inScript.length + ' colour(s) — it should not lose any');
+    } else if (missing.length || extra.length) {
+      fail('the two palettes disagree:\n' +
+        (missing.length ? '      only in the script:  ' + missing.join(', ') + '\n' : '') +
+        (extra.length ? '      only in style.css:  ' + extra.join(', ') + '\n' : '') +
+        '    Shiki emits a class per colour, so a class with no rule loses the colour and a\n' +
+        '    rule with no class does nothing. Fix whichever list is wrong.');
+    } else {
+      ok('the script and the stylesheet name the same ' + inScript.length + ' syntax colours');
+    }
+
+    const uncoloured = [], inlined = [], leaked = [];
+    for (const page of pages) {
+      const html = fs.readFileSync(page, 'utf8');
+      const rel = path.relative(dist, page);
+      const pres = [...html.matchAll(/<pre(?=[\s>])([^>]*)>([\s\S]*?)<\/pre>/g)];
+      for (const m of pres) {
+        if (/\blang-/.test(m[1]) && !/data-lang=/.test(m[1])) uncoloured.push(rel);
+        if (/style="color:/.test(m[2])) inlined.push(rel);
+      }
+      if (html.includes('zzwtgapmarkerzz')) leaked.push(rel);
+    }
+    if (uncoloured.length) {
+      fail(uncoloured.length + ' code block(s) declare a language but were never coloured:\n' +
+        '      ' + [...new Set(uncoloured)].slice(0, 8).join(', ') + '\n' +
+        '    The block still says lang-cs (or lang-yaml, lang-bash, …) but has no data-lang,\n' +
+        '    which only scripts/highlight-code.mjs adds. Run `npm run build` — the colouring\n' +
+        '    step sits after astro build, so a plain `astro build` leaves dist uncoloured.');
+    }
+    if (inlined.length) {
+      fail(inlined.length + ' code block(s) carry a colour as an inline style:\n' +
+        '      ' + [...new Set(inlined)].slice(0, 8).join(', ') + '\n' +
+        '    A token colour reached the page that neither palette can name. Shiki found a\n' +
+        '    token this theme was not known to produce — add its hex to PALETTE in\n' +
+        '    scripts/highlight-code.mjs AND to the .tk- block in public/style.css.');
+    }
+    if (leaked.length) {
+      fail(leaked.length + ' page(s) leak the blank marker: ' + [...new Set(leaked)].slice(0, 8).join(', ') +
+        '\n    A nested span (the guided build\'s green blank) was not restored, so a student\n' +
+        '    sees the marker where their blank goes. See the marker note in\n' +
+        '    scripts/highlight-code.mjs.');
+    }
+    if (!uncoloured.length && !inlined.length && !leaked.length) {
+      ok('every language-declaring block is coloured, in palette, with no marker leaks');
     }
   }
 }

@@ -134,128 +134,128 @@
 </div>
 
 <!-- ============================================================ -->
-<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;why can I jump forever in mid-air?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. The layer, the check point and the Inspector slots are done — that was the In the Editor half. What is left is four fields, one method that asks a question every frame, one term added to your jump from 6.1, and a line you can see. The raycast is the one line with nothing earlier in the course to copy.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Declare the point, the reach, the filter and the answer</h4><p class="wt-lead">Four lines in the class body, beside <code>moveSpeed</code> and the jump field from 6.1. Three are <code>[SerializeField]</code> knobs a designer can see in the Inspector; the fourth is the answer itself.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    [SerializeField] private Transform groundCheck;</span>
-<span class="wt-line wt-line-why" data-n="2">    [SerializeField] private float groundCheckDistance = 0.1f;</span>
-<span class="wt-line wt-line-why" data-n="3">    [SerializeField] private LayerMask groundLayer;</span>
+<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;why can I jump forever in mid-air?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. The layer, the check point and the Inspector slots are done — that was the In the Editor half. What is left is four fields, one method that asks a question every frame, one term added to your jump from 6.1, and a line you can see. The raycast is the one line with nothing earlier in the course to copy.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Declare the point, the reach, the filter and the answer</h4><p class="wt-lead">Four lines in the class body, beside <code>moveSpeed</code> and the jump field from 6.1. Three are <code>[SerializeField]</code> knobs a designer can see in the Inspector; the fourth is the answer itself.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">Transform</span> <span class="tk-va">groundCheck</span>;</span>
+<span class="wt-line wt-line-why" data-n="2">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">groundCheckDistance</span> = <span class="tk-nu">0.1f</span>;</span>
+<span class="wt-line wt-line-why" data-n="3">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">LayerMask</span> <span class="tk-va">groundLayer</span>;</span>
 <span class="wt-line" data-n="4"></span>
-<span class="wt-line wt-line-why" data-n="5">    private bool isGrounded;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The slot that holds the empty child from the Editor half — a position in the world, and a reference to another object. The same kind of slot as the waypoints in 4.1.</span><span class="wt-why"><strong>Wire it before you press Play.</strong> An empty slot does not complain when the scene loads; it throws a <code>NullReferenceException</code> at the first line that <strong>reads</strong> it, and this script reads it sixty times a second.</span></li>
+<span class="wt-line wt-line-why" data-n="5">    <span class="tk-kw">private</span> <span class="tk-kw">bool</span> <span class="tk-va">isGrounded</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The slot that holds the empty child from the Editor half — a position in the world, and a reference to another object. The same kind of slot as the waypoints in 4.1.</span><span class="wt-why"><strong>Wire it before you press Play.</strong> An empty slot does not complain when the scene loads; it throws a <code>NullReferenceException</code> at the first line that <strong>reads</strong> it, and this script reads it sixty times a second.</span></li>
 <li><span class="wt-ref">2</span><span class="wt-what">How far down the ray reaches. <code>0.1</code> is a starting guess; the honest value is <strong>measured</strong> — the gap from the bottom of your collider to the tile surface, plus a hair.</span><span class="wt-why"><strong>This number is the difference between a check and a lie.</strong> Too short and the ray misses the floor by a hair while your feet are visibly on it, so the jump fails at random; too long and you are "grounded" standing over thin air beside a ledge.</span></li>
 <li><span class="wt-ref">3</span><span class="wt-what"><strong>What the ray is allowed to notice.</strong> The type is <code>LayerMask</code>, not <code>int</code>, and the Inspector draws it as a dropdown of layer names rather than a number.</span><span class="wt-why"><strong>A <code>LayerMask</code> is an integer whose bits mark which layers you care about</strong>, which is why "Everything" is not a special case in the code — it is every bit switched on. Empty means <code>Nothing</code>, and a ray allowed to hit nothing reports nothing.</span></li>
-<li><span class="wt-ref">5</span><span class="wt-what"><strong>The answer</strong>, and the only thing in the file that changes because of it. Named for the question rather than the technique, so it reads correctly whichever technique you chose.</span><span class="wt-why"><strong>In the class body — not inside the method that computes it.</strong> That is the scope rule from 1.3, load-bearing twice over here: declared inside the method it would be thrown away sixty times a second, and the jump would read a name that does not exist. The check <strong>writes</strong> it and the jump <strong>reads</strong> it, and a value two methods share is state.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Ask the question every frame</h4><p class="wt-lead">One call added to <code>Update()</code>, and one method that does nothing but ask. This is the part of the lesson with no precedent: every other line in this file tells the engine what to do.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">        CheckGround();</span>
+<li><span class="wt-ref">5</span><span class="wt-what"><strong>The answer</strong>, and the only thing in the file that changes because of it. Named for the question rather than the technique, so it reads correctly whichever technique you chose.</span><span class="wt-why"><strong>In the class body — not inside the method that computes it.</strong> That is the scope rule from 1.3, load-bearing twice over here: declared inside the method it would be thrown away sixty times a second, and the jump would read a name that does not exist. The check <strong>writes</strong> it and the jump <strong>reads</strong> it, and a value two methods share is state.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Ask the question every frame</h4><p class="wt-lead">One call added to <code>Update()</code>, and one method that does nothing but ask. This is the part of the lesson with no precedent: every other line in this file tells the engine what to do.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">        <span class="tk-fn">CheckGround</span>();</span>
 <span class="wt-line" data-n="2"></span>
-<span class="wt-line" data-n="3">    void CheckGround()</span>
+<span class="wt-line" data-n="3">    <span class="tk-kw">void</span> <span class="tk-fn">CheckGround</span>()</span>
 <span class="wt-line" data-n="4">    {</span>
 <span class="wt-line wt-line-why wt-blank" data-n="5"><span class="wt-gap">        isGrounded = ____;</span></span>
 <span class="wt-line" data-n="6">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Called from <code>Update()</code>, beside your movement and your animation — the same shape as <code>UpdateAnimation()</code> and <code>CheckAttack()</code> from 1.6. It runs on <strong>every frame</strong>, and that is not an accident.</span><span class="wt-why"><strong>"Am I grounded" is a fact about right now, not an event that happened.</strong> Nothing sends you a message when a foot touches a floor and another when it leaves one. The collision callbacks from 2.1 report <strong>contacts</strong>, not standing — a character leaning on a wall is in contact with it. So the honest value is the one you re-derive.</span></li>
 <li><span class="wt-ref">3</span><span class="wt-what">The method that asks. Empty parameter list, <code>void</code>, nothing handed back — everything it needs is a field from step 1. Same shape as <code>UpdateAnimation()</code> in 1.6: one idea, one method.</span></li>
 <li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">5</span><span class="wt-what">The whole lesson in one line, and the only line in this file that asks the engine a question instead of giving it an order. Fire the question <strong>down</strong> from the point you made in the Editor half, far enough to reach the floor, asking only about the layer you filled — and store the yes-or-no answer in the field from step 1. All four inputs are in the four-technique table above, in the order they are written there. The method hands back a result object that <strong>converts to true when it hit and false when it did not</strong>, which is why this line can end in a <code>bool</code> with no <code>if</code> in it.</span><span class="wt-hint">You want the <code>Physics2D</code> method that sends an infinitely thin line from a point, in a direction, for a fixed distance, and reports only what sits on the layers you hand it — the one row of the table with all four inputs. Pass them in the order the table writes them: the point, then straight down, then the distance, then the mask. A <code>Vector3</code> position is accepted where the method asks for a <code>Vector2</code>, so <code>groundCheck.position</code> goes in as it is.</span><span class="wt-why"><strong>Two things make this a check rather than a trick.</strong> It sits in a method <code>Update()</code> calls <strong>every frame</strong> — not fired once at the moment you land, because nothing would fire at the moment you stop landing. And it <strong>cannot change the game on its own</strong>: it writes a <code>bool</code> and touches nothing else, which is why the next step is where the jump stops working in mid-air.</span></li>
-<li><span class="wt-ref">6</span><span class="wt-what">Closes <code>CheckGround()</code>. Press Play now and the jump still fires in mid-air, because nothing reads the answer yet.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Make the jump wait for the answer</h4><p class="wt-lead">One term added to a line you already wrote in 6.1, and the infinite jump is over.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">        if (isGrounded &amp;&amp; Input.GetKeyDown(KeyCode.Space))</span>
+<li><span class="wt-ref">6</span><span class="wt-what">Closes <code>CheckGround()</code>. Press Play now and the jump still fires in mid-air, because nothing reads the answer yet.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Make the jump wait for the answer</h4><p class="wt-lead">One term added to a line you already wrote in 6.1, and the infinite jump is over.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">        <span class="tk-ct">if</span> (<span class="tk-va">isGrounded</span> &amp;&amp; <span class="tk-va">Input</span>.<span class="tk-fn">GetKeyDown</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">Space</span>))</span>
 <span class="wt-line" data-n="2">        {</span>
-<span class="wt-line wt-line-why" data-n="3">            body.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);</span>
+<span class="wt-line wt-line-why" data-n="3">            <span class="tk-va">body</span>.<span class="tk-fn">AddForce</span>(<span class="tk-va">Vector2</span>.<span class="tk-va">up</span> * <span class="tk-va">jumpForce</span>, <span class="tk-va">ForceMode2D</span>.<span class="tk-va">Impulse</span>);</span>
 <span class="wt-line" data-n="4">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The jump condition, now <strong>compound</strong>: two questions in one <code>if</code>. <code>isGrounded</code> is the new term; the key check is the one from 5.2, and it has to stay <code>GetKeyDown</code> — the <code>Down</code> is what makes one press one jump.</span><span class="wt-why"><strong>Read the <code>&amp;&amp;</code> in English before you trust it:</strong> "fire only if I am standing on something AND the key went down this frame". C# short-circuits, so on most frames <code>isGrounded</code> settles it. And notice what this means for the player: a jump pressed in mid-air is not refused, it is <strong>thrown away</strong>. 6.3 stops throwing it away.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">The jump you wrote in 6.1, unchanged — your key, your force, your force mode. Nothing about how a jump is performed changes today. Only <strong>when</strong> it is allowed to happen.</span><span class="wt-why"><strong>This is the line the whole hour protects.</strong> One extra term in front of it, and a character who could climb the sky leaves the ground exactly once per landing: the whole difference between a jump and a jetpack, for one <code>bool</code> and an ampersand.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Draw the question</h4><p class="wt-lead">A check you cannot see is a check you will debug by guessing. Four lines of gizmo code turn that around.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    private void OnDrawGizmosSelected()</span>
+<li><span class="wt-ref">3</span><span class="wt-what">The jump you wrote in 6.1, unchanged — your key, your force, your force mode. Nothing about how a jump is performed changes today. Only <strong>when</strong> it is allowed to happen.</span><span class="wt-why"><strong>This is the line the whole hour protects.</strong> One extra term in front of it, and a character who could climb the sky leaves the ground exactly once per landing: the whole difference between a jump and a jetpack, for one <code>bool</code> and an ampersand.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Draw the question</h4><p class="wt-lead">A check you cannot see is a check you will debug by guessing. Four lines of gizmo code turn that around.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">OnDrawGizmosSelected</span>()</span>
 <span class="wt-line" data-n="2">    {</span>
-<span class="wt-line" data-n="3">        if (groundCheck == null) { return; }</span>
-<span class="wt-line wt-line-why" data-n="4">        Gizmos.color = isGrounded ? Color.green : Color.red;</span>
-<span class="wt-line" data-n="5">        Gizmos.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * groundCheckDistance);</span>
+<span class="wt-line" data-n="3">        <span class="tk-ct">if</span> (<span class="tk-va">groundCheck</span> == <span class="tk-kw">null</span>) { <span class="tk-ct">return</span>; }</span>
+<span class="wt-line wt-line-why" data-n="4">        <span class="tk-va">Gizmos</span>.<span class="tk-va">color</span> = <span class="tk-va">isGrounded</span> ? <span class="tk-va">Color</span>.<span class="tk-va">green</span> : <span class="tk-va">Color</span>.<span class="tk-va">red</span>;</span>
+<span class="wt-line" data-n="5">        <span class="tk-va">Gizmos</span>.<span class="tk-fn">DrawLine</span>(<span class="tk-va">groundCheck</span>.<span class="tk-va">position</span>, <span class="tk-va">groundCheck</span>.<span class="tk-va">position</span> + <span class="tk-va">Vector3</span>.<span class="tk-va">down</span> * <span class="tk-va">groundCheckDistance</span>);</span>
 <span class="wt-line" data-n="6">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">A method Unity calls in the <strong>editor</strong>, not at runtime — nothing you write in here ships, and nothing in here can affect the game. It draws into the Scene view when this object is selected.</span></li>
 <li><span class="wt-ref">3</span><span class="wt-what">The guard. In the frames before you wire the slot — and in any scene where you have not — <code>groundCheck</code> is nothing, and a gizmo that reads a position off nothing throws into the Console every frame.</span></li>
 <li><span class="wt-ref">4</span><span class="wt-what">One colour while the answer is true and another while it is false. The <code>? :</code> is the conditional expression — the same yes/no branch as an <code>if</code>, written as a value.</span><span class="wt-why"><strong>Colour is the point, and it is not decoration.</strong> "My jump does not work" and "my ray is too short" look identical from the player's seat and completely different from the Scene view. A red line hanging two centimetres above a green floor is a diagnosis.</span></li>
 <li><span class="wt-ref">5</span><span class="wt-what">From the check point, straight down, exactly as far as the check reaches — the same inputs the ray uses, drawn. If the drawn line and the real ray ever disagree, one of them is not reading the field you think it is.</span></li>
-<li><span class="wt-ref">6</span><span class="wt-what">Closes the gizmo method.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. The gap is the raycast assignment: a point, a direction, a distance and a mask, in that order. This version assigns the result straight into the <code>bool</code>, because a <code>RaycastHit2D</code> converts to true or false on its own — writing <code>.collider != null</code> on the end is equally correct. What has to match is the shape: the answer is computed in exactly one place, every frame rather than stored when you land, and read by the jump before it fires.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
-//  REFERENCE FILE — Assets/Scripts/PlayerController.cs
-//  Written to be read, not pasted. Build it with the walkthrough
-//  above, one step at a time, then open this and compare.
-//  If it is sitting in your project unchanged, that is the thing
-//  to go and do now — the walkthrough is still above you.
-// ------------------------------------------------------------------
-using UnityEngine;
+<li><span class="wt-ref">6</span><span class="wt-what">Closes the gizmo method.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. The gap is the raycast assignment: a point, a direction, a distance and a mask, in that order. This version assigns the result straight into the <code>bool</code>, because a <code>RaycastHit2D</code> converts to true or false on its own — writing <code>.collider != null</code> on the end is equally correct. What has to match is the shape: the answer is computed in exactly one place, every frame rather than stored when you land, and read by the jump before it fires.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/PlayerController.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
 
-// PlayerController.cs at the end of 6.2 — everything from 1.4 through 6.1,
-// plus the one question this script has never asked: am I standing on
-// something? Every other line here TELLS the engine what to do. CheckGround()
-// ASKS it something, and CheckJump() is the only line that acts on the answer.
-public class PlayerController : MonoBehaviour
+<span class="tk-cm">// PlayerController.cs at the end of 6.2 — everything from 1.4 through 6.1,</span>
+<span class="tk-cm">// plus the one question this script has never asked: am I standing on</span>
+<span class="tk-cm">// something? Every other line here TELLS the engine what to do. CheckGround()</span>
+<span class="tk-cm">// ASKS it something, and CheckJump() is the only line that acts on the answer.</span>
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">PlayerController</span> : <span class="tk-ty">MonoBehaviour</span>
 {
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float jumpForce = 7f;          // yours, from 6.1
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">moveSpeed</span> = <span class="tk-nu">5f</span>;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">jumpForce</span> = <span class="tk-nu">7f</span>;          <span class="tk-cm">// yours, from 6.1</span>
 
-    // Today's three knobs, all visible in the Inspector (1.3).
-    [SerializeField] private Transform groundCheck;              // where the ray starts
-    [SerializeField] private float groundCheckDistance = 0.1f;   // how far down it reaches
-    [SerializeField] private LayerMask groundLayer;              // what it may notice
+<span class="tk-cm">    // Today's three knobs, all visible in the Inspector (1.3).</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">Transform</span> <span class="tk-va">groundCheck</span>;              <span class="tk-cm">// where the ray starts</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">groundCheckDistance</span> = <span class="tk-nu">0.1f</span>;   <span class="tk-cm">// how far down it reaches</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">LayerMask</span> <span class="tk-va">groundLayer</span>;              <span class="tk-cm">// what it may notice</span>
 
-    private Rigidbody2D body;
+    <span class="tk-kw">private</span> <span class="tk-ty">Rigidbody2D</span> <span class="tk-va">body</span>;
 
-    // The answer. In the class body, because the check writes it and the jump
-    // reads it — and re-derived every frame, because nothing ever tells you it
-    // changed.
-    private bool isGrounded;
+<span class="tk-cm">    // The answer. In the class body, because the check writes it and the jump</span>
+<span class="tk-cm">    // reads it — and re-derived every frame, because nothing ever tells you it</span>
+<span class="tk-cm">    // changed.</span>
+    <span class="tk-kw">private</span> <span class="tk-kw">bool</span> <span class="tk-va">isGrounded</span>;
 
-    void Start()
+    <span class="tk-kw">void</span> <span class="tk-fn">Start</span>()
     {
-        // Looked up once, never inside Update() — the rule from 1.6 and 2.2.
-        body = GetComponent&lt;Rigidbody2D&gt;();
+<span class="tk-cm">        // Looked up once, never inside Update() — the rule from 1.6 and 2.2.</span>
+        <span class="tk-va">body</span> = <span class="tk-fn">GetComponent</span>&lt;<span class="tk-ty">Rigidbody2D</span>&gt;();
     }
 
-    void Update()
+    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
     {
-        // ... your input, movement, gravity and animation lines from
-        // 1.4, 1.6, 2.2 and 6.1, unchanged and left out here ...
+<span class="tk-cm">        // ... your input, movement, gravity and animation lines from</span>
+<span class="tk-cm">        // 1.4, 1.6, 2.2 and 6.1, unchanged and left out here ...</span>
 
-        CheckGround();   // ask
-        CheckJump();     // act on the answer
-        UpdateAnimation();
+        <span class="tk-fn">CheckGround</span>();   <span class="tk-cm">// ask</span>
+        <span class="tk-fn">CheckJump</span>();     <span class="tk-cm">// act on the answer</span>
+        <span class="tk-fn">UpdateAnimation</span>();
     }
 
-    // The whole lesson. A ray from the point under your feet, one direction,
-    // one distance, one mask — and the result assigned straight into the bool,
-    // because a RaycastHit2D converts to true when it hit and false when it
-    // did not. Nothing here moves anything: a question is not an action.
-    void CheckGround()
+<span class="tk-cm">    // The whole lesson. A ray from the point under your feet, one direction,</span>
+<span class="tk-cm">    // one distance, one mask — and the result assigned straight into the bool,</span>
+<span class="tk-cm">    // because a RaycastHit2D converts to true when it hit and false when it</span>
+<span class="tk-cm">    // did not. Nothing here moves anything: a question is not an action.</span>
+    <span class="tk-kw">void</span> <span class="tk-fn">CheckGround</span>()
     {
-        isGrounded = Physics2D.Raycast(groundCheck.position, Vector2.down, groundCheckDistance, groundLayer);
+        <span class="tk-va">isGrounded</span> = <span class="tk-va">Physics2D</span>.<span class="tk-fn">Raycast</span>(<span class="tk-va">groundCheck</span>.<span class="tk-va">position</span>, <span class="tk-va">Vector2</span>.<span class="tk-va">down</span>, <span class="tk-va">groundCheckDistance</span>, <span class="tk-va">groundLayer</span>);
     }
 
-    // The jump from 6.1 with one term in front of it. Leave the term out and
-    // the character can climb the sky.
-    void CheckJump()
+<span class="tk-cm">    // The jump from 6.1 with one term in front of it. Leave the term out and</span>
+<span class="tk-cm">    // the character can climb the sky.</span>
+    <span class="tk-kw">void</span> <span class="tk-fn">CheckJump</span>()
     {
-        if (isGrounded &amp;&amp; Input.GetKeyDown(KeyCode.Space))
+        <span class="tk-ct">if</span> (<span class="tk-va">isGrounded</span> &amp;&amp; <span class="tk-va">Input</span>.<span class="tk-fn">GetKeyDown</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">Space</span>))
         {
-            body.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+            <span class="tk-va">body</span>.<span class="tk-fn">AddForce</span>(<span class="tk-va">Vector2</span>.<span class="tk-va">up</span> * <span class="tk-va">jumpForce</span>, <span class="tk-va">ForceMode2D</span>.<span class="tk-va">Impulse</span>);
         }
     }
 
-    // The same three inputs the ray uses, drawn. Keep the Player selected in
-    // the Hierarchy while you play, and watch this go red the frame you leave
-    // the ground.
-    private void OnDrawGizmosSelected()
+<span class="tk-cm">    // The same three inputs the ray uses, drawn. Keep the Player selected in</span>
+<span class="tk-cm">    // the Hierarchy while you play, and watch this go red the frame you leave</span>
+<span class="tk-cm">    // the ground.</span>
+    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">OnDrawGizmosSelected</span>()
     {
-        if (groundCheck == null)
+        <span class="tk-ct">if</span> (<span class="tk-va">groundCheck</span> == <span class="tk-kw">null</span>)
         {
-            return;
+            <span class="tk-ct">return</span>;
         }
 
-        Gizmos.color = isGrounded ? Color.green : Color.red;
-        Gizmos.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * groundCheckDistance);
+        <span class="tk-va">Gizmos</span>.<span class="tk-va">color</span> = <span class="tk-va">isGrounded</span> ? <span class="tk-va">Color</span>.<span class="tk-va">green</span> : <span class="tk-va">Color</span>.<span class="tk-va">red</span>;
+        <span class="tk-va">Gizmos</span>.<span class="tk-fn">DrawLine</span>(<span class="tk-va">groundCheck</span>.<span class="tk-va">position</span>, <span class="tk-va">groundCheck</span>.<span class="tk-va">position</span> + <span class="tk-va">Vector3</span>.<span class="tk-va">down</span> * <span class="tk-va">groundCheckDistance</span>);
     }
 
-    // ... UpdateAnimation(), CheckAttack(), the pickups and the damage, unchanged ...
+<span class="tk-cm">    // ... UpdateAnimation(), CheckAttack(), the pickups and the damage, unchanged ...</span>
 }
 
-// Edit ▸ Project Settings ▸ Tags and Layers:
-//   the first empty User Layer  =  Ground
-//
-// Inspector, on Assets/Prefabs/Player ▸ PlayerController:
-//   Ground Check            =  GroundCheck   &lt;- an empty child sitting on the
-//                                               BOTTOM EDGE of your collider
-//   Ground Check Distance   =  0.1           &lt;- measured, not guessed
-//   Ground Layer            =  Ground        &lt;- Ground, and nothing else
-//
-// The layer goes on BOTH solid tilemaps under the cave's Grid — Collision and
-// Cave Exit. The third one, No Collision, has no collider at all, so no ray can
-// ever hit it whatever layer it is on.</code></pre></details></div>
+<span class="tk-cm">// Edit ▸ Project Settings ▸ Tags and Layers:</span>
+<span class="tk-cm">//   the first empty User Layer  =  Ground</span>
+<span class="tk-cm">//</span>
+<span class="tk-cm">// Inspector, on Assets/Prefabs/Player ▸ PlayerController:</span>
+<span class="tk-cm">//   Ground Check            =  GroundCheck   &lt;- an empty child sitting on the</span>
+<span class="tk-cm">//                                               BOTTOM EDGE of your collider</span>
+<span class="tk-cm">//   Ground Check Distance   =  0.1           &lt;- measured, not guessed</span>
+<span class="tk-cm">//   Ground Layer            =  Ground        &lt;- Ground, and nothing else</span>
+<span class="tk-cm">//</span>
+<span class="tk-cm">// The layer goes on BOTH solid tilemaps under the cave's Grid — Collision and</span>
+<span class="tk-cm">// Cave Exit. The third one, No Collision, has no collider at all, so no ray can</span>
+<span class="tk-cm">// ever hit it whatever layer it is on.</span></code></pre></details></div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">

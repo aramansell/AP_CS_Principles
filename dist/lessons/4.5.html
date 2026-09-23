@@ -106,35 +106,35 @@
     </div>
 </div>
 
-<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I make an enemy switch between patrolling, chasing and attacking?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/EnemyController.cs</code>. Everything you built in 4.1, 4.3 and 4.4 stays: the beat, the pursuit, the contact damage and its cooldown. Today adds two lines to the class body and one selection inside <code>Update()</code> — the line that was never there. The names below are the ones this course uses; if you named yours differently, keep your names and read the shape.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Name the states, and give the class one field to hold the current one</h4><p class="wt-lead">Both lines go inside the class braces and outside every method — the placement rule from 1.3.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    // ...the fields you wrote in 4.1, 4.3 and 4.4: speed, direction, the patrol memory, the aggro radius, the damage knob and its cooldown...</span>
+<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I make an enemy switch between patrolling, chasing and attacking?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/EnemyController.cs</code>. Everything you built in 4.1, 4.3 and 4.4 stays: the beat, the pursuit, the contact damage and its cooldown. Today adds two lines to the class body and one selection inside <code>Update()</code> — the line that was never there. The names below are the ones this course uses; if you named yours differently, keep your names and read the shape.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Name the states, and give the class one field to hold the current one</h4><p class="wt-lead">Both lines go inside the class braces and outside every method — the placement rule from 1.3.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-cm">    // ...the fields you wrote in 4.1, 4.3 and 4.4: speed, direction, the patrol memory, the aggro radius, the damage knob and its cooldown...</span></span>
 <span class="wt-line" data-n="2"></span>
-<span class="wt-line wt-line-why" data-n="3">    private enum EnemyState { Patrol, Chase, Attack }</span>
+<span class="wt-line wt-line-why" data-n="3">    <span class="tk-kw">private</span> <span class="tk-kw">enum</span> <span class="tk-ty">EnemyState</span> { <span class="tk-va">Patrol</span>, <span class="tk-va">Chase</span>, <span class="tk-va">Attack</span> }</span>
 <span class="wt-line" data-n="4"></span>
-<span class="wt-line wt-line-why" data-n="5">    private EnemyState state = EnemyState.Patrol;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Not one of those fields is deleted or renamed today. The two lines below are the only additions to the class body.</span></li>
+<span class="wt-line wt-line-why" data-n="5">    <span class="tk-kw">private</span> <span class="tk-ty">EnemyState</span> <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Patrol</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Not one of those fields is deleted or renamed today. The two lines below are the only additions to the class body.</span></li>
 <li><span class="wt-ref">3</span><span class="wt-what">The legal states, written down in exactly one place. Three names, and from here on the compiler knows them.</span><span class="wt-why"><strong>The type is the point.</strong> <code>EnemyState.Patrol</code> is the only spelling that compiles, so a typo is an error on the line you typed rather than a fourth state that silently matches nothing. A <code>string</code> holding <code>"patrol"</code> would compile happily — that is 4.2's lesson, where <code>Direction</code> meant Right on one controller and Up on the other and no error message ever mentioned it. <code>private</code>, because this is one enemy's own vocabulary and no other script has business naming its states.</span></li>
-<li><span class="wt-ref">5</span><span class="wt-what"><strong>The field this whole lesson is about.</strong> One variable holding which of those three names the enemy is doing right now — the thing you could not print, could not drive an animator from, and could not ask about without reading the file.</span><span class="wt-why"><strong>Two things to notice, and both are 1.3.</strong> <strong>Where it lives</strong>: in the class body, not inside <code>Update()</code>. Declared inside a method it would be rebuilt from nothing sixty times a second and carry nothing between frames — the same mistake as <code>lastAttackTime</code> in 3.3. <strong>What it starts at</strong>: <code>Patrol</code>. Frame one has to be <strong>some</strong> state, and a guard that spawns already hunting you has no first state at all; the beat you built in 4.1 is the machine at rest. Leave the starting value off and you get <code>0</code>, which is whichever name you happened to list first rather than the one you meant.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Let the state decide which behaviour runs</h4><p class="wt-lead">This is the line that did not exist. Until today, behaviour was decided by where the code sat — and nothing stopped two behaviours running in the same frame.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    void Update()</span>
+<li><span class="wt-ref">5</span><span class="wt-what"><strong>The field this whole lesson is about.</strong> One variable holding which of those three names the enemy is doing right now — the thing you could not print, could not drive an animator from, and could not ask about without reading the file.</span><span class="wt-why"><strong>Two things to notice, and both are 1.3.</strong> <strong>Where it lives</strong>: in the class body, not inside <code>Update()</code>. Declared inside a method it would be rebuilt from nothing sixty times a second and carry nothing between frames — the same mistake as <code>lastAttackTime</code> in 3.3. <strong>What it starts at</strong>: <code>Patrol</code>. Frame one has to be <strong>some</strong> state, and a guard that spawns already hunting you has no first state at all; the beat you built in 4.1 is the machine at rest. Leave the starting value off and you get <code>0</code>, which is whichever name you happened to list first rather than the one you meant.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Let the state decide which behaviour runs</h4><p class="wt-lead">This is the line that did not exist. Until today, behaviour was decided by where the code sat — and nothing stopped two behaviours running in the same frame.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()</span>
 <span class="wt-line" data-n="2">    {</span>
-<span class="wt-line wt-line-why" data-n="3">        float distance = DistanceToPlayer();</span>
+<span class="wt-line wt-line-why" data-n="3">        <span class="tk-kw">float</span> <span class="tk-va">distance</span> = <span class="tk-fn">DistanceToPlayer</span>();</span>
 <span class="wt-line" data-n="4"></span>
-<span class="wt-line" data-n="5">        if (playerTransform == null)</span>
+<span class="wt-line" data-n="5">        <span class="tk-ct">if</span> (<span class="tk-va">playerTransform</span> == <span class="tk-kw">null</span>)</span>
 <span class="wt-line" data-n="6">        {</span>
-<span class="wt-line wt-line-why" data-n="7">            state = EnemyState.Patrol;</span>
+<span class="wt-line wt-line-why" data-n="7">            <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Patrol</span>;</span>
 <span class="wt-line" data-n="8">        }</span>
 <span class="wt-line" data-n="9"></span>
 <span class="wt-line wt-line-why wt-blank" data-n="10"><span class="wt-gap">        ________ (________)</span></span>
 <span class="wt-line" data-n="11">        {</span>
-<span class="wt-line" data-n="12">            // one branch per state — the next step fills them in</span>
+<span class="wt-line" data-n="12"><span class="tk-cm">            // one branch per state — the next step fills them in</span></span>
 <span class="wt-line" data-n="13">        }</span>
 <span class="wt-line" data-n="14">    }</span>
 <span class="wt-line" data-n="15"></span>
-<span class="wt-line" data-n="16">    // No player is never in range, so the beat is never interrupted</span>
-<span class="wt-line" data-n="17">    private float DistanceToPlayer()</span>
+<span class="wt-line" data-n="16"><span class="tk-cm">    // No player is never in range, so the beat is never interrupted</span></span>
+<span class="wt-line" data-n="17">    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-fn">DistanceToPlayer</span>()</span>
 <span class="wt-line" data-n="18">    {</span>
-<span class="wt-line" data-n="19">        if (playerTransform == null)</span>
+<span class="wt-line" data-n="19">        <span class="tk-ct">if</span> (<span class="tk-va">playerTransform</span> == <span class="tk-kw">null</span>)</span>
 <span class="wt-line" data-n="20">        {</span>
-<span class="wt-line" data-n="21">            return float.MaxValue;</span>
+<span class="wt-line" data-n="21">            <span class="tk-ct">return</span> <span class="tk-kw">float</span>.<span class="tk-va">MaxValue</span>;</span>
 <span class="wt-line" data-n="22">        }</span>
-<span class="wt-line" data-n="23">        return Vector3.Distance(transform.position, playerTransform.position);</span>
+<span class="wt-line" data-n="23">        <span class="tk-ct">return</span> <span class="tk-va">Vector3</span>.<span class="tk-fn">Distance</span>(<span class="tk-va">transform</span>.<span class="tk-va">position</span>, <span class="tk-va">playerTransform</span>.<span class="tk-va">position</span>);</span>
 <span class="wt-line" data-n="24">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">3</span><span class="wt-what">One measurement, made once, by a small method that answers the only question the machine ever asks about the player: how far away is it?</span><span class="wt-why"><strong>Why a distance and not a bool.</strong> Every branch below compares a number against a radius, so "there is no player" has to arrive as a number that is never inside one. The helper below is where that number is produced.</span></li>
 <li><span class="wt-ref">5</span><span class="wt-what">The guard from 4.3, with a new job: it no longer stops the frame, it forces the state.</span></li>
 <li><span class="wt-ref">7</span><span class="wt-what">An enemy with no target is a patrolling enemy. That is a <strong>state</strong>, not an exit — and it is the answer to what this machine does the moment your death rule from 2.2 takes the player out of the scene.</span><span class="wt-why"><strong>An early return here would delete the machine.</strong> Return before the selection and no state is ever consulted again: the enemy freezes mid-beat, and the animator from 4.2 keeps playing the last clip it was given. The fallback for "no target" has to be a state, or the machine has a hole where its default should be.</span></li>
@@ -144,25 +144,25 @@
 <li><span class="wt-ref">17</span><span class="wt-what">A method with one job: return a number the machine can compare against a radius, whether or not there is anything to measure.</span></li>
 <li><span class="wt-ref">19</span><span class="wt-what">The case that used to freeze the enemy in 4.3.</span></li>
 <li><span class="wt-ref">21</span><span class="wt-what">A number so far outside every radius in the Inspector that no comparison in the machine can match it. "There is no player" is expressed as a distance, so the rest of the file never has to ask the question again.</span></li>
-<li><span class="wt-ref">23</span><span class="wt-what">The measurement from 4.3, unchanged — the same two positions, the same call. If you chose <code>sqrMagnitude</code> there instead, keep it: what matters is that one place in the file answers this question.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Move patrol and chase behind their states, and write both exits down</h4><p class="wt-lead">Every behaviour stays exactly as you wrote it — it only changes which lines it sits behind. What is new is the arrows: each <code>state = ...</code> line is one arrow from your diagram, in code.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">            case EnemyState.Patrol:</span>
-<span class="wt-line wt-line-why" data-n="2">                if (distance &lt;= aggroRadius)</span>
+<li><span class="wt-ref">23</span><span class="wt-what">The measurement from 4.3, unchanged — the same two positions, the same call. If you chose <code>sqrMagnitude</code> there instead, keep it: what matters is that one place in the file answers this question.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Move patrol and chase behind their states, and write both exits down</h4><p class="wt-lead">Every behaviour stays exactly as you wrote it — it only changes which lines it sits behind. What is new is the arrows: each <code>state = ...</code> line is one arrow from your diagram, in code.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">            <span class="tk-va">case</span> <span class="tk-va">EnemyState</span>.<span class="tk-va">Patrol</span>:</span>
+<span class="wt-line wt-line-why" data-n="2">                <span class="tk-ct">if</span> (<span class="tk-va">distance</span> &lt;= <span class="tk-va">aggroRadius</span>)</span>
 <span class="wt-line" data-n="3">                {</span>
-<span class="wt-line wt-line-why" data-n="4">                    state = EnemyState.Chase;</span>
-<span class="wt-line wt-line-why" data-n="5">                    break;</span>
+<span class="wt-line wt-line-why" data-n="4">                    <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Chase</span>;</span>
+<span class="wt-line wt-line-why" data-n="5">                    <span class="tk-ct">break</span>;</span>
 <span class="wt-line" data-n="6">                }</span>
 <span class="wt-line" data-n="7"></span>
-<span class="wt-line" data-n="8">                // ...your beat from 4.1, unchanged: the anchor or waypoint check, the direction flip, the movement call and your animator line...</span>
-<span class="wt-line" data-n="9">                break;</span>
+<span class="wt-line" data-n="8"><span class="tk-cm">                // ...your beat from 4.1, unchanged: the anchor or waypoint check, the direction flip, the movement call and your animator line...</span></span>
+<span class="wt-line" data-n="9">                <span class="tk-ct">break</span>;</span>
 <span class="wt-line" data-n="10"></span>
-<span class="wt-line" data-n="11">            case EnemyState.Chase:</span>
-<span class="wt-line wt-line-why" data-n="12">                if (distance &gt; aggroRadius)</span>
+<span class="wt-line" data-n="11">            <span class="tk-va">case</span> <span class="tk-va">EnemyState</span>.<span class="tk-va">Chase</span>:</span>
+<span class="wt-line wt-line-why" data-n="12">                <span class="tk-ct">if</span> (<span class="tk-va">distance</span> &gt; <span class="tk-va">aggroRadius</span>)</span>
 <span class="wt-line" data-n="13">                {</span>
-<span class="wt-line" data-n="14">                    state = EnemyState.Patrol;</span>
-<span class="wt-line" data-n="15">                    break;</span>
+<span class="wt-line" data-n="14">                    <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Patrol</span>;</span>
+<span class="wt-line" data-n="15">                    <span class="tk-ct">break</span>;</span>
 <span class="wt-line" data-n="16">                }</span>
 <span class="wt-line" data-n="17"></span>
-<span class="wt-line" data-n="18">                // ...your pursuit from 4.3, unchanged: the normalized (player - me) vector, the movement call and your animator line...</span>
-<span class="wt-line" data-n="19">                break;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The state the machine starts in, and the one that runs when nothing is hunting you.</span></li>
+<span class="wt-line" data-n="18"><span class="tk-cm">                // ...your pursuit from 4.3, unchanged: the normalized (player - me) vector, the movement call and your animator line...</span></span>
+<span class="wt-line" data-n="19">                <span class="tk-ct">break</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The state the machine starts in, and the one that runs when nothing is hunting you.</span></li>
 <li><span class="wt-ref">2</span><span class="wt-what">The comparison from 4.3, measuring the same two things it always did. Its job changed: it no longer decides whether to chase this frame, it decides whether the machine <strong>becomes</strong> the chasing machine.</span><span class="wt-why"><strong>The exit and the entry have to agree about the boundary.</strong> Your entry uses <code>&lt;=</code>, so the chase's way out uses the other side of it — <code>distance &gt; aggroRadius</code>. Use the same side in both places and an enemy standing exactly on the line changes state on every frame and stutters there instead of committing.</span></li>
 <li><span class="wt-ref">4</span><span class="wt-what"><strong>The arrow.</strong> One assignment <strong>is</strong> the transition: the machine is now the chasing machine, and it stays that way until some line changes it back.</span><span class="wt-why"><strong>One arrow, one assignment, and it lives in the case it leaves.</strong> If the chase code could also write <code>state</code>, two places would be deciding this machine's next move and which one won would depend on the order of the lines — the same class of bug as two writers on one transform in 4.3. A transition belongs with the state you are leaving, never with the state you are entering.</span></li>
 <li><span class="wt-ref">5</span><span class="wt-what">Ends this case for this frame.</span><span class="wt-why"><strong>The one line a <code>switch</code> has that an <code>if</code>/<code>else</code> chain does not.</strong> Leave it out and the machine falls through into the next case and runs the chase as well — in the same frame, from the state it was just leaving. Nothing crashes and nothing is underlined in red: the enemy simply behaves like two states at once, which is the exact thing this lesson exists to remove.</span></li>
@@ -173,24 +173,24 @@
 <li><span class="wt-ref">14</span><span class="wt-what">The arrow back to the beat. The beat resumes where it was — the anchor and the direction field are still holding the values 4.1 gave them, which is a decision you can make the other way if you want a fresh beat.</span></li>
 <li><span class="wt-ref">15</span><span class="wt-what">Without it the machine falls through and runs the chase body on the same frame it decided to stop chasing.</span></li>
 <li><span class="wt-ref">18</span><span class="wt-what">The chase body — the same subtraction order, the same <code>.normalized</code>, the same movement call. Nothing about the pursuit changes; it has just been given a state to live in.</span></li>
-<li><span class="wt-ref">19</span><span class="wt-what">Ends the CHASE case.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Say what the machine does while it is attacking, and let physics enter it</h4><p class="wt-lead">ATTACK is the state your contact damage reaches — but not from a comparison. It arrives from the collision callback you wrote in 4.4, which is the only place in the file where the physics engine tells you the fight started.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">            case EnemyState.Attack:</span>
-<span class="wt-line wt-line-why" data-n="2">                if (Time.time &gt;= lastDamageTime + damageCooldown)</span>
+<li><span class="wt-ref">19</span><span class="wt-what">Ends the CHASE case.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Say what the machine does while it is attacking, and let physics enter it</h4><p class="wt-lead">ATTACK is the state your contact damage reaches — but not from a comparison. It arrives from the collision callback you wrote in 4.4, which is the only place in the file where the physics engine tells you the fight started.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">            <span class="tk-va">case</span> <span class="tk-va">EnemyState</span>.<span class="tk-va">Attack</span>:</span>
+<span class="wt-line wt-line-why" data-n="2">                <span class="tk-ct">if</span> (<span class="tk-va">Time</span>.<span class="tk-va">time</span> &gt;= <span class="tk-va">lastDamageTime</span> + <span class="tk-va">damageCooldown</span>)</span>
 <span class="wt-line" data-n="3">                {</span>
-<span class="wt-line" data-n="4">                    state = EnemyState.Chase;</span>
+<span class="wt-line" data-n="4">                    <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Chase</span>;</span>
 <span class="wt-line" data-n="5">                }</span>
-<span class="wt-line" data-n="6">                break;</span>
+<span class="wt-line" data-n="6">                <span class="tk-ct">break</span>;</span>
 <span class="wt-line" data-n="7">        }</span>
 <span class="wt-line" data-n="8">    }</span>
 <span class="wt-line" data-n="9"></span>
-<span class="wt-line" data-n="10">    private void OnCollisionStay2D(Collision2D collision)</span>
+<span class="wt-line" data-n="10">    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">OnCollisionStay2D</span>(<span class="tk-ty">Collision2D</span> <span class="tk-va">collision</span>)</span>
 <span class="wt-line" data-n="11">    {</span>
-<span class="wt-line" data-n="12">        if (!collision.gameObject.CompareTag("Player")) return;</span>
-<span class="wt-line" data-n="13">        if (Time.time &lt; lastDamageTime + damageCooldown) return;</span>
+<span class="wt-line" data-n="12">        <span class="tk-ct">if</span> (!<span class="tk-va">collision</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Player"</span>)) <span class="tk-ct">return</span>;</span>
+<span class="wt-line" data-n="13">        <span class="tk-ct">if</span> (<span class="tk-va">Time</span>.<span class="tk-va">time</span> &lt; <span class="tk-va">lastDamageTime</span> + <span class="tk-va">damageCooldown</span>) <span class="tk-ct">return</span>;</span>
 <span class="wt-line" data-n="14"></span>
-<span class="wt-line" data-n="15">        // ...the single damage call you wrote in 4.4, unchanged...</span>
-<span class="wt-line" data-n="16">        lastDamageTime = Time.time;</span>
+<span class="wt-line" data-n="15"><span class="tk-cm">        // ...the single damage call you wrote in 4.4, unchanged...</span></span>
+<span class="wt-line" data-n="16">        <span class="tk-va">lastDamageTime</span> = <span class="tk-va">Time</span>.<span class="tk-va">time</span>;</span>
 <span class="wt-line" data-n="17"></span>
-<span class="wt-line wt-line-why" data-n="18">        state = EnemyState.Attack;</span>
+<span class="wt-line wt-line-why" data-n="18">        <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Attack</span>;</span>
 <span class="wt-line" data-n="19">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The state a landing hit puts the machine into. Be honest about this one out loud: in your file the attack is not a movement — it is a callback — and this case is where you decide what the enemy does <strong>while</strong> a hit is landing. In this build that is nothing: no movement line runs here, so it stops for the length of its cooldown.</span><span class="wt-why"><strong>Whether ATTACK is a state is a design decision, and this is where you make it.</strong> Your diagram draws ATTACK as a box because that is how the fight feels to the player; your code reaches it from physics, which means it can fire while the enemy is calmly patrolling. Both are defensible. What is not defensible is a state that nothing ever enters.</span></li>
 <li><span class="wt-ref">2</span><span class="wt-what">The cooldown gate from 4.4 doing a second job. The same pair of fields that stopped the damage running every frame now says when the swing is over.</span><span class="wt-why">The seed you chose in 4.4 matters here too. <code>lastDamageTime</code> is stamped the moment a hit lands, so this comparison is false for exactly one cooldown — and if you never seeded it in <code>Start()</code>, an enemy that has never hit you is already "finished attacking" on frame one.</span></li>
 <li><span class="wt-ref">4</span><span class="wt-what">The exit: the swing is over, back to the hunt.</span></li>
@@ -200,121 +200,121 @@
 <li><span class="wt-ref">13</span><span class="wt-what">The cooldown from 4.4, unchanged: a second touch inside the window is discarded, not queued.</span></li>
 <li><span class="wt-ref">15</span><span class="wt-what">Your <code>GetComponent(PlayerController)</code> call and the negative number you pass to the health method on <code>PlayerController</code>. Nothing about the damage itself changes today.</span></li>
 <li><span class="wt-ref">16</span><span class="wt-what">The stamp from 4.4 that closes the damage gate. It is also the clock the ATTACK case reads to decide when the swing is over.</span></li>
-<li><span class="wt-ref">18</span><span class="wt-what">The one new line here: the machine is now attacking. <strong>This is what makes ATTACK reachable</strong> — without it the state exists, compiles, and is never entered.</span><span class="wt-why"><strong>This is the row of your diagram that your code does not implement the way you drew it.</strong> You drew an arrow from CHASE to ATTACK as if chasing led to attacking. In your file the arrow comes from physics instead: the enemy enters ATTACK from PATROL just as readily, which is why walking into a guard on its beat costs you health. Say that out loud once and you will never again mistake the diagram for the code.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. This is the same machine arranged differently on purpose: the reference puts each state's code in its own method, so you can see that the arrangement was never the point — the state field, the selection that reads it, and the exits you wrote by hand are. Your names, your beat, your movement call and your damage flow are yours; the machine is what has to match.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
-//  REFERENCE FILE — Assets/Scripts/EnemyController.cs
-//  Written to be read, not pasted. Build it with the walkthrough
-//  above, one step at a time, then open this and compare.
-//  If it is sitting in your project unchanged, that is the thing
-//  to go and do now — the walkthrough is still above you.
-// ------------------------------------------------------------------
-using UnityEngine;
+<li><span class="wt-ref">18</span><span class="wt-what">The one new line here: the machine is now attacking. <strong>This is what makes ATTACK reachable</strong> — without it the state exists, compiles, and is never entered.</span><span class="wt-why"><strong>This is the row of your diagram that your code does not implement the way you drew it.</strong> You drew an arrow from CHASE to ATTACK as if chasing led to attacking. In your file the arrow comes from physics instead: the enemy enters ATTACK from PATROL just as readily, which is why walking into a guard on its beat costs you health. Say that out loud once and you will never again mistake the diagram for the code.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. This is the same machine arranged differently on purpose: the reference puts each state's code in its own method, so you can see that the arrangement was never the point — the state field, the selection that reads it, and the exits you wrote by hand are. Your names, your beat, your movement call and your damage flow are yours; the machine is what has to match.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/EnemyController.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
 
-public class EnemyController : MonoBehaviour
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">EnemyController</span> : <span class="tk-ty">MonoBehaviour</span>
 {
-    [SerializeField] private float moveSpeed = 2f;              // your number from 4.1
-    [SerializeField] private float patrolDistance = 3f;         // the size of the beat (4.1)
-    [SerializeField] private float aggroRadius = 5f;            // your number from 4.3
-    [SerializeField] private int contactDamage = 1;             // your number from 4.4
-    [SerializeField] private float damageCooldown = 0.75f;      // your number from 4.4
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">moveSpeed</span> = <span class="tk-nu">2f</span>;              <span class="tk-cm">// your number from 4.1</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">patrolDistance</span> = <span class="tk-nu">3f</span>;         <span class="tk-cm">// the size of the beat (4.1)</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">aggroRadius</span> = <span class="tk-nu">5f</span>;            <span class="tk-cm">// your number from 4.3</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">contactDamage</span> = <span class="tk-nu">1</span>;             <span class="tk-cm">// your number from 4.4</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">damageCooldown</span> = <span class="tk-nu">0.75f</span>;      <span class="tk-cm">// your number from 4.4</span>
 
-    private Vector3 spawnPoint;                 // 4.1 - the anchor, saved once in Start()
-    private int direction = 1;                  // 4.1 - the sign that IS the beat
-    private Transform playerTransform;          // 4.3 - however you acquired it
-    private float lastDamageTime;               // 4.4 - the moment of the last hit
+    <span class="tk-kw">private</span> <span class="tk-ty">Vector3</span> <span class="tk-va">spawnPoint</span>;                 <span class="tk-cm">// 4.1 - the anchor, saved once in Start()</span>
+    <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">direction</span> = <span class="tk-nu">1</span>;                  <span class="tk-cm">// 4.1 - the sign that IS the beat</span>
+    <span class="tk-kw">private</span> <span class="tk-ty">Transform</span> <span class="tk-va">playerTransform</span>;          <span class="tk-cm">// 4.3 - however you acquired it</span>
+    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">lastDamageTime</span>;               <span class="tk-cm">// 4.4 - the moment of the last hit</span>
 
-    // ---- all of today, in two lines: three names, and which one is live ----
-    private enum EnemyState
+<span class="tk-cm">    // ---- all of today, in two lines: three names, and which one is live ----</span>
+    <span class="tk-kw">private</span> <span class="tk-kw">enum</span> <span class="tk-ty">EnemyState</span>
     {
-        Patrol,
-        Chase,
-        Attack
+        <span class="tk-va">Patrol</span>,
+        <span class="tk-va">Chase</span>,
+        <span class="tk-va">Attack</span>
     }
 
-    private EnemyState state = EnemyState.Patrol;   // frame one is a calm guard
+    <span class="tk-kw">private</span> <span class="tk-ty">EnemyState</span> <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Patrol</span>;   <span class="tk-cm">// frame one is a calm guard</span>
 
-    void Start()
+    <span class="tk-kw">void</span> <span class="tk-fn">Start</span>()
     {
-        spawnPoint = transform.position;
-        playerTransform = GameObject.FindWithTag("Player").transform;   // or your wired reference
-        lastDamageTime = -damageCooldown;           // "there has been no last hit"
+        <span class="tk-va">spawnPoint</span> = <span class="tk-va">transform</span>.<span class="tk-va">position</span>;
+        <span class="tk-va">playerTransform</span> = <span class="tk-va">GameObject</span>.<span class="tk-fn">FindWithTag</span>(<span class="tk-st">"Player"</span>).<span class="tk-va">transform</span>;   <span class="tk-cm">// or your wired reference</span>
+        <span class="tk-va">lastDamageTime</span> = -<span class="tk-va">damageCooldown</span>;           <span class="tk-cm">// "there has been no last hit"</span>
     }
 
-    private void Update()
+    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
     {
-        // One measurement, and no early return: an enemy with no target is a
-        // patrolling enemy, not an enemy that stops thinking.
-        float distance = DistanceToPlayer();
+<span class="tk-cm">        // One measurement, and no early return: an enemy with no target is a</span>
+<span class="tk-cm">        // patrolling enemy, not an enemy that stops thinking.</span>
+        <span class="tk-kw">float</span> <span class="tk-va">distance</span> = <span class="tk-fn">DistanceToPlayer</span>();
 
-        if (playerTransform == null)
+        <span class="tk-ct">if</span> (<span class="tk-va">playerTransform</span> == <span class="tk-kw">null</span>)
         {
-            state = EnemyState.Patrol;
+            <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Patrol</span>;
         }
 
-        switch (state)
+        <span class="tk-ct">switch</span> (<span class="tk-va">state</span>)
         {
-            case EnemyState.Patrol: PatrolTick(distance); break;
-            case EnemyState.Chase:  ChaseTick(distance);  break;
-            case EnemyState.Attack: AttackTick();         break;
+            <span class="tk-ct">case</span> <span class="tk-ty">EnemyState</span>.<span class="tk-ty">Patrol</span>: <span class="tk-fn">PatrolTick</span>(<span class="tk-va">distance</span>); <span class="tk-ct">break</span>;
+            <span class="tk-ct">case</span> <span class="tk-ty">EnemyState</span>.<span class="tk-ty">Chase</span>:  <span class="tk-fn">ChaseTick</span>(<span class="tk-va">distance</span>);  <span class="tk-ct">break</span>;
+            <span class="tk-ct">case</span> <span class="tk-ty">EnemyState</span>.<span class="tk-ty">Attack</span>: <span class="tk-fn">AttackTick</span>();         <span class="tk-ct">break</span>;
         }
     }
 
-    // Same machine, arranged differently: each state's code is its own method,
-    // and the transition lives inside the method of the state it leaves.
-    private float DistanceToPlayer()
+<span class="tk-cm">    // Same machine, arranged differently: each state's code is its own method,</span>
+<span class="tk-cm">    // and the transition lives inside the method of the state it leaves.</span>
+    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-fn">DistanceToPlayer</span>()
     {
-        if (playerTransform == null)
+        <span class="tk-ct">if</span> (<span class="tk-va">playerTransform</span> == <span class="tk-kw">null</span>)
         {
-            return float.MaxValue;                  // no player is never in range
+            <span class="tk-ct">return</span> <span class="tk-kw">float</span>.<span class="tk-va">MaxValue</span>;                  <span class="tk-cm">// no player is never in range</span>
         }
-        return Vector3.Distance(transform.position, playerTransform.position);
+        <span class="tk-ct">return</span> <span class="tk-va">Vector3</span>.<span class="tk-fn">Distance</span>(<span class="tk-va">transform</span>.<span class="tk-va">position</span>, <span class="tk-va">playerTransform</span>.<span class="tk-va">position</span>);
     }
 
-    private void PatrolTick(float distance)
+    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">PatrolTick</span>(<span class="tk-kw">float</span> <span class="tk-va">distance</span>)
     {
-        if (distance &lt;= aggroRadius)
+        <span class="tk-ct">if</span> (<span class="tk-va">distance</span> &lt;= <span class="tk-va">aggroRadius</span>)
         {
-            state = EnemyState.Chase;
-            return;
+            <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Chase</span>;
+            <span class="tk-ct">return</span>;
         }
 
-        // ...your beat from 4.1, unchanged: the anchor check, the direction
-        //    flip, the movement call and your SetInteger("Direction", ...)...
+<span class="tk-cm">        // ...your beat from 4.1, unchanged: the anchor check, the direction</span>
+<span class="tk-cm">        //    flip, the movement call and your SetInteger("Direction", ...)...</span>
     }
 
-    private void ChaseTick(float distance)
+    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">ChaseTick</span>(<span class="tk-kw">float</span> <span class="tk-va">distance</span>)
     {
-        if (distance &gt; aggroRadius)
+        <span class="tk-ct">if</span> (<span class="tk-va">distance</span> &gt; <span class="tk-va">aggroRadius</span>)
         {
-            state = EnemyState.Patrol;              // the exit nobody writes
-            return;
+            <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Patrol</span>;              <span class="tk-cm">// the exit nobody writes</span>
+            <span class="tk-ct">return</span>;
         }
 
-        // ...your pursuit from 4.3, unchanged: the normalized (player - me)
-        //    vector, the movement call and your animator line...
+<span class="tk-cm">        // ...your pursuit from 4.3, unchanged: the normalized (player - me)</span>
+<span class="tk-cm">        //    vector, the movement call and your animator line...</span>
     }
 
-    private void AttackTick()
+    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">AttackTick</span>()
     {
-        if (Time.time &gt;= lastDamageTime + damageCooldown)
+        <span class="tk-ct">if</span> (<span class="tk-va">Time</span>.<span class="tk-va">time</span> &gt;= <span class="tk-va">lastDamageTime</span> + <span class="tk-va">damageCooldown</span>)
         {
-            state = EnemyState.Chase;               // the swing is over
-            return;
+            <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Chase</span>;               <span class="tk-cm">// the swing is over</span>
+            <span class="tk-ct">return</span>;
         }
 
-        // Nothing here moves the enemy, so it stands still for the length of
-        // its cooldown. If you would rather it kept coming, that is the one
-        // line you move into this method - and it is a design decision.
+<span class="tk-cm">        // Nothing here moves the enemy, so it stands still for the length of</span>
+<span class="tk-cm">        // its cooldown. If you would rather it kept coming, that is the one</span>
+<span class="tk-cm">        // line you move into this method - and it is a design decision.</span>
     }
 
-    private void OnCollisionStay2D(Collision2D collision)
+    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">OnCollisionStay2D</span>(<span class="tk-ty">Collision2D</span> <span class="tk-va">collision</span>)
     {
-        if (!collision.gameObject.CompareTag("Player")) return;
-        if (Time.time &lt; lastDamageTime + damageCooldown) return;
+        <span class="tk-ct">if</span> (!<span class="tk-va">collision</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Player"</span>)) <span class="tk-ct">return</span>;
+        <span class="tk-ct">if</span> (<span class="tk-va">Time</span>.<span class="tk-va">time</span> &lt; <span class="tk-va">lastDamageTime</span> + <span class="tk-va">damageCooldown</span>) <span class="tk-ct">return</span>;
 
-        // ...the damage call you wrote in 4.4, unchanged...
-        lastDamageTime = Time.time;
+<span class="tk-cm">        // ...the damage call you wrote in 4.4, unchanged...</span>
+        <span class="tk-va">lastDamageTime</span> = <span class="tk-va">Time</span>.<span class="tk-va">time</span>;
 
-        state = EnemyState.Attack;      // physics is what enters ATTACK here
+        <span class="tk-va">state</span> = <span class="tk-va">EnemyState</span>.<span class="tk-va">Attack</span>;      <span class="tk-cm">// physics is what enters ATTACK here</span>
     }
 }</code></pre></details></div>
 

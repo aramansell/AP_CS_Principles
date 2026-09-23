@@ -11,6 +11,12 @@
     --accent: #6cb2ff;
     --accent-dim: #4a7fce;
     --code-bg: #2d2d2d;
+    /* Code BLOCKS sit on the editor's surface, not the page's: VS Code draws
+       its editor darker than its chrome, and the syntax colours below are the
+       editor's own, so they are calibrated against this and not --code-bg.
+       Inline <code> in a sentence keeps --code-bg — it is a word being named,
+       not a file being read. */
+    --code-editor-bg: #1e1e1e;
     --border: #3a3a3a;
     --warn: #e8b84b;
     --trap: #e05555;
@@ -89,7 +95,7 @@ code {
     border-radius: 3px;
 }
 pre {
-    background: var(--code-bg);
+    background: var(--code-editor-bg);
     padding: 1rem 1.25rem;
     border-radius: 6px;
     overflow-x: auto;
@@ -97,8 +103,51 @@ pre {
     border: 1px solid var(--border);
     font-size: 13px;
     line-height: 1.5;
+    position: relative;
 }
 pre code { background: none; padding: 0; border-radius: 0; }
+
+/* ---- Syntax colour — VS Code Dark+ --------------------------------------
+   These eight hexes ARE the theme. Dark+ is what current VS Code ships, and
+   this is the whole of it: the ninth colour, #D4D4D4, is plain text and it is
+   the page's own colour, so those tokens are emitted with no span at all
+   (punctuation is most tokens by count, and wrapping it would double the page
+   for no change the eye can see).
+
+   The spans are written at build time by scripts/highlight-code.mjs — Shiki
+   runs VS Code's own TextMate grammar over the code, so the tokenizer here is
+   the editor's, not an impression of it. That script holds the same eight
+   hexes keyed to these names, and verify check 15 fails if the two lists ever
+   drift apart, or if a colour reaches a page that neither list can name. A
+   grammar update must not be able to recolour the site unnoticed. */
+.tk-kw { color: #569CD6; }  /* keyword: public, class, private, static, var */
+.tk-ct { color: #C586C0; }  /* control flow: using, if, for, return */
+.tk-ty { color: #4EC9B0; }  /* type: MonoBehaviour, Rigidbody2D, UnityEngine */
+.tk-fn { color: #DCDCAA; }  /* function: Start, GetComponent, Debug.Log */
+.tk-va { color: #9CDCFE; }  /* variable, field, parameter */
+.tk-st { color: #CE9178; }  /* string */
+.tk-nu { color: #B5CEA8; }  /* number */
+.tk-cm { color: #6A9955; }  /* comment */
+.tk-it { font-style: italic; }  /* a modifier, not a colour — Dark+ uses it */
+/* A coloured line must not lose the ladder's own signal: a line the student
+   writes is still tinted and numbered in --guide, and .wt-gap keeps its green
+   over whatever colour the grammar gave the text around it. */
+.wt-line .wt-gap { color: var(--guide); }
+
+/* The language, in the corner, the way the editor labels the file it is showing. */
+pre[data-lang]::after {
+    content: attr(data-lang);
+    position: absolute;
+    top: 0.4rem;
+    right: 0.7rem;
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #6a6a6a;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
 
 /* ---- Lists ---- */
 ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
@@ -1318,5 +1367,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
     a { color: #000; text-decoration: none; }
     h1, h2, h3, th, code { color: #000; }
     pre { border: 1px solid #999; background: #f4f4f4; color: #000; }
+    /* The editor palette is calibrated for a dark surface and most of it
+       disappears on paper, so a printed handout gets the plain text it had
+       before there was any colour at all. */
+    .tk-kw, .tk-ct, .tk-ty, .tk-fn, .tk-va, .tk-st, .tk-nu, .tk-cm { color: #000 !important; }
     .unit-section { display: block !important; }
 }

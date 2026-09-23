@@ -161,18 +161,18 @@
 </div>
 
 <!-- ============================================================ -->
-<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I keep my coins, my health and my axe when I change scenes?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/StatManager.cs</code>. This file has been <code>public class StatManager : MonoBehaviour { }</code> since Unit 2 — an empty stub, doing nothing at all. Today every line of it is written: the static slot, the <code>Awake()</code> that claims it, the persistence call, the duplicate guard, the four stats moved off the player, and the methods every other script will call. Step 4 is the part people forget.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Claim the slot on load, and refuse to be destroyed</h4><p class="wt-lead">This is the mechanism the whole lesson exists for: one shared field, and a setup method that decides whether this copy is the original or a newcomer.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    public static StatManager Instance;</span>
+<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I keep my coins, my health and my axe when I change scenes?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/StatManager.cs</code>. This file has been <code>public class StatManager : MonoBehaviour { }</code> since Unit 2 — an empty stub, doing nothing at all. Today every line of it is written: the static slot, the <code>Awake()</code> that claims it, the persistence call, the duplicate guard, the four stats moved off the player, and the methods every other script will call. Step 4 is the part people forget.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Claim the slot on load, and refuse to be destroyed</h4><p class="wt-lead">This is the mechanism the whole lesson exists for: one shared field, and a setup method that decides whether this copy is the original or a newcomer.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    <span class="tk-kw">public</span> <span class="tk-kw">static</span> <span class="tk-ty">StatManager</span> <span class="tk-va">Instance</span>;</span>
 <span class="wt-line" data-n="2"></span>
-<span class="wt-line wt-line-why" data-n="3">    private void Awake()</span>
+<span class="wt-line wt-line-why" data-n="3">    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">Awake</span>()</span>
 <span class="wt-line" data-n="4">    {</span>
-<span class="wt-line" data-n="5">        if (Instance == null)</span>
+<span class="wt-line" data-n="5">        <span class="tk-ct">if</span> (<span class="tk-va">Instance</span> == <span class="tk-kw">null</span>)</span>
 <span class="wt-line" data-n="6">        {</span>
-<span class="wt-line" data-n="7">            Instance = this;</span>
-<span class="wt-line wt-line-why" data-n="8">            DontDestroyOnLoad(gameObject);</span>
+<span class="wt-line" data-n="7">            <span class="tk-va">Instance</span> = <span class="tk-kw">this</span>;</span>
+<span class="wt-line wt-line-why" data-n="8">            <span class="tk-fn">DontDestroyOnLoad</span>(<span class="tk-va">gameObject</span>);</span>
 <span class="wt-line" data-n="9">        }</span>
-<span class="wt-line" data-n="10">        else</span>
+<span class="wt-line" data-n="10">        <span class="tk-ct">else</span></span>
 <span class="wt-line" data-n="11">        {</span>
-<span class="wt-line wt-line-why" data-n="12">            Destroy(gameObject);</span>
+<span class="wt-line wt-line-why" data-n="12">            <span class="tk-fn">Destroy</span>(<span class="tk-va">gameObject</span>);</span>
 <span class="wt-line" data-n="13">        }</span>
 <span class="wt-line" data-n="14">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The one field every other script will reach for. <code>public</code> so they can, <code>static</code> so it belongs to the <strong>class</strong> rather than to any object, and typed <code>StatManager</code> because what it will hold is <em>this component</em>. It starts as <code>null</code> — nothing has claimed it yet.</span><span class="wt-why"><strong>Every word of that line is load-bearing.</strong> Drop <code>static</code> and the field becomes a fact about one object — and the object is exactly what a scene load destroys, so <code>Instance</code> would be empty again the moment you walked through a cave mouth. That is the whole trick of this lesson: a <code>static</code> field is stored against the class, and the scene loader has no idea the class exists.</span></li>
 <li><span class="wt-ref">3</span><span class="wt-what">The one lifecycle method that runs <strong>before anything else</strong> when a scene loads: before any <code>Start()</code>, before any <code>Update()</code>. Unity finishes every <code>Awake()</code> in a scene before it runs the first <code>Start()</code>, which is precisely the guarantee a singleton needs — somebody has to be first, and everything else must be able to assume they already were.</span><span class="wt-why"><strong>Not <code>Start()</code>.</strong> Unity promises no order between two different scripts' <code>Start()</code> methods, so a script whose <code>Start()</code> happened to run before the manager's would read <code>Instance</code> while it is still <code>null</code> and throw a NullReferenceException — pointing at itself, not at the manager. Move this method into <code>Start()</code> and the bug shows up only sometimes, which is the worst kind of bug there is.</span></li>
@@ -181,46 +181,46 @@
 <li><span class="wt-ref">8</span><span class="wt-what">The one call in Unity that changes what a scene load is allowed to do. <code>gameObject</code> is the whole object this component sits on — <em>the StatManager object in the scene, not the script</em>. Unity moves it into a scene of its own that never unloads, so it rides along through every load from now on.</span><span class="wt-why"><strong><code>gameObject</code>, not <code>this</code>.</strong> <code>this</code> is a component, and <code>DontDestroyOnLoad(...)</code> is defined for whole objects — and it has to be the whole object anyway, because a component cannot outlive the GameObject that carries it. Notice what is <strong>not</strong> happening here: nothing is being made permanent about the <em>values</em>. They are just sitting on an object a scene load is no longer allowed to delete.</span></li>
 <li><span class="wt-ref">10</span><span class="wt-what">The second branch, and the one people delete because it looks like extra caution. It is not.</span></li>
 <li><span class="wt-ref">12</span><span class="wt-what">You are the <strong>newcomer</strong>: an original is already alive, so this copy must go — <code>Destroy(gameObject)</code> takes the component, its fields, and the fresh <code>coins = 0</code> it was about to claim the slot with.</span><span class="wt-why">**This branch is genuinely necessary in <em>this</em> project, not a textbook exercise.** <code>Start (index 0)</code> contains its own StatManager object, and one of the Overworld's two cave mouths leads back to it — so a second copy is a scene you can actually walk into. Without this branch the newcomer overwrites <code>Instance</code> with its own default fields, and your coins and health are back at their starting values the instant the scene finishes loading. That is the bug you came here to fix, and this is the line that stops the fix from reintroducing it.</span></li>
-<li><span class="wt-ref">14</span><span class="wt-what">Closes <code>Awake()</code>. One branch for the first scene and one for every scene after it — that pair <em>is</em> the singleton.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Move the four stats across</h4><p class="wt-lead">A move, not a redesign. Same names, same types, same starting values — the only thing that changes is the object they live on.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    [SerializeField] private int coins;</span>
-<span class="wt-line" data-n="2">    [SerializeField] private int health = 3;</span>
-<span class="wt-line wt-line-why" data-n="3">    [SerializeField] private int maxHealth = 3;</span>
-<span class="wt-line" data-n="4">    [SerializeField] private bool hasAxe;</span>
+<li><span class="wt-ref">14</span><span class="wt-what">Closes <code>Awake()</code>. One branch for the first scene and one for every scene after it — that pair <em>is</em> the singleton.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Move the four stats across</h4><p class="wt-lead">A move, not a redesign. Same names, same types, same starting values — the only thing that changes is the object they live on.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">coins</span>;</span>
+<span class="wt-line" data-n="2">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">health</span> = <span class="tk-nu">3</span>;</span>
+<span class="wt-line wt-line-why" data-n="3">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">maxHealth</span> = <span class="tk-nu">3</span>;</span>
+<span class="wt-line" data-n="4">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">bool</span> <span class="tk-va">hasAxe</span>;</span>
 <span class="wt-line" data-n="5"></span>
-<span class="wt-line wt-line-why" data-n="6">    // ...and nothing else. PlayerController keeps its speed, its body</span>
-<span class="wt-line" data-n="7">    // and its input. The numbers are not the player's business.</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The coin count from 2.1, unchanged: an <code>int</code>, private, and still visible in the Inspector so you can watch it move while the game runs.</span><span class="wt-why"><strong>Keep the name.</strong> Every script that mentions <code>coins</code> should keep reading the same word and change only <em>who it is asked of</em>. Rename it mid-refactor and you double the number of files you have to touch, and make "what did I break?" an unanswerable question.</span></li>
+<span class="wt-line wt-line-why" data-n="6"><span class="tk-cm">    // ...and nothing else. PlayerController keeps its speed, its body</span></span>
+<span class="wt-line" data-n="7"><span class="tk-cm">    // and its input. The numbers are not the player's business.</span></span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The coin count from 2.1, unchanged: an <code>int</code>, private, and still visible in the Inspector so you can watch it move while the game runs.</span><span class="wt-why"><strong>Keep the name.</strong> Every script that mentions <code>coins</code> should keep reading the same word and change only <em>who it is asked of</em>. Rename it mid-refactor and you double the number of files you have to touch, and make "what did I break?" an unanswerable question.</span></li>
 <li><span class="wt-ref">2</span><span class="wt-what">Current health, with whatever starting value your player shipped with.</span></li>
 <li><span class="wt-ref">3</span><span class="wt-what">The ceiling from 2.3.</span><span class="wt-why"><strong>It moves in the same step as <code>health</code>, and that is the whole point.</strong> A ceiling is a fact <em>about the value it bounds</em>. Leave <code>maxHealth</code> behind on the player while <code>health</code> lives here and the rule gets enforced across two objects that are free to disagree.</span></li>
 <li><span class="wt-ref">4</span><span class="wt-what">The third kind of fact, from 5.1 — not a number at all, just true or false. It moves for exactly the same reason the numbers do: a cave mouth does not care what type a fact is.</span></li>
-<li><span class="wt-ref">6</span><span class="wt-what">That is the entire move. <code>PlayerController</code> keeps what it is actually for — input, movement, the collision callbacks — and stops being the place the game keeps its numbers.</span><span class="wt-why">The line between the two is worth saying out loud, because it is the difference between a refactor and a mess: the player is <em>how you move through the world</em>, and the manager is <em>what the world has done to you</em>.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Give the rest of the game a way in</h4><p class="wt-lead">Those fields are private, which is what you want — and it is why there has to be a public way to read and change them. These methods replace the ones that used to live on the player.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">    public int GetCoins() { return coins; }</span>
-<span class="wt-line" data-n="2">    public int GetHealth() { return health; }</span>
-<span class="wt-line" data-n="3">    public int GetMaxHealth() { return maxHealth; }</span>
-<span class="wt-line" data-n="4">    public bool HasAxe() { return hasAxe; }</span>
+<li><span class="wt-ref">6</span><span class="wt-what">That is the entire move. <code>PlayerController</code> keeps what it is actually for — input, movement, the collision callbacks — and stops being the place the game keeps its numbers.</span><span class="wt-why">The line between the two is worth saying out loud, because it is the difference between a refactor and a mess: the player is <em>how you move through the world</em>, and the manager is <em>what the world has done to you</em>.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Give the rest of the game a way in</h4><p class="wt-lead">Those fields are private, which is what you want — and it is why there has to be a public way to read and change them. These methods replace the ones that used to live on the player.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-fn">GetCoins</span>() { <span class="tk-ct">return</span> <span class="tk-va">coins</span>; }</span>
+<span class="wt-line" data-n="2">    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-fn">GetHealth</span>() { <span class="tk-ct">return</span> <span class="tk-va">health</span>; }</span>
+<span class="wt-line" data-n="3">    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-fn">GetMaxHealth</span>() { <span class="tk-ct">return</span> <span class="tk-va">maxHealth</span>; }</span>
+<span class="wt-line" data-n="4">    <span class="tk-kw">public</span> <span class="tk-kw">bool</span> <span class="tk-fn">HasAxe</span>() { <span class="tk-ct">return</span> <span class="tk-va">hasAxe</span>; }</span>
 <span class="wt-line" data-n="5"></span>
-<span class="wt-line wt-line-why" data-n="6">    public void AddCoins(int amount)</span>
+<span class="wt-line wt-line-why" data-n="6">    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">AddCoins</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)</span>
 <span class="wt-line" data-n="7">    {</span>
-<span class="wt-line" data-n="8">        coins = coins + amount;</span>
+<span class="wt-line" data-n="8">        <span class="tk-va">coins</span> = <span class="tk-va">coins</span> + <span class="tk-va">amount</span>;</span>
 <span class="wt-line" data-n="9">    }</span>
 <span class="wt-line" data-n="10"></span>
-<span class="wt-line wt-line-why" data-n="11">    public void TakeDamage(int amount)</span>
+<span class="wt-line wt-line-why" data-n="11">    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">TakeDamage</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)</span>
 <span class="wt-line" data-n="12">    {</span>
-<span class="wt-line wt-line-why" data-n="13">        if (health &lt;= 0)</span>
+<span class="wt-line wt-line-why" data-n="13">        <span class="tk-ct">if</span> (<span class="tk-va">health</span> &lt;= <span class="tk-nu">0</span>)</span>
 <span class="wt-line" data-n="14">        {</span>
-<span class="wt-line" data-n="15">            return;</span>
+<span class="wt-line" data-n="15">            <span class="tk-ct">return</span>;</span>
 <span class="wt-line" data-n="16">        }</span>
 <span class="wt-line" data-n="17"></span>
-<span class="wt-line" data-n="18">        health = health - amount;</span>
-<span class="wt-line wt-line-why" data-n="19">        health = Mathf.Clamp(health, 0, maxHealth);</span>
-<span class="wt-line" data-n="20">        Debug.Log("Health: " + health);</span>
+<span class="wt-line" data-n="18">        <span class="tk-va">health</span> = <span class="tk-va">health</span> - <span class="tk-va">amount</span>;</span>
+<span class="wt-line wt-line-why" data-n="19">        <span class="tk-va">health</span> = <span class="tk-va">Mathf</span>.<span class="tk-fn">Clamp</span>(<span class="tk-va">health</span>, <span class="tk-nu">0</span>, <span class="tk-va">maxHealth</span>);</span>
+<span class="wt-line" data-n="20">        <span class="tk-va">Debug</span>.<span class="tk-fn">Log</span>(<span class="tk-st">"Health: "</span> + <span class="tk-va">health</span>);</span>
 <span class="wt-line" data-n="21"></span>
-<span class="wt-line" data-n="22">        if (health &lt;= 0)</span>
+<span class="wt-line" data-n="22">        <span class="tk-ct">if</span> (<span class="tk-va">health</span> &lt;= <span class="tk-nu">0</span>)</span>
 <span class="wt-line" data-n="23">        {</span>
-<span class="wt-line" data-n="24">            Debug.Log("Player died.");</span>
+<span class="wt-line" data-n="24">            <span class="tk-va">Debug</span>.<span class="tk-fn">Log</span>(<span class="tk-st">"Player died."</span>);</span>
 <span class="wt-line" data-n="25">        }</span>
 <span class="wt-line" data-n="26">    }</span>
 <span class="wt-line" data-n="27"></span>
-<span class="wt-line" data-n="28">    public void SetHasAxe(bool value)</span>
+<span class="wt-line" data-n="28">    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">SetHasAxe</span>(<span class="tk-kw">bool</span> <span class="tk-va">value</span>)</span>
 <span class="wt-line" data-n="29">    {</span>
-<span class="wt-line" data-n="30">        hasAxe = value;</span>
+<span class="wt-line" data-n="30">        <span class="tk-va">hasAxe</span> = <span class="tk-va">value</span>;</span>
 <span class="wt-line" data-n="31">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">A public way to <strong>read</strong> the coin count without being able to write it. The field stays private, so the only route to that number is through the methods you are writing here.</span></li>
 <li><span class="wt-ref">2</span><span class="wt-what">The same door for current health.</span></li>
 <li><span class="wt-ref">3</span><span class="wt-what">And for the ceiling — the HUD shows <code>health / maxHealth</code>, so it needs both numbers rather than just the one.</span></li>
@@ -235,99 +235,99 @@
 <li><span class="wt-ref">20</span><span class="wt-what">Your Console readout, exactly as it was. Still worth keeping while you test — the HUD you build next will not replace it, it will just mean you no longer <em>need</em> it.</span></li>
 <li><span class="wt-ref">22</span><span class="wt-what">The other half of your 2.2 rule: what happens when health reaches zero.</span></li>
 <li><span class="wt-ref">28</span><span class="wt-what">The one setter. The axe pickup calls <code>SetHasAxe(true)</code> from 5.1's branch, and nothing else in the game should ever write that field.</span></li>
-<li><span class="wt-ref">30</span><span class="wt-what">A <code>bool</code> parameter, assigned straight across. <code>value</code> is the name C# gives the thing that came in.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Repoint the callers — the part people forget</h4><p class="wt-lead">The file is finished and the game does not compile yet: every script that used to reach for a field on the player is reaching for something that is no longer there. Search your own code for <code>coins</code>, <code>health</code>, <code>maxHealth</code> and <code>hasAxe</code>, and change each one.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">        if (collision.gameObject.CompareTag("Spikes"))</span>
+<li><span class="wt-ref">30</span><span class="wt-what">A <code>bool</code> parameter, assigned straight across. <code>value</code> is the name C# gives the thing that came in.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Repoint the callers — the part people forget</h4><p class="wt-lead">The file is finished and the game does not compile yet: every script that used to reach for a field on the player is reaching for something that is no longer there. Search your own code for <code>coins</code>, <code>health</code>, <code>maxHealth</code> and <code>hasAxe</code>, and change each one.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">        <span class="tk-ct">if</span> (<span class="tk-va">collision</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Spikes"</span>))</span>
 <span class="wt-line" data-n="2">        {</span>
-<span class="wt-line wt-line-why" data-n="3">            StatManager.Instance.TakeDamage(1);</span>
+<span class="wt-line wt-line-why" data-n="3">            <span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">TakeDamage</span>(<span class="tk-nu">1</span>);</span>
 <span class="wt-line" data-n="4">        }</span>
 <span class="wt-line" data-n="5"></span>
-<span class="wt-line" data-n="6">        if (other.CompareTag("Coin"))</span>
+<span class="wt-line" data-n="6">        <span class="tk-ct">if</span> (<span class="tk-va">other</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Coin"</span>))</span>
 <span class="wt-line" data-n="7">        {</span>
-<span class="wt-line" data-n="8">            StatManager.Instance.AddCoins(1);</span>
-<span class="wt-line" data-n="9">            Destroy(other.gameObject);</span>
+<span class="wt-line" data-n="8">            <span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">AddCoins</span>(<span class="tk-nu">1</span>);</span>
+<span class="wt-line" data-n="9">            <span class="tk-fn">Destroy</span>(<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>);</span>
 <span class="wt-line" data-n="10">        }</span>
 <span class="wt-line" data-n="11"></span>
-<span class="wt-line" data-n="12">            StatManager.Instance.SetHasAxe(true);</span>
+<span class="wt-line" data-n="12">            <span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">SetHasAxe</span>(<span class="tk-kw">true</span>);</span>
 <span class="wt-line" data-n="13"></span>
-<span class="wt-line" data-n="14">        // Nothing else changes: movement, input, the tag checks and the</span>
-<span class="wt-line" data-n="15">        // Destroy calls are all untouched. Only the receivers changed.</span>
+<span class="wt-line" data-n="14"><span class="tk-cm">        // Nothing else changes: movement, input, the tag checks and the</span></span>
+<span class="wt-line" data-n="15"><span class="tk-cm">        // Destroy calls are all untouched. Only the receivers changed.</span></span>
 <span class="wt-line" data-n="16"></span>
-<span class="wt-line wt-line-why" data-n="17">        // No null guard here: if there is no StatManager in the scene, that</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">3</span><span class="wt-what">The same call with a new receiver. <code>player.TakeDamage(1)</code> becomes <code>StatManager.Instance.TakeDamage(1)</code>, and the rule it runs is still one line away in the file you just wrote.</span><span class="wt-why"><strong>And this caller never had anything to do with the player.</strong> Your projectile from 3.4 was handed a reference to the Player for one reason: to call this method. It does not need one now — <code>StatManager.Instance.TakeDamage(damage);</code> reaches the same rule from anywhere.</span></li>
+<span class="wt-line wt-line-why" data-n="17"><span class="tk-cm">        // No null guard here: if there is no StatManager in the scene, that</span></span></code></pre><ol class="wt-annot"><li><span class="wt-ref">3</span><span class="wt-what">The same call with a new receiver. <code>player.TakeDamage(1)</code> becomes <code>StatManager.Instance.TakeDamage(1)</code>, and the rule it runs is still one line away in the file you just wrote.</span><span class="wt-why"><strong>And this caller never had anything to do with the player.</strong> Your projectile from 3.4 was handed a reference to the Player for one reason: to call this method. It does not need one now — <code>StatManager.Instance.TakeDamage(damage);</code> reaches the same rule from anywhere.</span></li>
 <li><span class="wt-ref">8</span><span class="wt-what">One coin, through the method that counts them.</span></li>
 <li><span class="wt-ref">12</span><span class="wt-what">5.1's axe branch, with its receiver changed in exactly the same way.</span></li>
 <li><span class="wt-ref">14</span><span class="wt-what">That sentence is the definition of a refactor. If you find yourself rewriting a check, renaming a method or "improving" a branch while you are in there, stop — you are rewriting, and now nothing you break is traceable to a single change.</span></li>
-<li><span class="wt-ref">17</span><span class="wt-what">The honest answer to "should every caller check for a manager?" — <strong>no</strong>. <code>Instance</code> is <code>null</code> only when the scene you pressed Play in has no manager, which means you started the game from the Overworld instead of <code>Start (index 0)</code>. A guard would hide a broken scene and make the Console silent about it. Fix the scene; write the guard only where code can genuinely run without a manager, which the HUD does next.</span><span class="wt-why">This is a judgement call worth naming, because the instinct — from learning to write <code>if (slot != null)</code> before every Inspector reference in 4.1 — is to guard everywhere. Guarding everywhere converts a loud, traceable failure into a quiet, untraceable one.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things have to match: the fields are gone from <code>PlayerController</code> rather than copied, the duplicate branch is really there — this project loads a second StatManager the moment you walk back into <code>Start (index 0)</code> — and your own damage and death rules came across from 2.2 and 2.3 exactly as you wrote them. The accessor names — <code>Instance</code>, <code>GetCoins</code>, <code>GetHealth</code>, <code>GetMaxHealth</code>, <code>HasAxe</code>, <code>AddCoins</code>, <code>TakeDamage</code>, <code>SetHasAxe</code> — are the ones the HUD calls.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
-//  REFERENCE FILE — Assets/Scripts/StatManager.cs
-//  Written to be read, not pasted. Build it with the walkthrough
-//  above, one step at a time, then open this and compare.
-//  If it is sitting in your project unchanged, that is the thing
-//  to go and do now — the walkthrough is still above you.
-// ------------------------------------------------------------------
-using UnityEngine;
+<li><span class="wt-ref">17</span><span class="wt-what">The honest answer to "should every caller check for a manager?" — <strong>no</strong>. <code>Instance</code> is <code>null</code> only when the scene you pressed Play in has no manager, which means you started the game from the Overworld instead of <code>Start (index 0)</code>. A guard would hide a broken scene and make the Console silent about it. Fix the scene; write the guard only where code can genuinely run without a manager, which the HUD does next.</span><span class="wt-why">This is a judgement call worth naming, because the instinct — from learning to write <code>if (slot != null)</code> before every Inspector reference in 4.1 — is to guard everywhere. Guarding everywhere converts a loud, traceable failure into a quiet, untraceable one.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things have to match: the fields are gone from <code>PlayerController</code> rather than copied, the duplicate branch is really there — this project loads a second StatManager the moment you walk back into <code>Start (index 0)</code> — and your own damage and death rules came across from 2.2 and 2.3 exactly as you wrote them. The accessor names — <code>Instance</code>, <code>GetCoins</code>, <code>GetHealth</code>, <code>GetMaxHealth</code>, <code>HasAxe</code>, <code>AddCoins</code>, <code>TakeDamage</code>, <code>SetHasAxe</code> — are the ones the HUD calls.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/StatManager.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
 
-// StatManager.cs — the numbers the player earned, on the one object a scene
-// load is not allowed to destroy.
-public class StatManager : MonoBehaviour
+<span class="tk-cm">// StatManager.cs — the numbers the player earned, on the one object a scene</span>
+<span class="tk-cm">// load is not allowed to destroy.</span>
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">StatManager</span> : <span class="tk-ty">MonoBehaviour</span>
 {
-    public static StatManager Instance;
+    <span class="tk-kw">public</span> <span class="tk-kw">static</span> <span class="tk-ty">StatManager</span> <span class="tk-va">Instance</span>;
 
-    [SerializeField] private int coins;
-    [SerializeField] private int health = 3;
-    [SerializeField] private int maxHealth = 3;
-    [SerializeField] private bool hasAxe;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">coins</span>;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">health</span> = <span class="tk-nu">3</span>;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">maxHealth</span> = <span class="tk-nu">3</span>;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">bool</span> <span class="tk-va">hasAxe</span>;
 
-    private void Awake()
+    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">Awake</span>()
     {
-        // Somebody is already alive. This copy is the one that leaves — the
-        // Start scene has its own manager object, and you can walk back to it.
-        if (Instance != null &amp;&amp; Instance != this)
+<span class="tk-cm">        // Somebody is already alive. This copy is the one that leaves — the</span>
+<span class="tk-cm">        // Start scene has its own manager object, and you can walk back to it.</span>
+        <span class="tk-ct">if</span> (<span class="tk-va">Instance</span> != <span class="tk-kw">null</span> &amp;&amp; <span class="tk-va">Instance</span> != <span class="tk-kw">this</span>)
         {
-            Destroy(gameObject);
-            return;
+            <span class="tk-fn">Destroy</span>(<span class="tk-va">gameObject</span>);
+            <span class="tk-ct">return</span>;
         }
 
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+        <span class="tk-va">Instance</span> = <span class="tk-kw">this</span>;
+        <span class="tk-fn">DontDestroyOnLoad</span>(<span class="tk-va">gameObject</span>);
     }
 
-    public int GetCoins() { return coins; }
-    public int GetHealth() { return health; }
-    public int GetMaxHealth() { return maxHealth; }
-    public bool HasAxe() { return hasAxe; }
+    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-fn">GetCoins</span>() { <span class="tk-ct">return</span> <span class="tk-va">coins</span>; }
+    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-fn">GetHealth</span>() { <span class="tk-ct">return</span> <span class="tk-va">health</span>; }
+    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-fn">GetMaxHealth</span>() { <span class="tk-ct">return</span> <span class="tk-va">maxHealth</span>; }
+    <span class="tk-kw">public</span> <span class="tk-kw">bool</span> <span class="tk-fn">HasAxe</span>() { <span class="tk-ct">return</span> <span class="tk-va">hasAxe</span>; }
 
-    public void AddCoins(int amount)
+    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">AddCoins</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)
     {
-        coins = coins + amount;
+        <span class="tk-va">coins</span> = <span class="tk-va">coins</span> + <span class="tk-va">amount</span>;
     }
 
-    // One method, one signed amount: the spike calls it positive, the potion
-    // calls it negative. Same name and signature as the one on the player, so
-    // every existing caller changes its receiver and nothing else.
-    public void TakeDamage(int amount)
+<span class="tk-cm">    // One method, one signed amount: the spike calls it positive, the potion</span>
+<span class="tk-cm">    // calls it negative. Same name and signature as the one on the player, so</span>
+<span class="tk-cm">    // every existing caller changes its receiver and nothing else.</span>
+    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">TakeDamage</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)
     {
-        health = health - amount;
+        <span class="tk-va">health</span> = <span class="tk-va">health</span> - <span class="tk-va">amount</span>;
 
-        // The ceiling from 2.3, on the only object that holds the value it
-        // protects. No caller can get above it.
-        health = Mathf.Clamp(health, 0, maxHealth);
-        Debug.Log("Health: " + health);
+<span class="tk-cm">        // The ceiling from 2.3, on the only object that holds the value it</span>
+<span class="tk-cm">        // protects. No caller can get above it.</span>
+        <span class="tk-va">health</span> = <span class="tk-va">Mathf</span>.<span class="tk-fn">Clamp</span>(<span class="tk-va">health</span>, <span class="tk-nu">0</span>, <span class="tk-va">maxHealth</span>);
+        <span class="tk-va">Debug</span>.<span class="tk-fn">Log</span>(<span class="tk-st">"Health: "</span> + <span class="tk-va">health</span>);
 
-        // ...and YOUR death rule from 2.2 goes here: the "already at zero"
-        // guard at the top of the method, and whatever should happen when
-        // health reaches zero. Moved across, not rewritten.
+<span class="tk-cm">        // ...and YOUR death rule from 2.2 goes here: the "already at zero"</span>
+<span class="tk-cm">        // guard at the top of the method, and whatever should happen when</span>
+<span class="tk-cm">        // health reaches zero. Moved across, not rewritten.</span>
     }
 
-    public void SetHasAxe(bool value)
+    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">SetHasAxe</span>(<span class="tk-kw">bool</span> <span class="tk-va">value</span>)
     {
-        hasAxe = value;
+        <span class="tk-va">hasAxe</span> = <span class="tk-va">value</span>;
     }
 }
 
-// Callers, in PlayerController.cs — the receivers changed, nothing else:
-//   StatManager.Instance.TakeDamage(1);      &lt;- the spike branch (2.2)
-//   StatManager.Instance.AddCoins(1);        &lt;- the coin branch (2.1)
-//   StatManager.Instance.SetHasAxe(true);    &lt;- the axe branch (5.1)
-// ...and in the projectile from 3.4, which no longer needs a reference to the
-// player at all: StatManager.Instance.TakeDamage(damage);</code></pre></details></div>
+<span class="tk-cm">// Callers, in PlayerController.cs — the receivers changed, nothing else:</span>
+<span class="tk-cm">//   StatManager.Instance.TakeDamage(1);      &lt;- the spike branch (2.2)</span>
+<span class="tk-cm">//   StatManager.Instance.AddCoins(1);        &lt;- the coin branch (2.1)</span>
+<span class="tk-cm">//   StatManager.Instance.SetHasAxe(true);    &lt;- the axe branch (5.1)</span>
+<span class="tk-cm">// ...and in the projectile from 3.4, which no longer needs a reference to the</span>
+<span class="tk-cm">// player at all: StatManager.Instance.TakeDamage(damage);</span></code></pre></details></div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
@@ -370,26 +370,26 @@ public class StatManager : MonoBehaviour
 </div>
 
 <!-- ============================================================ -->
-<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I put my coins and my health on the screen?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/HudController.cs</code>. A new script, and the Canvas you need for it is already standing in <code>Start (index 0)</code> — that was the editor work above. The script itself is a handful of lines: a slot for the text, a guard, and one string built from the values <code>StatManager.Instance</code> hands you. Every line is given.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Give the script a slot for the text</h4><p class="wt-lead">Two lines above the method: one <code>using</code> and one field.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">using TMPro;</span>
+<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I put my coins and my health on the screen?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/HudController.cs</code>. A new script, and the Canvas you need for it is already standing in <code>Start (index 0)</code> — that was the editor work above. The script itself is a handful of lines: a slot for the text, a guard, and one string built from the values <code>StatManager.Instance</code> hands you. Every line is given.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Give the script a slot for the text</h4><p class="wt-lead">Two lines above the method: one <code>using</code> and one field.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-ct">using</span> <span class="tk-ty">TMPro</span>;</span>
 <span class="wt-line" data-n="2"></span>
-<span class="wt-line wt-line-why" data-n="3">    [SerializeField] private TextMeshProUGUI statsText;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">TextMeshPro's types live in a namespace called <code>TMPro</code>, and the UI package that ships them does not put them in scope for you. Without this line the compiler cannot find the type on the next line, and reports an error that reads like a typo.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">The text object, wired from the Inspector. One thing here is new: the type is not <code>GameObject</code> or <code>Transform</code>, it is the <strong>component</strong> — because the component is what owns the <code>text</code> property you are about to write to.</span><span class="wt-why"><strong>A slot for the component, not for the object.</strong> You have held component references since 2.2, but always by looking them up at runtime with <code>GetComponent&lt;Rigidbody2D&gt;()</code>. This one is dragged in by hand, which is only possible because <code>TextMeshProUGUI</code> is a component type the Inspector can hold.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Read the numbers from the manager, and write them into the text</h4><p class="wt-lead">One method, <code>Update()</code>, and it takes a position on the design question this lesson asks out loud: read every frame, and do not get clever about it.</p><pre class="wt-code"><code><span class="wt-line wt-line-why" data-n="1">    void Update()</span>
+<span class="wt-line wt-line-why" data-n="3">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">TextMeshProUGUI</span> <span class="tk-va">statsText</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">TextMeshPro's types live in a namespace called <code>TMPro</code>, and the UI package that ships them does not put them in scope for you. Without this line the compiler cannot find the type on the next line, and reports an error that reads like a typo.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The text object, wired from the Inspector. One thing here is new: the type is not <code>GameObject</code> or <code>Transform</code>, it is the <strong>component</strong> — because the component is what owns the <code>text</code> property you are about to write to.</span><span class="wt-why"><strong>A slot for the component, not for the object.</strong> You have held component references since 2.2, but always by looking them up at runtime with <code>GetComponent&lt;Rigidbody2D&gt;()</code>. This one is dragged in by hand, which is only possible because <code>TextMeshProUGUI</code> is a component type the Inspector can hold.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Read the numbers from the manager, and write them into the text</h4><p class="wt-lead">One method, <code>Update()</code>, and it takes a position on the design question this lesson asks out loud: read every frame, and do not get clever about it.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()</span>
 <span class="wt-line" data-n="2">    {</span>
-<span class="wt-line wt-line-why" data-n="3">        if (StatManager.Instance == null)</span>
+<span class="wt-line wt-line-why" data-n="3">        <span class="tk-ct">if</span> (<span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span> == <span class="tk-kw">null</span>)</span>
 <span class="wt-line" data-n="4">        {</span>
-<span class="wt-line" data-n="5">            return;</span>
+<span class="wt-line" data-n="5">            <span class="tk-ct">return</span>;</span>
 <span class="wt-line" data-n="6">        }</span>
 <span class="wt-line" data-n="7"></span>
-<span class="wt-line wt-line-why" data-n="8">        string statsLine = "Coins: " + StatManager.Instance.GetCoins()</span>
-<span class="wt-line" data-n="9">                         + "   Health: " + StatManager.Instance.GetHealth()</span>
-<span class="wt-line" data-n="10">                         + " / " + StatManager.Instance.GetMaxHealth();</span>
+<span class="wt-line wt-line-why" data-n="8">        <span class="tk-kw">string</span> <span class="tk-va">statsLine</span> = <span class="tk-st">"Coins: "</span> + <span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">GetCoins</span>()</span>
+<span class="wt-line" data-n="9">                         + <span class="tk-st">"   Health: "</span> + <span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">GetHealth</span>()</span>
+<span class="wt-line" data-n="10">                         + <span class="tk-st">" / "</span> + <span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">GetMaxHealth</span>();</span>
 <span class="wt-line" data-n="11"></span>
-<span class="wt-line" data-n="12">        if (StatManager.Instance.HasAxe())</span>
+<span class="wt-line" data-n="12">        <span class="tk-ct">if</span> (<span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">HasAxe</span>())</span>
 <span class="wt-line" data-n="13">        {</span>
-<span class="wt-line" data-n="14">            statsLine = statsLine + "   Axe: yes";</span>
+<span class="wt-line" data-n="14">            <span class="tk-va">statsLine</span> = <span class="tk-va">statsLine</span> + <span class="tk-st">"   Axe: yes"</span>;</span>
 <span class="wt-line" data-n="15">        }</span>
 <span class="wt-line" data-n="16"></span>
-<span class="wt-line wt-line-why" data-n="17">        statsText.text = statsLine;</span>
+<span class="wt-line wt-line-why" data-n="17">        <span class="tk-va">statsText</span>.<span class="tk-va">text</span> = <span class="tk-va">statsLine</span>;</span>
 <span class="wt-line" data-n="18">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Every frame, like your movement and your enemy logic. A number can change at any moment — a coin is collected in a trigger callback, damage arrives from a projectile you never see coming — so a readout that is only correct sometimes is worse than no readout at all.</span><span class="wt-why"><strong>The alternative is "only rewrite the text when a value changes", and here it costs more than it saves.</strong> You would keep the last three values as fields and compare them every frame — three extra fields, and three extra chances for one of them to go stale and freeze the label forever. Reading a value is a method call; the expensive part is building the string, which is exactly what you would be avoiding. At this scale the honest engineering answer is the simple one, and the moment it stops being true the fix is right here: remember the last values, and rebuild the string only when one of them moves.</span></li>
 <li><span class="wt-ref">3</span><span class="wt-what">The guard — and here it genuinely earns its place. This script can run in a scene with no manager at all: the Overworld and the Platformer both contain a Player, and neither contains a StatManager. Press Play from either one and this method runs every frame with nothing to read.</span><span class="wt-why"><strong>Without this line the Console fills with a NullReferenceException sixty times a second.</strong> That does not crash the game; it buries every other message you might need, which is worse. With the line, the label simply keeps whatever it last said. Neither is a <em>fix</em> — the real fix is that the game begins in <code>Start (index 0)</code> — but the guard turns a flood into a blank label, which is a failure you can see.</span></li>
 <li><span class="wt-ref">5</span><span class="wt-what">Nothing to show, so show nothing. <code>return</code> leaves the method immediately — the same early-exit shape as the death rule in your 2.2 damage method.</span></li>
@@ -398,51 +398,51 @@ public class StatManager : MonoBehaviour
 <li><span class="wt-ref">10</span><span class="wt-what">And the ceiling, so the label reads <code>2 / 3</code>. Showing the maximum and not just the current health is a small design decision worth naming: a player can only judge "am I in trouble?" against what full looks like.</span></li>
 <li><span class="wt-ref">12</span><span class="wt-what">The third fact from 5.1, added only when it is true — so the label does not spend screen space saying <code>Axe: no</code> for the whole game.</span></li>
 <li><span class="wt-ref">14</span><span class="wt-what">Appending to the string you already built. Note the shape: assign back to the same name, because a string cannot be changed in place — this makes a new one and points the name at it.</span></li>
-<li><span class="wt-ref">17</span><span class="wt-what">The write. <code>statsText</code> is the component you wired in the Inspector; <code>.text</code> is the property holding the characters on screen. Assign to it and the label changes on this frame.</span><span class="wt-why"><strong>Nothing reads the text back, and nothing stores it.</strong> The label is a <em>view</em> of the numbers, not a copy of them — it holds no game state of its own. That is what makes it impossible for the HUD and the truth to disagree. The moment you cache a number in this script "to save time", you have built a second source of truth, and it will be the wrong one.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things to check: the <code>using TMPro;</code> line is there, the string is built inside <code>Update()</code> rather than once in <code>Start()</code>, and every value is read from <code>StatManager.Instance</code> rather than from the player. The walkthrough builds that string in one expression and appends the axe line where this file assigns it in an <code>if</code>/<code>else</code>; both write the same characters to the same property. Your label text, your placement and what you choose to display are yours — the shape is the slot, the guard, and the rebuild in <code>Update()</code>.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
-//  REFERENCE FILE — Assets/Scripts/HudController.cs
-//  Written to be read, not pasted. Build it with the walkthrough
-//  above, one step at a time, then open this and compare.
-//  If it is sitting in your project unchanged, that is the thing
-//  to go and do now — the walkthrough is still above you.
-// ------------------------------------------------------------------
-using UnityEngine;
-using TMPro;
+<li><span class="wt-ref">17</span><span class="wt-what">The write. <code>statsText</code> is the component you wired in the Inspector; <code>.text</code> is the property holding the characters on screen. Assign to it and the label changes on this frame.</span><span class="wt-why"><strong>Nothing reads the text back, and nothing stores it.</strong> The label is a <em>view</em> of the numbers, not a copy of them — it holds no game state of its own. That is what makes it impossible for the HUD and the truth to disagree. The moment you cache a number in this script "to save time", you have built a second source of truth, and it will be the wrong one.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things to check: the <code>using TMPro;</code> line is there, the string is built inside <code>Update()</code> rather than once in <code>Start()</code>, and every value is read from <code>StatManager.Instance</code> rather than from the player. The walkthrough builds that string in one expression and appends the axe line where this file assigns it in an <code>if</code>/<code>else</code>; both write the same characters to the same property. Your label text, your placement and what you choose to display are yours — the shape is the slot, the guard, and the rebuild in <code>Update()</code>.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/HudController.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
+<span class="tk-ct">using</span> <span class="tk-ty">TMPro</span>;
 
-// HudController.cs — the numbers, on screen. It owns no state at all: every
-// value is read from the manager each frame and thrown away again.
-public class HudController : MonoBehaviour
+<span class="tk-cm">// HudController.cs — the numbers, on screen. It owns no state at all: every</span>
+<span class="tk-cm">// value is read from the manager each frame and thrown away again.</span>
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">HudController</span> : <span class="tk-ty">MonoBehaviour</span>
 {
-    [SerializeField] private TextMeshProUGUI statsText;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">TextMeshProUGUI</span> <span class="tk-va">statsText</span>;
 
-    void Update()
+    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
     {
-        // No manager in this scene (you pressed Play in the Overworld)? There
-        // is nothing to show and nothing to crash over.
-        if (StatManager.Instance == null)
+<span class="tk-cm">        // No manager in this scene (you pressed Play in the Overworld)? There</span>
+<span class="tk-cm">        // is nothing to show and nothing to crash over.</span>
+        <span class="tk-ct">if</span> (<span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span> == <span class="tk-kw">null</span>)
         {
-            return;
+            <span class="tk-ct">return</span>;
         }
 
-        int coins = StatManager.Instance.GetCoins();
-        int health = StatManager.Instance.GetHealth();
-        int maxHealth = StatManager.Instance.GetMaxHealth();
+        <span class="tk-kw">int</span> <span class="tk-va">coins</span> = <span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">GetCoins</span>();
+        <span class="tk-kw">int</span> <span class="tk-va">health</span> = <span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">GetHealth</span>();
+        <span class="tk-kw">int</span> <span class="tk-va">maxHealth</span> = <span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">GetMaxHealth</span>();
 
-        string line;
+        <span class="tk-kw">string</span> <span class="tk-va">line</span>;
 
-        if (StatManager.Instance.HasAxe())
+        <span class="tk-ct">if</span> (<span class="tk-va">StatManager</span>.<span class="tk-va">Instance</span>.<span class="tk-fn">HasAxe</span>())
         {
-            line = "Coins: " + coins + "   Health: " + health + " / " + maxHealth + "   Axe: yes";
+            <span class="tk-va">line</span> = <span class="tk-st">"Coins: "</span> + <span class="tk-va">coins</span> + <span class="tk-st">"   Health: "</span> + <span class="tk-va">health</span> + <span class="tk-st">" / "</span> + <span class="tk-va">maxHealth</span> + <span class="tk-st">"   Axe: yes"</span>;
         }
-        else
+        <span class="tk-ct">else</span>
         {
-            line = "Coins: " + coins + "   Health: " + health + " / " + maxHealth;
+            <span class="tk-va">line</span> = <span class="tk-st">"Coins: "</span> + <span class="tk-va">coins</span> + <span class="tk-st">"   Health: "</span> + <span class="tk-va">health</span> + <span class="tk-st">" / "</span> + <span class="tk-va">maxHealth</span>;
         }
 
-        statsText.text = line;
+        <span class="tk-va">statsText</span>.<span class="tk-va">text</span> = <span class="tk-va">line</span>;
 
-        // If reading every frame ever shows up as a cost, the fix is not to
-        // stop reading. Remember the last values and rebuild the string only
-        // when one of them changes.
+<span class="tk-cm">        // If reading every frame ever shows up as a cost, the fix is not to</span>
+<span class="tk-cm">        // stop reading. Remember the last values and rebuild the string only</span>
+<span class="tk-cm">        // when one of them changes.</span>
     }
 }</code></pre></details></div>
 

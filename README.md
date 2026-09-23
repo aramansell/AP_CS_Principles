@@ -54,6 +54,9 @@ scripts/
   new-lesson.mjs      # scaffold a new lesson page
   lesson-load.mjs     # how much reading a lesson costs: author's prose and
                       # walkthrough annotation, counted apart (words, not lines)
+  highlight-code.mjs  # colours every code block that declares a language (lang-cs,
+                      # lang-yaml, …) with VS Code's grammar and Dark+ palette; runs
+                      # inside `npm run build`, after astro, before Pagefind
 ```
 
 ## Editing the course
@@ -75,7 +78,7 @@ Everything on the site renders from `src/data/curriculum.ts`:
 ```bash
 npm install        # once
 npm run dev        # local dev server
-npm run build      # dist/ + PACING.md + sitemap.xml + Pagefind index
+npm run build      # astro build → syntax colouring → Pagefind; writes dist/ + PACING.md + sitemap.xml
 npm run verify     # integrity checks (run after build)
 npm run preview    # serve the built site locally
 npm run new-lesson -- 5.11    # scaffold a lesson page

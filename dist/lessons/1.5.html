@@ -46,44 +46,44 @@
 </div>
 
 <!-- ============================================================ -->
-<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;why does my character move faster diagonally, and how do I fix it?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. You have working movement from 1.4. This replaces two of those lines; the fields and the input reads do not change.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Separate direction from speed</h4><p class="wt-lead">In 1.4 you multiplied the input by speed in two separate places. Pull those apart: first work out which way to go, then decide how far.</p><pre class="wt-code"><code><span class="wt-line" data-n="1">// PlayerController.cs — inside Update(), replacing the two displacement lines from 1.4.</span>
-<span class="wt-line" data-n="2">        Vector2 direction = new Vector2(inputX, inputY);</span>
+<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;why does my character move faster diagonally, and how do I fix it?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. You have working movement from 1.4. This replaces two of those lines; the fields and the input reads do not change.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Separate direction from speed</h4><p class="wt-lead">In 1.4 you multiplied the input by speed in two separate places. Pull those apart: first work out which way to go, then decide how far.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-cm">// PlayerController.cs — inside Update(), replacing the two displacement lines from 1.4.</span></span>
+<span class="wt-line" data-n="2">        <span class="tk-ty">Vector2</span> <span class="tk-va">direction</span> = <span class="tk-kw">new</span> <span class="tk-ty">Vector2</span>(<span class="tk-va">inputX</span>, <span class="tk-va">inputY</span>);</span>
 <span class="wt-line" data-n="3"></span>
-<span class="wt-line wt-line-why" data-n="4">        direction = direction.normalized;</span>
+<span class="wt-line wt-line-why" data-n="4">        <span class="tk-va">direction</span> = <span class="tk-va">direction</span>.<span class="tk-va">normalized</span>;</span>
 <span class="wt-line" data-n="5"></span>
-<span class="wt-line wt-line-why" data-n="6">        Vector2 movement = direction * moveSpeed * Time.deltaTime;</span>
+<span class="wt-line wt-line-why" data-n="6">        <span class="tk-ty">Vector2</span> <span class="tk-va">movement</span> = <span class="tk-va">direction</span> * <span class="tk-va">moveSpeed</span> * <span class="tk-va">Time</span>.<span class="tk-va">deltaTime</span>;</span>
 <span class="wt-line" data-n="7"></span>
-<span class="wt-line" data-n="8">// PlayerController.cs — unchanged from 1.4: the finished distance goes to the Transform.</span>
-<span class="wt-line" data-n="9">        transform.Translate(movement);</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">2</span><span class="wt-what">A vector pointing whichever way the player holds. Pure <strong>direction</strong> — no speed, no time — and its length is whatever the input happens to be: D alone gives <code>(1, 0)</code>, but W and D together give <code>(1, 1)</code>, which is <strong>1.41 long, not 1</strong>. That extra 41% is the bug you can feel.</span></li>
+<span class="wt-line" data-n="8"><span class="tk-cm">// PlayerController.cs — unchanged from 1.4: the finished distance goes to the Transform.</span></span>
+<span class="wt-line" data-n="9">        <span class="tk-va">transform</span>.<span class="tk-fn">Translate</span>(<span class="tk-va">movement</span>);</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">2</span><span class="wt-what">A vector pointing whichever way the player holds. Pure <strong>direction</strong> — no speed, no time — and its length is whatever the input happens to be: D alone gives <code>(1, 0)</code>, but W and D together give <code>(1, 1)</code>, which is <strong>1.41 long, not 1</strong>. That extra 41% is the bug you can feel.</span></li>
 <li><span class="wt-ref">4</span><span class="wt-what">The fix: <code>.normalized</code> keeps the vector pointing the same way but <strong>rescales it to a length of exactly 1</strong>, so "up and right" becomes <code>(0.707, 0.707)</code>.</span><span class="wt-why">There is no second <code>Vector2</code> in front of <code>direction</code> — the variable already exists, so this line <strong>assigns</strong> to it, as <code>inputX</code> did in 1.3.</span></li>
 <li><span class="wt-ref">6</span><span class="wt-what">Scales that unit direction up to a real distance: one second of travel (<code>moveSpeed</code>), cut down to one frame (<code>Time.deltaTime</code>).</span><span class="wt-why">Because <code>direction</code> is always length 1, and <code>Time.deltaTime</code> is the seconds the last frame took, this is the same real-world speed at 30 FPS and at 240 FPS.</span></li>
-<li><span class="wt-ref">9</span><span class="wt-what">Hands the distance to the Player's own Transform, which adds it to the current position. Unchanged from 1.4.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">The only lines that should differ from 1.4 are the ones building <code>direction</code> and <code>movement</code> — fields, input reads and translate call are unchanged.</p><pre class="wt-code wt-code-full"><code>// ------------------------------------------------------------------
-//  REFERENCE FILE — Assets/Scripts/PlayerController.cs
-//  Written to be read, not pasted. Build it with the walkthrough
-//  above, one step at a time, then open this and compare.
-//  If it is sitting in your project unchanged, that is the thing
-//  to go and do now — the walkthrough is still above you.
-// ------------------------------------------------------------------
-using UnityEngine;
+<li><span class="wt-ref">9</span><span class="wt-what">Hands the distance to the Player's own Transform, which adds it to the current position. Unchanged from 1.4.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">The only lines that should differ from 1.4 are the ones building <code>direction</code> and <code>movement</code> — fields, input reads and translate call are unchanged.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/PlayerController.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
 
-public class PlayerController : MonoBehaviour
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">PlayerController</span> : <span class="tk-ty">MonoBehaviour</span>
 {
-    [SerializeField] private float moveSpeed = 5f;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">moveSpeed</span> = <span class="tk-nu">5f</span>;
 
-    private float inputX;
-    private float inputY;
+    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">inputX</span>;
+    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">inputY</span>;
 
-    void Update()
+    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
     {
-        inputX = Input.GetAxis("Horizontal");
-        inputY = Input.GetAxis("Vertical");
+        <span class="tk-va">inputX</span> = <span class="tk-va">Input</span>.<span class="tk-fn">GetAxis</span>(<span class="tk-st">"Horizontal"</span>);
+        <span class="tk-va">inputY</span> = <span class="tk-va">Input</span>.<span class="tk-fn">GetAxis</span>(<span class="tk-st">"Vertical"</span>);
 
-        Vector2 direction = new Vector2(inputX, inputY);
-        direction = direction.normalized;
+        <span class="tk-ty">Vector2</span> <span class="tk-va">direction</span> = <span class="tk-kw">new</span> <span class="tk-ty">Vector2</span>(<span class="tk-va">inputX</span>, <span class="tk-va">inputY</span>);
+        <span class="tk-va">direction</span> = <span class="tk-va">direction</span>.<span class="tk-va">normalized</span>;
 
-        Vector2 movement = direction * moveSpeed * Time.deltaTime;
+        <span class="tk-ty">Vector2</span> <span class="tk-va">movement</span> = <span class="tk-va">direction</span> * <span class="tk-va">moveSpeed</span> * <span class="tk-va">Time</span>.<span class="tk-va">deltaTime</span>;
 
-        transform.Translate(movement);
+        <span class="tk-va">transform</span>.<span class="tk-fn">Translate</span>(<span class="tk-va">movement</span>);
     }
 }</code></pre></details></div>
 
