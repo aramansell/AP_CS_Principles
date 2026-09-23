@@ -75,6 +75,13 @@ export interface PaneRow {
   /** A row that is a section heading inside a component (Unity's bold labels). */
   strong?: boolean;
   /**
+   * Whether a `component` row draws Unity's enable checkbox. It does by
+   * default, because every component has one — except Transform, which is on
+   * every object, cannot be switched off, and is drawn without the box. Set
+   * `tick: false` on that row rather than on any other.
+   */
+  tick?: boolean;
+  /**
    * An `object` row (Hierarchy or Project) that is a prefab instance. Unity
    * marks these with a blue cube at the left of the name, and lessons lean on
    * that mark — "each instance carries a blue cube icon" is a sentence 2.4 has
@@ -132,11 +139,12 @@ function row(row: PaneRow, y: number, badge: boolean, shift: number, kids: boole
     indent + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
 
   if (row.kind === 'component') {
+    const box = row.tick === false ? '' :
+      '<rect class="pane-tick" x="' + indent + '" y="' + (y + 6) + '" width="8" height="8" rx="1"/>' +
+      '<path class="pane-tick-n" d="M' + (indent + 1.6) + ' ' + (y + 10) + 'l1.8 2 3-4"/>';
     return tint +
       '<rect class="pane-head-bar" x="0" y="' + y + '" width="' + W + '" height="' + ROW + '"/>' +
-      badgeMark +
-      '<rect class="pane-tick" x="' + indent + '" y="' + (y + 6) + '" width="8" height="8" rx="1"/>' +
-      '<path class="pane-tick-n" d="M' + (indent + 1.6) + ' ' + (y + 10) + 'l1.8 2 3-4"/>' +
+      badgeMark + box +
       '<text class="pane-label pane-strong" x="' + (indent + 14) + '" y="' + (y + 14) + '">' +
       esc(row.label) + '</text>';
   }
