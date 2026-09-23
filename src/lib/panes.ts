@@ -115,6 +115,13 @@ export interface PaneRow {
    * and WHAT are the two decisions the entry is made of.
    */
   fn?: string;
+  /**
+   * A row Unity draws greyed out because the value cannot do anything — a
+   * Static Rigidbody2D still prints `Gravity Scale 1`, and 6.2 spends a
+   * paragraph on why that 1 must be left alone. Without the dim it reads as a
+   * number to set, which is the one thing the lesson says not to do.
+   */
+  dim?: boolean;
 }
 
 export interface PaneSpec {
@@ -155,6 +162,14 @@ function prose(s: string): string {
 }
 
 function row(row: PaneRow, y: number, badge: boolean, shift: number, kids: boolean): string {
+  const shape = shapeOf(row, y, badge, shift, kids);
+  // Unity greys a field it will not let you use, and the greying is the
+  // teaching — so it is one wrapper over the whole row rather than a second
+  // colour on each piece of it.
+  return row.dim ? '<g class="pane-dim">' + shape + '</g>' : shape;
+}
+
+function shapeOf(row: PaneRow, y: number, badge: boolean, shift: number, kids: boolean): string {
   const indent = 12 + (row.depth ?? 0) * 12 + shift;
   const tint = row.step
     ? '<rect class="pane-mark" x="0" y="' + y + '" width="' + W + '" height="' + ROW + '"/>' +
