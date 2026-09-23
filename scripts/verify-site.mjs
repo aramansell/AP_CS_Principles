@@ -38,6 +38,8 @@
  *     coloured, the palette in public/style.css and the one in
  *     scripts/highlight-code.mjs still name the same eight colours, no colour
  *     reached a page that neither can name, and no marker leaked
+ * 16. every editor pane (src/lib/panes.ts) says what to look at, and every
+ *     badge it draws on a row is the number of the step the figure sits in
  *
  * Ported from the AP CS A Guide's verify-site.mjs, minus the legacy-site
  * URL parity checks (this site has no legacy twin).
@@ -765,6 +767,13 @@ if (!fs.existsSync(askSrcPath)) {
     const text = fs.readFileSync(path.join(dist, 'lessons', id + '.html'), 'utf8')
       .replace(/<script[\s\S]*?<\/script>/g, ' ')
       .replace(/<style[\s\S]*?<\/style>/g, ' ')
+      // A drawn pane (src/lib/panes.ts) is a picture of the editor: the words
+      // inside it are Unity's labels — "Is Trigger", "Gravity Scale", "Body
+      // Type" — which a student has to be able to look up, the same kind of name
+      // as the `Queries Start In Colliders` label below. They are not sentences
+      // the lesson is teaching with, so they come out of the prose scan with the
+      // code blocks. The figcaption is the lesson's own line and stays in.
+      .replace(/<svg[\s\S]*?<\/svg>/g, ' ')
       .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
       // Page chrome is not prose the lesson is teaching with. The <head> holds
       // the <title> and both navs hold the neighbouring lessons' names, so this
@@ -1086,6 +1095,7 @@ if (!fs.existsSync(askSrcPath)) {
     for (const f of built) {
       const text = fs
         .readFileSync(path.join(dist, 'lessons', f), 'utf8')
+        .replace(/<svg[\s\S]*?<\/svg>/g, ' ')
         .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
         .replace(/<[^>]*>/g, ' ');
       const m = text.match(LITERAL);
@@ -1182,6 +1192,67 @@ if (!fs.existsSync(askSrcPath)) {
     }
     if (!uncoloured.length && !inlined.length && !leaked.length) {
       ok('every language-declaring block is coloured, in palette, with no marker leaks');
+    }
+  }
+
+  // ---------- 16. an editor pane says what to look at
+  // The panes (src/lib/panes.ts) are pictures of the Inspector, the Hierarchy and
+  // the Project window, drawn rather than captured. Two things about them are
+  // correct in the source and invisible in the page when they are wrong:
+  //
+  //   - the caption. The rows inside the frame are Unity's; the caption is the
+  //     lesson's, and it is the only thing that says WHICH row matters and why.
+  //     A figure without one shows a student a window they can already see and
+  //     tells them nothing new, and nothing about the page looks broken.
+  //   - the badge number. It is what ties a tinted row to the numbered step in
+  //     the list above it, and it is typed by hand into the spec — so a figure
+  //     that moved one step up, or a list that had a step inserted before it,
+  //     leaves a badge confidently pointing at the wrong instruction.
+  //
+  // The badge rule is checked against the page's own list rather than trusted:
+  // a figure that sits inside a list item and carries a badge must carry the
+  // number of THAT item. A figure with no badge (a pane shown as context, with
+  // nothing to point at) is fine anywhere, and so is one outside a list.
+  console.log('16. the editor panes...');
+  {
+    const uncaptioned = [], misBadged = [];
+    for (const page of pages) {
+      const html = fs.readFileSync(page, 'utf8');
+      const rel = path.relative(dist, page);
+      for (const m of html.matchAll(/<figure class="pane">([\s\S]*?)<\/figure>/g)) {
+        const fig = m[1];
+        const cap = fig.match(/<figcaption>([\s\S]*?)<\/figcaption>/);
+        const words = cap ? cap[1].replace(/<[^>]*>/g, ' ').split(/\s+/).filter((w) => w.length > 1) : [];
+        if (words.length < 4) {
+          uncaptioned.push(rel + (cap ? ' (caption of ' + words.length + ' word(s))' : ' (no caption)'));
+        }
+        const badges = [...fig.matchAll(/class="pane-badge-n"[^>]*>(\d+)</g)].map((b) => b[1]);
+        if (!badges.length) continue;
+        // Where the figure sits in the list: the nearest <ol> behind it, and how
+        // many <li> that list has opened by the time we reach the figure.
+        const before = html.slice(0, m.index);
+        const olAt = before.lastIndexOf('<ol');
+        if (olAt < 0 || /<\/ol>/.test(before.slice(olAt))) continue; // not in a list
+        const step = (before.slice(olAt).match(/<li\b/g) ?? []).length;
+        for (const b of badges) {
+          if (Number(b) !== step) misBadged.push(rel + ': a row is badged ' + b + ' but sits in step ' + step);
+        }
+      }
+    }
+    if (uncaptioned.length) {
+      fail(uncaptioned.length + ' editor pane(s) do not say what to look at:\n' +
+        '      ' + [...new Set(uncaptioned)].slice(0, 8).join('\n      ') + '\n' +
+        '    Every pane carries a figcaption in src/lib/panes.ts naming the row the lesson\n' +
+        '    cares about. Rows alone are a window the student can already see.');
+    }
+    if (misBadged.length) {
+      fail('editor pane badge(s) point at the wrong step:\n' +
+        '      ' + [...new Set(misBadged)].slice(0, 8).join('\n      ') + '\n' +
+        '    The badge is the number of the list item a figure sits in, so it is written\n' +
+        '    twice — once as the list, once as `step:` in the spec. Fix whichever moved.');
+    }
+    if (!uncaptioned.length && !misBadged.length) {
+      ok('every editor pane names the row to look at, and every badge matches its step');
     }
   }
 }

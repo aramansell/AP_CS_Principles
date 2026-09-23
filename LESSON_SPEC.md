@@ -248,6 +248,54 @@ Inspector-only settings belong here and never in the code block as a `//` line �
 a comment in a .cs file cannot click a checkbox, and a student who reads it as a
 step will go looking for it in the wrong pane.
 
+### Drawing the pane, when a step has to be found
+
+A step that says *"Inspector → Rigidbody 2D → set Gravity Scale to 0"* is correct
+and still hard to follow, because the thing it names is a grid of rows in a fixed
+order with one specific row to hunt for. When that hunt is the hard part of the
+step, draw the pane into the step with `renderPane` (`src/lib/panes.ts`) — a
+drawing of the Inspector, Hierarchy or Project window, using Unity's own greys,
+with the row the step acts on numbered:
+
+```js
+${renderPane({
+    pane: 'Inspector',
+    subject: 'Coin',
+    caption: 'The box you want is the one just under the component name — **`Is Trigger`**, not `Radius`.',
+    rows: [
+        { kind: 'component', label: 'Sprite Renderer' },
+        { kind: 'component', label: 'Circle Collider 2D' },
+        { kind: 'check', label: 'Is Trigger', on: true, step: 3 },
+        { kind: 'check', label: 'Used By Effector' },
+        { kind: 'field', label: 'Offset', value: 'X 0        Y 0' },
+        { kind: 'field', label: 'Radius', value: '0.32' },
+        { kind: 'button', label: 'Add Component' },
+    ],
+})}
+```
+
+It goes **inside** the `<li>` it belongs to, and three rules come with it:
+
+- **`caption` is required, and it is the lesson's own sentence.** It says which row
+  matters and why. The rows inside the frame are Unity's labels; the caption is the
+  one line that tells a student what they are looking at. Check 16 fails a figure
+  without one.
+- **`step` is the number of the `<li>` the figure sits in.** A figure inside step 3
+  marks its row `step: 3`. Three stacked fields set by one step get one badge, on the
+  first of them — the badge says *this step*, the tint says *these rows*. Check 16
+  fails a badge whose number is not the step the figure sits in, because the number is
+  written twice (once as the list, once as the spec) and only one of them moves when
+  the list changes.
+- **Mark only what the step acts on.** Everything else is context a student needs in
+  order to find the marked row — a pane where every row is marked marks nothing. A
+  pane with no marked row at all is fine when the step is about the pane's shape
+  rather than one setting.
+
+A drawn pane costs the lesson **no prose words**: the metric strips the `<svg>` with
+the code blocks, so only the caption is counted. Prefer it to a screenshot — a capture
+is pinned to one Unity version's skin, cannot be re-rendered when the lesson changes,
+and cannot put a number on the row the step above it is talking about.
+
 **In the Code** is the script work: the API table (`API | What it is | What you
 get | What it costs`, with the call itself — `Mathf.Clamp(value, min, max)` — in
 the first cell), the architectural specification callouts, and the Socratic block.

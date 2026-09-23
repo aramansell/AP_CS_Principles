@@ -107,8 +107,8 @@ function prose(s: string): string {
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 }
 
-function row(row: PaneRow, y: number, badge: boolean): string {
-  const indent = 12 + (row.depth ?? 0) * 12;
+function row(row: PaneRow, y: number, badge: boolean, shift: number): string {
+  const indent = 12 + (row.depth ?? 0) * 12 + shift;
   const tint = row.step
     ? '<rect class="pane-mark" x="0" y="' + y + '" width="' + W + '" height="' + ROW + '"/>' +
       '<rect class="pane-mark-bar" x="0" y="' + y + '" width="3" height="' + ROW + '"/>'
@@ -121,36 +121,35 @@ function row(row: PaneRow, y: number, badge: boolean): string {
     ? '<circle class="pane-badge" cx="15" cy="' + (y + ROW / 2) + '" r="7"/>' +
       '<text class="pane-badge-n" x="15" y="' + (y + ROW / 2 + 3.5) + '">' + row.step + '</text>'
     : '';
-  const shift = row.step ? 14 : 0; // text moves right to clear the badge column
   const label = '<text class="pane-label' + (row.strong ? ' pane-strong' : '') + '" x="' +
-    (indent + shift) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
+    indent + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
 
   if (row.kind === 'component') {
     return tint +
       '<rect class="pane-head-bar" x="0" y="' + y + '" width="' + W + '" height="' + ROW + '"/>' +
       badgeMark +
-      '<rect class="pane-tick" x="' + (indent + shift) + '" y="' + (y + 6) + '" width="8" height="8" rx="1"/>' +
-      '<path class="pane-tick-n" d="M' + (indent + shift + 1.6) + ' ' + (y + 10) + 'l1.8 2 3-4"/>' +
-      '<text class="pane-label pane-strong" x="' + (indent + shift + 14) + '" y="' + (y + 14) + '">' +
+      '<rect class="pane-tick" x="' + indent + '" y="' + (y + 6) + '" width="8" height="8" rx="1"/>' +
+      '<path class="pane-tick-n" d="M' + (indent + 1.6) + ' ' + (y + 10) + 'l1.8 2 3-4"/>' +
+      '<text class="pane-label pane-strong" x="' + (indent + 14) + '" y="' + (y + 14) + '">' +
       esc(row.label) + '</text>';
   }
   if (row.kind === 'button') {
     return tint + badgeMark +
-      '<rect class="pane-btn" x="' + (indent + shift) + '" y="' + (y + 2) + '" width="' + (W - (indent + shift) * 2) + '" height="' + (ROW - 4) + '" rx="3"/>' +
+      '<rect class="pane-btn" x="' + (12 + shift) + '" y="' + (y + 2) + '" width="' + (W - (12 + shift) * 2) + '" height="' + (ROW - 4) + '" rx="3"/>' +
       '<text class="pane-btn-t" x="' + (W / 2) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
   }
   if (row.kind === 'check') {
     return tint + badgeMark +
-      '<rect class="pane-box" x="' + (indent + shift) + '" y="' + (y + 5) + '" width="11" height="11" rx="2"/>' +
+      '<rect class="pane-box" x="' + indent + '" y="' + (y + 5) + '" width="11" height="11" rx="2"/>' +
       (row.on
-        ? '<path class="pane-check" d="M' + (indent + shift + 2.5) + ' ' + (y + 10.5) + 'l2.2 2.4 3.8-5"/>'
+        ? '<path class="pane-check" d="M' + (indent + 2.5) + ' ' + (y + 10.5) + 'l2.2 2.4 3.8-5"/>'
         : '') +
-      '<text class="pane-label" x="' + (indent + shift + 18) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
+      '<text class="pane-label" x="' + (indent + 18) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
   }
   if (row.kind === 'object') {
     return tint + badgeMark +
-      '<path class="pane-caret" d="M' + (indent + shift) + ' ' + (y + 8) + 'l4 4 4-4z"/>' +
-      '<text class="pane-label" x="' + (indent + shift + 12) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
+      '<path class="pane-caret" d="M' + indent + ' ' + (y + 8) + 'l4 4 4-4z"/>' +
+      '<text class="pane-label" x="' + (indent + 12) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
   }
   // field: label left, value in a box on the right, the way Unity draws it.
   const boxW = 132;
@@ -166,6 +165,25 @@ function row(row: PaneRow, y: number, badge: boolean): string {
 export function renderPane(spec: PaneSpec): string {
   const h = HEAD + spec.rows.length * ROW + PAD;
   const what = spec.pane + (spec.subject ? ' showing ' + spec.subject : '');
+  // A step's badge is drawn once, on its first row (see row()). Steps are
+  // numbered in the lesson's list above, so they arrive ascending; the set
+  // only has to remember which ones have already been labelled.
+  //
+  // Whether ANY row is marked is a pane-wide decision, not a per-row one: every
+  // row's label shifts right by the badge's width as soon as one row is badged.
+  // Shifting only the marked rows leaves their labels indented relative to the
+  // unmarked ones and the pane reads as ragged — and a marked row that lines up
+  // with the rest is also easier to compare against the step above it.
+  const marked = spec.rows.some((r) => r.step !== undefined);
+  const shift = marked ? 14 : 0;
+  const badged = new Set<number>();
+  const rows = spec.rows
+    .map((r, i) => {
+      const first = r.step !== undefined && !badged.has(r.step);
+      if (first) badged.add(r.step as number);
+      return row(r, HEAD + i * ROW, first, shift);
+    })
+    .join('');
   // The caption goes through prose() so a lesson can name a setting the same
   // way it names it in the sentence above: `Gravity Scale`.
   const caption = prose(spec.caption);
@@ -183,7 +201,7 @@ export function renderPane(spec: PaneSpec): string {
     (spec.subject
       ? '<text class="pane-subject" x="' + (W - 10) + '" y="19">' + esc(spec.subject) + '</text>'
       : '') +
-    spec.rows.map((r, i) => row(r, HEAD + i * ROW)).join('') +
+    rows +
     '</svg>' +
     '<figcaption>' + caption + '</figcaption>' +
     '</figure>'

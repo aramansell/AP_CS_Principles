@@ -44,6 +44,12 @@ const prose = (html) => html
   .replace(/<style[\s\S]*?<\/style>/g, ' ')
   .replace(/<head[\s\S]*?<\/head>/g, ' ')
   .replace(/<nav[\s\S]*?<\/nav>/g, ' ')
+  // A drawn editor pane (src/lib/panes.ts) is a picture: the words inside the
+  // <svg> are Unity's row labels — "Is Trigger", "Gravity Scale" — which a
+  // student reads in the pane itself, not sentences the author wrote. They come
+  // out with the code blocks. The <figcaption> is the author's one line and it
+  // counts, the same way a walkthrough's `lead` counts.
+  .replace(/<svg[\s\S]*?<\/svg>/g, ' ')
   .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
   .replace(/<h1[\s\S]*?<\/h1>/g, ' ')
   .replace(/<[^>]+>/g, ' ')
@@ -80,7 +86,40 @@ const prose = (html) => html
 // regions kills the interaction at the root — a comment can no longer reach into
 // the body — so authors can name the tag in a note without costing themselves a
 // count, and the header/body boundary is the same one the site itself uses.
-const STRIP = (s) => s
+// An editor pane (src/lib/panes.ts). A pane's rows are Unity's labels — "Is
+// Trigger", "Gravity Scale", "Body Type" — which is the same kind of name as a
+// code block's, and billing them to the author would tax every lesson that gains
+// a figure. The figcaption is the author's own line and counts, so the call is
+// replaced by the caption's literals rather than by nothing, and the src count
+// keeps matching the built page (where prose() drops the <svg> and keeps the
+// caption).
+//
+// It is found by balancing brackets, not by a regex: a pane spec is an object
+// inside a call inside a template literal, and its rows nest further. The
+// scanner walks the call's own delimiters, skipping over string literals so a
+// brace inside a label cannot end it early.
+const stripPanes = (src) => {
+  const CALL = '${renderPane(';
+  let out = '', i = 0;
+  for (;;) {
+    const at = src.indexOf(CALL, i);
+    if (at < 0) return out + src.slice(i);
+    out += src.slice(i, at);
+    let depth = 0, q = '';
+    let j = at + CALL.length - 1;                       // sitting on the '('
+    for (; j < src.length; j++) {
+      const c = src[j];
+      if (q) { if (c === '\\') j++; else if (c === q) q = ''; continue; }
+      if (c === "'" || c === '"' || c === '`') { q = c; continue; }
+      if (c === '(' || c === '{' || c === '[') depth++;
+      else if (c === ')' || c === '}' || c === ']') { depth--; if (!depth) break; }
+    }
+    const cap = src.slice(at, j + 1).match(/caption:\s*([\s\S]*?),\s*rows:/);
+    out += ' ' + (cap ? cap[1].replace(/\\'/g, '’').replace(/['"+]/g, ' ') : ' ') + ' ';
+    i = j + 1;
+  }
+};
+const STRIP = (s) => stripPanes(s)
   .replace(/finalFile: `[\s\S]*?`,/g, ' ')
   .replace(/code: '(?:[^'\\]|\\.)*'/g, ' ')
   .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
