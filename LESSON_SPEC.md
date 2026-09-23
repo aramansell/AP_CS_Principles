@@ -318,6 +318,31 @@ not let you switch off — `Transform`, `RectTransform`, a UnityEvent's `On Leve
 — and on nothing else. `label` is spelled the way Unity spells it — the student is
 going to search the pane for these exact words.
 
+**The rows are in Unity's order, and Unity's order is not the file's.** A
+component's serialized fields are written to disk in declaration order, but Unity
+prints them in the order its own inspector chooses, which is often different — a
+`Box Collider 2D` reads `Material, Is Trigger, Used By Effector, Composite
+Operation, Auto Tiling, Offset, Size, Edge Radius`, and `Size` is near the bottom
+while `Is Trigger` is near the top. A figure that copies the declaration order puts
+the row the step names where the student will not find it, which is the exact
+failure the figure exists to prevent. Read the order off the project on disk and,
+where the file cannot tell you, off the component reference in the Unity manual.
+
+**A `field` value holds about 17 characters and does not wrap.** The box is 132px
+on every row — Unity's are all the same width, and a pane whose boxes were sized to
+their contents would stop looking like Unity. A longer value does not shrink and
+does not clip at the box: it runs off the right edge of the figure and is cut by
+the viewport, so `X 0        Y 0        Z 0` reaches the student as `X 0        Y 0`
+and they set a vector missing its third number while nothing on the page looks
+wrong. Write `X 0   Y 0   Z 0`, and let check 16 catch it if you forget.
+
+**Where the row lands is a fact worth teaching.** Unity prints a field where its
+*declaration* sits, not at the end of the component — so a new
+`public TextMeshProUGUI rarityText;` declared with the other TMP references appears
+between `Damage Text` and `Sprite Image`, and a student who scrolls to the bottom
+of the Inspector looking for it will not find it (10.2b's figure). When a step adds
+a field, the figure is often the only place that can say where it will turn up.
+
 A drawn pane costs the lesson **no prose words**: the metric strips the `<svg>` with
 the code blocks, so only the caption is counted. Prefer it to a screenshot — a capture
 is pinned to one Unity version's skin, cannot be re-rendered when the lesson changes,

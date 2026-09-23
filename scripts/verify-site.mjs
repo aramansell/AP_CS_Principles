@@ -38,8 +38,9 @@
  *     coloured, the palette in public/style.css and the one in
  *     scripts/highlight-code.mjs still name the same eight colours, no colour
  *     reached a page that neither can name, and no marker leaked
- * 16. every editor pane (src/lib/panes.ts) says what to look at, and every
- *     badge it draws on a row is the number of the step the figure sits in
+ * 16. every editor pane (src/lib/panes.ts) says what to look at, every
+ *     badge it draws on a row is the number of the step the figure sits in,
+ *     and no field value is long enough to be clipped by its own box
  *
  * Ported from the AP CS A Guide's verify-site.mjs, minus the legacy-site
  * URL parity checks (this site has no legacy twin).
@@ -1209,18 +1210,37 @@ if (!fs.existsSync(askSrcPath)) {
   //     that moved one step up, or a list that had a step inserted before it,
   //     leaves a badge confidently pointing at the wrong instruction.
   //
+  //   - the width of a `field` value. A field row draws its value in a box of a
+  //     fixed width (132px, the same on every row, because Unity's are), and the
+  //     value is monospace text starting 10px inside it. A value longer than the
+  //     box does not wrap and does not shrink: it runs off the right edge of the
+  //     SVG and is CLIPPED BY THE VIEWPORT, so `X 0        Y 0        Z 0`
+  //     renders as `X 0        Y 0` and the student sets the wrong vector while
+  //     nothing on the page looks wrong. The limit below is the real one at the
+  //     pane's own font size (measured: 7.1px per character at 11px in SF Mono,
+  //     122px of room), rounded DOWN to what holds in any monospace fallback.
+  //
   // The badge rule is checked against the page's own list rather than trusted:
   // a figure that sits inside a list item and carries a badge must carry the
   // number of THAT item. A figure with no badge (a pane shown as context, with
   // nothing to point at) is fine anywhere, and so is one outside a list.
   console.log('16. the editor panes...');
   {
-    const uncaptioned = [], misBadged = [];
+    const uncaptioned = [], misBadged = [], tooWide = [];
+    const VALUE_MAX = 17;
     for (const page of pages) {
       const html = fs.readFileSync(page, 'utf8');
       const rel = path.relative(dist, page);
       for (const m of html.matchAll(/<figure class="pane">([\s\S]*?)<\/figure>/g)) {
         const fig = m[1];
+        for (const v of fig.matchAll(/class="pane-value"[^>]*>([^<]*)</g)) {
+          const text = v[1]
+            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+          if (text.length > VALUE_MAX) {
+            tooWide.push(rel + ': "' + text + '" (' + text.length + ' characters)');
+          }
+        }
         const cap = fig.match(/<figcaption>([\s\S]*?)<\/figcaption>/);
         const words = cap ? cap[1].replace(/<[^>]*>/g, ' ').split(/\s+/).filter((w) => w.length > 1) : [];
         if (words.length < 4) {
@@ -1251,7 +1271,15 @@ if (!fs.existsSync(askSrcPath)) {
         '    The badge is the number of the list item a figure sits in, so it is written\n' +
         '    twice — once as the list, once as `step:` in the spec. Fix whichever moved.');
     }
-    if (!uncaptioned.length && !misBadged.length) {
+    if (tooWide.length) {
+      fail('editor pane field value(s) run off the edge of the pane:\n' +
+        '      ' + [...new Set(tooWide)].slice(0, 8).join('\n      ') + '\n' +
+        '    A field box is 132px wide and its value does not wrap, so a value past\n' +
+        '    ~17 characters is clipped by the figure and reads as a shorter string\n' +
+        '    than the spec wrote. Shorten it (fewer spaces between the axis labels)\n' +
+        '    or drop a row the step does not act on.');
+    }
+    if (!uncaptioned.length && !misBadged.length && !tooWide.length) {
       ok('every editor pane names the row to look at, and every badge matches its step');
     }
   }
