@@ -55,7 +55,7 @@ export interface PaneRow {
    * a check has a box on the left, a button is a button, and an object row is
    * a name in the Hierarchy or the Project window.
    */
-  kind: 'component' | 'field' | 'check' | 'button' | 'object' | 'axis';
+  kind: 'component' | 'field' | 'check' | 'button' | 'object' | 'axis' | 'anchor' | 'listener';
   /** The label the student reads in the pane, spelled as Unity spells it. */
   label: string;
   /** A field's value, as it appears in the box on the right. */
@@ -76,9 +76,10 @@ export interface PaneRow {
   strong?: boolean;
   /**
    * Whether a `component` row draws Unity's enable checkbox. It does by
-   * default, because every component has one — except Transform, which is on
-   * every object, cannot be switched off, and is drawn without the box. Set
-   * `tick: false` on that row rather than on any other.
+   * default, because every component has one — except the ones Unity will not
+   * let you switch off: `Transform` and `RectTransform`, which are on every
+   * object, and a UnityEvent's header, which is a header and not a component at
+   * all. Set `tick: false` on those and on nothing else.
    */
   tick?: boolean;
   /**
@@ -98,6 +99,22 @@ export interface PaneRow {
   axes?: string[];
   /** For an `axis` row: which of the `axes` boxes are ticked. */
   frozen?: string[];
+  /**
+   * For an `anchor` row: which cell of Unity's anchor-preset grid is the
+   * current one, written as `<row>-<column>` the way Unity spells the presets —
+   * `top-left` for a HUD label pinned near the corner, `middle-center` for the
+   * default. A typo here throws during the build rather than quietly drawing a
+   * grid with nothing selected, which would be a figure that says "any of
+   * these" when the lesson is saying "this one".
+   */
+  at?: string;
+  /**
+   * For a `listener` row: the method the entry calls, written the way Unity
+   * writes it in the second slot — `SetActive (bool)`, with the parameter type
+   * in brackets. The row's `label` is the object it calls it on, because WHO
+   * and WHAT are the two decisions the entry is made of.
+   */
+  fn?: string;
 }
 
 export interface PaneSpec {
@@ -123,6 +140,12 @@ const ROW = 21;         // row height, Unity's at this scale
 const PAD = 14;         // breathing room under the last row
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Unity's anchor-preset grid is four rows by four columns, and these are its
+ *  names — the same words the lesson says out loud ("anchor preset → top-left")
+ *  and the same axes a `depth`-less row has no other way to point at. */
+const PRESET_ROWS = ['top', 'middle', 'bottom', 'stretch'];
+const PRESET_COLS = ['left', 'center', 'right', 'stretch'];
 
 /** `code` and **bold**, same rules as a lesson body. */
 function prose(s: string): string {
@@ -171,6 +194,23 @@ function row(row: PaneRow, y: number, badge: boolean, shift: number, kids: boole
         : '') +
       '<text class="pane-label" x="' + (indent + 18) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
   }
+  if (row.kind === 'listener') {
+    // One entry of a UnityEvent's list, on its own indented line: WHO it calls
+    // in the left slot and WHAT it calls in the right one, because those are two
+    // decisions and "three listeners calling SetActive" cannot be read without
+    // seeing the pairing. The argument the method takes is the next row down,
+    // which is where Unity stacks it, so a spec writes each entry as two rows.
+    const objW = 158;
+    const fnW = 134;
+    const fx = W - 10 - fnW;
+    return tint + badgeMark +
+      '<rect class="pane-field" x="' + indent + '" y="' + (y + 2) + '" width="' + objW +
+      '" height="' + (ROW - 4) + '" rx="3"/>' +
+      '<text class="pane-label" x="' + (indent + 5) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>' +
+      '<rect class="pane-field" x="' + fx + '" y="' + (y + 2) + '" width="' + fnW +
+      '" height="' + (ROW - 4) + '" rx="3"/>' +
+      '<text class="pane-label" x="' + (fx + 5) + '" y="' + (y + 14) + '">' + esc(row.fn ?? '') + '</text>';
+  }
   if (row.kind === 'axis') {
     const axes = row.axes ?? [];
     // No boxes at all is Unity's foldout header — the `Constraints` line the
@@ -203,6 +243,37 @@ function row(row: PaneRow, y: number, badge: boolean, shift: number, kids: boole
             : '');
       })
       .join('');
+  }
+  if (row.kind === 'anchor') {
+    // Unity's anchor-preset button: a 4x4 grid where every cell IS a preset, so
+    // "top-left" is a square to click and not a word to hunt for. The chosen
+    // cell is drawn lighter, the way Unity tints the current one — the badge
+    // can only say WHICH ROW, so if the grid did not show which cell, the
+    // figure could not say top-left at all.
+    const cell = 4;
+    const gap = 1;
+    const size = cell * 4 + gap * 3;      // 19px — one row tall, like Unity's button roughly is
+    const [rname, cname] = (row.at ?? '').split('-');
+    const ri = PRESET_ROWS.indexOf(rname);
+    const ci = PRESET_COLS.indexOf(cname);
+    if (!row.at || ri < 0 || ci < 0) {
+      throw new Error(
+        'pane anchor row needs at: "<row>-<column>" with row one of ' + PRESET_ROWS.join('/') +
+        ' and column one of ' + PRESET_COLS.join('/') + ' — got ' + JSON.stringify(row.at)
+      );
+    }
+    let grid = '<rect class="pane-field" x="' + indent + '" y="' + (y + 1) + '" width="' + size +
+      '" height="' + size + '" rx="2"/>';
+    for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < 4; r++) {
+        grid += '<rect class="pane-anchor' + (c === ci && r === ri ? ' pane-anchor-on' : '') +
+          '" x="' + (indent + 3 + c * (cell + gap)) + '" y="' + (y + 4 + r * (cell + gap)) +
+          '" width="' + cell + '" height="' + cell + '"/>';
+      }
+    }
+    return tint + badgeMark + grid +
+      '<text class="pane-label" x="' + (indent + size + 8) + '" y="' + (y + 14) + '">' +
+      esc(row.label) + '</text>';
   }
   if (row.kind === 'object') {
     // Hierarchy and Project rows: an expand arrow, then the icon, then the name
