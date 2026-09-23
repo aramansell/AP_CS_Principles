@@ -74,6 +74,13 @@ export interface PaneRow {
   depth?: number;
   /** A row that is a section heading inside a component (Unity's bold labels). */
   strong?: boolean;
+  /**
+   * An `object` row (Hierarchy or Project) that is a prefab instance. Unity
+   * marks these with a blue cube at the left of the name, and lessons lean on
+   * that mark — "each instance carries a blue cube icon" is a sentence 2.4 has
+   * to be able to point at.
+   */
+  prefab?: boolean;
 }
 
 export interface PaneSpec {
@@ -107,7 +114,7 @@ function prose(s: string): string {
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 }
 
-function row(row: PaneRow, y: number, badge: boolean, shift: number): string {
+function row(row: PaneRow, y: number, badge: boolean, shift: number, kids: boolean): string {
   const indent = 12 + (row.depth ?? 0) * 12 + shift;
   const tint = row.step
     ? '<rect class="pane-mark" x="0" y="' + y + '" width="' + W + '" height="' + ROW + '"/>' +
@@ -147,9 +154,18 @@ function row(row: PaneRow, y: number, badge: boolean, shift: number): string {
       '<text class="pane-label" x="' + (indent + 18) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
   }
   if (row.kind === 'object') {
+    // Hierarchy and Project rows: an expand arrow, then the icon, then the name
+    // — the same order Unity draws them, so a name that is indented one level
+    // (a child) reads as a child and a blue cube reads as a prefab instance.
+    // The arrow is drawn only where the row has children, which the pane can
+    // see for itself: the next row is deeper. Unity's rule, so no spec has to
+    // say it, and a leaf cannot be drawn with an arrow that expands nothing.
     return tint + badgeMark +
-      '<path class="pane-caret" d="M' + indent + ' ' + (y + 8) + 'l4 4 4-4z"/>' +
-      '<text class="pane-label" x="' + (indent + 12) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
+      (kids ? '<path class="pane-caret" d="M' + indent + ' ' + (y + 8) + 'l4 4 4-4z"/>' : '') +
+      '<rect class="pane-ico' + (row.prefab ? ' pane-ico-prefab' : '') + '" x="' +
+      (indent + 12) + '" y="' + (y + 6) + '" width="9" height="9" rx="1.5"/>' +
+      '<text class="pane-label' + (row.strong ? ' pane-strong' : '') + '" x="' + (indent + 27) + '" y="' +
+      (y + 14) + '">' + esc(row.label) + '</text>';
   }
   // field: label left, value in a box on the right, the way Unity draws it.
   const boxW = 132;
@@ -181,7 +197,8 @@ export function renderPane(spec: PaneSpec): string {
     .map((r, i) => {
       const first = r.step !== undefined && !badged.has(r.step);
       if (first) badged.add(r.step as number);
-      return row(r, HEAD + i * ROW, first, shift);
+      const next = spec.rows[i + 1];
+      return row(r, HEAD + i * ROW, first, shift, !!next && (next.depth ?? 0) > (r.depth ?? 0));
     })
     .join('');
   // The caption goes through prose() so a lesson can name a setting the same
