@@ -55,7 +55,7 @@ export interface PaneRow {
    * a check has a box on the left, a button is a button, and an object row is
    * a name in the Hierarchy or the Project window.
    */
-  kind: 'component' | 'field' | 'check' | 'button' | 'object';
+  kind: 'component' | 'field' | 'check' | 'button' | 'object' | 'axis';
   /** The label the student reads in the pane, spelled as Unity spells it. */
   label: string;
   /** A field's value, as it appears in the box on the right. */
@@ -88,6 +88,16 @@ export interface PaneRow {
    * to be able to point at.
    */
   prefab?: boolean;
+  /**
+   * For an `axis` row: the little toggle boxes Unity draws to the RIGHT of the
+   * label, one per axis — `['X', 'Y']` for a Rigidbody2D's Freeze Position,
+   * `['Z']` for its Freeze Rotation, which is a 2D body and has only the one.
+   * An `axis` row with no `axes` is a plain header row, which is how Unity
+   * prints the `Constraints` foldout these boxes live under.
+   */
+  axes?: string[];
+  /** For an `axis` row: which of the `axes` boxes are ticked. */
+  frozen?: string[];
 }
 
 export interface PaneSpec {
@@ -160,6 +170,39 @@ function row(row: PaneRow, y: number, badge: boolean, shift: number, kids: boole
         ? '<path class="pane-check" d="M' + (indent + 2.5) + ' ' + (y + 10.5) + 'l2.2 2.4 3.8-5"/>'
         : '') +
       '<text class="pane-label" x="' + (indent + 18) + '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
+  }
+  if (row.kind === 'axis') {
+    const axes = row.axes ?? [];
+    // No boxes at all is Unity's foldout header — the `Constraints` line the
+    // two Freeze rows sit under. A heading that wore boxes would read as a row
+    // you can set, which is the one thing a heading is not.
+    //
+    // Its caret points DOWN, unlike an `object` row's: this figure is drawing
+    // what is under the foldout, so the foldout is open, and an arrow saying
+    // "collapsed" over three visible rows would be the one lie in the pane.
+    if (axes.length === 0) {
+      return tint + badgeMark +
+        '<path class="pane-caret" d="M' + (indent + 8) + ' ' + (y + 7) + 'h8l-4 5z"/>' +
+        '<text class="pane-label' + (row.strong ? ' pane-strong' : '') + '" x="' + (indent + 20) +
+        '" y="' + (y + 14) + '">' + esc(row.label) + '</text>';
+    }
+    // Unity writes each axis as its letter followed by a tick box, right-aligned
+    // in fixed slots — so `Freeze Position` and `Freeze Rotation` line their
+    // boxes up in a column and the eye can compare them. The letter comes first
+    // and the box second, which is the reverse of the `check` row above; get
+    // that backwards and it reads as a list of letters with boxes in front.
+    const SLOT = 34;
+    const first = W - 10 - axes.length * SLOT;
+    return tint + badgeMark + label + axes
+      .map((a, i) => {
+        const x = first + i * SLOT;
+        return '<text class="pane-axis" x="' + x + '" y="' + (y + 14) + '">' + esc(a) + '</text>' +
+          '<rect class="pane-box" x="' + (x + 9) + '" y="' + (y + 5) + '" width="11" height="11" rx="2"/>' +
+          ((row.frozen ?? []).includes(a)
+            ? '<path class="pane-check" d="M' + (x + 11.5) + ' ' + (y + 10.5) + 'l2.2 2.4 3.8-5"/>'
+            : '');
+      })
+      .join('');
   }
   if (row.kind === 'object') {
     // Hierarchy and Project rows: an expand arrow, then the icon, then the name

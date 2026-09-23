@@ -291,13 +291,18 @@ It goes **inside** the `<li>` it belongs to, and three rules come with it:
   pane with no marked row at all is fine when the step is about the pane's shape
   rather than one setting.
 
-A row is one of five shapes, and the shape follows the pane: `component` (a header),
+A row is one of six shapes, and the shape follows the pane: `component` (a header),
 `field` (a value box on the right), `check` (a box on the left — `on: true` for
-ticked), `button` (`Add Component`), and `object` (a Hierarchy or Project row).
-`object` rows take `prefab: true` for the blue cube that marks a prefab instance and
-`depth: 1` for a child; the expand arrow is drawn where the pane can see the row has
-children, so no spec sets it. `label` is spelled the way Unity spells it — the
-student is going to search the pane for these exact words.
+ticked), `button` (`Add Component`), `object` (a Hierarchy or Project row), and
+`axis` (a tick box per axis on the right, Unity's `Freeze Position` / `Freeze
+Rotation`). An `axis` row carries `axes: ['X', 'Y']` — the letter first, box second,
+the reverse of `check` — and names the ticked ones in `frozen: ['Z']`; an `axis`
+row with no `axes` is the foldout heading those boxes sit under, so it draws the
+caret and takes `strong: true`. `object` rows take `prefab: true` for the blue cube
+that marks a prefab instance and `depth: 1` for a child; the expand arrow is drawn
+where the pane can see the row has children, so no spec sets it. `label` is spelled
+the way Unity spells it — the student is going to search the pane for these exact
+words.
 
 A drawn pane costs the lesson **no prose words**: the metric strips the `<svg>` with
 the code blocks, so only the caption is counted. Prefer it to a screenshot — a capture
