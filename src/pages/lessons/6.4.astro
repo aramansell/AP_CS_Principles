@@ -1,0 +1,374 @@
+---
+// Lesson 6.4 — Boots: Double Jump
+//
+// Scaffolding: OUTLINE ONLY (level 3). The student built the flick in 6.1, the
+// ground check in 6.2 and the mercy timers in 6.3, and built a pickup twice
+// (2.1 coin, 2.3 potion) — so a double jump is a jump plus a counter, and both
+// halves have precedent. This lesson therefore names the parts, points at where
+// to read each one, lays the API out in a table and stops: no walkthrough, no
+// lines handed over. The ask banner is the level marker — a level-3 lesson must
+// not render a walkthrough, and verify-site refuses one that does (see the
+// `level >= 3 && wt` rule in scripts/verify-site.mjs).
+//
+// WHY THIS IS THE RUNG: the ladder is per concept, not per unit. 6.1-6.3 were
+// the first treatment of gravity, ground checks and jump feel; 6.4 is the same
+// jump again with a counter attached. The only genuinely new idea is a data
+// decision — a jump is now legal in the one situation the ground check refuses,
+// so the boolean that has governed every jump since 6.2 has to be replaced by a
+// question about how many. That is a decision, not a mechanism, which is exactly
+// what level 3 is for.
+//
+// GROUND TRUTH (read out of AP_CS_P_Starter_Project, Unity 6000.6.0f1):
+//   - ProjectSettings/TagManager.asset declares exactly six tags: Coin, Enemy,
+//     Axe, Spikes, Ground, GroundCheck. There is NO `Boots` tag, so the student
+//     creates it. (The `Player` tag on the Player prefab is a Unity built-in and
+//     does not appear in that list.)
+//   - Assets/_Scenes/Platformer.unity — the cave — contains one prefab instance
+//     (the Player), the Collision and No Collision tilemaps, Main Camera, a
+//     Quad and the Cave Exit object. There are NO Coin, Spikes or Turret
+//     instances in it. The old page's claim about this checked out.
+//   - No prefab in the project carries a Rigidbody2D, and exactly ONE carries a
+//     Collider2D: Switch.prefab, whose BoxCollider2D is a trigger (m_IsTrigger: 1),
+//     with no body. The coin collider is added by the student in 2.1 and the
+//     Player's Dynamic body with it, so the trigger pair the boots need is already
+//     in place. (An earlier version of this note claimed no prefab carried a
+//     Collider2D at all; Switch.prefab contradicts it.)
+//   - There is no boots art anywhere in the project (no file matching *boot*).
+//     The old page said "a sprite from Assets/Artwork" without saying there is
+//     nothing there to use; this version says the honest thing and points at the
+//     greyboxing the potion in 2.3 already taught.
+//   - `Assets/Scripts/PlayerController.cs` is still an empty stub: the counter,
+//     the maximum and the pickup branch do not exist in the starter. Nothing
+//     here claims a field that ships.
+//   - Unity 6 names: `Rigidbody2D.linearVelocity` (not `velocity`), and
+//     `Object.FindFirstObjectByType<T>()` replaces the deprecated
+//     `FindObjectOfType<T>()`. The legacy `Input` class is correct.
+//
+// CORRECTED EARLIER, STILL TRUE HERE: the old page told the student that "your
+// inventory from 2.3 used a bool because a potion is a yes-or-no fact". 2.3 has
+// no boolean in it at all — its whole subject is a number (health) and the
+// ceiling on that number, and the `bool` inventory in this course is 5.1's
+// `hasAxe`. The old page also stated flatly that "your death rule from 2.2
+// reloads a scene"; 2.2 offers three options and only two of them reload, so
+// every place that assumed a reload now says "if".
+//
+// STRUCTURE (this pass, the editor/code split + teach-it-once): the lesson is
+// now two halves and nothing else. "In the Editor" is the numbered, pane-named
+// half — the tag, the greyboxed prefab, the collider decision, the placement,
+// the soft gate — where the old page had four unnumbered prose "Step" paragraphs
+// that named no pane at all. "In the Code" is the API table and the three
+// architectural specifications, which is where the student writes the counter,
+// the reset and the pickup branch.
+//
+// CULLED, with the reason each was a repeat:
+//   - The whole "The Problem: One Jump Is Not a Number" activity. Its opening
+//     paragraph restated the Break It Down `big` almost line for line; its
+//     Question/Your-answer table asked the same four questions the architectural
+//     specification now asks, and its first cell ANSWERED one of them ("Not 'am I
+//     grounded' — something about how many"), which is what turned the spec from a
+//     question into a formality. Its `<strong>A bool says "one", a counter says
+//     "how many"</strong>` callout was a third statement of a point the API
+//     table's `int` row and the socratic both carry. The lead keeps the goal.
+//   - The whole "Read the Docs: Who Owns a Pickup?" activity (three-approach
+//     table, its callout, and its socratic "Pick One and Defend It"). The pickup
+//     pattern is 2.1 and 2.3, both still cited below and in the Break It Down
+//     docs; the API table's `OnTriggerEnter2D(Collider2D other)` row carries the
+//     recipe, and the architectural specification is where the choice is made.
+//     That activity was a second Socratic on top of the first, which the spec
+//     names as the usual offender.
+//   - The "three facts a signature cannot carry" callout. Its first fact restated
+//     the `why` above it, and its second is the pickup recipe the table row and
+//     the Break It Down docs already give.
+//   - API rows that re-taught other lessons: `Input.GetKeyDown(KeyCode.Space)`
+//     (6.1 and 6.3), `Debug.Log(object)` (1.3, and the spec now names the call
+//     with its parameter) and the `Physics2D` ground-check row (6.2 — the spec
+//     points at the check instead of re-pricing the techniques).
+//   - Two checklist lines ("break this feature into parts…", "say which earlier
+//     lesson each part came from") that restate what the Break It Down block asks
+//     on every page and what the checkpoint below already rewards.
+//   - Two architectural-specification bullets that asked what the Break It Down
+//     TURNS already ask, on the same page, as answer boxes. dc1:q2 is verbatim
+//     "which one belongs in the Inspector and which one stays private", so the
+//     bullet that asked it is gone. dc1:q3 is "there is exactly one moment…
+//     name it" plus "what goes wrong the day it gets decided in two places", so
+//     the reset bullet keeps only the part the box does not have — the pointer at
+//     the ground check in 6.2 — and drops the restated warning. Both boxes are
+//     the survivors: they are persisted student answers, and a spec bullet is not.
+//
+//   - Trims for the ~2,000-word ceiling on a build lesson, none of them a loss:
+//     the counter row's cost cell stopped re-stating the unlimited-jump warning
+//     (the spec's last bullet and the Break It Down part both carry it), the
+//     field row stopped explaining "private to C#" on a line that cites 1.3 for
+//     exactly that, and the code half's intro stopped listing the five jobs the
+//     table below it was about to lay out one by one.
+//
+// SURVIVOR CHOSEN WHERE TWO SECTIONS OVERLAPPED: the architectural specification
+// is the container that keeps the thinking with the student, so the deleted
+// table's questions live there now and nowhere else — a spec bullet asks, a table
+// cell does not answer. Where the spec overlapped a Break It Down turn, the turn
+// wins, because it is an answer box a student has already typed into.
+//
+// PROTECTED BLOCKS — ids are POSITIONAL (see src/lib/formify.ts), so nothing here
+// is reordered, renumbered or re-counted. One socratic survives, in its original
+// document position and with its original three items, so it is still the sc1
+// block: `socratic "Choosing the Data" 3 items`. The second socratic was deleted
+// whole, which is the one block-level change the spec allows. The checklist is
+// not harvested (no box), and the decompose spec is untouched, so `6.4:dc1:q1..q3`
+// are unchanged. No nested <div> inside any protected block.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The recurring two-beat block: split the problem, look each part up, connect
+// it to something already built. Level 3, so the renderer withholds what each
+// part DOES and asks the student to say it — the parts and their doc pointers
+// are the level-3 bargain. Every doc pointer is a lesson the student has
+// finished (2.1, 2.3, 2.4, 6.1, 6.2, 6.3) and nothing later than today.
+const DECOMPOSE = {
+  big:
+    'Tap the key in mid-air and jump a second time — but only while you are carrying the boots. ' +
+    'As one problem it is not startable, because the question your jump has been asking since 6.2 ' +
+    '("am I standing on something?") has a false answer in exactly the situation the second jump ' +
+    'happens in.',
+  parts: [
+    {
+      name: 'Count the jumps you have left',
+      does: 'A whole-number field in the class body beside your coin count and your health, plus a second field for the maximum so a designer can change it in the Inspector without opening your script. The data question comes first: the fact is "how many are left", and a `bool` cannot hold it.',
+      doc: '2.1 — Coins: Triggers, Tags & Your First Stat: the count field you declared in the class body, and the rule that state which has to survive a frame belongs to the object',
+      href: '2.1.html',
+    },
+    {
+      name: 'Spend one at the instant the jump fires',
+      does: 'The counter goes down on the same frame the impulse goes up, at the one place in your script where a jump is allowed to happen. Skip it and the player has an unlimited supply — the infinite jump 6.2 already cured, back in a new costume.',
+      doc: 'the "spend rule" you wrote for the coyote window in 6.3 — jump and the window is gone — and the jump line itself in 6.1',
+      href: '6.3.html',
+    },
+    {
+      name: 'Give it back the moment you land, in the one place the ground check already runs',
+      does: 'The counter goes back up inside the branch where the ground check comes out true — the same single place you recorded the coyote timestamp. A second definition of "on the ground" is a second thing that can be wrong.',
+      doc: '6.2 — Ground Checks: No Infinite Jumps: the check itself, and the rule from 6.3 that it is computed in exactly one place',
+      href: '6.2.html',
+    },
+    {
+      name: 'Let the jump condition ask about the counter',
+      does: 'The condition stops being "am I grounded" and becomes "may I jump": grounded or inside the coyote window, AND a jump still left in the count. Write the sentence with the AND in it before you write the line.',
+      doc: 'the compound condition you wrote in 6.2 and the grace window you added to it in 6.3',
+      href: '6.2.html',
+    },
+    {
+      name: 'Build the pickup that changes the number',
+      does: 'The potion pattern from 2.3 with a different payload: a tag of your own, a trigger collider on the root, one more branch in the callback you already have — and then the real choice, whether it raises the maximum or refills the count. Those are two different games, and the specification below asks you to justify the one you picked and say what the other would have felt like.',
+      doc: '2.1 — Coins: Triggers, Tags & Your First Stat (tag, trigger, callback, destroy) and 2.3 — Healing Pickups & the Max-Health Cap (the pickup that moves a ceiling)',
+      href: '2.3.html',
+    },
+    {
+      name: 'Put the boots where the level can ask for them',
+      does: 'An instance standing somewhere a tester has to walk, and a coin moved onto a shelf one jump cannot reach. Nothing is a gate until there is a visible thing you cannot get to.',
+      doc: 'the prefab-versus-instance rule and the placement work in 2.1, and the playtest habits from 2.4',
+      href: '2.4.html',
+    },
+  ],
+  why:
+    'Five of those six parts are things you have already built, and the sixth is arithmetic on a number. What is genuinely new is small enough to miss: a jump is now legal in the one situation where the ground check says no, so the ground check stops being the whole answer and becomes one term in a question about *how many*. Choosing the field that matches that question — instead of re-arranging a boolean until it fits — is the whole lesson. The code is four lines; the decision is the work.',
+  sizeTest:
+    'The test for a finished split: does the part name something you could point at — a field, a line, a branch, an object in the Hierarchy? "Make a double jump" points at nothing. "Where the counter goes back up" points at one branch of one method, and that is a part.',
+  turns: [
+    'The counter and the maximum are two fields. Which one belongs in the Inspector and which one stays private? Say what a designer can do to your game with each of those two answers.',
+    'There is exactly one moment in the whole game where the count should go back up. Name it before you read on — and say what goes wrong the day it gets decided in two places.',
+  ],
+};
+
+const body = `<h1>6.4 — Boots: Double Jump</h1>
+
+<p class="lesson-lead">
+    The potion raised a number that already had a ceiling. The boots change something else
+    entirely: they change what your <em>level design is allowed to ask for</em>. One pickup that
+    grants a second jump in mid-air rewrites every gap in the cave — including the gaps you have
+    not built yet. Your goal: a character that can jump a second time in the air, but only after
+    picking up a pair of boots.
+</p>
+
+${renderAskBanner('how do I make a double jump?', 3)}
+
+${renderDecompose('6.4', DECOMPOSE, 3)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Edit → Project Settings → Tags and Layers →</strong> add a tag called
+            <code>Boots</code>. Read the list while you are in there: it ships six tags, and every
+            one is a name somebody has to remember.
+        </li>
+        <li>
+            <strong>Hierarchy → right-click → 2D Object → Sprites → Square</strong>, and rename it
+            <code>Boots</code>. Then <strong>Project window →</strong> <code>Assets/Artwork</code>,
+            pick a sprite you are not using, and drop it into <strong>Inspector → Sprite Renderer
+            → Sprite</strong>. There is no boots art anywhere in this project — no file matching
+            <em>boot</em>, no prefab — so tint it with <strong>Sprite Renderer → Color</strong>
+            until it could not be mistaken for a coin. That is greyboxing, and it is what
+            <a href="2.3.html">2.3</a> did for the potion.
+        </li>
+        <li>
+            <strong>Inspector → Add Component → Box Collider 2D</strong>. Decide whether
+            <strong>Is Trigger</strong> is ticked before you leave this step, and be ready to
+            defend the answer: a solid pair of boots is something you trip over, and your player
+            already carries the Dynamic body a trigger pair needs.
+        </li>
+        <li>
+            <strong>Inspector → Tag → Boots</strong>. Then <strong>Project window →</strong> drag
+            the object out of the <strong>Hierarchy</strong> and into <code>Assets/Prefabs</code>:
+            it is a prefab now, and the copy still standing in the cave is an instance of it.
+        </li>
+        <li>
+            <strong>Scene view →</strong> move that instance somewhere a tester has to walk. Then
+            <strong>Project window →</strong> <code>Assets/Prefabs</code> → drag <code>Coin</code>
+            into the <strong>Hierarchy</strong>, and <strong>Scene view →</strong> put it on a
+            ledge one jump cannot reach.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play twice — once straight at the coin, once after
+            collecting the boots — and time how long a tester needs to work out what the boots are
+            for. Then <strong>GitHub Desktop →</strong> commit.
+        </li>
+    </ol>
+
+    <div class="callout trap">
+        <strong>Test the whole loop, including death.</strong> Grab the boots, then die on purpose.
+        If your death rule from <a href="2.2.html">2.2</a> reloads the scene, the Player is rebuilt
+        from the prefab — so where do the boots go, and where does the maximum go? Write down what
+        you observe, then say which of the two has to change: the death rule, or where the boots
+        live.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>
+        This is the level-3 substitute for a walkthrough: the API is laid out below and the code is
+        not. You write the file. Every row is a call or a declaration you have already typed in
+        <a href="6.1.html">6.1</a>, <a href="6.2.html">6.2</a>, <a href="6.3.html">6.3</a> or
+        <a href="2.1.html">2.1</a> — read the cost column before you pick.
+    </p>
+
+    <table>
+        <tr><th>API</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>[SerializeField] private int</code></td>
+            <td>A class-body field — the declaration form from <a href="1.3.html">1.3</a>, visible in the Inspector and still there on the next frame. This is the counter; a second one beside it holds the maximum.</td>
+            <td>Its starting value is a design decision rather than a formality, so the type has to match the question: an <code>int</code> cannot say "maybe", and a <code>bool</code> cannot say "two left".</td>
+        </tr>
+        <tr>
+            <td><code>jumpsLeft = jumpsLeft - 1;</code></td>
+            <td>An assignment to a field that already exists — no type in front of the name, the declare-versus-assign rule from <a href="1.3.html">1.3</a>, and the line <a href="2.1.html">2.1</a> warned about.</td>
+            <td>Write the type in front and you declare a brand-new local that dies at the end of the frame, leaving the counter at its old value on every jump.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.linearVelocity</code></td>
+            <td>The body's velocity, and the Unity 6 spelling of it. It is the property 6.1 used to overwrite the vertical half and keep the horizontal — and older tutorials, written for earlier Unity versions, call it something else.</td>
+            <td>Setting the <em>whole</em> vector erases the half you did not mean to touch.</td>
+        </tr>
+        <tr>
+            <td><code>AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse)</code></td>
+            <td>The flick from <a href="6.1.html">6.1</a> — one instant change in momentum, which physics then spends over the following frames.</td>
+            <td>It divides by mass, so retuning mass silently retunes both jumps.</td>
+        </tr>
+        <tr>
+            <td><code>OnTriggerEnter2D(Collider2D other)</code> and <code>other.CompareTag("Boots")</code></td>
+            <td>The pickup callback and the tag check you have had since <a href="2.1.html">2.1</a> — one branch more in a method that already handles the coin and the potion.</td>
+            <td>It fires once per entry, and only if the tag exists in the project — which is why creating it is the first step above.</td>
+        </tr>
+        <tr>
+            <td><code>other.gameObject</code> and <code>Destroy(Object)</code></td>
+            <td>The whole object behind the collider you just touched, and the call that removes it at the end of the frame.</td>
+            <td>Plain <code>gameObject</code> is <em>you</em>, and getting the two backwards destroys the player. <code>Destroy(Object)</code> is also deferred, so the object is alive for the rest of the frame.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification: the jump allowance.</strong>
+        <ul>
+            <li>What is the maximum's default value in a build where the player has no boots? Say it out loud, then check that the field in the Inspector agrees with what you said.</li>
+            <li>Where exactly does the counter reset — is that one line nested inside the ground check you wrote in <a href="6.2.html">6.2</a>?</li>
+            <li>What does the new jump condition say in English — the ground or coyote logic from <a href="6.3.html">6.3</a> <em>and</em> a comparison on the counter? Write the sentence before you translate it.</li>
+            <li>What do you do to the counter at the instant the jump fires? Skip that line and the player has an unlimited supply.</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the second jump.</strong>
+        <ul>
+            <li>Read your own jump line from <a href="6.1.html">6.1</a> rather than guessing: does it <em>replace</em> the vertical velocity or <em>add</em> to it? Then predict a second jump fired while you are still rising, and say which of the two you would rather design levels around.</li>
+            <li>If that is not the one you wanted, what is the smallest change that gets you the other — and does it break the first jump?</li>
+            <li>Whichever you choose, the <em>second</em> jump now needs to know which jump it is. Which line of your code already knows?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the pickup branch.</strong>
+        <ul>
+            <li>Which callback fires when the player touches the boots — the trigger one or the collision one? The answer depends on the collider setting you chose in the editor half, and it changes the <em>parameter type</em> you are handed.</li>
+            <li>How do you identify the boots from inside that callback, and how do you reach the object that should disappear?</li>
+            <li>What does the branch change on the player — the maximum, or the count? Justify the choice you made on paper, and say what the other would have felt like to a player who finds a second pair.</li>
+            <li>What do you hand to <code>Debug.Log(string message)</code> so a tester can see the change with no UI in the game?</li>
+        </ul>
+    </div>
+
+    <p>
+        <strong>Deploy in neutral first.</strong> Add the counter and the reset, and leave the
+        maximum at its default: the character should play exactly as it did before, one jump and
+        nothing new. Change the maximum only once that is true — a wrong counter is easier to find
+        before the pickup exists.
+    </p>
+
+    <div class="socratic">
+        <h3>Socratic: Choosing the Data</h3>
+        <ol>
+<li>Where does the jump allowance live — on the player, on the boots, or on a manager? Your answer should sound like the one you gave in <a href="2.1.html">2.1</a>, and for the same reason.</li>
+<li>What type is the counter, and what is its starting value in a game with no boots? What does the <em>field default</em> mean to a designer who has never read your code?</li>
+<li>Is the reset "when I land" or "when I touch a ground-layer collider"? Are those two statements the same thing in your build?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain why a counter is the right data type here and a bool is not</li>
+        <li>Say exactly where the counter resets, and why there is only one such place</li>
+        <li>Build a pickup end to end — tag, collider, effect — the way you built the potion</li>
+        <li>Say whether your second jump replaces or adds velocity, and defend it</li>
+        <li>Explain what happens to the boots when the player dies, and whether you accept that rule</li>
+        <li>Design a soft gate: visible, unreachable, no damage, no text</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — jump counters and capability design</li>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the pickup family the boots belong to</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the <em>Pickup</em> pattern, and Rigidbody2D</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="6.5.html">6.5 — Platforming Studio: The Gauntlet</a>, where every one of these skills has to survive a stranger.</p>
+</div>`;
+---
+<Lesson id="6.4" title="6.4 Boots: Double Jump — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

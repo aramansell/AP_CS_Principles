@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>4.3 Chase: The Aggro Radius — AP CS Principles</title><meta name="description" content="Lesson 4.3 Chase: The Aggro Radius — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="4.3 Chase: The Aggro Radius — AP CS Principles"><meta property="og:description" content="Lesson 4.3 Chase: The Aggro Radius — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="4.2.html">&#9664; 4.2</a><span class="lesson-id">4.3</span><a href="4.4.html">4.4 &#9654;</a></div><h1>4.3 — Chase: The Aggro Radius</h1>
+
+<p class="lesson-lead">
+    Patrol is calm. One distance check turns a guard into a hunter — and you wrote that check in
+    <a href="3.1.html">3.1</a>. What is new is not the maths: the target <em>moves</em>.
+</p>
+
+<div class="ask-banner" data-scaffold="4"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I make an enemy chase me?&rdquo;</span><span class="ask-banner-level">Solo build</span></div>
+
+<div class="activity decompose" data-level="4" data-parts="7" data-given="0" data-docs="0"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Solo build</span></div><p class="dc-big">An enemy that comes for me when I get close. That is the whole feature, and like every feature in this course it is not one problem — it is several standing in a line, one of which you have never solved before.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><p class="dc-empty">No parts listed here on purpose. Splitting the problem up <em>is</em> the work of this lesson — write your list before you open the file.</p><p class="dc-why">Most of the parts inside this feature are things you have already built somewhere else: a distance check written for a turret, a movement toward a target written for a guard, an animator value driven from a direction, a tuning knob, a null guard. Only one part has no earlier version, and it is the one to slow down on — a direction worked out from two positions, one of which you do not control, recomputed every frame. That is what a well-sequenced course feels like from the inside: the same parts, standing in a new order, with one genuinely new one among them.</p><p class="dc-size">The test for a finished split: could you look this part up on its own, right now, in one search? "Make the enemy chase me" cannot be looked up. "Subtract two positions to get a direction" can. If a part is still too big to search for, it is two parts.</p><div class="dc-turns"><h4>Your turn</h4><p>List the parts of this problem, in the order you would build them.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:dc1:q1" data-block="decompose" data-question="List the parts of this problem, in the order you would build them." placeholder="write your answer, then keep going"></textarea></label><p>Write the rule down before you code it: name the value this lesson recomputes every frame, why computing it once is not enough, and what the enemy's speed depends on without length one.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:dc1:q2" data-block="decompose" data-question="Write the rule down before you code it: name the value this lesson recomputes every frame, why computing it once is not enough, and what the enemy's speed depends on without length one." placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Scene view →</strong> save the Overworld before you touch anything, then
+            <strong>Hierarchy →</strong> the four <code>MobileEnemy</code> instances, then
+            <strong>Project window →</strong> <code>Assets/Prefabs/MobileEnemy</code>. All four
+            share one prefab, so one serialized aggro field is one number for all four. Decide
+            whether that is what you want <em>before</em> you write the field.
+        </li>
+        <li>
+            <strong>Inspector →</strong> the prefab root: the <code>EnemyController</code> from 4.1,
+            with the collider and body you gave it. A chase needs a body a wall can stop, and 4.1
+            already made that true.
+        </li>
+        <li>
+            <strong>Inspector →</strong> the child named <em>Sprite</em>, then <strong>Window →
+            Animation → Animator</strong>. Re-read the four <code>Direction</code> values from 4.2:
+            a hunter that keeps the guard's facing reads as a bug, and those four integers are how
+            you fix it.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play and walk near an enemy with the Console open. It
+            ignores you and walks its beat. That is the "before" you are about to change.
+        </li>
+    </ol>
+</div>
+
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>No API table: every call today is one you have already made. One file — <code>Assets/Scripts/EnemyController.cs</code>, your patrol from <a href="4.1.html">4.1</a>.</p>
+
+    <div class="callout info">
+        <strong>Slow down on one part: working out the direction.</strong> Every direction you have written so far came from something you were handed — keys you pressed in <a href="1.4.html">1.4</a>, a target you placed in <a href="4.1.html">4.1</a>, a muzzle you aimed at the instant of firing in <a href="3.2.html">3.2</a>. This time both ends move, and it is worked out again from the two positions, every frame. That is where the bugs will be.
+        <p>The one fact I will hand you: the vector from the enemy to the player is the player's position minus the enemy's, <em>in that order</em>. Swap the operands and you have built something that runs away instead. Give it length one before you multiply it by a speed — otherwise the enemy's speed depends on how far away you are, and it crawls the moment it reaches you.</p>
+    </div>
+
+    <p>The second decision is not about maths. Your <code>Update()</code> patrols unconditionally and now has to chase as well — two behaviours that want the same object, with no earlier lesson to copy from. Pick one of these three on purpose:</p>
+
+    <table>
+        <tr><th>How the two behaviours coexist</th><th>What the code does each frame</th><th>What the player sees</th><th>The risk</th></tr>
+        <tr>
+            <td><strong>Chase is an <code>if</code>; patrol is the <code>else</code></strong></td>
+            <td>Exactly one of the two runs.</td>
+            <td>A clean switch: the moment you cross the line, the enemy turns and comes for you.</td>
+            <td>Nothing holds the answer to "am I chasing?", so no other part of your code can ask. It also forces you to decide which wins when you are inside the patrol beat <em>and</em> the radius at once.</td>
+        </tr>
+        <tr>
+            <td><strong>Chase is an <code>if</code>; the patrol keeps running anyway</strong></td>
+            <td>Both write to the enemy's position in the same frame.</td>
+            <td>A stutter, or an enemy that drifts toward you while still dutifully flipping at the end of its beat.</td>
+            <td>Two systems moving one object, and their sum is a third movement <em>nobody designed</em>. With the <a href="4.1.html">4.1</a> leash this is easy to miss: the patrol's flip check still measures from the spawn anchor, so it reverses your chase mid-pursuit.</td>
+        </tr>
+        <tr>
+            <td><strong>Chase is an <code>if</code>; the patrol is switched off by a flag</strong></td>
+            <td>The flag records the mode, and the patrol checks it.</td>
+            <td>Same as the first row, at first.</td>
+            <td>One extra field, and one extra thing to keep true — and the moment you have a third behaviour, one more clause in every check. Keep this thought for <a href="4.5.html">4.5</a>.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification for the chase.</strong>
+        <ul>
+            <li>Which of the two targeting options from <a href="3.1.html">3.1</a> did you choose, what does that choice cost across four enemy instances, and what does <code>GameObject.FindWithTag(String tag)</code> hand back when nothing matches? Which lifecycle method holds that lookup so it runs once — and does the guard clause after it stop the whole update, or only the chase half, given what the enemy still has to do with no player in the scene?</li>
+            <li>Which serialized float lets a designer say how close you must get, and what do you name it so that a stranger reading the Inspector sees its relationship to the patrol knob beside it?</li>
+            <li>Which movement call moves the enemy — the one your patrol uses, or a different one? If they differ, what does the Rigidbody2D have to satisfy for both to work?</li>
+            <li>Should the patrol's own memory — its target and its anchor — be reset or preserved when the chase ends? Say what the player sees either way.</li>
+            <li>How do you print the current mode to the Console so you can watch the transition happen, and which animator <code>Direction</code> value does the enemy carry while chasing? (Re-read your <a href="4.2.html">4.2</a> notes rather than guessing.)</li>
+        </ul>
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: States, Transitions and Two Writers</h3>
+        <ol>
+<li>You gave the turret a distance check in 3.1 and it opened fire. What does the enemy do with that same answer that the turret did not do — and why does that make the enemy harder to build?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:sc1:q1" data-block="socratic" data-question="You gave the turret a distance check in 3.1 and it opened fire. What does the enemy do with that same answer that the turret did not do — and why does that make the enemy harder to build?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>Your enemy is inside its patrol beat and inside the aggro radius at the same time. Which behaviour must win? Describe exactly what the player sees if you pick the other one.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:sc1:q2" data-block="socratic" data-question="Your enemy is inside its patrol beat and inside the aggro radius at the same time. Which behaviour must win? Describe exactly what the player sees if you pick the other one." placeholder="write your answer, then keep going"></textarea></label></li>
+<li>If both behaviours move the transform in one frame, what is the sum of "walk right at 2 units per second" and "walk toward the player at 2 units per second"? Why is that sum not a chase — and which direction does the enemy actually travel?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.3:sc1:q3" data-block="socratic" data-question="If both behaviours move the transform in one frame, what is the sum of &quot;walk right at 2 units per second&quot; and &quot;walk toward the player at 2 units per second&quot;? Why is that sum not a chase — and which direction does the enemy actually travel?" placeholder="write your answer, then keep going"></textarea></label></li>
+</ol>
+    </div>
+</div>
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Break the chase into parts, and say in one line what each part does and where you built it before</li>
+        <li>Compare <code>Vector3.Distance(a, b)</code> against <code>sqrMagnitude</code>, and say which you chose for the enemy and why</li>
+        <li>Compare <code>GameObject.FindWithTag(String tag)</code> against a serialized reference, and account for the four enemy instances</li>
+        <li>Explain your patrol-to-chase transition, point at the construct that stops both behaviours running at once, and say why two writers on one transform produce motion nobody designed</li>
+        <li>Design an aggro radius that reads as fair next to the turret's detection range, and say which of the two the player should meet first</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — chase and pursuit in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — normalizing, <code>GameObject.FindWithTag(String tag)</code> and vector maths</li>
+    </ul>
+    <p>Next: <a href="4.4.html">4.4 — Attack: Close-Range Contact Damage</a>, where catching you finally has a consequence.</p>
+</div><div class="lab-bar" data-lesson="4.3" data-lesson-title="Chase: The Aggro Radius" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="4.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="4.2.html"><span class="dir">&#9664; Previous</span><span class="where">4.2 — Enemy Animation: A Different State Machine</span></a><a class="foot-next" href="4.4.html"><span class="dir">Next &#9654;</span><span class="where">4.4 — Attack: Close-Range Contact Damage</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

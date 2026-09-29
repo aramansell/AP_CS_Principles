@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>9.1 Binary: How Numbers Live in Memory — AP CS Principles</title><meta name="description" content="Lesson 9.1 Binary: How Numbers Live in Memory — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="9.1 Binary: How Numbers Live in Memory — AP CS Principles"><meta property="og:description" content="Lesson 9.1 Binary: How Numbers Live in Memory — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="8.6.html">&#9664; 8.6</a><span class="lesson-id">9.1</span><a href="9.2.html">9.2 &#9654;</a></div><h1>9.1 — Binary: How Numbers Live in Memory</h1>
+
+<p class="lesson-lead">
+    All semester you have typed <code>int</code> and
+    <code>float</code> like they were words. Underneath, every one of
+    your coins, every xSpeed of 5, every cooldown of 2f is a stack of
+    bits — and once you can READ them, half the AP exam's data
+    questions become easy points.
+</p>
+
+<div class="ask-banner" data-scaffold="3" data-frame="concept"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I read a number as bits?&rdquo;</span></div>
+
+<div class="activity decompose" data-level="3" data-parts="5" data-given="5" data-docs="5" data-frame="concept"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span></div><p class="dc-big">Read the number 13 as eight bits of memory — and be able to say what every single bit is worth.</p><p class="dc-ask"><strong>First, before anything else:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Name the place values</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: the place-value table in this lesson, in the Concept Lab</span></li><li class="dc-part"><span class="dc-name">Walk the places from largest to smallest</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: Step 2 of the Build Lab below</span></li><li class="dc-part"><span class="dc-name">Say why the hardware counts in twos and not tens</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="../docs/unit-09/binary-and-hex.html">Binary &amp; Hex, the unit reference page</a></span></li><li class="dc-part"><span class="dc-name">Work out how far a fixed width can reach</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: the byte-vs-int range discussion in the Concept Lab</span></li><li class="dc-part"><span class="dc-name">Recognise the edge</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="../exam/reference-sheet.html">the overflow practice on the Exam Reference Sheet</a></span></li></ol><p class="dc-why">The split is the whole lesson. "Convert 13 to binary" is one task you can only memorise; these five are five things you can look up, and the last two are the ones the exam actually asks about. Nothing here needs a variable — a bit width is a <em>design</em> decision you make once, and every later bug in this unit is that decision meeting a number that grew past it.</p><p class="dc-size">The test: could you explain this part to somebody using only a piece of paper? If a part needs Unity open to explain, it is not a part of this problem — it is a part of a coding problem.</p><div class="dc-turns"><h4>Your turn</h4><p>Pick two of the parts above and say in one line what each one actually does.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.1:dc1:q1" data-block="decompose" data-question="Pick two of the parts above and say in one line what each one actually does." placeholder="write your answer, then keep going"></textarea></label><p>You want to store the number of lessons in the year, 81. Does it fit in 7 bits? Name the power of two that decides it, and say what that tells you about picking a width.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.1:dc1:q2" data-block="decompose" data-question="You want to store the number of lessons in the year, 81. Does it fit in 7 bits? Name the power of two that decides it, and say what that tells you about picking a width." placeholder="write your answer, then keep going"></textarea></label><p>Unity spends a whole byte on a <code>bool</code> even though a bool is one bit. Is that waste a mistake? Argue one sentence for each side.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.1:dc1:q3" data-block="decompose" data-question="Unity spends a whole byte on a `bool` even though a bool is one bit. Is that waste a mistake? Argue one sentence for each side." placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p><strong>Base 10 first (you already know it).</strong> The
+    number 273 means 2×100 + 7×10 + 3×1. Each place is worth TEN times
+    the one to its right, because you have ten fingers' worth of
+    symbols (0–9). Binary is the same game with two symbols:</p>
+    <table>
+        <tr><th>Place</th><td>8s</td><td>4s</td><td>2s</td><td>1s</td></tr>
+        <tr><th>Bits</th><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+        <tr><th>Worth</th><td>8</td><td>0</td><td>2</td><td>1</td></tr>
+    </table>
+    <p>1011₂ = 8 + 0 + 2 + 1 = <strong>11</strong>. Each place is a
+    power of two: 1, 2, 4, 8, 16, 32, 64, 128.</p>
+
+    <p><strong>Why computers chose 2.</strong> Every wire in the
+    machine holds either HIGH or LOW, on or off, 1 or 0 — your game
+    runs on billions of yes/no questions per second. An 8-bit number
+    (a byte) counts 0–255; an int like your health (3) or coins (0)
+    is 32 bits wide, so its range is enormous — but NOT infinite, and
+    that is the fact that matters:</p>
+    <pre><code>Your turret cooldown 2f stored as a float:
+0 10000000 00000000000000000000000  → the bits of 2.0f
+(int) 2f is 00000000000000000000000000000010  → the bits of 2</code></pre>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            Coins are an int, maxHealth is an int, jumpForce is a
+            float. Why would coins NEVER want to be a float — and
+            what goes wrong with money (0.1 + 0.2) in binary? Try it:
+            Debug.Log(0.1f + 0.2f == 0.3f); — why does it print
+            False?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="9.1:sc1:q1" data-block="socratic" data-question="Coins are an int, maxHealth is an int, jumpForce is a float. Why would coins NEVER want to be a float — and what goes wrong with money (0.1 + 0.2) in binary? Try it: Debug.Log(0.1f + 0.2f == 0.3f); — why does it print False?" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p><strong>Step 1 — count in binary with your hands.</strong>
+    Right thumb = 1, right index = 2, right middle = 4, right ring =
+    8, right pinky = 16. Count 0–31 by raising fingers. When you can
+    get to your coin count without stalls, you have it.</p>
+
+    <p><strong>Step 2 — read your own game's numbers.</strong>
+    Convert, on paper, into 8-bit binary. Write the place values
+    down, not just the bits:</p>
+    <ol>
+        <li>health = 3</li>
+        <li>attackCooldown = 2</li>
+        <li>maxAttackRange = 7</li>
+        <li>patrolDistance = 3, chaseDistance = 5 → convert both</li>
+        <li>The number of B days in the semester: 81 lessons → does
+            it fit in 7 bits? (128 says yes, 64 says no — which
+            one is right?)</li>
+    </ol>
+
+    <details class="wt-final wt-gated">
+        <summary>
+            <span class="wt-gated-title">Check your answers</span>
+            <span class="wt-gated-peek">write yours first</span>
+        </summary>
+        <p class="wt-lead">Then compare. Every one of these is something you can now explain, and every one of them is a real value from your own scripts and your own calendar.</p>
+        <ul>
+            <li>health = 3 → <code>00000011</code> (2 + 1)</li>
+            <li>attackCooldown = 2 → <code>00000010</code> (the 2s place alone)</li>
+            <li>maxAttackRange = 7 → <code>00000111</code> (4 + 2 + 1)</li>
+            <li>patrolDistance = 3 → <code>00000011</code>; chaseDistance = 5 → <code>00000101</code> (4 + 1)</li>
+            <li>81 fits: 7 bits is 128 values, 0–127, and 81 is inside that. The place that decides it is the 64s — 81 is bigger than 64, so that bit is a 1.</li>
+        </ul>
+    </details>
+
+    <p><strong>Step 3 — bit tricks your game ALREADY plays.</strong>
+    <code>direction = direction * -1</code> from
+    <a href="4.1.html">4.1</a>? In binary, negation is a bit
+    pattern operation (two's complement: flip every bit, add 1). And
+    your booleans — hasAxe, isGrounded, isOnLadder — are single bits.
+    A byte could hold EIGHT of your booleans. Unity spends a byte
+    per bool anyway — memory is cheap now, but the exam wants you to
+    KNOW a bool is a bit.</p>
+
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Convert any small decimal to binary and back, showing powers of two</li>
+        <li>Explain WHY hardware uses base 2 (voltage states)</li>
+        <li>Demonstrate int overflow and explain it with bits</li>
+        <li>Say what a bool really costs and why range doubles per bit</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-09/binary-and-hex.html">Binary &amp; Hex</a> — the full reference with practice tables</li>
+        <li><a href="../exam/reference-sheet.html">Exam Reference Sheet</a> — binary on the AP exam</li>
+        <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — the whole map</li>
+    </ul>
+    <p>Next: <a href="9.2.html">9.2 — Hex, RGB &amp; Data Abstraction</a></p>
+</div><div class="lab-bar" data-lesson="9.1" data-lesson-title="Binary: How Numbers Live in Memory" data-count="4" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/4 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="9.1" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="8.6.html"><span class="dir">&#9664; Previous</span><span class="where">8.6 — Boss Studio + Final Review</span></a><a class="foot-next" href="9.2.html"><span class="dir">Next &#9654;</span><span class="where">9.2 — Hex, RGB &amp; Data Abstraction</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

@@ -1,0 +1,524 @@
+---
+// Lesson 6.2 — Ground Checks: No Infinite Jumps
+//
+// GROUND TRUTH (verified by reading the starter project at
+// AP_CS_P_Starter_Project, Unity 6000.6.0f1 — the prefabs and
+// ProjectSettings, not just the scenes):
+//
+//   ProjectSettings/TagManager.asset
+//     tags:   Coin, Enemy, Axe, Spikes, Ground, GroundCheck
+//     layers: Default, TransparentFX, Ignore Raycast, (empty), Water, UI, then
+//             a run of EMPTY user slots (the first is index 8), then the
+//             placeholder names "Layer 1/2/3". There is NO `Ground` layer.
+//     So the project has the Ground TAG and not the Ground LAYER, and the
+//     student creates the layer. This is canon downstream: 7.2 says "You
+//     already created Ground back in 6.2".
+//
+//   Assets/_Scenes/Platformer.unity — the cave. The Grid has THREE children:
+//     `No Collision`  Transform + TilemapRenderer + Tilemap. NO COLLIDER AT
+//                     ALL, so a raycast can never hit it. It is paint.
+//     `Collision`     TilemapCollider2D + CompositeCollider2D + Rigidbody2D
+//                     (m_BodyType: 2 = STATIC, m_GravityScale: 1). Tag `Ground`,
+//                     layer 0 (Default). This is the floor.
+//     `Cave Exit`     the SAME three components and the SAME Static body, but
+//                     m_TagString: Untagged, layer 0 (Default). It carries
+//                     SceneSwitch.cs, whose OnCollisionEnter2D tests
+//                     collision.gameObject.CompareTag("Player") and loads the
+//                     Overworld. It is a SECOND solid collider in the cave and
+//                     it is the object a tag-based ground check gets wrong.
+//                     This is the lesson's tag-versus-layer teaching moment and
+//                     it is sitting in the student's own Hierarchy.
+//     (`Quad` is the backdrop: MeshCollider + MeshRenderer, layer Default,
+//      scale 48. A MeshCollider is 3D, so Physics2D cannot see it.)
+//
+//   Assets/Prefabs/Player.prefab — root: Transform + PlayerController ONLY.
+//     Tag `Player` (SceneSwitch depends on it), layer 0. NO Rigidbody2D and NO
+//     Collider2D: both are the student's own work from 2.1. The only child is
+//     `Sprite` at local position (0, 0.6, -1), localScale 2 — so THE ROOT IS
+//     NOT THE CENTRE OF THE CHARACTER. The art hangs above the root, and where
+//     the check point goes is a measurement the student makes, not an
+//     assumption.
+//
+//   ProjectSettings/Physics2DSettings.asset
+//     m_QueriesStartInColliders: 1 — raycasts that BEGIN INSIDE a collider DO
+//       report that collider in this project. So the self-hit bug ("a ray fired
+//       from the root reports the Player at distance zero, forever") is REAL
+//       and reproducible here. The setting's real name contains the bare word
+//       `Start`, which verify check 11 reads as an un-called Unity method, so
+//       its name appears ONLY inside <pre> code and never in prose: prose says
+//       "queries that begin inside a collider" instead. Flagged in the report.
+//     m_QueriesHitTriggers: 1 — triggers are hit by queries too.
+//   (Also verified: Player_Shovel.controller carries exactly IsWalking/Bool,
+//   WalkDir/Int, Attack/Trigger — three parameters, no fourth.)
+//
+// NOT REINTRODUCED: the old claim that a Physics tilemap's Rigidbody2D has
+// "Gravity Scale 0". The Inspector says 1 and the field is greyed out, because
+// Body Type is Static and gravity only ever acts on a Dynamic body.
+//
+// SCAFFOLDING: GUIDED (level 2), and asks.ts agrees. The shape of the whole
+// file is given and exactly one line is the student's: the raycast assignment.
+// It carries a `what` prompt and a `hint` that names what to reach for without
+// printing `Physics2D.Raycast` in the hint itself.
+//
+// SHAPE (editor/code split pass): the two "discovery" activities were one thing
+// wearing two labels — the clicks and the lookups. The clicks are now one "In
+// the Editor" <ol>, every step naming its pane: read the three tilemaps, find
+// the greyed-out Gravity Scale, make the `Ground` layer and assign it, read the
+// prefab's Sprite child, place the empty child, wire the three slots. The one
+// surviving table (four ways to ask about the ground) is "In the Code", and the
+// walkthrough carries the same label.
+//
+// CULLED FOR REPETITION:
+//   - The old walkthrough step 1 ("name the ground before you can ask about
+//     it") was three Inspector comment lines inside a code block — the defect
+//     this pass exists to kill. Its teaching survives in the Editor half, where
+//     the tilemaps and the layer are actually clicked: the Static-body Gravity
+//     Scale rule is the callout under the first step, and the tag-versus-layer
+//     argument is the trap callout beside the tilemap the student is reading.
+//   - The old walkthrough step 2 (the `GroundCheck` empty child) is Editor
+//     work by definition and moved there whole.
+//   - The old "Read the Docs" info callout ("Two names from the docs that are
+//     the same idea") said the LayerMask-is-bits fact that the walkthrough's
+//     `groundLayer` line says beside the field the student is typing, and the
+//     tag-versus-layer fact the trap callout says beside the tilemaps. Both
+//     survivors are better anchored, so this one is gone.
+//   - The Build Lab's honesty test appeared twice: as the last line of the
+//     walkthrough's gizmo step and as Build Lab step 1. The Build Lab is the
+//     survivor — it is where the student runs it, with the gizmo already drawn.
+//
+// PROTECTED BLOCKS — ids are POSITIONAL (src/lib/formify.ts), so nothing here
+// is reordered, renumbered or re-counted. The socratic "Asking Versus
+// Remembering" is the FIRST socratic in the document and stays first, with its
+// exact three <li> verbatim, so its ids stay 6.2:sc1:q1..q3. The second
+// socratic, "Choose Your Check", is deleted whole — it sat after sc1, so no id
+// moves. dc1:q1..qN is unchanged. No nested <div> inside any protected block —
+// formify's regex is non-greedy and a nested div truncates the block.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The two recurring questions, applied to the ground check. Level 2, so
+// exactly one part is withheld — the one with no precedent in this course.
+// Four of the five parts are things this student has already typed; the gap is
+// the part that asks the engine a question instead of telling it what to do.
+const DECOMPOSE = {
+  big:
+    'Your jump works — in mid-air, over and over, forever. "Why can I jump forever in ' +
+    'mid-air?" is really "how does the script know it is standing on something?" Nothing on ' +
+    'the Rigidbody2D means "grounded", and no message fires when a foot touches a floor or ' +
+    'leaves one. So the whole feature is: decide what counts as ground, ask about it, and stop ' +
+    'the jump until the answer is yes.',
+  parts: [
+    {
+      name: 'Make a bucket the physics engine can filter on',
+      does: 'A `Ground` **layer** in `Edit ▸ Project Settings ▸ Tags and Layers`, assigned to the tilemaps you can land on. A layer is not a tag: this cave\'s floor is already tagged `Ground`, and the second solid tilemap beside it is untagged — which is the whole argument for a bucket over a name.',
+      doc: 'the tag-versus-layer callout in the In the Editor steps above',
+    },
+    {
+      name: 'Choose the point you will ask from',
+      does: 'An empty child object at the **bottom edge** of your collider, wired into a slot. Not the Player root: read `Assets/Prefabs/Player` and you will find the art on a child called `Sprite` at local position (0, 0.6, -1), so the root is not the middle of the character you can see.',
+      doc: 'the `[SerializeField] private Transform` slot pattern from 1.3, and the `Sprite` child you read in the Editor half',
+      href: '1.3.html',
+    },
+    {
+      name: 'Ask the engine whether anything is under it',
+      doc: 'the `Physics2D.Raycast(origin, direction, distance, mask)` page in the Unity scripting reference, plus the four-technique table above',
+      blank: true,
+    },
+    {
+      name: 'Stop the jump until the answer is yes',
+      does: 'The jump line you wrote in 6.1 with one term added in front of it: it now needs the key **and** the ground. Two conditions in one `if` — the folded `&&` guard from 5.2, pointed at the world instead of at an object.',
+      doc: 'the jump you wrote in 6.1, and the folded condition in `TryInteract()` from 5.2',
+      href: '5.2.html',
+    },
+    {
+      name: 'Draw the question so you can see it',
+      does: 'A line from the check point, in the check direction, as long as the check distance — one colour when the answer is true and another when it is false. Four lines that turn "my jump does not work" into "my whisker is too short".',
+      doc: 'the `Gizmos.DrawLine(...)` and `OnDrawGizmosSelected()` entries in the Unity scripting reference, and the `Debug.Log(...)` habit from 3.3',
+      href: '3.3.html',
+    },
+  ],
+  why:
+    'Four of those five parts are work you have already done: a `[SerializeField]` slot is 1.3, ' +
+    'the jump line is 6.1, the folded `&&` guard is 5.2, and a gizmo is a `Debug.Log(...)` you ' +
+    'can see. Only one part has no precedent, and it is the whole lesson: every line this script ' +
+    'has ever contained **tells** the engine to do something, and a raycast is the first that ' +
+    '**asks**. A question nothing acts on changes nothing, which is why the part after it is an `if`.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Stop the infinite ' +
+    'jump" cannot be looked up. "Send a ray straight down and find out what is on one layer" can.',
+  turns: [
+    'Two of the four techniques in the table hand you a distance as well as a yes-or-no. Say what a game would do with that distance, and say whether your cave does it.',
+    'The answer your check produces is thrown away and computed again sixty times a second. Name the piece of state from 3.3 that worked the same way — and the piece in this lesson that does **not**.',
+  ],
+};
+
+const WALK = {
+  ask: 'why can I jump forever in mid-air?',
+  file: 'Assets/Scripts/PlayerController.cs',
+  label: 'In the Code',
+  intro:
+    'The layer, the check point and the Inspector slots are done — that was the In the Editor half. What is left is four fields, one method that asks a question every frame, one term added to your jump from 6.1, and a line you can see. The raycast is the one line with nothing earlier in the course to copy.',
+  level: 2,
+  steps: [
+    {
+      title: 'Declare the point, the reach, the filter and the answer',
+      lead: 'Four lines in the class body, beside `moveSpeed` and the jump field from 6.1. Three are `[SerializeField]` knobs a designer can see in the Inspector; the fourth is the answer itself.',
+      lines: [
+        { code: '    [SerializeField] private Transform groundCheck;', what: 'The slot that holds the empty child from the Editor half — a position in the world, and a reference to another object. The same kind of slot as the waypoints in 4.1.' , why: '**Wire it before you press Play.** An empty slot does not complain when the scene loads; it throws a `NullReferenceException` at the first line that **reads** it, and this script reads it sixty times a second.' },
+        { code: '    [SerializeField] private float groundCheckDistance = 0.1f;', what: 'How far down the ray reaches. `0.1` is a starting guess; the honest value is **measured** — the gap from the bottom of your collider to the tile surface, plus a hair.' , why: '**This number is the difference between a check and a lie.** Too short and the ray misses the floor by a hair while your feet are visibly on it, so the jump fails at random; too long and you are "grounded" standing over thin air beside a ledge.' },
+        { code: '    [SerializeField] private LayerMask groundLayer;', what: '**What the ray is allowed to notice.** The type is `LayerMask`, not `int`, and the Inspector draws it as a dropdown of layer names rather than a number.' , why: '**A `LayerMask` is an integer whose bits mark which layers you care about**, which is why "Everything" is not a special case in the code — it is every bit switched on. Empty means `Nothing`, and a ray allowed to hit nothing reports nothing.' },
+        { code: '', what: '' },
+        { code: '    private bool isGrounded;', what: '**The answer**, and the only thing in the file that changes because of it. Named for the question rather than the technique, so it reads correctly whichever technique you chose.' , why: '**In the class body — not inside the method that computes it.** That is the scope rule from 1.3, load-bearing twice over here: declared inside the method it would be thrown away sixty times a second, and the jump would read a name that does not exist. The check **writes** it and the jump **reads** it, and a value two methods share is state.' },
+      ],
+    },
+    {
+      title: 'Ask the question every frame',
+      lead: 'One call added to `Update()`, and one method that does nothing but ask. This is the part of the lesson with no precedent: every other line in this file tells the engine what to do.',
+      lines: [
+        { code: '        CheckGround();', what: 'Called from `Update()`, beside your movement and your animation — the same shape as `UpdateAnimation()` and `CheckAttack()` from 1.6. It runs on **every frame**, and that is not an accident.' , why: '**"Am I grounded" is a fact about right now, not an event that happened.** Nothing sends you a message when a foot touches a floor and another when it leaves one. The collision callbacks from 2.1 report **contacts**, not standing — a character leaning on a wall is in contact with it. So the honest value is the one you re-derive.' },
+        { code: '', what: '' },
+        { code: '    void CheckGround()', what: 'The method that asks. Empty parameter list, `void`, nothing handed back — everything it needs is a field from step 1. Same shape as `UpdateAnimation()` in 1.6: one idea, one method.' },
+        { code: '    {', what: '' },
+        { code: '        isGrounded = ____;', blank: true, what: 'The whole lesson in one line, and the only line in this file that asks the engine a question instead of giving it an order. Fire the question **down** from the point you made in the Editor half, far enough to reach the floor, asking only about the layer you filled — and store the yes-or-no answer in the field from step 1. All four inputs are in the four-technique table above, in the order they are written there. The method hands back a result object that **converts to true when it hit and false when it did not**, which is why this line can end in a `bool` with no `if` in it.' , hint: 'You want the `Physics2D` method that sends an infinitely thin line from a point, in a direction, for a fixed distance, and reports only what sits on the layers you hand it — the one row of the table with all four inputs. Pass them in the order the table writes them: the point, then straight down, then the distance, then the mask. A `Vector3` position is accepted where the method asks for a `Vector2`, so `groundCheck.position` goes in as it is.' , why: '**Two things make this a check rather than a trick.** It sits in a method `Update()` calls **every frame** — not fired once at the moment you land, because nothing would fire at the moment you stop landing. And it **cannot change the game on its own**: it writes a `bool` and touches nothing else, which is why the next step is where the jump stops working in mid-air.' },
+        { code: '    }', what: 'Closes `CheckGround()`. Press Play now and the jump still fires in mid-air, because nothing reads the answer yet.' },
+      ],
+    },
+    {
+      title: 'Make the jump wait for the answer',
+      lead: 'One term added to a line you already wrote in 6.1, and the infinite jump is over.',
+      lines: [
+        { code: '        if (isGrounded && Input.GetKeyDown(KeyCode.Space))', what: 'The jump condition, now **compound**: two questions in one `if`. `isGrounded` is the new term; the key check is the one from 5.2, and it has to stay `GetKeyDown` — the `Down` is what makes one press one jump.' , why: '**Read the `&&` in English before you trust it:** "fire only if I am standing on something AND the key went down this frame". C# short-circuits, so on most frames `isGrounded` settles it. And notice what this means for the player: a jump pressed in mid-air is not refused, it is **thrown away**. 6.3 stops throwing it away.' },
+        { code: '        {', what: '' },
+        { code: '            body.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);', what: 'The jump you wrote in 6.1, unchanged — your key, your force, your force mode. Nothing about how a jump is performed changes today. Only **when** it is allowed to happen.' , why: '**This is the line the whole hour protects.** One extra term in front of it, and a character who could climb the sky leaves the ground exactly once per landing: the whole difference between a jump and a jetpack, for one `bool` and an ampersand.' },
+        { code: '        }', what: '' },
+      ],
+    },
+    {
+      title: 'Draw the question',
+      lead: 'A check you cannot see is a check you will debug by guessing. Four lines of gizmo code turn that around.',
+      lines: [
+        { code: '    private void OnDrawGizmosSelected()', what: 'A method Unity calls in the **editor**, not at runtime — nothing you write in here ships, and nothing in here can affect the game. It draws into the Scene view when this object is selected.' },
+        { code: '    {', what: '' },
+        { code: '        if (groundCheck == null) { return; }', what: 'The guard. In the frames before you wire the slot — and in any scene where you have not — `groundCheck` is nothing, and a gizmo that reads a position off nothing throws into the Console every frame.' },
+        { code: '        Gizmos.color = isGrounded ? Color.green : Color.red;', what: 'One colour while the answer is true and another while it is false. The `? :` is the conditional expression — the same yes/no branch as an `if`, written as a value.' , why: '**Colour is the point, and it is not decoration.** "My jump does not work" and "my ray is too short" look identical from the player\'s seat and completely different from the Scene view. A red line hanging two centimetres above a green floor is a diagnosis.' },
+        { code: '        Gizmos.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * groundCheckDistance);', what: 'From the check point, straight down, exactly as far as the check reaches — the same inputs the ray uses, drawn. If the drawn line and the real ray ever disagree, one of them is not reading the field you think it is.' },
+        { code: '    }', what: 'Closes the gizmo method.' },
+      ],
+    },
+  ],
+  finalFile: `using UnityEngine;
+
+// PlayerController.cs at the end of 6.2 — everything from 1.4 through 6.1,
+// plus the one question this script has never asked: am I standing on
+// something? Every other line here TELLS the engine what to do. CheckGround()
+// ASKS it something, and CheckJump() is the only line that acts on the answer.
+public class PlayerController : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float jumpForce = 7f;          // yours, from 6.1
+
+    // Today's three knobs, all visible in the Inspector (1.3).
+    [SerializeField] private Transform groundCheck;              // where the ray starts
+    [SerializeField] private float groundCheckDistance = 0.1f;   // how far down it reaches
+    [SerializeField] private LayerMask groundLayer;              // what it may notice
+
+    private Rigidbody2D body;
+
+    // The answer. In the class body, because the check writes it and the jump
+    // reads it — and re-derived every frame, because nothing ever tells you it
+    // changed.
+    private bool isGrounded;
+
+    void Start()
+    {
+        // Looked up once, never inside Update() — the rule from 1.6 and 2.2.
+        body = GetComponent<Rigidbody2D>();
+    }
+
+    void Update()
+    {
+        // ... your input, movement, gravity and animation lines from
+        // 1.4, 1.6, 2.2 and 6.1, unchanged and left out here ...
+
+        CheckGround();   // ask
+        CheckJump();     // act on the answer
+        UpdateAnimation();
+    }
+
+    // The whole lesson. A ray from the point under your feet, one direction,
+    // one distance, one mask — and the result assigned straight into the bool,
+    // because a RaycastHit2D converts to true when it hit and false when it
+    // did not. Nothing here moves anything: a question is not an action.
+    void CheckGround()
+    {
+        isGrounded = Physics2D.Raycast(groundCheck.position, Vector2.down, groundCheckDistance, groundLayer);
+    }
+
+    // The jump from 6.1 with one term in front of it. Leave the term out and
+    // the character can climb the sky.
+    void CheckJump()
+    {
+        if (isGrounded && Input.GetKeyDown(KeyCode.Space))
+        {
+            body.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+        }
+    }
+
+    // The same three inputs the ray uses, drawn. Keep the Player selected in
+    // the Hierarchy while you play, and watch this go red the frame you leave
+    // the ground.
+    private void OnDrawGizmosSelected()
+    {
+        if (groundCheck == null)
+        {
+            return;
+        }
+
+        Gizmos.color = isGrounded ? Color.green : Color.red;
+        Gizmos.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * groundCheckDistance);
+    }
+
+    // ... UpdateAnimation(), CheckAttack(), the pickups and the damage, unchanged ...
+}
+
+// Edit ▸ Project Settings ▸ Tags and Layers:
+//   the first empty User Layer  =  Ground
+//
+// Inspector, on Assets/Prefabs/Player ▸ PlayerController:
+//   Ground Check            =  GroundCheck   <- an empty child sitting on the
+//                                               BOTTOM EDGE of your collider
+//   Ground Check Distance   =  0.1           <- measured, not guessed
+//   Ground Layer            =  Ground        <- Ground, and nothing else
+//
+// The layer goes on BOTH solid tilemaps under the cave's Grid — Collision and
+// Cave Exit. The third one, No Collision, has no collider at all, so no ray can
+// ever hit it whatever layer it is on.`,
+  finalNote:
+    'Compare against your own file rather than copying it. The gap is the raycast assignment: a point, a direction, a distance and a mask, in that order. This version assigns the result straight into the `bool`, because a `RaycastHit2D` converts to true or false on its own — writing `.collider != null` on the end is equally correct. What has to match is the shape: the answer is computed in exactly one place, every frame rather than stored when you land, and read by the jump before it fires.',
+};
+
+const body = `<h1>6.2 — Ground Checks: No Infinite Jumps</h1>
+
+<p class="lesson-lead">
+    Your jump works. That is the problem. Tap the key in mid-air and you jump again, and again —
+    a jump with no ground check is not a jump, it is a jetpack with infinite fuel. Today you teach
+    the script to ask a question it has never asked:
+    <em>am I standing on something?</em>
+</p>
+
+${renderAskBanner('why can I jump forever in mid-air?', 2)}
+
+${renderDecompose('6.2', DECOMPOSE, 2)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Project window →</strong> open <code>Assets/_Scenes/Platformer.unity</code>,
+            then <strong>Game view →</strong> press Play and keep tapping the jump key in mid-air.
+            You climb, and the Console says nothing — your code is doing exactly what it says:
+            <em>if the key went down, add an impulse</em>. There is no rule about where.
+        </li>
+        <li>
+            <strong>Hierarchy → Grid → Collision</strong>, then <strong>Inspector →</strong> a
+            <strong>TilemapCollider2D</strong>, a <strong>CompositeCollider2D</strong> and a
+            <strong>Rigidbody2D</strong> whose <strong>Body Type is Static</strong> — which is why
+            you land on it. Its <strong>Gravity Scale</strong> reads <code>1</code> and is
+            <strong>greyed out</strong>, and both are correct: only a Dynamic body is moved by the
+            engine, so there is nothing for that number to act on. <strong>Do not "fix" the 1</strong>
+            — switch this tilemap to Dynamic and the ground falls.
+        </li>
+        <li>
+            <strong>Hierarchy → Grid → Cave Exit</strong>: the same three components and the same
+            Static body, and <strong>Untagged</strong>, because it was built for a different job —
+            <code>SceneSwitch.cs</code> sits on it and touching it sends you back to the Overworld.
+            Then <strong>Hierarchy → No Collision</strong>: a renderer and no collider at all. It is
+            paint, and no ray can hit it.
+        </li>
+        <li>
+            <strong>Project window → Project Settings ▸ Tags and Layers</strong>, and type
+            <code>Ground</code> into the first empty <strong>User Layer</strong>. No object in your
+            project changed: a layer is an empty bucket until something is put in it, and it is
+            project-wide. Then <strong>Hierarchy → Inspector → Layer</strong> = <code>Ground</code>
+            on <code>Collision</code> and on <code>Cave Exit</code>.
+        </li>
+        <li>
+            <strong>Project window → Assets/Prefabs/Player</strong>, and read the <code>Sprite</code>
+            child's <strong>Transform</strong>: local position <strong>(0, 0.6, -1)</strong>, scale
+            <strong>2</strong>. The art is not on the root — so "fire the ray from the object's
+            position" is a guess about a point you never looked at.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> the Player, right-click ▸ <strong>Create Empty</strong>,
+            name it <code>GroundCheck</code>, make it a child, then <strong>Scene view →</strong>
+            drag it onto the bottom edge of your collider: centred in x, on the line in y, and
+            <strong>outside</strong> the green outline — in this project a query that begins inside
+            a collider reports that collider, so a point inside your own body reports the Player
+            forever.
+        </li>
+        <li>
+            <strong>Once the walkthrough is done — Project window → Assets/Prefabs/Player</strong>
+            (the prefab, not one Player in a scene), <strong>Inspector → Player Controller</strong>:
+            drag <code>GroundCheck</code> into <strong>Ground Check</strong>, set <strong>Ground
+            Layer</strong> to <code>Ground</code> and nothing else, and type your measured distance
+            into <strong>Ground Check Distance</strong>.
+        </li>
+    </ol>
+
+    <div class="callout trap">
+        <strong>Two solid surfaces, one tag between them.</strong> Only the floor is tagged
+        <code>Ground</code> — and you can stand on the cave mouth too. That is the difference
+        between a <em>tag</em> and a <em>layer</em>, sitting in your own Hierarchy: a tag answers
+        <em>"is this that one particular thing?"</em> and a layer answers <em>"is this the kind of
+        thing I care about?"</em>. Only the second question still gives the right answer when
+        somebody adds a third floor tilemap next week. You can compare a tag to a string; you can
+        hand a layer to the physics engine and let <em>it</em> filter.
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: Asking Versus Remembering</h3>
+        <ol>
+<li>A tag and a layer are both just names attached to an object. Why can a raycast be told to ignore everything except one layer, but not "everything except one tag"?</li>
+<li>The <code>Collision</code> tilemap is tagged <code>Ground</code> and the <code>Cave Exit</code> tilemap beside it is not, and both of them are solid. If you wrote a ground check that compared tags, would it answer yes everywhere you can stand — and what would it cost you every frame you ran it?</li>
+<li>Your character is standing still on the floor. Is "grounded" a <em>fact you could store</em> when you land, or a <em>fact you should re-check</em> every frame? What could change it without any code of yours running?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        Every platformer ever shipped uses one of these four. Read all of them — the differences
+        are in what each one can <em>tell you</em> and where each one lies to you. The walkthrough
+        below builds the first row, because that is the check 7.2 expects you to own.
+    </p>
+
+    <table>
+        <tr><th>Technique</th><th>The question you are asking</th><th>What it needs</th><th>Where it lies to you</th></tr>
+        <tr>
+            <td><code>Physics2D.Raycast(origin, Vector2.down, distance, mask)</code></td>
+            <td>"Is there a ground-layer collider directly below this exact point?"</td>
+            <td>An origin (your feet, not your centre), a distance and a <strong>LayerMask</strong>.</td>
+            <td>One infinitely thin line: stand with a pixel of your foot over the edge of a tile and it reports <em>air</em>. It returns a <code>RaycastHit2D</code> — collider, distance and contact point — so it is also the only row that can tell you <em>how far</em>.</td>
+        </tr>
+        <tr>
+            <td><code>Physics2D.OverlapCircle(point, radius, mask)</code></td>
+            <td>"Is there a ground-layer collider anywhere inside this circle at my feet?"</td>
+            <td>A point, a radius and a LayerMask.</td>
+            <td>A wall beside your feet is inside the circle too, so you can be "grounded" against a vertical surface. It returns the collider only — no direction, no distance.</td>
+        </tr>
+        <tr>
+            <td><code>Collider2D.IsTouchingLayers(mask)</code></td>
+            <td>"Is my own collider touching anything on this layer, right now?"</td>
+            <td>Your Collider2D and a LayerMask — no origin, no distance, no ray.</td>
+            <td>It returns a single true or false, and only sees contacts that exist: a <strong>Kinematic</strong> body reports false while standing on the floor unless <em>Use Full Kinematic Contacts</em> is ticked.</td>
+        </tr>
+        <tr>
+            <td><code>OnCollisionStay2D(Collision2D c)</code> with a layer check</td>
+            <td>"What am I in contact with during this physics step?"</td>
+            <td>A callback method, plus a rule to stop it re-firing your jump every step.</td>
+            <td>It fires continuously, so a naive jump fires continuously. And for a Kinematic body against static colliders it gives you the <em>message</em> without the collision — hearing a floor is never the same as standing on one.</td>
+        </tr>
+    </table>
+</div>
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK)}
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Prove It, Then Break It</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        <strong>Step 1 — the honesty test.</strong> Press Play with the Player selected so the gizmo
+        draws, and watch it through four actions: stand still (<em>true</em>), jump (<em>false</em>
+        the moment you leave the ground), land (<em>true</em>), walk off a ledge (<em>false</em>).
+        If any is wrong, your <strong>distance</strong> or your <strong>origin</strong> is wrong —
+        not your logic. Move the empty child or change the number, and run the four again.
+    </p>
+
+    <p>
+        <strong>Step 2 — the mask experiment.</strong> Set your mask to <strong>Everything</strong>
+        and press Play: if your origin sits inside your own collider the ray hits <em>you</em> at
+        distance zero and reports ground forever — the jetpack is back, wearing a disguise. Put it
+        back to <code>Ground</code>, then set it to <strong>Nothing</strong> and watch the opposite
+        failure: a character who cannot jump at all, silently.
+    </p>
+
+    <p>
+        <strong>Step 3 — tune by measurement.</strong> Read the real gap from the bottom of your
+        collider to the tile surface in the Scene view and set the number from that. Then halve it,
+        play, and watch the jump start failing on ground you can see. Guessing produces exactly
+        that failure.
+    </p>
+
+    <p>
+        <strong>Step 4 — walk the whole cave with the gizmo on.</strong> Every place the line is red
+        while your feet are on something solid is a surface missing from your <code>Ground</code>
+        layer — and there is at least one, because this cave has two solid tilemaps.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: the check.</strong>
+        <ul>
+            <li>Which technique did you choose, and what are its exact inputs — origin, direction, distance, mask? If you chose anything other than the raycast the walkthrough built, map those four inputs onto yours.</li>
+            <li>Where does the origin sit, and how did you <em>find out</em> rather than assume? The Player root is not the centre of the character you can see.</li>
+            <li>Where does the mask come from — a serialized <code>LayerMask</code> field, or a hard-coded layer name? Which one lets a teammate fix your level without opening your script?</li>
+            <li>Is the jump condition now compound? Write the whole sentence in English before you write it in C#.</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: making the invisible visible.</strong> Before you trust
+        a check you cannot see, draw it: <code>OnDrawGizmosSelected()</code> runs in the editor and
+        can draw a line from your origin along your check direction, scaled by your distance, in one
+        colour when the check is false and another when it is true. Drawing it costs your game
+        nothing, because nothing in a gizmo method ships.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain the difference between a tag and a layer, using two solid tilemaps from your own cave as the example</li>
+        <li>Create a layer and assign it to every surface you can land on — and say why the cave mouth needs it even though nobody tagged it</li>
+        <li>Compare the four ground-check techniques and defend your choice</li>
+        <li>Show the check with a gizmo and tune the distance by measurement, not by guessing</li>
+        <li>Explain the self-hit bug and the Nothing mask, and why a LayerMask stands between you and both</li>
+        <li>Explain why the grounded value is re-derived every frame instead of stored when you land</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the unit this lesson sits in: the flick, the honest check, and the mercy timers that come next</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — what the physics engine reports, and when</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Rigidbody2D, Body Type, and the movement APIs this script is built on</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="6.3.html">6.3 — Jump Feel: Fall Speed &amp; Coyote Time</a>, where a jump that works starts to feel like a jump that is <em>yours</em>.</p>
+</div>`;
+---
+<Lesson id="6.2" title="6.2 Ground Checks: No Infinite Jumps — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

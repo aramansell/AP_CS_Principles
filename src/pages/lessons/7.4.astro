@@ -1,0 +1,394 @@
+---
+// Lesson 7.4 — Ladders II: Mounts, Tops & Polish
+// The top-of-ladder problem, the mount decision, and an HONEST climb-animation
+// block: Player_Shovel.controller holds only Idle / Walk / Shovel_Swing x
+// Up / Horiz / Down. There are no climb clips and no climb frames in any
+// character sheet, so adding climb animation is framed as "here is what you
+// would have to do", never as something already present.
+// Nobody has made the capped-ladder decision for the student - the starter
+// contains no ladders at all.
+//
+// SCAFFOLDING: OUTLINE ONLY (level 3). 7.3 built the climb mechanism - the
+// trigger zone, the flag and the branch in Update - and this lesson is its
+// edge cases: the mount decision, the arrival check at the top, and the polish.
+// Nothing here is a new mechanism, so nothing here is handed over as code: the
+// ask banner is the level marker and there is no walkthrough (verify-site
+// refuses a level-3 page that renders one - see the `level >= 3 && wt` rule).
+//
+// The banner text is copied character for character from the 7.4 entry in
+// src/data/asks.ts, because verify-site compares the ladder level the index
+// claims against the level this page renders.
+//
+// STRUCTURE (this pass): the three-answer discovery and the editor work that
+// follows from it are ONE numbered, pane-named "In the Editor" list; the
+// specifications, the branch-order trap and the Socratic are "In the Code".
+// The old "Read Function-Level Examples" block is CUT WHOLE — a lift levelling
+// with a landing, a crane's limit switch, an escalator's comb plate, an
+// aircraft stair's handrail and a stage fly floor. Five snippets (three of them
+// comments) about arriving somewhere, on a lesson whose own table already lays
+// out the three ways to arrive; the specification callout and the trap callout
+// that lived in that block are the lesson's architectural spec and they MOVED
+// to "In the Code" rather than being cut with the block around them.
+//
+// CULLED, with the reason each was a repeat:
+//   - Four of the six numbered items in the "What adding a real climb animation
+//     would actually involve" callout — importing and slicing a sheet, authoring
+//     two clips, adding the states to the controller, and the mirrored-clip
+//     question. Every one of them is the Unit 1 Animator workflow the student
+//     already owns, restated as a to-do list for work this lesson explicitly
+//     does not do. What survives is the part that answers Unit 7's honesty rule
+//     — the project really does ship no climb frames, and here is where to
+//     confirm that — plus the two items that are genuinely climb-specific.
+//   - The "cheapest answer is a tile" callout's second half, which argued for
+//     the cap in general terms the three-answer table's third row already
+//     states ("Zero new code"). The table is the discovery; the callout keeps
+//     only the thing the table does not say, which is where to go and look
+//     before writing anything.
+//   - Two of the six bullets in the "ending the climb cleanly" specification:
+//     "snap or let physics settle" (a polish preference with no wrong answer,
+//     and the polish list below already owns it) and "how do you know you have
+//     not broken the walking check" (the same instruction as the trap's "test
+//     it", with no decision attached). Four bullets, four decisions.
+//
+// CHECK 11 — three bare names this page used to carry, all fixed here because
+// the moment this lesson shows an "In the Code" label the scanner reads the
+// whole page: `Debug.Log` (now `Debug.Log()`), the scene `Start` (now
+// "Start (index 0)", the 5.3 fix), and `Update` twice (now `Update()`).
+//
+// GROUND TRUTH (read out of AP_CS_P_Starter_Project, Unity 6000.6.0f1):
+//   - The ladder is a TILEMAP picture, and 7.3 gives the student three places
+//     to paint it: the `No Collision` tilemap (renderer only - it carries a
+//     TilemapRenderer and NO collider of any kind), a new renderer-only tilemap
+//     child, or the solid `Collision` tilemap (which stops the player dead).
+//     A picture painted on a collider-less layer cannot be found by a trigger
+//     or a raycast at all, which is why 7.3 pairs the art with a separate
+//     trigger ZONE object - the zone is what the code talks to, never the
+//     tiles. This page never asserts which of the three the student chose.
+//   - `Collision` is genuinely solid: TilemapCollider2D + CompositeCollider2D +
+//     Rigidbody2D Body Type Static, and 7.2 has the student set Composite
+//     Operation to Merge. `Cave Exit` is the same three components over two
+//     tiles. `No Collision` has the renderer and nothing else.
+//   - TagManager.asset: tags are Coin, Enemy, Axe, Spikes, Ground, GroundCheck
+//     - there is still no `Ground` LAYER until the student creates one in 7.2,
+//     which is why the arrival check reuses 7.2's repaired mask rather than a
+//     new one. Sorting layers are Default, Bottom, Layer 2, Player, Layer 4, Top.
+//   - Physics2DSettings.asset: gravity y = -9.81, m_QueriesStartInColliders: 1
+//     (a query that begins inside a collider reports that collider).
+//   - The HUD built in 5.3 lives in `Start`, which is build index 0. Only
+//     Overworld ships a Canvas; Start and Platformer contain none, so the HUD
+//     genuinely does not exist in the cave. The prompt claim below stands.
+//   - Player_Shovel.controller holds exactly nine states - Idle / Walk /
+//     Shovel_Swing, each in _Up / _Horiz / _Down - driven by IsWalking (Bool),
+//     WalkDir (Int) and Attack (Trigger), the three parameters 1.6 built.
+//     No climb clip or climb pose exists anywhere in Assets/.
+//
+// PROTECTED BLOCKS — ids are POSITIONAL (src/lib/formify.ts), so nothing here
+// is reordered, renumbered or re-counted. The ids this page produced at HEAD,
+// read out of HEAD:dist/lessons/7.4.html, and still produced here:
+//   dc1:q1 (the level-3 auto ask) .. dc1:q4 (3 authored `turns`, unchanged)
+//   sc1:q1 .. sc1:q3 (3 <li>, 3 boxes, same order, same slots)
+// Nothing inside the Socratic moved; two of its items were reworded shorter in
+// place, which check 12 treats as a reword and not a move. No item was added,
+// removed, moved or renumbered, and none gained or lost its box. `checklist` is
+// not a formify target. No nested <div> inside any protected block.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+// The two recurring questions, at level 3: the parts are named and sourced
+// and what each one DOES is the student's to say. Every doc pointer is a
+// lesson the student has finished (1.4, 5.3, 6.1, 6.2, 6.3, 7.1, 7.2, 7.3)
+// and nothing later than today - the "connect it" beat may point backward only.
+const DECOMPOSE: DecomposeSpec = {
+  big:
+    'A climb that starts when the player means it to and stops when the player has arrived — ' +
+    'at the bottom, at the top, and everywhere the trigger zone and the ladder picture disagree ' +
+    'about where either of those is.',
+  parts: [
+    {
+      name: 'Say when the climb starts',
+      does: 'The mount rule as one sentence before it is a line of code: pressing up inside the zone, being grabbed the moment you walk in, or only when both are true on the same frame. The zone sends the same two messages whichever you pick, so the choice costs nothing in the script and everything in the feel.',
+      doc: '7.3 — the trigger zone and the two callbacks it sends',
+      href: '7.3.html',
+    },
+    {
+      name: 'List every way the climb can end',
+      does: 'Reached the top, jumped off, died, walked back out of the zone. Four exits, one flag — and the one you leave out is the one a tester finds inside a minute: a player standing on the floor with the climb state still switched on.',
+      doc: '7.3 — the climb flag on PlayerController, and every place that reads it',
+      href: '7.3.html',
+    },
+    {
+      name: 'Ask "have I arrived?" with the ground check you already own',
+      does: 'The arrival test is the question 6.2 already asks, pointed down from a player who is moving upward. A second way of asking whether there is floor under your feet is a second answer, and the two will disagree on exactly the frame that decides the state.',
+      doc: '6.2 — the ground check you chose: raycast, overlap circle, or touching layers',
+      href: '6.2.html',
+    },
+    {
+      name: 'Re-tune that check for a player who is climbing',
+      does: 'The walking check was tuned for feet already on the floor. A climber needs a different reach and the same Ground mask. Too short and the climb never ends; too long and it ends with a whole ladder still above you, because the floor at the bottom of the shaft came into range.',
+      doc: '7.2 — the Ground layer you made, and the mask you repaired to use it',
+      href: '7.2.html',
+    },
+    {
+      name: 'Decide where a climb with nothing to arrive at ends',
+      does: 'Not every ladder has a ledge above it. Capping it answers the question with level design instead of code: one solid tile stops the player, and the last step becomes the jump you tuned in 6.1. The cap goes on the solid tilemap — the picture-only layer has no collider to stop anybody.',
+      doc: '7.2 — the Collision tilemap, and the paint-on-the-right-layer decision',
+      href: '7.2.html',
+    },
+    {
+      name: 'Order the arrival check against the climb movement',
+      does: 'Two branches in one Update(), and one order between them. Move first and the player drifts into the tile above for exactly one frame; check first and the state is already back to normal before anything else touches the body.',
+      doc: 'the climb branch you wrote into Update() in 7.3, on top of the movement from 1.4',
+      href: '7.3.html',
+    },
+    {
+      name: 'Make the mount readable, or decide it does not need to be',
+      does: 'A ladder that looks climbable is a complete answer and costs nothing. If you add a prompt, the coin rule applies: it dies the instant it is obeyed. It is a Console line unless you build a world-space object, because the HUD from 5.3 lives in the scene the game begins in and does not follow you into the cave.',
+      doc: '5.3 — the Canvas HUD, and the one scene that owns it',
+      href: '5.3.html',
+    },
+  ],
+  why:
+    'Every part above can be answered out loud, in one sentence, before the script is open — and that ' +
+    'is the whole test. The climb mechanism already exists and does not change; what fails at the ends ' +
+    'of a ladder is a handful of independent decisions that all wear the same symptom until they are ' +
+    'separated. The reach of the arrival check, the order of two branches inside one Update(), and the ' +
+    'frame the exit runs on are three different failures with three different fixes, and a student who ' +
+    'treats them as one thing called "the ladder is broken" changes all three at once and learns nothing ' +
+    'from the result.',
+  sizeTest:
+    'The two-minute test: can you answer the part in one sentence without opening Unity? "Where the ' +
+    'climb ends when there is no ledge above it" passes. "Fix the top of the ladder" does not — a part ' +
+    'that names a symptom instead of a decision is not a part yet, it is the problem again in fewer words.',
+  turns: [
+    'Two exits can want to fire on the same frame — the cap stops the player and the arrival check agrees there is floor beneath them. Say which one you want to win, and describe what the player sees during the frame it takes to find out.',
+    'A capped ladder moves the last step out of your script and into level design. Name one thing that gets easier because of that, and one thing a tester can break that no line of code can protect against.',
+    'The bottom of a ladder is the mirror of the top: the zone ends and the player is standing on nothing. Which of your exits covers that case today, and what does the player see if none of them does?',
+  ],
+};
+
+const body = `<h1>7.4 — Ladders II: Mounts, Tops &amp; Polish</h1>
+
+<p class="lesson-lead">
+    Your ladder works in the middle and fails at both ends. Climb it and keep holding W: you
+    rise into the ceiling, or fall off the moment the zone ends. The
+    middle of a ladder is easy. The last three tiles are the hardest problem in platformer
+    engineering, and nobody has solved them for you — there are no ladders in this project
+    except the one you built in <a href="7.3.html">7.3</a>.
+</p>
+
+${renderAskBanner('how do I stop my ladder breaking at the top and bottom?', 3)}
+
+${renderDecompose('7.4', DECOMPOSE, 3)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        <strong>Game view → press Play</strong> and climb your ladder from
+        <a href="7.3.html">7.3</a>, holding W past the top tile. Write down exactly what happens —
+        every build does something slightly different, and yours is the only build that matters.
+        Then read the three classic answers:
+    </p>
+
+    <table>
+        <tr><th>Answer</th><th>What the player feels</th><th>What it costs you</th></tr>
+        <tr>
+            <td><strong>Stop at the top.</strong> While climbing, ask whether there is floor under your feet; if there is, leave the climb state and stand up.</td>
+            <td>Honest and sudden. The climb ends the moment you have arrived.</td>
+            <td>One more physics question per frame, and a precise definition of "at the top".</td>
+        </tr>
+        <tr>
+            <td><strong>Pop off.</strong> Holding W past the top applies a small upward hop that carries you onto the ledge.</td>
+            <td>Flows straight into a jump. Can feel generous or magical.</td>
+            <td>Fiddly physics. The hop can overshoot into a spike or an enemy you never saw.</td>
+        </tr>
+        <tr>
+            <td><strong>Cap the ladder.</strong> Paint a solid tile above the top of the strip so the player simply stops under it, then jumps the last bit.</td>
+            <td>Blunt and completely learnable. Every player reads it instantly.</td>
+            <td>Level design must guarantee the last jump is possible with the jump you tuned in <a href="6.1.html">6.1</a>. Zero new code.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>The cheapest answer is a tile, not a script.</strong> Option three is one painted
+        tile on the <code>Collision</code> tilemap, and it works because <a href="7.2.html">7.2</a>
+        already made that tilemap solid. Before you write anything, check whether your level can
+        simply be shaped to solve the problem.
+    </div>
+
+    <p>
+        Then build the half that is clicks, in this order. Every step names its pane.
+    </p>
+
+    <ol>
+        <li>
+            <strong>Window ▸ 2D ▸ Tile Palette →</strong> if you chose the cap, paint one solid
+            tile above the top of the strip, on <code>Collision</code>.
+            <strong>Game view → press Play</strong> and test the last jump <em>before</em> you
+            write a line of code. If the jump does not clear it, the answer is to move the cap,
+            not to add a pop-off.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> decide the mount rule before you build anything for it:
+            walking into the zone and having nothing happen until W; being grabbed the moment you
+            step in; or only grabbing when W is pressed <em>while inside</em> the zone, so walking
+            past sideways never snags you. Answer the question that decides it: <em>what does the
+            player expect when they walk past a ladder on the ground?</em>
+        </li>
+        <li>
+            <strong>Inspector → the zone →</strong> if you want a prompt, build it and give it a
+            death rule. Three honest options, and the project supports all of them:
+            <table>
+                <tr><th>Prompt</th><th>What the player sees</th><th>What it costs</th></tr>
+                <tr>
+                    <td><strong>Nothing at all</strong> — make the ladder obvious through geometry and tiles</td>
+                    <td>A ladder that looks climbable</td>
+                    <td>Nothing. And it is the option real games choose most often.</td>
+                </tr>
+                <tr>
+                    <td><strong>A <code>Debug.Log()</code> line</strong> while the mount is possible</td>
+                    <td>The Console, which your player cannot see</td>
+                    <td>Nothing. The HUD from <a href="5.3.html">5.3</a> lives in <code>Start</code> (index 0) and shows your own stats — it is not in this scene, so anything you want to watch is a Console line.</td>
+                </tr>
+                <tr>
+                    <td><strong>A world-space text object</strong> (a TextMesh in the scene) toggled active while the mount is possible</td>
+                    <td>Floating text, in the world, above the ladder</td>
+                    <td>A new object, a new reference, and a rule about when it disappears.</td>
+                </tr>
+            </table>
+            Whatever you choose, the rule is the one you applied to the coin:
+            <strong>a prompt dies the instant it is obeyed or no longer relevant.</strong> A prompt
+            that lingers after you have started climbing is worse than no prompt.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>
+        The climb mechanism itself does not change this hour. What changes is where it stops, and
+        the order the branches run in.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: ending the climb cleanly.</strong>
+        <ul>
+            <li>Which question do you ask to detect "I have arrived"? Name the exact API you already own from <a href="6.2.html">6.2</a> — you built a ground check there, in whatever form you chose. Reuse it; do not write a second one.</li>
+            <li>How far down does that question need to reach while you are climbing? Your normal ground check distance was tuned for walking. What number would miss the ledge, and what does an over-long reach risk detecting instead?</li>
+            <li>What is the very first thing that must happen when you decide the climb is over — the state flag, the gravity, or the movement? Justify the order.</li>
+            <li>Which branch of your <code>Update()</code> runs first: the climb movement or the arrival check? If the movement runs first on the frame you arrive, what does the player do for one frame, and does anyone see it?</li>
+        </ul>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Project window → <code>PlayerController</code> →</strong> list every way the
+            climb can end — reached the top, jumped off, died, walked back out of the zone — and
+            find the one you have left out. Then reuse the ground check instead of writing a second
+            one, and re-tune its reach for a player whose feet are not on the floor. Test both
+            directions: too short and the climb never ends; too long and it ends with a whole
+            ladder still above you, because the floor at the bottom of the shaft came into range.
+        </li>
+        <li>
+            <strong>Same file → the climb branch →</strong> fix the order the two branches run in,
+            then test at a deliberately low frame rate. Print the state and the vertical speed
+            together and watch which one changes first.
+        </li>
+        <li>
+            <strong>Same file → the mount rule →</strong> write the sentence you chose in the
+            editor half as one condition, and make the zone's two messages the only thing that
+            writes the flag unless you have a reason to do otherwise (the repair you chose in
+            <a href="7.3.html">7.3</a> decides that).
+        </li>
+        <li>
+            <strong>Project window → the polish pass →</strong> pick two from the list below and no
+            more:
+            <ul>
+                <li><strong>Ladder edges:</strong> at the very bottom of the climb, restore a moment of gravity so the player settles onto the floor instead of hanging in the air when the zone ends.</li>
+                <li><strong>Ladders through one-way ledges:</strong> if you built a one-way platform in <a href="7.2.html">7.2</a>, a climb can pass up through the cap. Test it and write down what happens.</li>
+                <li><strong>The re-entry repair from <a href="7.3.html">7.3</a>:</strong> if you chose the cooldown, time its length with a stopwatch rather than by feel.</li>
+                <li><strong>Sound:</strong> one soft tick per tile climbed — a candidate to note, not work for today.</li>
+            </ul>
+        </li>
+    </ol>
+
+    <div class="callout trap">
+        <strong>The order-of-operations bug will not announce itself.</strong> If your climb branch
+        moves the player <em>before</em> you check whether the climb has ended, then on the arrival
+        frame you move once more and then stop — a single frame of drift into the tile above. At
+        60 frames per second that is a millimetre. At a low frame rate, on a slow machine, it is
+        enough to shove the player inside a collider that then pushes them out sideways. Write the
+        order down before you decide it does not matter.
+    </div>
+
+    <div class="callout info">
+        <strong>What adding a real climb animation would actually involve.</strong> You may have
+        noticed your character rises up the ladder in a standing pose. That is not an oversight —
+        it is the honest state of the project. The Player's Animator controller contains exactly
+        three motions, <strong>Idle</strong>, <strong>Walk</strong> and
+        <strong>Shovel_Swing</strong>, each in Up, Horizontal and Down variants, driven by the
+        <code>IsWalking</code>, <code>WalkDir</code> and <code>Attack</code> parameters from
+        Unit 1. There is no climb state, no climb clip, and
+        <strong>no climbing pose in any sprite sheet that ships with this project</strong>
+        — check <code>Assets/Artwork/Character/Player/</code> to confirm that yourself.
+        <br><br>
+        If you did want one later, the climb-specific work is short: draw or license climbing
+        frames (art, not code, and the step that stops most students), then add two states and a
+        Bool parameter to the controller and drive that Bool from the same flag your zone already
+        writes. <strong>Decide the Up/Down question</strong> on the way: one climb pose mirrored,
+        or two. None of it is today's work, and none of it belongs to a mechanic that already
+        works — it belongs to <a href="7.7.html">7.7</a>'s polish pass or to Unit 8.
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: Who Decides Where the Climb Ends?</h3>
+        <ol>
+<li>Which of the three answers does your build currently have — by accident, not by choice? Say what the player sees at the top tile right now.</li>
+<li>Option three costs no code and option one costs a per-frame physics question. Which teaches the player more about your game's rules, and which is easier to explain to a tester?</li>
+<li>If you cap the ladder, the last step is a jump. What must be true about the height between the cap and the ledge above it, and which numbers from <a href="6.1.html">6.1</a> decide it?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain the top-of-ladder problem and name the three classic answers with a cost for each</li>
+        <li>Say which answer you built, and why it fits your level</li>
+        <li>Reuse your 6.2 ground check to end the climb, and explain why the reach had to change</li>
+        <li>Defend your mount rule and your prompt decision — including choosing no prompt</li>
+        <li>State honestly that this project ships no climb frames, and list what adding one would involve</li>
+        <li>Break this task into parts small enough to look each one up on its own, and say in one line what each part does</li>
+        <li>Say which earlier lesson each part of this task came from, and where you would reread it</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a></li>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the ground check you are reusing</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Animator parameters and 2D physics queries</li>
+    </ul>
+    <p>Next: <a href="7.5.html">7.5 — Design a Big Cave: Flow &amp; Difficulty</a>.</p>
+</div>`;
+---
+<Lesson id="7.4" title="7.4 Ladders II: Mounts, Tops &amp; Polish — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

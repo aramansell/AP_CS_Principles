@@ -1,0 +1,351 @@
+---
+// Lesson 1.6 — Animation States: IsWalking, WalkDir, Attack
+// First-introduction lesson: FULL scaffold (walkthrough level 1).
+//
+// `SetBool` / `SetInteger` / `SetTrigger` and `GetComponentInChildren` are NEW
+// concepts here, so the animation half of PlayerController.cs is given complete
+// and explained line by line. The old "Read Function-Level Examples" block
+// (scuba diver / warrior / wizard / falcon) has been removed: those snippets
+// taught the API in foreign domains and left the student to assemble the real
+// script alone, which is the leap 1.6 kept losing students on.
+//
+// Prior knowledge this walkthrough deliberately re-invokes:
+//   - the declare/assign split and class-body fields from 1.3
+//   - `inputX` / `inputY` as class fields from 1.4 (read once per frame in Update)
+//   - the child "Sprite" object from 1.2, which is where the Sprite Renderer
+//     and Animator actually live — the reason GetComponent returns null here
+//
+// Project conventions, verified against the shipped controller:
+//   Player prefab -> Player_Shovel.controller (Player_Axe exists, unassigned)
+//   Parameters: IsWalking (Bool), WalkDir (Int 0 = up, 1 = sideways, 2 = down),
+//   Attack (Trigger). There is no Float parameter in this controller.
+//
+// STRUCTURE (tightening pass): the reading-the-Animator-window walk becomes
+// "In the Editor" (it is clicks in panes, and it now names each pane); the API
+// table, the socratic, the walkthrough and the bug hunt are "In the Code". The
+// old "Read the Docs" and "Inspect the Controller You Are Driving" labels are
+// absorbed into those two, and "Test It, Then Break It" is now "Bug Hunt".
+//
+// CULLED FOR REPETITION AND PRE-EXPLANATION: the "In professional game engines
+// scripts rarely swap images" paragraph (the table and the socratic already say
+// it), the "One thing this table cannot tell you" paragraph (it restated the
+// SetBool line's note and the Animator-window step's spelling warning), the
+// walkthrough note that pre-answered the socratic's separation-of-concerns
+// question, and the bug hunt's last two items.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The two recurring questions, applied to animation. Level 1, so every part
+// is given with its `does` and its `doc`. Four parts rather than the
+// walkthrough's seven steps: those seven are the line-by-line detail, and this
+// block is the altitude above them — find the machine, ask a yes/no question,
+// ask a which-one question, turn the picture around. The attack is deliberately
+// not a part (it is a different feature, not part of "play a walking
+// animation") and neither is the pair of calls from Update() (plumbing every
+// part shares). Both are asked about in `turns`.
+const DECOMPOSE = {
+  big:
+    'Play a walking animation for a character that already moves in four directions, with a ' +
+    'different clip for each one and a picture that faces the way it walks.',
+  parts: [
+    {
+      name: 'Get a handle on the Animator and the Sprite Renderer',
+      does: 'Two fields, filled once, before the first frame. Both components live on the child Sprite, so only `GetComponentInChildren<T>()` finds them.',
+      doc: 'the `Animator` and `flipX` rows in the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Work out whether the player is moving at all',
+      does: 'One true/false value built from the two input fields 1.4 gave you: `inputX != 0f || inputY != 0f`. The controller turns `IsWalking` into idle or walking; you never name a clip.',
+      doc: 'the `SetBool("IsWalking", b)` row in the quick reference, and the Parameters tab.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Work out which direction the player is facing',
+      does: 'Compare the inputs by size rather than sign — the `Mathf.Abs(float f)` row — because a hard left push is `-1` and would lose to a gentle nudge upward. The winner sets `WalkDir`: `0` up, `1` sideways, `2` down.',
+      doc: 'the row of math helpers in the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Turn the picture around to match the direction',
+      does: 'The sideways clip is drawn facing right, so the sprite is mirrored rather than redrawn: `flipX` true for a left push, false for a right one. The up and down clips face the camera.',
+      doc: 'the `flipX` row in the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+  ],
+  why:
+    'One part finds the machine, one asks a yes/no question, one asks a which-one question, one ' +
+    'turns the picture around. Animation looks like a whole new subject; it is four decisions.',
+  sizeTest:
+    'Does the part name an API you could search for? "Play the walking animation" cannot be ' +
+    'looked up; `SetBool("IsWalking", b)`, `SetInteger("WalkDir", 1)` and `flipX` can.',
+  turns: [
+    'The walkthrough fires the attack with SetTrigger(string name), and a swing is not one of ' +
+      'the four parts. Why not — and what is different about an action that ends by itself?',
+    'Two methods are written in the walkthrough and neither runs until something calls it. Where ' +
+      'do those calls belong, and why would calling them before the input is read animate the ' +
+      'wrong frame?',
+  ],
+};
+
+const WALK = {
+  ask: 'how do I play a walking animation?',
+  file: 'Assets/Scripts/PlayerController.cs',
+  label: 'In the Code',
+  intro: 'The animation half of the script you already have — add it to the file from 1.5.',
+  level: 1,
+  steps: [
+    {
+      title: 'Declare the two components at class scope',
+      lead: 'A script can only talk to a component it holds a reference to.',
+      lines: [
+        { code: '// PlayerController.cs — class body, below the speed knob and the two input fields.', what: '' },
+        { code: '    private Animator animator;', what: 'Will hold the Animator. **No value yet** — `Start()` fills it in.' },
+        { code: '    private SpriteRenderer spriteRenderer;', what: 'The same for the picture, needed for one line later: `flipX`.', why: 'Both fields start as `null`, and every `NullReferenceException` here comes from a field declared but never assigned.' },
+      ],
+    },
+    {
+      title: 'Find them once, in Start()',
+      lead: 'Add this below the fields; your file has no `Start()` yet.',
+      lines: [
+        { code: '// PlayerController.cs — Start() does not exist in your file yet. Add it below the fields.', what: '' },
+        { code: '    void Start()', what: 'Runs once, before the first frame — the right place to look a component up.' },
+        { code: '    {', what: '' },
+        { code: '        animator = GetComponentInChildren<Animator>();', what: 'Searches the Player **and every object beneath it** for an Animator.', why: '**The line that catches everyone.** The Animator sits on the child **Sprite**, not the Player: `GetComponent<T>()` looks only at the Player, finds nothing, and hands you `null`.' },
+        { code: '        spriteRenderer = GetComponentInChildren<SpriteRenderer>();', what: 'The same shape, for the same reason: the picture is on the child Sprite too.' },
+        { code: '    }', what: '' },
+      ],
+    },
+    {
+      title: 'Write UpdateAnimation() and set the walking flag',
+      lead: 'Your own method, called once per frame. One question first: **is the player moving at all?**',
+      lines: [
+        { code: '// PlayerController.cs — below Update(), a method of your own.', what: '' },
+        { code: '    void UpdateAnimation()', what: 'A method you write. Nothing calls it automatically — step 7 adds the call.', why: 'Animation in its own method leaves `Update()` as three ideas: read the input, move, update the visuals.' },
+        { code: '    {', what: '' },
+        { code: '        bool isMoving = inputX != 0f || inputY != 0f;', what: 'A `bool` from 1.4\'s two fields: horizontal is not zero **or** vertical is not zero.' },
+        { code: '        animator.SetBool("IsWalking", isMoving);', what: 'Hands the Animator a **named parameter** and a true/false value; the controller picks the clip. You never name a clip in code.', why: 'The name must match the Animator window character for character: `"IsWalking"`, capital I, capital W.' },
+      ],
+    },
+    {
+      title: 'Choose the direction by size',
+      lead: 'Three directional states, one integer parameter: `WalkDir` `0` up, `1` sideways, `2` down. Diagonals are the interesting case.',
+      lines: [
+        { code: '        if (Mathf.Abs(inputX) >= Mathf.Abs(inputY))', what: 'Compares the **sizes**: `Mathf.Abs(float f)` throws the sign away, so `-1` counts as `1`. If horizontal wins, the sideways clip plays.' },
+        { code: '        {', what: '' },
+        { code: '            animator.SetInteger("WalkDir", 1);', what: '`SetInteger(string name, int value)` sets an Int parameter; `1` means "walking sideways".' },
+        { code: '        }', what: '' },
+        { code: '        else if (inputY > 0f)', what: 'Only reached when horizontal lost. `> 0f` asks whether vertical is positive; up is `+1`.' },
+        { code: '        {', what: '' },
+        { code: '            animator.SetInteger("WalkDir", 0);', what: '`0` means walking up in this controller.' },
+        { code: '        }', what: '' },
+        { code: '        else', what: 'Everything left over: not sideways and not up, so down.' },
+        { code: '        {', what: '' },
+        { code: '            animator.SetInteger("WalkDir", 2);', what: '`2` means walking down — the values the transition arrows compare against.' },
+        { code: '        }', what: 'Closes the downward branch and the whole chain.', why: '**Standing still:** both inputs are `0`, so `WalkDir` ends up as `1` anyway — harmless, because the Idle state never looks at it.' },
+      ],
+    },
+    {
+      title: 'Mirror the sprite for left and right',
+      lead: 'The sideways clip is drawn facing right, so Unity mirrors the picture instead of playing a second clip — the Sprite Renderer\'s job.',
+      lines: [
+        { code: '            if (inputX < 0f)', what: '**The new line**, inside the sideways branch: is the player pushing left? `inputX` goes negative on the left key.' },
+        { code: '            {', what: '' },
+        { code: '                spriteRenderer.flipX = true;', what: '`true` mirrors the picture left-to-right, so the character faces left.' },
+        { code: '            }', what: '' },
+        { code: '            else', what: 'Everything the question did not catch: pushing right.' },
+        { code: '            {', what: '' },
+        { code: '                spriteRenderer.flipX = false;', what: '`false` leaves the clip as drawn — facing right.' },
+        { code: '            }', what: '' },
+      ],
+    },
+    {
+      title: 'Fire the attack with a trigger',
+      lead: 'An attack is a one-shot, not a state the player stays in; the Trigger parameter clears itself once a transition consumes it.',
+      lines: [
+        { code: '// PlayerController.cs — a second method of your own, below UpdateAnimation().', what: '' },
+        { code: '    void CheckAttack()', what: 'Attacking is not walking, so it gets its own method — and nothing calls it yet either.' },
+        { code: '    {', what: '' },
+        { code: '        if (Input.GetMouseButtonDown(0))', what: 'The `Input` class from 1.4, asking about the mouse. Button `0` is left, and this is true on the **single frame** it goes down.', why: 'Without the `Down`, `Input.GetMouseButton(0)` is true every frame the button is **held** — the swing would restart sixty times a second.' },
+        { code: '        {', what: '' },
+        { code: '            animator.SetTrigger("Attack");', what: 'Fires the trigger. It takes only a name: a trigger has no state to set.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: '' },
+      ],
+    },
+    {
+      title: 'Call both helpers from Update()',
+      lead: 'Both methods are written and neither one runs yet: a method of your own does nothing until something calls it.',
+      lines: [
+        { code: '// PlayerController.cs — inside Update(), after transform.Translate(movement);', what: '' },
+        { code: '        UpdateAnimation();', what: 'Runs the animation logic every frame. The parentheses are empty because `inputX` and `inputY` are fields, already there to read.', why: '**Where it goes matters.** The flags are built from those fields, so a call placed above the input read animates last frame\'s input.' },
+        { code: '        CheckAttack();', what: 'The same, inside `Update()` — `Start()` runs once, and the player can click at any moment.' },
+      ],
+    },
+  ],
+  finalFile: `using UnityEngine;
+
+public class PlayerController : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 5f;
+
+    private float inputX;
+    private float inputY;
+
+    private Animator animator;
+    private SpriteRenderer spriteRenderer;
+
+    void Start()
+    {
+        animator = GetComponentInChildren<Animator>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+    }
+
+    void Update()
+    {
+        inputX = Input.GetAxis("Horizontal");
+        inputY = Input.GetAxis("Vertical");
+
+        Vector2 direction = new Vector2(inputX, inputY);
+        direction = direction.normalized;
+
+        Vector2 movement = direction * moveSpeed * Time.deltaTime;
+
+        transform.Translate(movement);
+
+        UpdateAnimation();
+        CheckAttack();
+    }
+
+    void UpdateAnimation()
+    {
+        bool isMoving = inputX != 0f || inputY != 0f;
+        animator.SetBool("IsWalking", isMoving);
+
+        if (Mathf.Abs(inputX) >= Mathf.Abs(inputY))
+        {
+            animator.SetInteger("WalkDir", 1);
+
+            if (inputX < 0f)
+            {
+                spriteRenderer.flipX = true;
+            }
+            else
+            {
+                spriteRenderer.flipX = false;
+            }
+        }
+        else if (inputY > 0f)
+        {
+            animator.SetInteger("WalkDir", 0);
+        }
+        else
+        {
+            animator.SetInteger("WalkDir", 2);
+        }
+    }
+
+    void CheckAttack()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            animator.SetTrigger("Attack");
+        }
+    }
+}`,
+  finalNote:
+    'Compare it against your own file rather than pasting it in: both components assigned in `Start()` with `GetComponentInChildren<T>()`, both helpers actually called from `Update()`, and the three parameter names spelled as they are in the Animator window.',
+};
+
+const body = `<h1>1.6 — Animation States: IsWalking, WalkDir, Attack</h1>
+
+<p class="lesson-lead">Your character moves, but it does not <em>look</em> like it: it slides around in the same idle pose whichever way you push. A script never plays an animation itself — it <em>asks</em> the Animator by setting parameters, and the Animator picks the clip.</p>
+
+${renderAskBanner('how do I play a walking animation?', 1)}
+
+${renderDecompose('1.6', DECOMPOSE, 1)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header"><span class="activity-label">In the Editor</span><span class="activity-time">~10 min</span></div>
+    <ol>
+        <li><strong>Hierarchy →</strong> select the child <strong>Sprite</strong> under Player — from <a href="1.2.html">1.2</a>, that is where the Animator lives, not on the Player.</li>
+        <li><strong>Window → Animation → Animator.</strong> Click the <strong>Parameters</strong> tab, top-left. Three parameters are configured: <code>IsWalking</code> (Bool), <code>WalkDir</code> (Int) and <code>Attack</code> (Trigger). Write down their exact spellings, capitals included.</li>
+        <li><strong>Animator →</strong> click the arrows between the up, side and down states and read their conditions in the <strong>Inspector</strong>: they compare <code>WalkDir</code> to <code>0</code>, <code>1</code> and <code>2</code>. Which number means which direction?</li>
+        <li><strong>Animator →</strong> click the arrow into any of the <code>Shovel_Swing</code> states. What two conditions must <em>both</em> be true before the attack plays?</li>
+        <li><strong>Inspector →</strong> with the Sprite selected, read the Animator component: which controller asset is assigned, and which kind of parameter — Bool, Int, Float or Trigger — is <em>missing</em> from it? Then <strong>Game view →</strong> press <strong>Play</strong> and click the mouse to swing.</li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">~20 min</span></div>
+    <p>The calls that do the talking between your script and the controller:</p>
+    <table>
+        <tr><th>Unity API</th><th>Signature</th><th>Behaviour</th></tr>
+        <tr><td><code>animator.SetBool()</code></td><td><code>void SetBool(string name, bool value)</code></td><td>Sets a boolean parameter, for <em>persistent</em> states — idle versus walking, where true and false are both meaningful.</td></tr>
+        <tr><td><code>animator.SetInteger()</code></td><td><code>void SetInteger(string name, int value)</code></td><td>Sets a whole-number parameter, for <em>discrete</em> choices such as a direction (0, 1, 2), where each value is a different clip.</td></tr>
+        <tr><td><code>animator.SetFloat()</code></td><td><code>void SetFloat(string name, float value)</code></td><td>Sets a decimal parameter, for smooth values such as speed. The fourth member of the family — <strong>this controller has no Float parameter</strong>, so you will not call it today.</td></tr>
+        <tr><td><code>animator.SetTrigger()</code></td><td><code>void SetTrigger(string name)</code></td><td>Fires a momentary trigger, which resets itself once a transition consumes it, for <em>one-shot</em> actions such as attacks. No value is passed.</td></tr>
+        <tr><td><code>spriteRenderer.flipX</code></td><td><code>bool</code> (read/write)</td><td>Mirrors the sprite horizontally, letting one sideways walk clip serve both left and right.</td></tr>
+        <tr><td><code>Mathf.Abs()</code></td><td><code>float Mathf.Abs(float f)</code></td><td>Returns a number's absolute value, stripping the sign — for comparing size regardless of direction.</td></tr>
+        <tr><td><code>GetComponentInChildren&lt;T&gt;()</code></td><td><code>T GetComponentInChildren&lt;T&gt;()</code></td><td>Finds a component on this GameObject <em>or on any of its children</em> — where the Sprite Renderer and the Animator turned out to live.</td></tr>
+    </table>
+    <div class="socratic">
+        <h3>Socratic: Separation of Concerns</h3>
+        <ol>
+            <li>Why does your script set abstract parameters like <code>"IsWalking"</code> rather than telling the engine "play frame 4 of the walk sprite sheet"?</li>
+            <li>If an artist replaced a 4-frame walk animation with an 8-frame one, how much C# would change? What does your answer say about this split?</li>
+            <li>What is the difference between <code>animator.SetBool(string name, bool value)</code> and <code>animator.SetTrigger(string name)</code>? Which resets itself, and why does that matter for an attack?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK)}
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header"><span class="activity-label">Bug Hunt</span><span class="activity-time">~25 min</span></div>
+    <p>Walk in all four directions and click to swing. Once that works, break one piece at a time.</p>
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Diagnosing Animation Faults</h3>
+        <ol>
+            <li>Misspell <code>"IsWalking"</code> as <code>"isWalking"</code> (lowercase i). What does the Console report? Why is a misspelled parameter a warning rather than a crash?</li>
+            <li><strong>Delete the <code>UpdateAnimation();</code> call</strong> from <code>Update()</code> and press Play. No errors appear and the character still moves — so what does it <em>look</em> like, and what does that prove?</li>
+            <li>Comment out both <code>spriteRenderer.flipX</code> lines. Walk left: which way does the sprite face, and can any input make it face the other way?</li>
+            <li>Change <code>GetComponentInChildren&lt;Animator&gt;()</code> to <code>GetComponent&lt;Animator&gt;()</code>. What error appears, and which line does Unity point at — the one in <code>Start()</code> or the one in <code>UpdateAnimation()</code>?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Open the Animator window and inspect states, arrows and parameter conditions</li>
+        <li><strong>Explain why <code>GetComponent&lt;T&gt;()</code> returns null on the Player and <code>GetComponentInChildren&lt;T&gt;()</code> does not</strong></li>
+        <li>Explain the distinct jobs of <code>animator.SetBool(string name, bool value)</code>, <code>animator.SetInteger(string name, int value)</code> and <code>animator.SetTrigger(string name)</code></li>
+        <li>Say which <code>WalkDir</code> integer means up, sideways and down, and which branch the sprite flips in</li>
+        <li>Use <code>Mathf.Abs(float f)</code> to resolve which directional input dominates</li>
+        <li>Cache component references in <code>Start()</code> rather than looking them up every frame</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — animation states section</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — designing your own state machine, which is Unit 4</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Animator API tables</li>
+        <li><a href="../docs/ask.html">How do I…? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="2.1.html">2.1 — Coins: Triggers, Tags &amp; Your First Stat</a> — Unit 2 begins, and your character finally interacts with the world.</p>
+</div>`;
+---
+<Lesson id="1.6" title="1.6 Animation States: IsWalking, WalkDir, Attack — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

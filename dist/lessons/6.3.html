@@ -1,0 +1,352 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles</title><meta name="description" content="Lesson 6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles"><meta property="og:description" content="Lesson 6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="6.2.html">&#9664; 6.2</a><span class="lesson-id">6.3</span><a href="6.4.html">6.4 &#9654;</a></div><h1>6.3 — Jump Feel: Fall Speed &amp; Coyote Time</h1>
+
+<p class="lesson-lead">
+    The jump works, the ground check is honest, and the character still comes down like a balloon.
+    "Feel" is four numbers with names, and every platformer you have ever called <em>tight</em> is
+    using all four.
+</p>
+
+<div class="ask-banner" data-scaffold="2"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I make my jump feel good?&rdquo;</span><span class="ask-banner-level">Guided build</span></div>
+
+<div class="activity decompose" data-level="2" data-parts="6" data-given="5" data-docs="6"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Guided build</span></div><p class="dc-big">Your jump works and your ground check is honest, and the character still feels like something operated through a spreadsheet: it floats down like a balloon, it refuses a press you made a step past the lip of a ledge, and it throws away a press you made a moment before you landed. "Make my jump feel good" is that whole complaint — and every knob that fixes it is a number somebody chose and wrote down.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Decide which way the body is moving vertically</span><span class="dc-does">Read the vertical half of the body's velocity and take the sign: positive is rising, negative is falling. The only part of this lesson that is not about time, and the switch the fall-speed trick hangs off.</span><span class="dc-doc">Read: <a href="6.1.html">the <code>rb.linearVelocity</code> row of the quick reference, for the Unity 6 rename.</a></span></li><li class="dc-part"><span class="dc-name">Make the fall heavier than the rise</span><span class="dc-does">Write a bigger gravity multiplier onto the body while it is falling, and the body's own value back while it is rising. The "normal" number is read off the body once in <code>Start()</code>, so the Inspector keeps ownership of it.</span><span class="dc-doc">Read: <a href="6.1.html">the <code>rb.gravityScale</code> row of the quick reference, and the Gravity Scale table you read in 6.1.</a></span></li><li class="dc-part dc-part-blank"><span class="dc-gap">write this part</span><span class="dc-doc">Read: <a href="3.3.html">the <code>Time.time</code> row of the quick reference, and the field the turret stamped on every shot in 3.3. The reading for "is that moment still recent enough?" is the same three pieces with the operator turned around.</a></span></li><li class="dc-part"><span class="dc-name">Spend the remembered moment the instant the jump uses it</span><span class="dc-does">When the jump fires, overwrite the remembered moment with a value so far in the past that no subtraction can bring it back inside the window. The same stamp line as 3.3, written with a different value and for the opposite reason.</span><span class="dc-doc">Read: <a href="3.3.html">the <strong>Cooldown</strong> row of the pattern table (<code>act, set last = Time.time</code>) and your own stamp line from 3.3 — then ask why that line cannot close this window by itself.</a></span></li><li class="dc-part"><span class="dc-name">Gate the jump on two windows instead of on the ground</span><span class="dc-does">A press is on file <strong>and</strong> the body is either standing on something <strong>or</strong> still inside the grace window. <code>&amp;&amp;</code> and <code>||</code> in one condition, and the only line in the file that launches anything.</span><span class="dc-doc">Read: <a href="6.2.html">the <code>&amp;&amp;</code> you combined the turret's range and cooldown checks with in 3.3, and the <code>isGrounded</code> bool your own 6.2 check produces.</a></span></li><li class="dc-part"><span class="dc-name">Cut the rise when the key comes back up</span><span class="dc-does">The smallest change of the four: while the body is still rising, the player's <strong>release</strong> multiplies the upward velocity down. The release becomes an input, not just the press.</span><span class="dc-doc">Read: <a href="6.1.html">the hold-longer-go-higher row of 6.1's four-technique table, and the <code>rb.linearVelocity</code> row of the quick reference for writing a velocity back.</a></span></li></ol><p class="dc-why">Four of those six parts are things you have already typed. Reading one half of a velocity is 6.1; putting a gravity multiplier on a body is the Gravity Scale field you turned on in 6.1; and cutting a rise is the hold-longer-go-higher row of 6.1's table. What is left is the timer. Every memory this game has kept so far was kept for good — a coin count, health, the moment of the turret's last shot. This memory is different in two ways at once: it is only meant to be true for a fraction of a second, and it has to be thrown away on purpose the moment it is used.</p><p class="dc-size">The test: could you look this part up on its own, right now, in one search? "Make my jump feel good" cannot be looked up — it is four unrelated numbers, two of them timers. "Compare a timestamp against the clock with a tolerance" can, and you have already written that subtraction once, in 3.3.</p><div class="dc-turns"><h4>Your turn</h4><p>Two of the four numbers are windows measured in seconds and two are multipliers. Which half of that split would you hand to a teammate as a spreadsheet, and which half do they have to feel for themselves?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:dc1:q1" data-block="decompose" data-question="Two of the four numbers are windows measured in seconds and two are multipliers. Which half of that split would you hand to a teammate as a spreadsheet, and which half do they have to feel for themselves?" placeholder="write your answer, then keep going"></textarea></label><p>Coyote time and the jump buffer both let a press count when a strict reading of the rules says it should not. Pick the one you would set longer than the other, and say what the player would think had gone wrong if you set it to zero.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:dc1:q2" data-block="decompose" data-question="Coyote time and the jump buffer both let a press count when a strict reading of the rules says it should not. Pick the one you would set longer than the other, and say what the player would think had gone wrong if you set it to zero." placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Project window →</strong> open <code>Assets/_Scenes/Platformer.unity</code>, then
+            <strong>Game view →</strong> press Play and play for thirty seconds with your attention
+            on your hands rather than the screen. Three complaints come up, and they are the three
+            every playtester in the world reports:
+            <ul>
+                <li><em>"I float down like a balloon."</em> One gravity number, doing two jobs.</li>
+                <li><em>"It ate my jump at the ledge."</em> A press made one step past the lip is
+                refused.</li>
+                <li><em>"It ignored my press just before I landed."</em> The press arrives while you
+                are airborne, and nothing is listening.</li>
+            </ul>
+        </li>
+        <li>
+            <strong>Hierarchy → the Player → Inspector → Rigidbody2D → Gravity Scale</strong>, and
+            keep that row visible while you jump in <strong>Game view →</strong>. Watch it: it never
+            changes while you play.
+        </li>
+        <li>
+            <strong>Game view →</strong> walk off the lip of a ledge and press jump as late as you
+            dare, then jump a fraction of a second <em>before</em> you land. Nothing happens either
+            time. Both fixes are timers that remember a moment rather than counting anything.
+        </li>
+        <li>
+            <strong>Once the walkthrough is done — Project window → Assets/Prefabs/Player →
+            Inspector → Player Controller:</strong> four new rows. Tune them one at a time, in play
+            mode, one sentence of feel written down for each.
+            <ul>
+                <li><strong>Fall Multiplier</strong> = <code>1</code> first, as your control — the
+                balloon you started with. Then <code>2.5</code>, then <code>3</code>.</li>
+                <li><strong>Coyote Time</strong> = <code>0.1</code>, then <code>0.5</code> — at
+                <code>0.5</code> you can leave a ledge, decide about it, and jump anyway.</li>
+                <li><strong>Jump Buffer Time</strong> = <code>0.12</code>, then <code>1</code> — at
+                <code>1</code> a press made a full second early still fires, and every fall becomes
+                a jump you did not ask for.</li>
+                <li><strong>Rise Cut</strong> = <code>0.5</code>, then <code>0</code> — tap and
+                hold side by side. <code>0.5</code> gives two visibly different jumps;
+                <code>0</code> gives a tap that does nothing at all, which is a bug rather than a
+                mechanic.</li>
+            </ul>
+        </li>
+        <li>
+            <strong>Prove the windows are state, not luck.</strong> Put
+            <code>Debug.Log("grounded at " + lastGroundedTime + " now " + Time.time);</code> in
+            <code>Update()</code> for one run and watch the two numbers as you walk off a ledge and
+            land: the gap between them is your coyote window, live. Then <strong>delete the
+            print</strong> — a log that survives into the next lesson is noise you will read past.
+        </li>
+    </ol>
+
+    <div class="socratic">
+        <h3>Socratic: Forgiving Intent Versus Playing For Them</h3>
+        <ol>
+<li>Coyote time and the jump buffer both let a press count when it "should not". Why does that make the player feel more in control, when technically it makes the game more permissive?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc1:q1" data-block="socratic" data-question="Coyote time and the jump buffer both let a press count when it &quot;should not&quot;. Why does that make the player feel more in control, when technically it makes the game more permissive?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>Set coyote time long enough and you can jump from thin air a metre past a ledge. What is the difference between forgiving the player's <em>intent</em> and playing the game for them?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc1:q2" data-block="socratic" data-question="Set coyote time long enough and you can jump from thin air a metre past a ledge. What is the difference between forgiving the player's intent and playing the game for them?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>Asymmetric gravity is a lie about physics, told by a multiplier on a law of the universe. What other lie does your character already tell — and what does each lie buy the player?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc1:q3" data-block="socratic" data-question="Asymmetric gravity is a lie about physics, told by a multiplier on a law of the universe. What other lie does your character already tell — and what does each lie buy the player?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>Which of the four knobs needs to know which way the body is <em>moving</em>, and which of them only need to know about <em>time</em>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.3:sc1:q4" data-block="socratic" data-question="Which of the four knobs needs to know which way the body is moving , and which of them only need to know about time ?" placeholder="write your answer, then keep going"></textarea></label></li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="callout info">
+        <strong>Both mercies are the same subtraction you met in
+        <a href="3.3.html">3.3</a>, read in the opposite direction</strong> — the same clock, the
+        same remembered moment, the same knob, with the comparison turned around. Step 3's
+        annotation works the operator out.
+    </div>
+
+    <div class="callout trap">
+        <strong>A window is not a countdown — pick one idiom per field.</strong> 3.3 named two
+        honest timers: a <em>timestamp</em> compared against <code>Time.time</code>, and a
+        <em>countdown</em> with <code>Time.deltaTime</code> subtracted from it every frame. Both
+        work. What does not work is one field doing both jobs: a number that means "when it
+        happened" on the frame you write it and "how long is left" everywhere else has no correct
+        comparison, and the bug looks like the window closing at the wrong moment. Today's two
+        fields are both timestamps, because both of them answer questions about <em>when</em>.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I make my jump feel good?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. Four numbers, one gravity line on the physics clock, and two fields that hold a moment in time. Your launch from 6.1 and your ground check from 6.2 are untouched, and one line here is yours to write: the window that reads the first of those two moments back.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Declare the four numbers and the two moments</h4><p class="wt-lead">Seven lines in the class body, beside <code>moveSpeed</code> and your jump force. Four are knobs a designer turns; the other three are this script's own bookkeeping — the same split as <code>range</code> and <code>lastAttackTime</code> on the turret in 3.3.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">fallMultiplier</span> = <span class="tk-nu">2.5f</span>;</span>
+<span class="wt-line" data-n="2">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">riseCut</span> = <span class="tk-nu">0.5f</span>;</span>
+<span class="wt-line wt-line-why" data-n="3">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">coyoteTime</span> = <span class="tk-nu">0.1f</span>;</span>
+<span class="wt-line" data-n="4">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">jumpBufferTime</span> = <span class="tk-nu">0.12f</span>;</span>
+<span class="wt-line wt-line-why" data-n="5">    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">lastGroundedTime</span>;</span>
+<span class="wt-line" data-n="6">    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">lastJumpPressedTime</span>;</span>
+<span class="wt-line" data-n="7">    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">baseGravity</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what"><strong>The fall-speed knob.</strong> A multiplier on the body's own gravity, applied only while it is falling. <code>1</code> is the balloon you have now, <code>2.5</code> is what most platformers use.</span><span class="wt-why"><strong>A multiplier, not a gravity value.</strong> The cave's gravity lives on the body. Type <code>9</code> here and you own two gravity numbers that have to agree, and the day either one changes, the jump is quietly wrong.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what"><strong>The fourth number.</strong> How much of the rise survives when the player lets go of the key — <code>0.5</code> halves it. <code>1</code> switches the knob off entirely, which is where your game is now.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what"><strong>The grace window,</strong> in seconds. How long after your feet leave the ground a jump is still accepted — about six frames in the cave, roughly the width of the mistake a player makes at the lip of a ledge.</span><span class="wt-why"><strong>Seconds, not frames.</strong> A frame counter is six frames on your machine and a different amount of time on a laptop running at half the speed.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what"><strong>How long a press is remembered,</strong> in seconds. And deliberately <strong>longer</strong> than the coyote window: a player pressing early is watching their landing, where their timing error tends to be the bigger one.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what"><strong>The first memory.</strong> The moment, on the game clock, when the feet were last known to be on something. <code>private</code>, because it is this script's own bookkeeping — the same declaration, for the same reason, as the turret's <code>lastAttackTime</code>.</span><span class="wt-why"><strong>Declared in the class body.</strong> A timestamp kept inside a method would be rebuilt every time that method ran, and could never remember anything — the scope rule from 1.3.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what"><strong>The second memory:</strong> the moment the jump key was last pressed down. A separate field on purpose — two timers, two names, two jobs, nothing shared.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what">Where the "normal" gravity is kept. It is read off the body <strong>once</strong>, in <code>Start()</code>, so the multiplier has something honest to multiply.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Make the fall heavier than the rise</h4><p class="wt-lead">One branch, on the physics clock, in <code>FixedUpdate()</code>. It reads the body's vertical velocity and hands the body a gravity scale — and that is the whole of the "it floats" complaint.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    <span class="tk-kw">void</span> <span class="tk-fn">FixedUpdate</span>()</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line wt-line-why" data-n="3">        <span class="tk-ct">if</span> (<span class="tk-va">body</span>.<span class="tk-va">linearVelocity</span>.<span class="tk-va">y</span> &lt; <span class="tk-nu">0f</span>)</span>
+<span class="wt-line" data-n="4">        {</span>
+<span class="wt-line wt-line-why" data-n="5">            <span class="tk-va">body</span>.<span class="tk-va">gravityScale</span> = <span class="tk-va">baseGravity</span> * <span class="tk-va">fallMultiplier</span>;</span>
+<span class="wt-line" data-n="6">        }</span>
+<span class="wt-line" data-n="7">        <span class="tk-ct">else</span></span>
+<span class="wt-line" data-n="8">        {</span>
+<span class="wt-line wt-line-why" data-n="9">            <span class="tk-va">body</span>.<span class="tk-va">gravityScale</span> = <span class="tk-va">baseGravity</span>;</span>
+<span class="wt-line" data-n="10">        }</span>
+<span class="wt-line" data-n="11">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The physics step. <code>gravityScale</code> is a property the physics engine reads, so it belongs on the clock the physics engine runs on.</span><span class="wt-why"><strong><code>FixedUpdate()</code> and not <code>Update()</code>.</strong> FixedUpdate runs fifty times a second in this project whatever rate the machine draws frames at. On a 144 Hz monitor <code>Update()</code> runs about three times per physics step and writes the same number three times for nothing.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what"><strong>The switch,</strong> and the only line in this lesson about direction instead of time. <code>linearVelocity</code> is the body's velocity as a <code>Vector2</code>; <code>.y</code> is the vertical half; below zero means it is on its way down.</span><span class="wt-why"><strong>Read it, never re-derive it.</strong> The sign of the velocity is the engine's own answer to "am I falling", and it is already correct — on the way up after a jump it is positive even though gravity is pulling the whole time. A boolean of your own would need setting true and false in the right places, and the frame it is wrong is a frame the fall speed is wrong.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">The fall is now heavier. Notice what is <strong>not</strong> here: no <code>Time.deltaTime</code>, no <code>Time.fixedDeltaTime</code>. Gravity Scale is a multiplier, not a rate, so time is not part of it anywhere.</span><span class="wt-why"><strong>Multiply, never add.</strong> <code>baseGravity + fallMultiplier</code> looks plausible at <code>2.5</code> and is nonsense the moment somebody sets the knob to <code>0.5</code>.</span></li>
+<li><span class="wt-ref">9</span><span class="wt-what"><strong>The branch everybody leaves out.</strong> While the body is rising — and standing still, and on the first frame after a jump — gravity goes back to the body's own value.</span><span class="wt-why"><strong>Without this line the multiplier is permanent.</strong> Write only the falling branch and every jump after the first is crushed by heavy gravity: the first looks fine and the rest barely leave the floor. Build exactly that once, on purpose, and watch it happen.</span></li>
+<li><span class="wt-ref">11</span><span class="wt-what">Closes <code>FixedUpdate()</code>. Your <code>Update()</code> is still the only place anything else happens.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Remember where you last stood — and write the window that reads it back</h4><p class="wt-lead">Two given lines and one gap. The line that writes the moment down is the turret's stamp from 3.3; the line you write is the same subtraction with the question turned around.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">        <span class="tk-ct">if</span> (<span class="tk-va">isGrounded</span>)</span>
+<span class="wt-line" data-n="2">        {</span>
+<span class="wt-line" data-n="3">            <span class="tk-va">lastGroundedTime</span> = <span class="tk-va">Time</span>.<span class="tk-va">time</span>;</span>
+<span class="wt-line" data-n="4">        }</span>
+<span class="wt-line wt-line-why wt-blank" data-n="5"><span class="wt-gap">        bool stillInGrace = ______________________________________;</span></span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Where the memory is written. <code>isGrounded</code> is the bool your 6.2 check leaves behind — and this block is the <strong>only</strong> place it is read for this purpose, because a second ground check in this file would be a second answer to one question.</span><span class="wt-why"><strong>One ground check, one place.</strong> If your 6.2 check lives in a method of its own, this block goes directly underneath the call that runs it. Record the moment anywhere else and the file asks "am I standing on something?" twice, with nothing keeping the answers in step.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The memory, refreshed on every frame the feet are down. <strong>This is 3.3's stamp line</strong> — the clock that only ever counts up, written down at the moment the interesting thing happened.</span></li>
+<li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">5</span><span class="wt-what"><strong>Your line — the whole right-hand side.</strong> It answers one question: is the moment you just wrote down still recent enough to count as standing? The declaration on the left is fixed — step 4 consumes <code>stillInGrace</code>, so do not rename it — and everything from the <code>=</code> onward is yours.</span><span class="wt-hint">Three pieces go into it: the moment you recorded on the line above, the window you declared as a knob in step 1, and the clock that only ever counts up — the row of the quick reference described as the seconds since the scene started, the row the turret stamped on every shot in 3.3. Put all three into one comparison, then ask which way round it runs: 3.3 asked whether <strong>enough</strong> time had passed, and this asks the mirror question. <code>==</code> is exactly as wrong here as it was there.</span><span class="wt-why"><strong>The same subtraction, read backwards.</strong> 3.3 asked <code>clock &gt;= moment + gap</code>. This asks whether too <strong>little</strong> time has passed — same three pieces, opposite operator, and the answer is a bool rather than a jump. Keeping it in a named bool is what lets step 4 ask about standing and pressing in the same breath.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Remember the last press, and open the gate that uses both</h4><p class="wt-lead">The mirror of step 3, written by the key instead of by the floor. Then one condition that needs both memories to be true.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">        <span class="tk-ct">if</span> (<span class="tk-va">Input</span>.<span class="tk-fn">GetKeyDown</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">Space</span>))</span>
+<span class="wt-line" data-n="2">        {</span>
+<span class="wt-line" data-n="3">            <span class="tk-va">lastJumpPressedTime</span> = <span class="tk-va">Time</span>.<span class="tk-va">time</span>;</span>
+<span class="wt-line" data-n="4">        }</span>
+<span class="wt-line" data-n="5">        <span class="tk-kw">bool</span> <span class="tk-va">pressedRecently</span> = <span class="tk-va">Time</span>.<span class="tk-va">time</span> - <span class="tk-va">lastJumpPressedTime</span> &lt;= <span class="tk-va">jumpBufferTime</span>;</span>
+<span class="wt-line" data-n="6"></span>
+<span class="wt-line wt-line-why" data-n="7">        <span class="tk-ct">if</span> (<span class="tk-va">pressedRecently</span> &amp;&amp; (<span class="tk-va">isGrounded</span> || <span class="tk-va">stillInGrace</span>))</span>
+<span class="wt-line" data-n="8">        {</span>
+<span class="wt-line" data-n="9">            <span class="tk-fn">Jump</span>();</span>
+<span class="wt-line" data-n="10">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The <strong>single-frame</strong> key check from 6.1. It is not the jump — it only writes the moment down. In 6.2 this check was the second half of <code>if (isGrounded &amp;&amp; Input.GetKeyDown(...))</code>, so a press was only ever <strong>considered</strong> while you were standing: made in mid-air, it was not rejected, it was never seen at all.</span><span class="wt-why"><strong>And the held-key version would refresh the memory every frame.</strong> Lean on the jump key and you would have a press on file for as long as you held it, so the buffer would fire the instant you touched the floor. The one-frame version is the whole point of a <strong>press</strong>.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The same stamp, on the other field. If it looks like the line above, that is the lesson: two timers, written by two events, read by two questions.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what"><strong>The buffer's window — the line you wrote in step 3, with the other field and the other knob in it.</strong> Nothing about the shape changed, which is exactly why step 3 asked you to produce it.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what">The gate, and the only line in the file that launches anything. Read it as a sentence: a press is on file, <strong>and</strong> the body is either standing on something <strong>or</strong> still inside the grace window.</span><span class="wt-why"><strong>This is the line that keeps two mercies from becoming a jetpack.</strong> Drop <code>stillInGrace</code> and you have 6.2's plain ground check — correct, and it refuses the press a player made one step past the lip. Drop <code>pressedRecently</code> and the jump fires the instant you touch down whether or not anybody asked. Drop the <code>isGrounded</code> half and you can jump from anywhere at all.</span></li>
+<li><span class="wt-ref">9</span><span class="wt-what">The method from 6.1, called from exactly one place — and that place now has a rule about when. Whatever your launch is, nothing about it changes today except the company it keeps.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 5</span>Spend both windows the moment the jump fires</h4><p class="wt-lead">Two lines, and they are the difference between a mercy and a jetpack. Without them the window you just used is still open on the next frame.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">        <span class="tk-va">body</span>.<span class="tk-fn">AddForce</span>(<span class="tk-va">Vector2</span>.<span class="tk-va">up</span> * <span class="tk-va">jumpForce</span>, <span class="tk-va">ForceMode2D</span>.<span class="tk-va">Impulse</span>);</span>
+<span class="wt-line wt-line-why" data-n="2">        <span class="tk-va">lastGroundedTime</span> = -<span class="tk-nu">999f</span>;</span>
+<span class="wt-line" data-n="3">        <span class="tk-va">lastJumpPressedTime</span> = -<span class="tk-nu">999f</span>;</span>
+<span class="wt-line" data-n="4">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Your launch from 6.1, unchanged. If you picked one of the other Dynamic-body rows instead — writing <code>linearVelocity</code> directly — keep that one: it is the same jump by a different route.</span><span class="wt-why"><strong>One of 6.1's four rows cannot be used with this lesson at all.</strong> <code>MovePosition()</code> on a Kinematic body: a Kinematic body ignores gravity, so it never falls, which means there is no velocity for the heavy branch to read and no gravity for it to fight. If that is the row you wrote in 6.1, switch it now — it is one line.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what"><strong>The spend, and the new idea in this lesson.</strong> A moment far enough in the past that no subtraction can bring it back inside the window. The jump you just made has used the grace up; the next frame must not be able to use it again.</span><span class="wt-why"><strong>Why not one cooldown-length back, the way 3.3 seeded its turret?</strong> Because the question is different. 3.3 asked "has enough time passed since <code>last</code>", so pushing <code>last</code> back by one cooldown closed the gate. This window asks whether <strong>too little</strong> has passed, so pushing the moment back by exactly one window leaves it sitting on the boundary, ready to open again on frame one.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The same spend, on the other window. Both have to be closed: the press you just honoured must not be honoured again when you leave the ground, and the grace you just used must not survive into the next frame.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Closes the jump. One more <code>}</code> closes the class.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 6</span>The fourth number: cut the rise when the key comes back up</h4><p class="wt-lead">Three lines, and the player's <strong>release</strong> becomes an input for the first time. Press for a full jump, tap for a small one.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">        <span class="tk-ct">if</span> (<span class="tk-va">Input</span>.<span class="tk-fn">GetKeyUp</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">Space</span>) &amp;&amp; <span class="tk-va">body</span>.<span class="tk-va">linearVelocity</span>.<span class="tk-va">y</span> &gt; <span class="tk-nu">0f</span>)</span>
+<span class="wt-line" data-n="2">        {</span>
+<span class="wt-line wt-line-why" data-n="3">            <span class="tk-va">body</span>.<span class="tk-va">linearVelocity</span> = <span class="tk-kw">new</span> <span class="tk-ty">Vector2</span>(<span class="tk-va">body</span>.<span class="tk-va">linearVelocity</span>.<span class="tk-va">x</span>, <span class="tk-va">body</span>.<span class="tk-va">linearVelocity</span>.<span class="tk-va">y</span> * <span class="tk-va">riseCut</span>);</span>
+<span class="wt-line" data-n="4">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The key coming <strong>up</strong>, and the body still rising. Two conditions, because a release while you are already falling must not do anything — there is no rise left to cut.</span><span class="wt-why"><strong>And 6.1's own proof leaves an edge case here.</strong> <code>AddForce(...)</code> does not change <code>linearVelocity</code> until the physics engine next runs, so a player who presses <strong>and</strong> releases inside a single frame lets go before the rise exists. Nothing to cut, nothing errors — which is why this line asks the body whether it is rising instead of assuming a jump just happened.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Multiply the upward half of the velocity down instead of setting it to zero. A hard <code>0</code> kills the rise dead and reads as a collision; a multiplier reads as the character choosing to come down.</span><span class="wt-why"><strong>This is where the buffer and the rise cut collide.</strong> A buffered jump fires the instant you land, from a press made before the landing — and if the player has already released the key, this block cuts that jump on its very first frame, so it arrives already half spent. Test the two together before you decide the numbers.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things have to match and nothing else does: the fall multiplier is written on the physics clock and <strong>restored on the way up</strong>, the jump is gated by two windows rather than by the ground check alone, and <strong>both windows are spent the instant the jump fires</strong>. Your launch, your ground check, your names and all four of your numbers are yours.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/PlayerController.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
+
+<span class="tk-cm">// PlayerController.cs — the jump, and the four numbers that make it feel like</span>
+<span class="tk-cm">// yours. Movement 1.4, animation 1.6, the velocity rule 2.2, the launch from</span>
+<span class="tk-cm">// 6.1, the ground check from 6.2 — and the two mercies.</span>
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">PlayerController</span> : <span class="tk-ty">MonoBehaviour</span>
+{
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">moveSpeed</span> = <span class="tk-nu">5f</span>;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">jumpForce</span> = <span class="tk-nu">7f</span>;          <span class="tk-cm">// yours already — 6.1's step 1</span>
+
+<span class="tk-cm">    // ---- the four numbers this lesson is about --------------------------</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">fallMultiplier</span> = <span class="tk-nu">2.5f</span>;   <span class="tk-cm">// heavier going down</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">riseCut</span> = <span class="tk-nu">0.5f</span>;          <span class="tk-cm">// release shortens the rise</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">coyoteTime</span> = <span class="tk-nu">0.1f</span>;       <span class="tk-cm">// grace after the ledge</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">jumpBufferTime</span> = <span class="tk-nu">0.12f</span>;  <span class="tk-cm">// grace before the floor</span>
+
+<span class="tk-cm">    // ---- your 6.2 check, unchanged. This file writes the raycast row; if you</span>
+<span class="tk-cm">    // picked a different one, CheckGround() is the only place that changes. ---</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">groundDistance</span> = <span class="tk-nu">0.6f</span>;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">LayerMask</span> <span class="tk-va">groundMask</span>;
+
+    <span class="tk-kw">private</span> <span class="tk-ty">Rigidbody2D</span> <span class="tk-va">body</span>;
+    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">baseGravity</span>;          <span class="tk-cm">// read once, so the Inspector still owns it</span>
+
+    <span class="tk-kw">private</span> <span class="tk-kw">bool</span> <span class="tk-va">isGrounded</span>;
+    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">lastGroundedTime</span>;     <span class="tk-cm">// a MOMENT, not a count</span>
+    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">lastJumpPressedTime</span>;  <span class="tk-cm">// the other moment, a different field</span>
+
+    <span class="tk-kw">void</span> <span class="tk-fn">Start</span>()
+    {
+        <span class="tk-va">body</span> = <span class="tk-fn">GetComponent</span>&lt;<span class="tk-ty">Rigidbody2D</span>&gt;();
+
+<span class="tk-cm">        // ... your 6.1 gravity line, if you wrote one for the scene ...</span>
+        <span class="tk-va">baseGravity</span> = <span class="tk-va">body</span>.<span class="tk-va">gravityScale</span>;    <span class="tk-cm">// read it LAST — after your 6.1 gravity line above</span>
+    }
+
+    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
+    {
+<span class="tk-cm">        // ... your input, movement and animation from 1.4, 1.6 and 2.2 ...</span>
+        <span class="tk-fn">CheckGround</span>();
+
+<span class="tk-cm">        // The memory: refreshed on every frame the feet are down.</span>
+        <span class="tk-ct">if</span> (<span class="tk-va">isGrounded</span>)
+        {
+            <span class="tk-va">lastGroundedTime</span> = <span class="tk-va">Time</span>.<span class="tk-va">time</span>;
+        }
+
+<span class="tk-cm">        // The other memory: written by the key, on the frame it goes down.</span>
+        <span class="tk-ct">if</span> (<span class="tk-va">Input</span>.<span class="tk-fn">GetKeyDown</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">Space</span>))
+        {
+            <span class="tk-va">lastJumpPressedTime</span> = <span class="tk-va">Time</span>.<span class="tk-va">time</span>;
+        }
+
+<span class="tk-cm">        // The same subtraction twice, asked in opposite directions.</span>
+        <span class="tk-kw">bool</span> <span class="tk-va">stillInGrace</span> = <span class="tk-va">Time</span>.<span class="tk-va">time</span> - <span class="tk-va">lastGroundedTime</span> &lt;= <span class="tk-va">coyoteTime</span>;
+        <span class="tk-kw">bool</span> <span class="tk-va">pressedRecently</span> = <span class="tk-va">Time</span>.<span class="tk-va">time</span> - <span class="tk-va">lastJumpPressedTime</span> &lt;= <span class="tk-va">jumpBufferTime</span>;
+
+        <span class="tk-ct">if</span> (<span class="tk-va">pressedRecently</span> &amp;&amp; (<span class="tk-va">isGrounded</span> || <span class="tk-va">stillInGrace</span>))
+        {
+            <span class="tk-fn">Jump</span>();
+        }
+
+<span class="tk-cm">        // The fourth number: let go early and the rise is cut short.</span>
+        <span class="tk-ct">if</span> (<span class="tk-va">Input</span>.<span class="tk-fn">GetKeyUp</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">Space</span>) &amp;&amp; <span class="tk-va">body</span>.<span class="tk-va">linearVelocity</span>.<span class="tk-va">y</span> &gt; <span class="tk-nu">0f</span>)
+        {
+            <span class="tk-va">body</span>.<span class="tk-va">linearVelocity</span> = <span class="tk-kw">new</span> <span class="tk-ty">Vector2</span>(<span class="tk-va">body</span>.<span class="tk-va">linearVelocity</span>.<span class="tk-va">x</span>, <span class="tk-va">body</span>.<span class="tk-va">linearVelocity</span>.<span class="tk-va">y</span> * <span class="tk-va">riseCut</span>);
+        }
+    }
+
+<span class="tk-cm">    // Gravity is a value the physics engine reads, so it is written on the</span>
+<span class="tk-cm">    // physics clock: fifty times a second here, whatever the frame rate is.</span>
+    <span class="tk-kw">void</span> <span class="tk-fn">FixedUpdate</span>()
+    {
+        <span class="tk-ct">if</span> (<span class="tk-va">body</span>.<span class="tk-va">linearVelocity</span>.<span class="tk-va">y</span> &lt; <span class="tk-nu">0f</span>)
+        {
+            <span class="tk-va">body</span>.<span class="tk-va">gravityScale</span> = <span class="tk-va">baseGravity</span> * <span class="tk-va">fallMultiplier</span>;
+        }
+        <span class="tk-ct">else</span>
+        {
+            <span class="tk-va">body</span>.<span class="tk-va">gravityScale</span> = <span class="tk-va">baseGravity</span>;
+        }
+    }
+
+    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">Jump</span>()
+    {
+<span class="tk-cm">        // Your launch from 6.1: one flick. Writing linearVelocity directly</span>
+<span class="tk-cm">        // works identically here — the Kinematic MovePosition row does not,</span>
+<span class="tk-cm">        // because a Kinematic body has no gravity for the fall branch to fight.</span>
+        <span class="tk-va">body</span>.<span class="tk-fn">AddForce</span>(<span class="tk-va">Vector2</span>.<span class="tk-va">up</span> * <span class="tk-va">jumpForce</span>, <span class="tk-va">ForceMode2D</span>.<span class="tk-va">Impulse</span>);
+
+<span class="tk-cm">        // Spend both windows. A window that is never closed is a jetpack —</span>
+<span class="tk-cm">        // and unlike the turret's cooldown, this one cannot close itself.</span>
+        <span class="tk-va">lastGroundedTime</span> = -<span class="tk-nu">999f</span>;
+        <span class="tk-va">lastJumpPressedTime</span> = -<span class="tk-nu">999f</span>;
+    }
+
+    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">CheckGround</span>()
+    {
+<span class="tk-cm">        // A RaycastHit2D is true when the ray hit something and false when it</span>
+<span class="tk-cm">        // did not, so it stores straight into the bool. Your 6.2 technique,</span>
+<span class="tk-cm">        // whichever of the four you chose, belongs on this line.</span>
+        <span class="tk-va">isGrounded</span> = <span class="tk-va">Physics2D</span>.<span class="tk-fn">Raycast</span>(<span class="tk-va">transform</span>.<span class="tk-va">position</span>, <span class="tk-va">Vector2</span>.<span class="tk-va">down</span>, <span class="tk-va">groundDistance</span>, <span class="tk-va">groundMask</span>);
+    }
+}</code></pre></details></div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Tune the Four Numbers</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>
+        The walkthrough built the reference version of all four. What it cannot give you is the
+        numbers, because they are the design — and each one is now an Inspector row.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: the fall multiplier.</strong>
+        <ul>
+            <li>Where does the "normal" gravity number live in <em>your</em> project — a literal in your own code, a serialized field, a scene-instance value, or a value you read off the body? Whatever the answer, you now need it in a second place, and that is a design smell worth fixing rather than living with.</li>
+            <li>Is the value you multiply <em>your own field</em> or the body's <code>gravityScale</code>? Which choice survives a teammate retuning the cave in the Inspector?</li>
+            <li>What happens in the top-down Overworld if this branch runs there? Before you answer,
+            look at the Player in <em>that</em> scene and read the Gravity Scale that is actually
+            there rather than the one you remember setting.</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the two mercies.</strong>
+        <ul>
+            <li>What exact moment does each field record, and which event writes it? Say it in one sentence per field, and use the word "moment" in both, not "timer".</li>
+            <li>How long is each window, in seconds? Write your two numbers down beside a sentence of feel for each, the way you did for the jump force in <a href="6.1.html">6.1</a>.</li>
+            <li>What is the "spend" rule — and can the same jump fire twice off one remembered press if you get it wrong? Which of the two windows does the double-fire come from?</li>
+            <li>What is the initial value of each field before anything has happened — before the feet have touched the ground and before the key has ever been pressed? If it starts at <code>0</code> and the scene clock also starts near <code>0</code>, what does your first frame of play do?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the fourth number.</strong>
+        <ul>
+            <li>When is the cut allowed? Only while rising, or on the way down too? What would a cut on the way down even mean?</li>
+            <li>How does the cut interact with a buffered jump the player never held? Describe the two knobs fighting, then decide which one you would weaken.</li>
+        </ul>
+    </div>
+
+    <div class="callout trap">
+        <strong>Two timers and one jump key is how you build an infinite jump by accident.</strong>
+        Watch the number you printed in the In the Editor steps. If it keeps resetting while you are
+        nowhere near the floor, one of the two remembered moments is being refreshed when it should
+        not be, or one of them is not being spent.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain asymmetric gravity as a multiplier on the body's own value, applied on the physics clock</li>
+        <li>Say where the "normal" gravity number lives, and why multiplying it beats storing a second copy</li>
+        <li>Build coyote time and the jump buffer from the timestamp pattern in <a href="3.3.html">3.3</a>, and say which way the comparison turned</li>
+        <li>Explain "spending" a window, and why a window read backwards cannot close itself the way a cooldown does</li>
+        <li>Defend all four knobs as intent-forgiveness rather than difficulty-lowering</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the full jump-feel guide</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>linearVelocity</code>, <code>gravityScale</code>, <code>Time.time</code> and the Cooldown pattern</li>
+        <li><a href="6.2.html">6.2 — Ground Checks: No Infinite Jumps</a> — the <code>isGrounded</code> bool these two windows hang off</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="6.4.html">6.4 — Boots: Double Jump</a>, where one pickup changes what your level design is allowed to ask for.</p>
+</div><div class="lab-bar" data-lesson="6.3" data-lesson-title="Jump Feel: Fall Speed &amp; Coyote Time" data-count="6" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/6 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="6.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="6.2.html"><span class="dir">&#9664; Previous</span><span class="where">6.2 — Ground Checks: No Infinite Jumps</span></a><a class="foot-next" href="6.4.html"><span class="dir">Next &#9654;</span><span class="where">6.4 — Boots: Double Jump</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

@@ -1,0 +1,208 @@
+---
+// Lesson 3.1 — The Turret: Distance & the Detection Radius
+// Problem breakdown: locating a target and measuring spatial distance.
+// Comparing GameObject.FindWithTag(String tag) against a serialized reference,
+// and Vector3.Distance(a, b) against a squared-magnitude comparison.
+//
+// GROUND TRUTH: TurretController.cs is an empty stub BUT it IS already attached
+// to Turret.prefab (which also has a child "SpawnPoint" used as the muzzle in
+// 3.2). Two Turret instances exist in the Overworld.
+//
+// Scaffolding: OUTLINE ONLY (level 3). The split and the API are given and no
+// code is — the student writes TurretController.cs. The ask banner is the level
+// marker; a level-3 lesson must not render a walkthrough, and verify-site
+// refuses one that does.
+//
+// STRUCTURE (this pass, "teach it once"): one editor block, one code block. The
+// clicks that can only happen after the fields exist are the last step of the
+// same list, marked "Once the code half is done". Culled as repetition: the
+// SpawnPoint step (it is 3.2's muzzle, taught there), the comparison tables and
+// the null-guard callout that used to sit in their own "Read the Docs" activity
+// (they are rows of the API table, which is a lookup), the paragraphs
+// introducing each half, and the spec bullet that asked the same targeting
+// question the Socratic block already asks.
+//
+// Answer-box ids are positional and persisted, so this rewrite keeps the
+// socratic block and its three questions in order (reworded, never moved) and
+// keeps the decompose block's single turn where it was (dc1:q2).
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// Level 3 (outline only): the split and the API are given, the code is not.
+// The parts mirror the three sub-problems the API table prices below, so the
+// decomposition is the plan the rest of the page follows. At level 3 the
+// renderer withholds what each part DOES and asks the student to say it.
+const DECOMPOSE = {
+  big: 'The turret notices me. That is the whole feature, and "how does a turret notice me" has no answer a computer can act on.',
+  parts: [
+    {
+      name: 'Who is my target, and where is it?',
+      does: 'Get a reference to the player from somewhere once at startup, and keep it — rather than searching the whole scene for it every frame.',
+      doc: 'GameObject.FindWithTag(String tag) against a [SerializeField] reference, both in the quick reference, and priced against each other in the table below.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'How far away is it right now?',
+      does: 'Measure the straight-line distance between the turret and that target, every frame.',
+      doc: 'Vector3.Distance(a, b) and a sqrMagnitude comparison — quick reference, and the table below.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Is that distance inside my danger zone?',
+      does: 'Compare the distance against a range value a designer can tune, and act when it is inside. Detection is a condition checked continuously, not an event that happens once.',
+      doc: 'the [SerializeField] tuning knob you have used since 1.4, and the comparison operators you met in 2.2.',
+      href: '2.2.html',
+    },
+  ],
+  why:
+    '"Notice the player" is not something you can write. Each of these three is — and none of them ' +
+    'is about turrets. Finding a tagged object, measuring a distance and comparing a number are ' +
+    'ordinary tools you will reach for all year; the turret is just where they happen to combine.',
+  sizeTest:
+    'The test for a finished split: could you look this part up on its own, right now, in one ' +
+    'search? "Make the turret shoot" cannot be. "Get the distance between two objects" can.',
+  turns: [
+    'The table below prices two ways to acquire the target and two ways to measure distance. Say which you picked for each, and what your choice costs you.',
+  ],
+};
+
+const body = `<h1>3.1 — The Turret: Distance &amp; the Detection Radius</h1>
+
+<p class="lesson-lead">
+    Coins wait to be collected; spikes wait to be bumped into. The turret is the first thing in this
+    game that <em>decides</em>. Build <code>TurretController.cs</code> from scratch: find the
+    player, measure the distance, compare it against a range a designer can tune.
+</p>
+
+${renderAskBanner('how do I make a turret notice the player?', 3)}
+
+${renderDecompose('3.1', DECOMPOSE, 3)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Hierarchy →</strong> the <strong>Overworld</strong> scene, which holds two
+            <strong>Turret</strong> instances. Then <strong>Project window →</strong>
+            <code>Assets/Prefabs/Turret</code> → <strong>Inspector →</strong> an empty
+            <strong>Turret Controller</strong> component is already attached: the script exists, it is
+            wired up, and it does nothing — the same situation as <code>PlayerController</code> in
+            Unit 1.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/Player</code>, then
+            <strong>Inspector → Tag</strong>: confirm the exact spelling your script will ask for, on
+            the object carrying the collider. A tag that does not match is not an error, it is
+            silence.
+        </li>
+        <li>
+            <strong>Once the code half is done — Inspector → Turret Controller → your range
+            field</strong> (it appears in the Inspector as soon as you declare it). Give the two
+            instances different values, then <strong>Game view → press Play</strong> and walk slowly
+            toward one: quiet outside the radius, a Console line every frame inside it, quiet again as
+            you walk back out.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <table>
+        <tr><th>API</th><th>What it is</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>GameObject.FindWithTag(String tag)</code></td>
+            <td>A scene-wide search for an object carrying that tag.</td>
+            <td>A reference with nothing wired by hand — it finds things you never set up.</td>
+            <td>It walks the whole scene, so it has no business in <code>Update()</code>, and it
+                returns <code>null</code> when nothing matches: hand that to the next line and it
+                throws three methods from the failure.</td>
+        </tr>
+        <tr>
+            <td><code>[SerializeField] private Transform playerTransform;</code></td>
+            <td>A slot in the Inspector holding the player's transform.</td>
+            <td>Zero search cost, and you can see what it points at.</td>
+            <td>Wired by hand, and it breaks for anything that spawns at runtime.</td>
+        </tr>
+        <tr>
+            <td><code>Vector3.Distance(a, b)</code></td>
+            <td>The straight-line distance between two points.</td>
+            <td>A real distance in world units — the number you can print, and the unit a designer's
+                tuning value is measured in.</td>
+            <td>A square root every call. Irrelevant for two turrets; not irrelevant when hundreds of
+                enemies ask at once.</td>
+        </tr>
+        <tr>
+            <td><code>(b - a).sqrMagnitude</code>, tested against <code>range * range</code></td>
+            <td>The same comparison with the square root skipped.</td>
+            <td>Cheaper, and it answers the question you are asking — inside, or outside.</td>
+            <td>You get the distance <em>squared</em> and never the distance, so it is useless to
+                display, and testing it against plain <code>range</code> gives the wrong radius. The
+                radius you are standing in is <code>range * range</code>.</td>
+        </tr>
+        <tr>
+            <td><code>[SerializeField] private float range = 6f;</code></td>
+            <td>The tuning knob, in the class body above <code>Start()</code> with your other
+                fields.</td>
+            <td>How far this turret can see, settable per instance without touching your code.</td>
+            <td>Choosing the default is design work: too big and the player is shot at from
+                off-screen, too small and these two turrets never react to anything.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification for <code>TurretController.cs</code>:</strong>
+        <ul>
+            <li>Which component holds a GameObject's coordinates in world space, and which lifecycle method runs the target lookup exactly once? What does <code>GameObject.FindWithTag(String tag)</code> return when nothing matches, and what check must follow it?</li>
+            <li>How do you measure the distance between turret and player every frame, and which of the two distance tools did you choose? What guard clause keeps the rest of <code>Update()</code> from running when there is no target?</li>
+            <li>What condition says the player has entered the danger zone, and which comparison operator? You are about to test the exact boundary, so decide whether the edge of the circle counts as inside. What do you print so you can watch detection happen with no UI at all?</li>
+        </ul>
+    </div>
+
+    <div class="socratic">
+        <h3>Choosing a Targeting Approach</h3>
+        <ol>
+<li>If you use <code>GameObject.FindWithTag(String tag)</code>, why call it once in <code>Start()</code> and store the result, rather than calling it every frame in <code>Update()</code>?</li>
+<li>The squared comparison tests a magnitude against <code>range * range</code> rather than against <code>range</code>. What would go wrong if you compared it to plain <code>range</code>?</li>
+<li>You have two turrets in this scene and one player. Which targeting approach would you choose, and what does your choice cost you?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Break "the turret notices you" into target acquisition, distance measurement, and a selection condition</li>
+        <li>Say, for each of those parts, where you would look it up without asking a person</li>
+        <li>Explain why you cache the target once in <code>Start()</code> instead of searching every frame, and what <code>GameObject.FindWithTag(String tag)</code> hands back when it finds nothing</li>
+        <li>Compare <code>Vector3.Distance(a, b)</code> against a <code>sqrMagnitude</code> test, and say why the squared version tests <code>range * range</code></li>
+        <li>Name the one value in your file a designer can retune from the Inspector, say what your default costs you, then commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — distance, targeting, and the projectile lifecycle</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>Vector3.Distance(a, b)</code>, <code>GameObject.FindWithTag(String tag)</code> and the Transform API</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="3.2.html">3.2 — Projectiles: Instantiate, Fire, Destroy</a>, where the turret finally shoots.</p>
+</div>`;
+---
+<Lesson id="3.1" title="3.1 The Turret: Distance &amp; the Detection Radius — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

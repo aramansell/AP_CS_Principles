@@ -1,0 +1,141 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>1.4 Movement I: Input, Direction, Vector — AP CS Principles</title><meta name="description" content="Lesson 1.4 Movement I: Input, Direction, Vector — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="1.4 Movement I: Input, Direction, Vector — AP CS Principles"><meta property="og:description" content="Lesson 1.4 Movement I: Input, Direction, Vector — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="1.3.html">&#9664; 1.3</a><span class="lesson-id">1.4</span><a href="1.5.html">1.5 &#9654;</a></div><h1>1.4 — Movement I: Input, Direction, Vector</h1>
+
+<p class="lesson-lead">Movement looks effortless in a game. In code it is an algorithm: <strong>read the player's input → turn it into a distance → move the character</strong>. Every line is given below.</p>
+
+<p><strong>Starting point:</strong> <code>Assets/Scripts/PlayerController.cs</code> is a shell — two empty methods. The Player has a Transform and nothing else: no physics, no collider.</p>
+
+<div class="ask-banner" data-scaffold="1"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I move an object in Unity?&rdquo;</span><span class="ask-banner-level">Full walkthrough</span></div>
+
+<div class="activity decompose" data-level="1" data-parts="4" data-given="4" data-docs="4"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Full walkthrough</span></div><p class="dc-big">Move the character when I press the arrow keys. As one problem, that is far too big to start typing.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Find out which way the player is pushing</span><span class="dc-does">Ask the keyboard for two numbers, one per axis, each between -1 and 1, and keep them in fields so they survive the frame.</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">The axis reads in the quick reference, and 1.3's declare-vs-assign rule.</a></span></li><li class="dc-part"><span class="dc-name">Turn those two numbers into one direction</span><span class="dc-does">A pair of numbers is awkward to move by. Combine them into one <code>Vector2</code>: a single value meaning "this far, in this direction".</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html"><code>Vector2</code> in the quick reference.</a></span></li><li class="dc-part"><span class="dc-name">Scale that direction by speed and by the frame</span><span class="dc-does">Multiply by <code>moveSpeed</code> to turn a direction into a distance, and by <code>Time.deltaTime</code> so the distance is per second rather than per frame.</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">The <code>deltaTime</code> row in the quick reference.</a></span></li><li class="dc-part"><span class="dc-name">Move the player by that distance, every frame</span><span class="dc-does">Hand the finished offset to the Player's own Transform, which adds it to where the Player already is.</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html"><code>transform.Translate(v)</code> in the quick reference.</a></span></li></ol><p class="dc-why">Four parts, and only one is the part you would have thought of first. "Move the player" sounds like one action; it is a read, a build, a scale and an offset.</p><p class="dc-size">The test for a finished split: could you look this part up on its own, in one search? "Move the player" cannot; "get keyboard input as a number" can.</p><div class="dc-turns"><h4>Your turn</h4><p>Read the input, build a direction, apply the movement. Which of those three would still work unchanged if you swapped the keyboard for a gamepad stick — and why is that a sign the split is a good one?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4:dc1:q1" data-block="decompose" data-question="Read the input, build a direction, apply the movement. Which of those three would still work unchanged if you swapped the keyboard for a gamepad stick — and why is that a sign the split is a good one?" placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header"><span class="activity-label">In the Editor</span><span class="activity-time">~12 min</span></div>
+    <ol>
+        <li><strong>Project window →</strong> <code>Assets/Scripts</code>, double-click <code>PlayerController.cs</code> to open it.</li>
+        <li><strong>Hierarchy →</strong> select the <strong>Player</strong>, then <strong>Inspector →</strong> read the <strong>Player Controller (Script)</strong> component: two methods, nothing to tune yet.</li>
+        <li><strong>Game view →</strong> press <strong>Play</strong> and hold WASD. Nothing moves — the shell runs and does nothing.</li>
+        <li><strong>Edit → Project Settings → Input Manager:</strong> read the <strong>Horizontal</strong> and <strong>Vertical</strong> axes. Neither is a single key, and a gamepad stick is already in the list.</li>
+        <li><strong>Game view →</strong> press <strong>Play</strong> once your script is written and hold WASD. The character glides in all four directions.</li>
+        <li><strong>Inspector →</strong> while the game runs, change the <strong>Move Speed</strong> box. Then <strong>GitHub Desktop →</strong> commit and push your movement code.</li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">~20 min</span></div>
+    <p>Four ways to ask Unity for movement. You write the first and the last today; the middle two are here because choosing between them is a design decision.</p>
+    <table>
+        <tr><th>Unity API</th><th>Returns</th><th>Behaviour</th></tr>
+        <tr><td><code>Input.GetAxis("Horizontal")</code></td><td><code>float</code> (−1.0 to 1.0)</td><td><strong>Smooth ramp.</strong> Accelerates to −1 or +1 and coasts back to 0, so movement has a little weight.</td></tr>
+        <tr><td><code>Input.GetAxisRaw("Horizontal")</code></td><td><code>float</code> (−1, 0 or 1)</td><td><strong>Instant snap.</strong> Exactly −1, 0 or 1 the moment a key changes, so it stops on a dime.</td></tr>
+        <tr><td><code>Input.GetKey(KeyCode.D)</code></td><td><code>bool</code></td><td><strong>Binary state.</strong> True while the physical D key is held — that key only.</td></tr>
+        <tr><td><code>transform.Translate(vector)</code></td><td><code>void</code></td><td><strong>Offsets the position by a vector</strong> — a <em>relative</em> step: "move this far from where I am."</td></tr>
+    </table>
+    <div class="socratic">
+        <h3>Socratic: Evaluating Multiple Ways to Solve a Problem</h3>
+        <ol>
+            <li>A driving game wants weight and momentum: <code>Input.GetAxis("Horizontal")</code> or <code>Input.GetAxisRaw("Horizontal")</code>? Why?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4:sc1:q1" data-block="socratic" data-question="A driving game wants weight and momentum: Input.GetAxis(&quot;Horizontal&quot;) or Input.GetAxisRaw(&quot;Horizontal&quot;) ? Why?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>A grid puzzle where you must stop on a dime: why would <code>Input.GetAxisRaw("Horizontal")</code> be the better choice?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4:sc1:q2" data-block="socratic" data-question="A grid puzzle where you must stop on a dime: why would Input.GetAxisRaw(&quot;Horizontal&quot;) be the better choice?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>A player wants the arrow keys instead of WASD. Why is the axis <code>"Horizontal"</code> more flexible than <code>Input.GetKey(KeyCode.D)</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4:sc1:q3" data-block="socratic" data-question="A player wants the arrow keys instead of WASD. Why is the axis &quot;Horizontal&quot; more flexible than Input.GetKey(KeyCode.D) ?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I move an object in Unity?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. Type these into the class body, in this order.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Open the class and add the speed knob</h4><p class="wt-lead">PlayerController is already on the Player with two empty methods. It needs one number first: how fast to move.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-cm">// PlayerController.cs — the whole file. Add the field inside the class.</span></span>
+<span class="wt-line" data-n="2"><span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;</span>
+<span class="wt-line" data-n="3"></span>
+<span class="wt-line" data-n="4"><span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">PlayerController</span> : <span class="tk-ty">MonoBehaviour</span></span>
+<span class="wt-line" data-n="5">{</span>
+<span class="wt-line" data-n="6">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">moveSpeed</span> = <span class="tk-nu">5f</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">6</span><span class="wt-what">Units travelled per second. <code>[SerializeField]</code> puts it in the Inspector, so it can be tuned while the game runs.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Declare the fields that remember the input</h4><p class="wt-lead">These two go in the class body, next to the speed knob.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-cm">// PlayerController.cs — still the class body, below the speed knob.</span></span>
+<span class="wt-line" data-n="2">    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">inputX</span>;</span>
+<span class="wt-line" data-n="3">    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">inputY</span>;</span>
+<span class="wt-line" data-n="4"></span>
+<span class="wt-line" data-n="5">    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()</span>
+<span class="wt-line" data-n="6">    {</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">2</span><span class="wt-what">Left/right as a number: <code>-1</code>, <code>0</code> or <code>1</code>. In the class body it belongs to the Player, not to the frame.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The same for up/down: <code>-1</code>, <code>0</code>, or <code>1</code>.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">The method Unity calls every frame.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Read the keyboard</h4><p class="wt-lead">Ask Unity what is being pressed right now, and store it in the two fields you just declared.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">        <span class="tk-va">inputX</span> = <span class="tk-va">Input</span>.<span class="tk-fn">GetAxis</span>(<span class="tk-st">"Horizontal"</span>);</span>
+<span class="wt-line" data-n="2">        <span class="tk-va">inputY</span> = <span class="tk-va">Input</span>.<span class="tk-fn">GetAxis</span>(<span class="tk-st">"Vertical"</span>);</span>
+<span class="wt-line" data-n="3"></span>
+<span class="wt-line" data-n="4">        <span class="tk-ty">Vector2</span> <span class="tk-va">movement</span> = <span class="tk-kw">new</span> <span class="tk-ty">Vector2</span>(</span>
+<span class="wt-line" data-n="5">            <span class="tk-va">inputX</span> * <span class="tk-va">moveSpeed</span> * <span class="tk-va">Time</span>.<span class="tk-va">deltaTime</span>,</span>
+<span class="wt-line" data-n="6">            <span class="tk-va">inputY</span> * <span class="tk-va">moveSpeed</span> * <span class="tk-va">Time</span>.<span class="tk-va">deltaTime</span>);</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Reads the virtual axis <code>"Horizontal"</code> into <code>inputX</code>. There is <strong>no <code>float</code> in front of it</strong> — the variable exists, so this line assigns.</span><span class="wt-why">Write <code>float inputX = ...</code> here and you shadow the field with a temporary variable that dies with the frame. Most students hit this bug.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">The same read for up/down. Spell it exactly <code>"Vertical"</code>: capitals matter.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Builds the direction. This one <strong>is</strong> declared here: it is used two lines later, and nothing next frame needs it.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">Horizontal distance this frame: direction × speed × frame time.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what">The same for vertical. The closing <code>);</code> finishes the <code>Vector2</code>.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Apply the movement</h4><p class="wt-lead">You hold a displacement — "move this far from where I am." Hand it to the Transform.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">        <span class="tk-va">transform</span>.<span class="tk-fn">Translate</span>(<span class="tk-va">movement</span>);</span>
+<span class="wt-line" data-n="2">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Offsets the Player's position by that displacement. Every GameObject already has a <code>transform</code>.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare it against your own file: <code>inputX</code> and <code>inputY</code> declared in the class body and only assigned inside <code>Update()</code>, and every displacement line scaled by the frame time.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/PlayerController.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
+
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">PlayerController</span> : <span class="tk-ty">MonoBehaviour</span>
+{
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">moveSpeed</span> = <span class="tk-nu">5f</span>;
+
+    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">inputX</span>;
+    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">inputY</span>;
+
+    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
+    {
+        <span class="tk-va">inputX</span> = <span class="tk-va">Input</span>.<span class="tk-fn">GetAxis</span>(<span class="tk-st">"Horizontal"</span>);
+        <span class="tk-va">inputY</span> = <span class="tk-va">Input</span>.<span class="tk-fn">GetAxis</span>(<span class="tk-st">"Vertical"</span>);
+
+        <span class="tk-kw">float</span> <span class="tk-va">stepThisFrame</span> = <span class="tk-va">moveSpeed</span> * <span class="tk-va">Time</span>.<span class="tk-va">deltaTime</span>;
+        <span class="tk-ty">Vector2</span> <span class="tk-va">movement</span> = <span class="tk-kw">new</span> <span class="tk-ty">Vector2</span>(<span class="tk-va">inputX</span>, <span class="tk-va">inputY</span>) * <span class="tk-va">stepThisFrame</span>;
+
+        <span class="tk-va">transform</span>.<span class="tk-fn">Translate</span>(<span class="tk-va">movement</span>);
+    }
+}</code></pre></details></div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header"><span class="activity-label">Bug Hunt</span><span class="activity-time">~20 min</span></div>
+    <p>Your character glides in all four directions. Now prove you know why.</p>
+    <div class="bug-hunt">
+        <h3>Bug Hunt: Testing Assumptions</h3>
+        <ol>
+            <li>Delete the per-frame multiplier from both displacement lines. Tap a direction key: why does the character cross the whole map in one frame?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4:bh1:q1" data-block="bug-hunt" data-question="Delete the per-frame multiplier from both displacement lines. Tap a direction key: why does the character cross the whole map in one frame?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Set the <strong>Move Speed</strong> box to <code>0</code> while the game runs, then to <code>30</code>. Describe the difference.</li>
+            <li>Swap the two numbers you pass into the direction — vertical where the horizontal belongs. What does the character do now, and why?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4:bh1:q2" data-block="bug-hunt" data-question="Swap the two numbers you pass into the direction — vertical where the horizontal belongs. What does the character do now, and why?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Move the declaration: cut <code>private float inputX;</code> from the class body and declare <code>float inputX</code> inside <code>Update()</code>, on the line where the read happens. Does the character still move? Explain with <em>declare</em> and <em>assign</em>.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4:bh1:q3" data-block="bug-hunt" data-question="Move the declaration: cut private float inputX; from the class body and declare float inputX inside Update() , on the line where the read happens. Does the character still move? Explain with declare and assign ." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Walk your character into a wall and keep pushing. What happens? Look back at the component list from <a href="1.2.html">1.2</a>: what is the Player <em>missing</em>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="1.4:bh1:q4" data-block="bug-hunt" data-question="Walk your character into a wall and keep pushing. What happens? Look back at the component list from 1.2 : what is the Player missing ?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+    <div class="callout trap">
+        <strong>Keep that last answer.</strong> Walking through walls is not a mistake in your code: <code>transform.Translate(vector)</code> edits coordinates directly, so nothing ever told it a wall was there.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>State the sub-problems of movement: input → vector → distance → translation</li>
+        <li><strong>Point at your own file and say which lines declare and which lines assign</strong></li>
+        <li>Choose between a smooth axis, a raw axis and a single key for a given game</li>
+        <li>Explain why movement has to be scaled by how long the frame took</li>
+        <li>Tune the speed knob while the game runs</li>
+        <li>Explain why your character can walk through a wall</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-01/index.html">Unit 1: Setup &amp; Movement</a> — input, vectors, and translation in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — input and vector functions</li>
+        <li><a href="../docs/ask.html">How do I…? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="1.5.html">1.5 — Movement II: Speed, deltaTime &amp; Tuning</a>, where you compare four ways to move an object and pick the one this game needs.</p>
+</div><div class="lab-bar" data-lesson="1.4" data-lesson-title="Movement I: Input, Direction, Vector" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="1.4" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="1.3.html"><span class="dir">&#9664; Previous</span><span class="where">1.3 — Your First Script: Variables &amp; Update</span></a><a class="foot-next" href="1.5.html"><span class="dir">Next &#9654;</span><span class="where">1.5 — Movement II: Speed, deltaTime &amp; Tuning</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

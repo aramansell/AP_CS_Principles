@@ -1,0 +1,366 @@
+---
+// Lesson 2.1 — Coins: Triggers, Tags & Your First Stat
+// The pivotal lesson. No prefab in this project carries a Rigidbody2D, and only
+// one carries any collider at all: Switch.prefab, a trigger BoxCollider2D with
+// no body behind it — and Lever.cs (which that prefab uses) has no physics
+// callback, so that trigger fires into nothing until the student wires it up.
+// The student therefore builds the first object they make REACT to the player,
+// which means discovering the physics rule and giving the Player a body.
+//
+// Consequence surfaced deliberately: the moment the Player has a body, the
+// Cave Entrance colliders (solid, wired to SceneSwitch.OnCollisionEnter2D)
+// start teleporting the student to another scene.
+// Stats live on PlayerController. StatManager stays the empty stub it ships as
+// until the Unit 5 refactor.
+//
+// Scaffolding: FULL (level 1) — this is the first object in the game that
+// reacts to anything, so every step is given. The teacher's example for this
+// end of the ladder: "we can give them everything on the coin."
+//
+// STRUCTURE (this pass): the lesson is cut in two, explicitly. "In the Editor"
+// is every click, each one naming the pane it happens in (Project window,
+// Hierarchy, Inspector). "In the Code" is the walkthrough, and its two code
+// blocks carry comments saying WHERE in PlayerController.cs each piece goes —
+// the field with the fields, the callback below the methods the student wrote.
+//
+// Answer-box ids are positional and persisted, so this rewrite keeps the two
+// socratic blocks in order (sc1, sc2) and only trims the last question off
+// sc1. A question removed from the middle would have renumbered the ones after
+// it and orphaned saved answers.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import { renderPane } from '../../lib/panes';
+
+// The two recurring questions, applied to the coin pickup — the first object
+// in the game that reacts to anything. Level 1, so every part is given in full.
+// The last three parts are the teacher's own split for this lesson: confirm the
+// thing that triggered was a coin, change the count, destroy the object. The
+// first two are in the list because this is the lesson where the physics rule
+// arrives: colliders on both objects and a body on at least one, and until that
+// is true the method never runs and the Console says nothing about why. A split
+// that covered only the C# would send students hunting a script bug that lives
+// in the Inspector.
+const DECOMPOSE = {
+  big:
+    'Make a coin disappear when I touch it — "how do I detect a collision, and make something ' +
+    'happen?" As one problem it is not even startable, because at this moment nothing in the ' +
+    'whole project is built to notice that two objects touched.',
+  parts: [
+    {
+      name: 'Give the coin a shape the engine can test',
+      does: 'A Circle Collider 2D on the prefab root, its radius dragged until the green outline covers the art, with `Is Trigger` ticked.',
+      doc: 'the `Collider2D` row in the quick reference, and the Is Trigger checkbox in the Inspector.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Give the Player a shape and a body',
+      does: 'A Circle Collider 2D and a Rigidbody 2D (Body Type Dynamic, Gravity Scale 0), both on the Player root — not the Sprite child, because a tag is asked of whichever object owns the collider.',
+      doc: 'the Body Type warning in the quick reference — it is the first thing to check when nothing happens.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Confirm the thing that triggered was a coin',
+      does: '`OnTriggerEnter2D(Collider2D other)` runs on the first frame two shapes overlap; the `other.CompareTag("Coin")` check is what turns "something touched me" into "a coin touched me".',
+      doc: 'the `OnTriggerEnter2D(Collider2D other)` and `other.CompareTag("Coin")` rows in the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Change the count',
+      does: 'Inside the check: `coins = coins + 1;`, against a `[SerializeField] private int` declared in the class body — the declare-versus-assign split from 1.3.',
+      doc: 'the `[SerializeField] private float speed;` row in the quick reference, and the declare-vs-assign rule you met in 1.3.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Remove the coin from the world',
+      does: '`Destroy(other.gameObject)`: `other` is a Collider2D, so `.gameObject` walks up to the whole coin.',
+      doc: 'the `Destroy(gameObject)` row in the quick reference, and the pickup pattern underneath it.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+  ],
+  why:
+    'The last three parts are the pickup pattern in miniature — a check, a change, a destroy — and ' +
+    'you will write them in that order all year. The first two are why the split has to reach into ' +
+    'the Inspector: until they are done, the method never runs at all.',
+  sizeTest:
+    'The test: when the coin does nothing, is there one part above you can point at and test on its ' +
+    'own? A silent failure with no error in the Console is a physics problem, not a script problem.',
+  turns: [
+    'In one sentence: what would the Player do on the first frame it walked into a wall if that tag check were missing?',
+  ],
+};
+
+// Two code blocks, each opening with a comment that says where it goes in the
+// file. This is the whole point of the restructure: the field is NOT shown
+// floating next to the method it feeds. It is shown in the class body, where
+// the student's other fields already live.
+const WALK = {
+  ask: 'how do I make a coin disappear when I touch it?',
+  file: 'Assets/Scripts/PlayerController.cs',
+  label: 'In the Code',
+  intro:
+    'The editor work above is what lets the two objects notice each other. This is the script half: two additions to PlayerController.cs, each anchored by a comment telling you where in the file it goes.',
+  level: 1,
+  steps: [
+    {
+      title: 'Declare the field with your other fields',
+      lead: 'Every field in this file lives in one place: the class body, above Start(). The coin count goes there with the rest of them.',
+      lines: [
+        { code: '// PlayerController.cs — class body, above Start(), with your other fields.', what: '' },
+        { code: '    [SerializeField] private int coins;', what: 'How many coins you have collected. An `int` (whole number), and `[SerializeField] private` so it appears in the Inspector but stays this script\'s business.' , why: 'Declared in the **class body**, never inside the method that changes it — the same rule from 1.3. This number has to still be here on the next frame, so it belongs to the object. Put it beside the method instead and every touch would start the count over at zero.' },
+      ],
+    },
+    {
+      title: 'Write the callback below your own methods',
+      lead: 'Unity calls this one; you never do. It goes at the bottom of the file, below Update(), where the engine-called methods belong.',
+      lines: [
+        { code: '// PlayerController.cs — below Update(). Unity calls this; you never do.', what: '' },
+        { code: '    private void OnTriggerEnter2D(Collider2D other)', what: 'Unity calls this on the **first frame** two shapes overlap. The parameter is the *other* object\'s collider — the one that ran into you.' },
+        { code: '    {', what: '' },
+        { code: '        if (other.CompareTag("Coin"))', what: 'Check **what** you touched before doing anything. `CompareTag(String tag)` asks the engine directly; comparing tag strings with `==` builds a new string every call and can silently miss.' , why: 'Spikes, cave entrances and healing pickups all land in this same method before the unit is over. Without this check, the Player would vanish the first time it walked into anything carrying a collider.' },
+        { code: '        {', what: '' },
+        { code: '            coins = coins + 1;', what: 'Add one to the running total. No type in front — `coins` already exists, so this **assigns** to it. Writing `int coins = coins + 1;` here would make a brand-new local that dies at the end of the frame and leave the real total frozen at zero.' },
+        { code: '            Debug.Log("Coins collected: " + coins);', what: 'Print the new total. With no UI in this game yet, the Console is the only way to watch the number go up.' },
+        { code: '            Destroy(other.gameObject);', what: 'Removes the coin. `other` is a **Collider2D**, not a GameObject — `.gameObject` walks up from the collider to the whole coin.' , why: '**`other.gameObject`, not `gameObject`.** Plain `gameObject` destroys the Player. Get it backwards and the game is instantly unplayable — cause it on purpose once, just to see it.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: '' },
+      ],
+    },
+  ],
+  finalFile: `using UnityEngine;
+
+public class PlayerController : MonoBehaviour
+{
+    // ---- class body: every field lives up here, above Start() --------------
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private int coins;                          // <- new in 2.1
+
+    private float inputX;
+    private float inputY;
+
+    private Animator animator;                                   // from 1.6
+    private SpriteRenderer spriteRenderer;                       // from 1.6
+
+    // ---- methods you own: called from Update() ----------------------------
+    void Start()
+    {
+        animator = GetComponentInChildren<Animator>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+    }
+
+    void Update()
+    {
+        // your 1.5 movement and your 1.6 UpdateAnimation() call, unchanged
+    }
+
+    void UpdateAnimation()
+    {
+        // unchanged from 1.6
+    }
+
+    // ---- callbacks: Unity calls these, you never do -----------------------
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Coin"))
+        {
+            coins = coins + 1;
+            Debug.Log("Coins collected: " + coins);
+            Destroy(other.gameObject);
+        }
+    }
+}`,
+  finalNote:
+    'Compare against your own file. The two things to check hardest: that `coins` sits in the class body with your other fields rather than beside the method, and that the destroy says `other.gameObject`.',
+};
+
+const body = `<h1>2.1 — Coins: Triggers, Tags &amp; Your First Stat</h1>
+
+<p class="lesson-lead">
+    Your character can walk, but it cannot <em>touch</em> anything. Walk straight over the coin
+    and nothing happens: nothing in this entire project is built to notice a collision. Today you
+    make the first object in the game that reacts to the player, and in doing so you switch the
+    physics engine on for good.
+</p>
+
+${renderAskBanner('how do I detect a collision, and make something happen?', 1)}
+
+${renderDecompose('2.1', DECOMPOSE, 1)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        Do this first. Two objects have to be able to notice each other <em>in the Inspector</em>
+        before a single line of code can run.
+    </p>
+
+    <ol>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/Coin</code>. Select the prefab
+            <em>asset</em>, not an instance sitting in the scene. Anything you change here applies
+            to every coin you ever place.
+        </li>
+        <li>
+            <strong>Inspector → Add Component → Circle Collider 2D.</strong> That is the coin's
+            <strong>shape</strong>. Drag <strong>Radius</strong> until the green outline covers the
+            art.
+        </li>
+        <li>
+            <strong>Inspector → Circle Collider 2D → Is Trigger ☑ ON.</strong> This changes what an
+            overlap <em>means</em>: a solid collider shoves objects apart, a trigger does not push
+            at all — it only <strong>reports</strong> that the overlap happened.
+${renderPane({
+    pane: 'Inspector',
+    subject: 'Coin',
+    caption:
+        'The coin\'s Inspector, with the prefab selected. The box you want is the one just under ' +
+        'the component name — **`Is Trigger`**, not `Radius`, which is at the bottom.',
+    rows: [
+        { kind: 'component', label: 'Sprite Renderer' },
+        { kind: 'component', label: 'Circle Collider 2D' },
+        { kind: 'check', label: 'Is Trigger', on: true, step: 3 },
+        { kind: 'check', label: 'Used By Effector' },
+        { kind: 'field', label: 'Offset', value: 'X 0        Y 0' },
+        { kind: 'field', label: 'Radius', value: '0.32' },
+        { kind: 'button', label: 'Add Component' },
+    ],
+})}
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/Player</code>. Select the
+            <strong>Player</strong> root in the prefab, not the Sprite child — the root is the
+            object tagged <code>Player</code>.
+        </li>
+        <li>
+            <strong>Inspector → Add Component → Circle Collider 2D</strong> (if the Player does not
+            already have one). Drag <strong>Radius</strong> until the outline fits the character.
+        </li>
+        <li>
+            <strong>Inspector → Add Component → Rigidbody 2D</strong> (if it has not been added).
+            This is the <strong>body</strong>, and it is the one everyone forgets. Then set:
+            <strong>Body Type = Dynamic</strong>, <strong>Gravity Scale = 0</strong>,
+            <strong>Interpolate = Interpolate</strong>. Your world is seen from directly above —
+            there is no "down" for anything to fall toward — and Gravity Scale defaults to 1, which
+            slides your character off the bottom of the screen the moment you press Play.
+${renderPane({
+    pane: 'Inspector',
+    subject: 'Player',
+    caption:
+        'The Player\'s Inspector. If the third component here is missing from yours, ' +
+        '**Add Component** at the bottom of the pane is where it comes from — and ' +
+        '`Gravity Scale` sits below `Angular Drag`, not next to `Body Type`.',
+    rows: [
+        { kind: 'component', label: 'Sprite Renderer' },
+        { kind: 'component', label: 'Circle Collider 2D' },
+        { kind: 'field', label: 'Radius', value: '0.5' },
+        { kind: 'component', label: 'Rigidbody 2D' },
+        { kind: 'field', label: 'Body Type', value: 'Dynamic', step: 6 },
+        { kind: 'field', label: 'Mass', value: '1' },
+        { kind: 'field', label: 'Linear Drag', value: '0' },
+        { kind: 'field', label: 'Angular Drag', value: '0.05' },
+        { kind: 'field', label: 'Gravity Scale', value: '0', step: 6 },
+        { kind: 'field', label: 'Interpolate', value: 'Interpolate', step: 6 },
+        { kind: 'button', label: 'Add Component' },
+    ],
+})}
+        </li>
+    </ol>
+
+    <div class="callout trap">
+        <strong>Press Play, then walk into a cave entrance. The scene will change.</strong>
+        Nothing is broken — you switched the physics engine on. The cave entrances carry solid
+        colliders wired to a scene-switching script that has been sitting dormant precisely because
+        your Player had no collider to trip it. Write down what happened. Do <em>not</em> fix it and
+        do not delete the entrances: Unit 5 builds the cave properly, and this is the first thread
+        of it.
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: What Is a Collider For?</h3>
+        <ol>
+<li>A Transform stores position, rotation and scale. What does a Collider2D store that a Transform has no way to express?</li>
+<li>The physics engine runs on its own schedule, not inside your <code>Update()</code>. Why would Unity be built that way, instead of letting your script test for overlaps once a frame?</li>
+<li>A trigger pushes nothing — it only reports. Which two other game behaviours would want a report-only overlap like that?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK)}
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Check Yourself</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        You just made a real design decision without being told to: the coin count lives on
+        <code>PlayerController</code>. Here are the three honest places a number like that can
+        live, and what each one costs.
+    </p>
+
+    <table>
+        <tr><th>Where the number lives</th><th>What it looks like</th><th>What it costs</th></tr>
+        <tr>
+            <td><strong>A field on <code>PlayerController</code></strong></td>
+            <td><code>[SerializeField] private int coins;</code></td>
+            <td>Anything else that wants the number must find the player first. <strong>This is what you built, and it is the right call today</strong> — nothing else touches coins yet.</td>
+        </tr>
+        <tr>
+            <td><strong>A separate <code>PlayerStats</code> component</strong></td>
+            <td>Numbers live in a component whose only job is numbers.</td>
+            <td>One more component to cache and keep in sync — worth it once movement and stats start fighting over the same file.</td>
+        </tr>
+        <tr>
+            <td><strong>A global singleton <code>StatManager</code></strong></td>
+            <td>Any script, anywhere, reads the numbers from one shared object.</td>
+            <td>Everything can reach it, so nothing protects it — and a stat that has to survive a scene change is a Unit 5 problem, not a Unit 2 one.</td>
+        </tr>
+    </table>
+
+    <div class="socratic">
+        <h3>Where Does a Number Belong?</h3>
+        <ol>
+<li>Which of the three did you just build, and which line of your own code proves it?</li>
+<li>Open <code>Assets/Scripts/StatManager.cs</code> and read it. If you filled it in as a singleton today, would your coin count survive a scene change? Would that be a feature or a problem <em>right now</em>?</li>
+<li>The coin disappears when collected, but "how many coins I have" is not a property of the coin. So where does that number really belong — the object that vanishes, or the object that persists?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>State the rule — a collider on both objects, a body on at least one — and say which object you gave the body to, and why</li>
+        <li>Find every collider and Rigidbody 2D you added, in the pane you added it in, and explain trigger versus solid</li>
+        <li>Explain what the parameter in <code>OnTriggerEnter2D(Collider2D other)</code> refers to, and why <code>CompareTag(String tag)</code> beats comparing tag strings</li>
+        <li><strong>Point at your own file and say why <code>coins</code> is declared in the class body while <code>coins = coins + 1;</code> is not</strong></li>
+        <li>Explain what happened at the cave entrance, and why it is not a bug</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — colliders, triggers, and health in depth</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the complete reference for this physics family, used all year</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Collider2D and Rigidbody2D APIs</li>
+        <li><a href="../docs/ask.html">How do I…? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="2.2.html">2.2 — Spikes: Physics, Damage &amp; Death</a>, where you discover that the movement you wrote ignores all of this.</p>
+</div>`;
+---
+<Lesson id="2.1" title="2.1 Coins: Triggers, Tags &amp; Your First Stat — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

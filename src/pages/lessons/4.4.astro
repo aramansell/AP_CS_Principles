@@ -1,0 +1,274 @@
+---
+// Lesson 4.4 — Attack: Close-Range Contact Damage
+// The enemy gets teeth. The student picks a hazard model, rate-limits the
+// callback, confirms it touched the player, and applies damage through the
+// health method THEY built on PlayerController in 2.2 — whose body is
+// `health = health - amount;`, so a POSITIVE amount is the one that hurts
+// (2.2 calls it as TakeDamage(1)). Any statement about the sign here is either
+// sign-neutral or tells the student to read their own arithmetic.
+//
+// Scaffolding: OUTLINE ONLY (level 3). The spec and the API are given and no
+// code is. The student built the collider-and-tag check in 2.1, the signed
+// damage method in 2.2, the cooldown gate in 3.3 and the reach-into-another-
+// script call in 3.4 — so this lesson names the decision, the callback, the
+// method and the cost, and stops there. The ask banner is the level marker:
+// a level-3 lesson must not render a walkthrough, and verify-site refuses one
+// that does.
+//
+// STRUCTURE (the editor/code pass): "In the Editor" holds the setup clicks and
+// the hazard-model decision — the four-row table, the parameter-type warning and
+// the socratic that asks the student to defend their row. "In the Code" holds
+// the second reading (three ways to reach the player's health), the API table,
+// one compact specification and the manager warning. The five specification
+// callouts and the "four facts" callout are now one callout each: their content
+// was already in the two tables' cost columns.
+//
+// THREE MODELS, FOUR ROWS — deliberate, and the source of the two counts on the
+// page. The models are the canonical three from 2.2 (solid + OnCollisionEnter2D,
+// trigger + OnTriggerEnter2D, and Stay + a cooldown). The third one is listed
+// twice here, once per collider the student could have given the enemy in 4.1,
+// because a moving hazard can be solid or a trigger and that choice changes both
+// the callback name and whether the player is shoved — and because the solid
+// flavour is the row the class will actually be building, since 4.1 sends them
+// at a solid collider. Rewording is safe where reordering is not: formify ids
+// are POSITIONAL, so a question keeps its id and its saved answers when its
+// wording changes.
+//
+// GROUND TRUTH: StatManager.cs is still an EMPTY STUB and is NOT used here.
+// Health lives as a field on PlayerController, where the student put it in 2.2.
+// The enemy's collider and body were added by the student in 4.1; the player
+// already has both from 2.1/2.2, which is where the health method's receiver
+// comes from. Nothing is destroyed on contact here. The Overworld holds FOUR
+// MobileEnemy instances (4.1).
+//
+// Answer-box ids: this rewrite keeps the single socratic block ("Choosing a
+// Hazard Model") with its three questions in order, and every decompose turn in
+// place. Nothing moved.
+// SECOND PASS (shape only): table rows and the editor steps are back to the
+// multi-line shape the 2.x lessons use. No word moved.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The recurring two-beat block: split the problem, look each part up, connect
+// it to something already built. Level 3, so the renderer withholds what each
+// part DOES and asks the student to say it — the parts and their doc pointers
+// are the level-3 bargain. Every doc pointer is a lesson they have finished or
+// a row of this lesson's own reference table, and every method is named the way
+// it is called.
+const DECOMPOSE = {
+  big: 'When the enemy reaches me it should cost me health — and it should not cost me the whole bar in a third of a second. "Touching hurts" is the whole feature, and there is nothing in it yet that a computer can act on.',
+  parts: [
+    {
+      name: 'Decide when a hit is allowed to land',
+      does: 'Pick one of the three hazard models, which fixes the callback you write: an entry callback that fires once per contact, or a stay callback that fires on every physics step and therefore has to be rate-limited.',
+      doc: 'the hazard-model table below, and the callback rows of this lesson\'s reference table',
+      href: '2.2.html',
+    },
+    {
+      name: 'Confirm the thing you touched is the player',
+      does: 'The same tag check the coin used in 2.1, asked of whichever object carries the collider — and for a collision callback, one hop further out through the collision container.',
+      doc: 'the `CompareTag(string tag)` row of this lesson\'s reference table, and the coin check you wrote in 2.1',
+      href: '2.1.html',
+    },
+    {
+      name: 'Rate-limit the hit',
+      does: 'Remember when this enemy last hurt the player and refuse until the interval has passed — the gate 3.3 put on the turret, pointed at a callback instead of at Update().',
+      doc: 'the `Time.time` and cooldown rows of this lesson\'s reference table, and your own firing gate from 3.3',
+      href: '3.3.html',
+    },
+    {
+      name: 'Deliver the damage through the method you already wrote',
+      does: 'Reach the `PlayerController` on the object you touched with a component lookup, then call the signed-amount method from 2.2 with the sign that hurts.',
+      doc: 'the `GetComponent<T>()` row and the `TakeDamage(int amount)` row of this lesson\'s reference table, and the health method you wrote in 2.2',
+      href: '2.2.html',
+    },
+    {
+      name: 'Decide what does not happen to the enemy',
+      does: 'Nothing is destroyed here and the enemy keeps coming — the one place this callback is the opposite of the bullet you wrote in 3.4.',
+      doc: 'your own projectile callback from 3.4, and the `Destroy(Object obj)` row that lesson priced',
+      href: '3.4.html',
+    },
+  ],
+  why:
+    'Four of these five parts are lessons you have already finished. A tag check is 2.1, the method and its ' +
+    'sign are 2.2, the gate is 3.3, and the reach across to another script is 3.4. The genuinely new one is the ' +
+    'first: until today every hazard you built stood still, and a hazard that moves changes which callback is ' +
+    'correct. That decision is what everything below it hangs on.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Make contact hurt" cannot be ' +
+    'looked up. "Compare the clock against the moment of the last hit" can — and you wrote that comparison in 3.3.',
+  turns: [
+    'The reading prices three models for when a hit lands and three ways to reach the player\'s health. Name the two you chose, and say what each one costs you — in your own words, not the table\'s.',
+    'The enemy\'s animator from 4.2 has an `Attack` trigger waiting for it. Which of your own fields has to be true before that trigger fires so the picture and the damage agree — and what does the player see when the animation plays and no damage lands?',
+  ],
+};
+
+const body = `<h1>4.4 — Attack: Close-Range Contact Damage</h1>
+
+<p class="lesson-lead">
+    The enemy can find you, and now it can reach you. "Touch costs health" sounds like the easiest
+    line in the unit, but the callback that detects the touch runs <em>sixty times a second</em> —
+    and so does the player's death rule from <a href="2.2.html">2.2</a>. Today you pick one of
+    three hazard models and rate-limit it to something a human can survive.
+</p>
+
+${renderAskBanner('how do I stop a contact hit hurting me sixty times a second?', 3)}
+
+${renderDecompose('4.4', DECOMPOSE, 3)}
+
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Scene view →</strong> save the Overworld before you touch anything. You are
+            about to make contact cost health, and a saved scene is the only way back to a fair
+            fight.
+        </li>
+        <li>
+            <strong>Inspector →</strong> the <code>Assets/Prefabs/MobileEnemy</code> root, and read
+            the collider from <a href="4.1.html">4.1</a>: is <em>Is Trigger</em> ticked? Whatever
+            the checkbox says is the family of callback you are allowed to write, and the Console
+            never tells you when the two disagree.
+        </li>
+        <li>
+            <strong>Hierarchy → Player → Inspector →</strong> <code>PlayerController</code>. Find
+            the health field from <a href="2.2.html">2.2</a> and the method that changes it, and
+            read the arithmetic line: which sign <em>hurts</em>? Write it down before you pass a
+            number.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> the four <code>MobileEnemy</code> instances, and
+            <strong>Project window →</strong> <code>Assets/Scripts/EnemyController.cs</code>. The
+            colliders are already there from 4.1; everything today is code in the file you already
+            have.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play, stand against an enemy and hold still with the
+            Console open. Nothing happens — no callback exists yet. That is the "before" you are
+            about to change; the finished version must not hold it for more than a frame.
+        </li>
+    </ol>
+
+    <p>The three models you met in <a href="2.2.html">2.2</a> are the same three, but this hazard <em>moves</em> — so the third appears twice, once per collider the enemy could carry from <a href="4.1.html">4.1</a>. Three models, four rows, and the price column decides it:</p>
+    <table>
+        <tr><th>Hazard model</th><th>What fires</th><th>What the player feels</th><th>What it costs you</th></tr>
+        <tr>
+            <td><strong>A solid enemy, touched once</strong></td>
+            <td><code>OnCollisionEnter2D(Collision2D collision)</code></td>
+            <td>You bump into it and lose health once per bump.</td>
+            <td>Damage lands on the frame the two shapes meet and never again while they stay in contact — one hit per <em>pass</em>, the same counting as <a href="2.1.html">2.1</a>'s coin. The cost is the exploit: an enemy can pin you against a wall and you take nothing further, so the safest place in the fight becomes the inside of the enemy. A solid collider is also a wall, so it shoves the player.</td>
+        </tr>
+        <tr>
+            <td><strong>A trigger enemy, passed through once</strong></td>
+            <td><code>OnTriggerEnter2D(Collider2D other)</code></td>
+            <td>It walks through you and one hit lands as it passes.</td>
+            <td>A trigger is a sensor, not a wall: it reports what already happened and never shoves anybody — the coin-and-spike distinction from <a href="2.2.html">2.2</a>. Buying that costs you the enemy's solidity: it passes through walls unless you handle that separately, and a chaser that catches you and stops on top of you deals damage exactly once and then nothing at all, which is the wrong answer for a hunter.</td>
+        </tr>
+        <tr>
+            <td><strong>A drain while contact lasts, with a cooldown</strong><br><em>solid flavour</em></td>
+            <td><code>OnCollisionStay2D(Collision2D collision)</code></td>
+            <td>It holds you and your health drains at a steady, readable rate while you stay there.</td>
+            <td>Nothing here limits the rate: your whole bar is gone in about a third of a second, because <a href="2.2.html">2.2</a>'s death rule is only a comparison against zero. This is the one model that needs the cooldown from <a href="3.3.html">3.3</a> — the whole of today's work. It is the solid enemy's shove, applied continuously.</td>
+        </tr>
+        <tr>
+            <td><strong>A drain while contact lasts, with a cooldown</strong><br><em>trigger flavour</em></td>
+            <td><code>OnTriggerStay2D(Collider2D other)</code></td>
+            <td>It overlaps you and drains health at that same steady rate while it stays inside you.</td>
+            <td>Same every-frame cost and the same fix as its solid twin; the trigger buys what it bought in the row above — nothing is shoved, and walls stop mattering. <em>Is Trigger</em> has to be ticked to match this callback name, or the Console stays empty.</td>
+        </tr>
+    </table>
+
+    <div class="socratic">
+        <h3>Socratic: Choosing a Hazard Model</h3>
+        <ol>
+<li>Which of the four rows in the table did you choose, and what does the player learn to do about it after two encounters?</li>
+<li>If you chose <code>OnCollisionEnter2D(Collision2D collision)</code> alone, what happens when a chasing enemy pins you against a wall? Is that a fair fight, or an exploit?</li>
+<li>You built a hazard once already, in <a href="2.2.html">2.2</a>. What is the difference between that hazard and this one — and does a <em>moving</em> hazard change which model is correct?</li>
+</ol>
+    </div>
+</div>
+
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>Whichever model you chose, the enemy still has to reach the player's health. Two routes are priced below — a <code>[SerializeField]</code> reference wired on each of the four enemies is a third:</p>
+    <table>
+        <tr><th>API</th><th>What you get</th><th>What it costs you</th></tr>
+        <tr>
+            <td>The callback family: <code>void OnCollisionEnter2D(Collision2D collision)</code>, <code>void OnCollisionStay2D(Collision2D collision)</code>, <code>void OnTriggerEnter2D(Collider2D other)</code>, <code>void OnTriggerStay2D(Collider2D other)</code> — Unity calls them, you never do</td>
+            <td>The four messages Unity sends when two shapes meet, overlap, or stay that way. <code>Enter</code> fires once per meeting; <code>Stay</code> fires on every physics step, sixty times a second. The parameter is the <em>other</em> object's collision or collider.</td>
+            <td>Once per entry, and not again until the shapes separate and meet. A misspelled name is not an error, it is silence — and so is a callback whose family does not match the <em>Is Trigger</em> checkbox. Both are the hardest bugs in this unit to find.</td>
+        </tr>
+        <tr>
+            <td><code>bool CompareTag(string tag)</code> — asked of the object that carries the collider: <code>other.gameObject.CompareTag(string tag)</code> or <code>collision.gameObject.CompareTag(string tag)</code></td>
+            <td>Asks the engine whether that object carries the tag, so one check tells you what <em>kind</em> of thing you touched.</td>
+            <td>Exact spelling, and the tag must already exist in the project. It has to be asked of the object you touched, never of the script the callback lives on.</td>
+        </tr>
+        <tr>
+            <td>The lookup, then the call: <code>T GetComponent&lt;T&gt;()</code> or <code>T GetComponentInParent&lt;T&gt;()</code>, then <code>TakeDamage(int amount)</code> on what it hands back</td>
+            <td>The component of that type on the object you call it on — here, the <code>PlayerController</code> that owns the health — and then the method you wrote in <a href="2.2.html">2.2</a>.</td>
+            <td>Both are searches, and a search that finds nothing hands you <code>null</code>. The plain version does not look at children, so the component has to sit on the object you actually touched; the <code>InParent</code> form walks up the parent chain instead.</td>
+        </tr>
+        <tr>
+            <td>The declarations, all in the class body and never inside a method: <code>[SerializeField] private int damage</code>, two more fields for the cooldown, and <code>float Time.time</code> — the seconds since the scene loaded, counting up</td>
+            <td>The damage knob a designer turns in the Inspector for how punishing one contact is, and the rate limit from <a href="3.3.html">3.3</a> pointed at a callback instead of at <code>Update()</code>.</td>
+            <td>The damage type has to match the parameter of the method you call: <code>TakeDamage(int amount)</code> takes an <code>int</code>, so a <code>float</code> knob will not compile without a conversion.</td>
+        </tr>
+        <tr>
+            <td><code>void Debug.Log(object message)</code></td>
+            <td>Prints to the Console — the only feedback this game has until Unit 5.</td>
+            <td>Text only, and it prints when <em>you</em> call it — the only way to prove a rate limit works with no UI: print the moment damage lands and count hits per second against your cooldown knob.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification: the model, the gate and the call.</strong>
+        <ul>
+            <li>Which of the four rows did you choose, which callback name and parameter type does it give you, and does <em>Is Trigger</em> on the enemy's collider agree with that name? Write the name down before you open the file.</li>
+            <li>What serialized field lets a designer decide how much one hit costs, and what type must it match to work with your player's existing health rule? What default do you ship, given the player's maximum health from <a href="2.3.html">2.3</a> and the four enemies in the scene — justify the ratio, not the number.</li>
+            <li>Which field records how often this enemy may hurt the player, and which records when it last did? Where do both live, and what value must the remembered moment start at so the first touch lands instantly? Then say whether your rate is per enemy or per player when two of them reach you at once, and whether that is the encounter you meant.</li>
+            <li>How do you confirm the thing you touched is the player, and what must you write for the parameter type that is not a collider directly? Which method on <code>PlayerController</code> do you then call, how do you get from the collided object to it, and what guard protects you when the object carries no <code>PlayerController</code>? Read your own method and name the sign that hurts — then say out loud what the other sign does instead.</li>
+            <li>The callback fires on <em>any</em> contact, not on "the enemy is attacking". Does your enemy deal damage while calmly patrolling too, and if that is wrong, where does the condition that stops it belong? 4.2's <code>Attack</code> trigger is waiting on the same decision — and compare this callback to the projectile's in <a href="3.4.html">3.4</a>: is anything destroyed here?</li>
+        </ul>
+    </div>
+
+    <div class="callout trap">
+        <strong>Do not reach for a manager.</strong> <code>StatManager.cs</code> is still an empty stub with no health in it and no method to change anything. Health lives on <code>PlayerController</code>, where you put it in 2.2, and that is what you call. The manager earns its place in 5.3, when a scene change finally gives you a reason.
+    </div>
+
+</div>
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Compare the four rows in the hazard table, say which you chose, and why a moving hazard differs from a stationary one</li>
+        <li>Explain, in frames, what goes wrong without a damage cooldown, what the cooldown's starting value means, and what seeding it to <code>0</code> costs the player</li>
+        <li>Show how your enemy reaches the player's health, and which <code>GetComponent&lt;T&gt;()</code> family call you used</li>
+        <li>Explain why the enemy is not destroyed on contact when the bullet was</li>
+        <li>Break this feature into parts small enough to look each one up on its own, naming an earlier lesson for each</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — attack and the complete enemy</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the hazard-model reference from Unit 2</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — collision callbacks, <code>GetComponent&lt;T&gt;()</code> and the cooldown pattern</li>
+    </ul>
+    <p>Next: <a href="4.5.html">4.5 — The Full State Machine: Patrol, Chase, Attack</a>, where all of this becomes one machine you can draw.</p>
+</div>`;
+---
+<Lesson id="4.4" title="4.4 Attack: Close-Range Contact Damage — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

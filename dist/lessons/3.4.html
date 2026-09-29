@@ -1,0 +1,171 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>3.4 Projectile Damage, Tuning &amp; Playtest — AP CS Principles</title><meta name="description" content="Lesson 3.4 Projectile Damage, Tuning &amp; Playtest — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="3.4 Projectile Damage, Tuning &amp; Playtest — AP CS Principles"><meta property="og:description" content="Lesson 3.4 Projectile Damage, Tuning &amp; Playtest — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="3.3.html">&#9664; 3.3</a><span class="lesson-id">3.4</span><a href="4.1.html">4.1 &#9654;</a></div><h1>3.4 — Projectile Damage, Tuning &amp; Playtest</h1>
+
+<p class="lesson-lead">
+    Your turret shoots, and every bullet passes clean through you. Close that loop, then set the
+    four numbers that decide whether the fight is tense or unfair.
+</p>
+
+<div class="ask-banner" data-scaffold="3"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I make my bullet hurt the player?&rdquo;</span><span class="ask-banner-level">Outline only</span></div>
+
+<div class="activity decompose" data-level="3" data-parts="4" data-given="4" data-docs="4"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Outline only</span></div><p class="dc-big">My bullets should actually hurt the player, and the fight should be hard without being unfair.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Give the bullet a body</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="2.1.html">2.1 — Coins: Triggers, Tags &amp; Your First Stat (the collider-and-trigger recipe), and the Rigidbody2D row of this lesson's API table</a></span></li><li class="dc-part"><span class="dc-name">Detect the hit, and confirm what was hit</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: the OnTriggerEnter2D(Collider2D other), OnCollisionEnter2D(Collision2D collision) and other.CompareTag("Player") rows of this lesson's API table</span></li><li class="dc-part"><span class="dc-name">Apply the damage through the health method you already wrote</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="2.2.html">2.2 — Spikes: Physics, Damage &amp; Death (the method you wrote there), and the GetComponent&lt;T&gt;() row of this lesson's API table</a></span></li><li class="dc-part"><span class="dc-name">Remove the bullet</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="3.2.html">3.2 — Projectiles: Instantiate(), Fire, Destroy(), and the Destroy(Object obj) row of this lesson's API table</a></span></li></ol><p class="dc-why">Three of these four parts are lessons you have already finished, and the fourth is the one genuinely new idea: until now, every script you wrote changed its own values. A bullet has to reach into a different object and ask that object to change its own number, which is a question about access, not about arithmetic.</p><p class="dc-size">The split is finished when every part names something you could point at in the editor: a component on a prefab, a callback, a method on a script, a call. If a part needs the word "and" twice to describe it, it is two parts.</p><div class="dc-turns"><h4>Your turn</h4><p>Pick two of the parts above and say in one line what each one actually does.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:dc1:q1" data-block="decompose" data-question="Pick two of the parts above and say in one line what each one actually does." placeholder="write your answer, then keep going"></textarea></label><p>Trigger or solid — which did you choose for the bullet, and what does that choice cost you? Name the checkbox and the callback name that have to agree, and what the Console does when they do not.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:dc1:q2" data-block="decompose" data-question="Trigger or solid — which did you choose for the bullet, and what does that choice cost you? Name the checkbox and the callback name that have to agree, and what the Console does when they do not." placeholder="write your answer, then keep going"></textarea></label><p>The projectile prefab is tagged <code>Enemy</code>, the same tag the turret that fired it carries. What will your callback actually test for, and on which object does it ask?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:dc1:q3" data-block="decompose" data-question="The projectile prefab is tagged `Enemy`, the same tag the turret that fired it carries. What will your callback actually test for, and on which object does it ask?" placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/Turret_Projectile</code>, then
+            <strong>Inspector →</strong> a Transform and a Sprite Renderer and nothing else. Note the
+            sprite's <strong>Scale</strong>: a collider sized from the import bounds will not match
+            it.
+        </li>
+        <li>
+            <strong>Inspector → Add Component → Circle Collider 2D</strong> (or Box Collider 2D),
+            then <strong>Inspector → Circle Collider 2D → Radius</strong>: drag until the green
+            outline covers the art in the <strong>Scene view</strong>.
+        </li>
+        <li>
+            <strong>Inspector → Is Trigger</strong> decides your callback: ticked, the bullet reports
+            the overlap and passes into you; unticked, it is solid and shoves a Dynamic player. Then
+            <strong>Inspector → Add Component → Rigidbody 2D</strong> if your setup needs one —
+            <strong>Body Type = Dynamic</strong>, <strong>Gravity Scale = 0</strong>, because this
+            world has no "down".
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/Player</code>, then
+            <strong>Inspector → Tag</strong>: the exact spelling your callback will test, on the
+            object carrying the collider, with the body from 2.2. The pair rule runs this project —
+            a collider on both objects, a body on at least one.
+        </li>
+        <li>
+            <strong>Once the code half is done — Hierarchy →</strong> a <strong>Turret</strong>
+            instance, duplicate it (<strong>Ctrl+D</strong>) so the Overworld carries three, then
+            <strong>Inspector → Turret Controller →</strong> each instance's own range and cooldown
+            (both in <code>TurretController.cs</code>), the projectile's own speed
+            (<code>Projectile.cs</code>) and damage (today's script). An instance's values override
+            the prefab's, which is how three copies of one prefab become three enemies.
+        </li>
+        <li>
+            <strong>Game view → press Play</strong> and stand in front of a turret: health falls by
+            exactly your damage knob, the bullet vanishes, and at zero your 2.2 death rule fires.
+            Console silent? Check the collider before the code, and the tag spelling before the
+            collider.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <table>
+        <tr><th>API</th><th>What it is</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>OnTriggerEnter2D(Collider2D other)</code> or
+                <code>OnCollisionEnter2D(Collision2D collision)</code> — one, matching your
+                checkbox</td>
+            <td>A callback. Unity calls it; you never do.</td>
+            <td>The hit report, on the frame the two shapes meet.</td>
+            <td>Set <em>Is Trigger</em> against the name and it never runs: a misspelt callback is
+                silence, not an error.</td>
+        </tr>
+        <tr>
+            <td><code>other.CompareTag("Player")</code></td>
+            <td>Identity check by tag.</td>
+            <td>One check, and you know what you hit.</td>
+            <td>Exact spelling, and the tag must exist. Ask it of the object carrying the collider,
+                never of the script the callback lives on.</td>
+        </tr>
+        <tr>
+            <td><code>T GetComponent&lt;T&gt;()</code></td>
+            <td>A component lookup on the object you call it on.</td>
+            <td>The <code>PlayerController</code> that owns the health.</td>
+            <td>A search that returns <code>null</code> when the type is not there, and the plain
+                version does not look at children.</td>
+        </tr>
+        <tr>
+            <td>Calling a public method on another component —
+                <code>player.TakeDamage(amount);</code></td>
+            <td>A call on a reference to another script, named whatever you named yours in 2.2.</td>
+            <td>Hands the problem to the object that owns the data: the bullet only asks.</td>
+            <td>2.2's method is <code>private</code>, so nothing outside <code>PlayerController</code>
+                can see it yet, and everything public becomes a promise to every future caller.</td>
+        </tr>
+        <tr>
+            <td><code>Destroy(Object obj)</code></td>
+            <td>Removes an object at the end of the frame.</td>
+            <td>The cleanup 3.2 used on a timer, now on a hit.</td>
+            <td>It is final and deferred: the object lives out the frame, so a hit can be counted
+                twice unless the callback stops itself running again.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification for the hit script.</strong>
+        <ul>
+            <li><strong>The hit:</strong> which callback receives the message, and which property carries the tag for that one? Why is the tag check the first filter? Which lookup reaches the <code>PlayerController</code> on the object you hit — plain, <code>InParent</code>, or <code>InChildren</code> — and what guard protects the call when it hands back <code>null</code>?</li>
+            <li><strong>The damage:</strong> which method do you call on the player, and which sign is the number you pass? Your 2.2 method is <code>private</code>: what has to change before another script can call it, and what type must your damage knob be to match it? Health lives on <code>PlayerController</code> — the empty <code>StatManager.cs</code> in <code>Assets/Scripts</code> has no health and no method to change one.</li>
+            <li><strong>The cleanup:</strong> which object do you destroy, and does that line come before the damage or after it? 3.2 ended with this same call on a timer — why does one hit still need both a lifetime and a kill on contact?</li>
+        </ul>
+    </div>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+<li>The bullet asks the player to change its own health number rather than changing it from outside. Which object owns that number, and what would the bullet have to know about the player that it does not need to know today?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q1" data-block="socratic" data-question="The bullet asks the player to change its own health number rather than changing it from outside. Which object owns that number, and what would the bullet have to know about the player that it does not need to know today?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>Tick <em>Is Trigger</em> and the bullet reports; leave it off and it shoves. Which did you choose, and what does the player feel in each case? Name the checkbox and the callback that have to agree.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q2" data-block="socratic" data-question="Tick Is Trigger and the bullet reports; leave it off and it shoves. Which did you choose, and what does the player feel in each case? Name the checkbox and the callback that have to agree." placeholder="write your answer, then keep going"></textarea></label></li>
+<li>The projectile prefab is tagged <code>Enemy</code>, like the turret and the mobile enemy. Given that, how will a bullet ever know it hit the <em>player</em> — whose tag will you actually test, and on which object?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.4:sc1:q3" data-block="socratic" data-question="The projectile prefab is tagged Enemy , like the turret and the mobile enemy. Given that, how will a bullet ever know it hit the player — whose tag will you actually test, and on which object?" placeholder="write your answer, then keep going"></textarea></label></li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Playtest</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <ul>
+        <li>
+            Swap seats and run a silent playtest, <a href="2.4.html">2.4</a> rules: you watch, they
+            play, nobody speaks. Did they notice the turret before it fired, or was the first hit a
+            surprise? Did they try to dodge? Then name your fifth knob — a muzzle offset, a lifetime,
+            a spread — declare it, and fix the top thing the playtest showed you.
+        </li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain what the projectile prefab was missing and why no message ever fired, and defend your choice of trigger versus solid by naming the callback it requires</li>
+        <li>Explain how a bullet reaches the player's health method, why the lookup can hand back <code>null</code>, and what the guard does about it</li>
+        <li>Name the four difficulty knobs, the file each one lives in, and your value for each</li>
+        <li>Run a silent playtest and make one evidence-based change, then commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — the complete turret system</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the hit detection reference</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — triggers, tags, <code>GetComponent&lt;T&gt;()</code></li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="4.1.html">4.1 — The Enemy: Patrol</a>, where Unit 4 begins and something starts hunting you.</p>
+</div><div class="lab-bar" data-lesson="3.4" data-lesson-title="Projectile Damage, Tuning &amp; Playtest" data-count="6" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/6 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.4" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.3.html"><span class="dir">&#9664; Previous</span><span class="where">3.3 — Fire Rate: Cooldowns &amp; Time</span></a><a class="foot-next" href="4.1.html"><span class="dir">Next &#9654;</span><span class="where">4.1 — The Enemy: Patrol</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

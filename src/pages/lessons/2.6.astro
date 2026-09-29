@@ -1,0 +1,178 @@
+---
+// Lesson 2.6 — Unit 2 Review + Second Playtest
+// The second half of the two-day studio: a new partner plays the fixed build
+// with the same sheet as 2.4, and the two sheets get compared, beat by beat.
+// Then the unit closes with a review of the three things it built — the spike,
+// the potion and the death rule — traced in the student's own code.
+//
+// WHY THE SECOND SHEET. 2.5 changed one field and one playtest item. A change
+// is a claim until a measurement backs it, and a different tester is a control:
+// what a second person does differently is tester variance, and what changes
+// across both sheets is the fix. This is the CRD-2 habit (evaluate, refine,
+// repeat) that becomes the dataset in 9.5.
+//
+// NO LADDER LEVEL, ON PURPOSE. Studio day, not a build lesson: no ask banner
+// and no Break It Down block, because src/data/asks.ts has no entry for 2.6 and
+// verify-site fails any lesson that declares a ladder level without one. The
+// page carries the editor/code split, the pane names and the call naming.
+//
+// GROUND TRUTH (from 2.1-2.4): health, coins and the max-health cap live on
+// PlayerController; StatManager is still the empty stub it ships as until the
+// 5.3 refactor. The spike is solid (Is Trigger off) and reports through
+// `OnCollisionEnter2D(Collision2D collision)`; the coin and the potion are
+// triggers and report through `OnTriggerEnter2D(Collider2D other)`. The death
+// rule is the student's own choice from 2.2.
+//
+// One socratic block (three questions) is the page's lab form and the only
+// source of answer boxes, so no positional id is at risk.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>2.6 — Unit 2 Review + Second Playtest</h1>
+
+<p class="lesson-lead">
+    Your fixes from <a href="2.5.html">2.5</a> have landed. Today a <em>new</em> partner plays the
+    same build with the same sheet as <a href="2.4.html">2.4</a>, and you put the two sheets side
+    by side: did the change actually do what you said it would? Then you close the unit by
+    demonstrating the three things it built — your spike, your potion and your death rule.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        <strong>Make the three demonstrations run before anyone sits down.</strong> You will show a
+        spike that kills, a potion that heals up to a cap, and a death rule that returns the player.
+        If one of them does not run, that is today's work — not a caveat in your demo.
+    </p>
+
+    <ol>
+        <li>
+            <strong>Game view →</strong> walk the player onto a spike and watch it play out:
+            the health number drops, the death rule fires, and the player comes back. Note the exact
+            spot they come back to.
+        </li>
+        <li>
+            <strong>Inspector →</strong> open the rule behind the potion and confirm the cap from
+            <a href="2.3.html">2.3</a> still holds — take a potion at full health and check that the
+            number does not move. If it climbs past the maximum, the ceiling rule is missing or in
+            the wrong place.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> confirm the coin still adds to whatever holds the count,
+            and say out loud which object that is. Today it is the player; after
+            <a href="5.3.html">5.3</a> it will be <code>StatManager</code>.
+        </li>
+        <li>
+            <strong>Scene view →</strong> place the tester somewhere they have not seen, with a clear
+            route to all three demonstrations, and confirm the camera follows them there
+            (<a href="2.4.html">2.4</a>'s route, not yours).
+        </li>
+        <li>
+            <strong>GitHub Desktop →</strong> commit the state you are about to test, so the sheet
+            describes a build you can point at later.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Cross-Playtest</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        New partner — not the one from <a href="2.4.html">2.4</a>. Same sheet, same silent-watching
+        rules: they talk, you write, nobody explains anything. The only new column is the one you
+        fill <em>before</em> they play: your prediction for the beat you fixed.
+    </p>
+
+    <table>
+        <tr><th>Beat</th><th>Sheet 1 recorded (<a href="2.4.html">2.4</a>)</th><th>What you changed</th><th>Sheet 2 recorded (today)</th><th>Did the fix work?</th></tr>
+        <tr><td>Coin route</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>Spike run</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>Potion placement</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>Death and return</td><td></td><td></td><td></td><td></td></tr>
+    </table>
+
+    <p>
+        Write what you <em>observed</em>, not what you assume it meant. "Stood still for three
+        seconds at the potion, then walked past it" is data. "Did not understand the potion" is a
+        story you invented. Then swap, and play their build with the same table.
+    </p>
+
+    <div class="callout info">
+        <strong>Two testers, two variables.</strong> Sheet 1 and sheet 2 came from two different
+        people, so a difference between them is <em>either</em> your fix <em>or</em> a different
+        person — and the table alone will not tell you which. Read the beat you changed against the
+        three you did not: if only your beat moved, that is the fix; if every beat moved, you are
+        probably measuring the tester.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        Close the unit by reading your own files. These are the decisions Unit 2 asked you to make,
+        and a review is where you find out whether you made them on purpose.
+    </p>
+
+    <div class="callout">
+        <strong>Review: the three systems, in your code.</strong>
+        <ul>
+            <li><strong>The spike.</strong> Which callback holds the spike check, and why does it receive a <code>Collision2D</code> while the coin's callback receives a <code>Collider2D</code>? Point at the <strong>Is Trigger</strong> setting that makes that true.</li>
+            <li><strong>The potion.</strong> Trace one heal from the overlap to the number changing. Where is the cap applied, and what stops a future caller from setting health above it by going around your rule?</li>
+            <li><strong>The death rule.</strong> Trace one death from the spike to the player returning. Name every method it passes through, and say what resets and what survives.</li>
+            <li><strong>The numbers.</strong> Which field changed today because of your tune, and which fields did you deliberately leave alone? Say why for one of each.</li>
+        </ul>
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: Did the Fix Work?</h3>
+        <ol>
+<li>Two different people filled the two sheets. Which difference between them is your fix, and which is just a different tester — and what on the sheets tells the two apart?</li>
+<li>Your fix targeted one beat. Did that beat's number move while the other three stayed put — and if all four moved, what does that say about what you were actually measuring?</li>
+<li>"The fix worked" is a claim. What on the two sheets is the evidence for it (CRD-2), and what would you have to see before you called the beat <em>fair</em> rather than merely fixed?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Run all three demonstrations end to end: the spike kills, the potion caps, the death returns you</li>
+        <li>Run a second, silent playtest with a new partner and record it on the same sheet</li>
+        <li>Compare the two sheets and state your fix's effect as evidence, not opinion</li>
+        <li>Trace each of the three systems through your own code, naming the methods it passes through</li>
+        <li>Say where each number lives today, and where it moves in 5.3</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the whole unit, closing here</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the two callbacks the review asks you to tell apart</li>
+        <li><a href="../data/playtests.csv">Playtest data (CSV)</a> — what two sheets become once a whole class records them</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the physics callbacks and <code>Mathf.Clamp(value, min, max)</code></li>
+    </ul>
+    <p>Next: <a href="3.1.html">3.1 — The Turret: Distance &amp; the Detection Radius</a> — Unit 3 begins, and the world starts shooting back.</p>
+</div>`;
+---
+<Lesson id="2.6" title="2.6 Unit 2 Review + Second Playtest — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

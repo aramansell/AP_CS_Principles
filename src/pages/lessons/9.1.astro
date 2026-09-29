@@ -1,0 +1,198 @@
+---
+// Lesson 9.1 — Binary: How Numbers Live in Memory
+// expand-app CSP concept: bits, powers of two, counting in base 2.
+//
+// SHAPE: this is the first lesson on the ladder with NO code in it, so it uses
+// the `concept` frame (src/lib/walkthrough.ts). The banner and the decompose
+// block both carry data-scaffold="3" so the verifier still holds the page to
+// the rung, and both drop the visible code chip — "Outline only" is a claim
+// about a file that this lesson does not have. Level 3 is the only reachable
+// rung for a lesson with no walkthrough (check 7).
+//
+// The decompose block is ADDED, not substituted: it opens a new answer-id
+// namespace (9.1:dc1:qN) and leaves every protected block untouched, so the
+// socratic, bug-hunt and tinker fields keep the ids they already had.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+const DECOMPOSE: DecomposeSpec = {
+  big: 'Read the number 13 as eight bits of memory — and be able to say what every single bit is worth.',
+  frame: 'concept',
+  parts: [
+    {
+      name: 'Name the place values',
+      does: 'Every position is worth twice the one to its right: 1, 2, 4, 8, 16, 32, 64, 128.',
+      doc: 'the place-value table in this lesson, in the Concept Lab',
+    },
+    {
+      name: 'Walk the places from largest to smallest',
+      does: 'If a place fits, that bit is 1 and you subtract it; if it does not, the bit is 0.',
+      doc: 'Step 2 of the Build Lab below',
+    },
+    {
+      name: 'Say why the hardware counts in twos and not tens',
+      does: 'A wire holds HIGH or LOW — on or off — so two symbols is what the machine already has.',
+      doc: 'Binary & Hex, the unit reference page',
+      href: '../docs/unit-09/binary-and-hex.html',
+    },
+    {
+      name: 'Work out how far a fixed width can reach',
+      does: 'Eight bits stop at 255; a 32-bit int reaches about 2.1 billion.',
+      doc: 'the byte-vs-int range discussion in the Concept Lab',
+    },
+    {
+      name: 'Recognise the edge',
+      does: 'One past the maximum does not grow the number — it wraps to the most negative value.',
+      doc: 'the overflow practice on the Exam Reference Sheet',
+      href: '../exam/reference-sheet.html',
+    },
+  ],
+  why:
+    'The split is the whole lesson. "Convert 13 to binary" is one task you can only memorise; ' +
+    'these five are five things you can look up, and the last two are the ones the exam actually ' +
+    'asks about. Nothing here needs a variable — a bit width is a *design* decision you make once, ' +
+    'and every later bug in this unit is that decision meeting a number that grew past it.',
+  sizeTest:
+    'The test: could you explain this part to somebody using only a piece of paper? If a part needs ' +
+    'Unity open to explain, it is not a part of this problem — it is a part of a coding problem.',
+  turns: [
+    'You want to store the number of lessons in the year, 81. Does it fit in 7 bits? Name the power of two that decides it, and say what that tells you about picking a width.',
+    'Unity spends a whole byte on a `bool` even though a bool is one bit. Is that waste a mistake? Argue one sentence for each side.',
+  ],
+};
+
+const body = `<h1>9.1 — Binary: How Numbers Live in Memory</h1>
+
+<p class="lesson-lead">
+    All semester you have typed <code>int</code> and
+    <code>float</code> like they were words. Underneath, every one of
+    your coins, every xSpeed of 5, every cooldown of 2f is a stack of
+    bits — and once you can READ them, half the AP exam's data
+    questions become easy points.
+</p>
+
+${renderAskBanner('how do I read a number as bits?', 3, 'concept')}
+
+${renderDecompose('9.1', DECOMPOSE, 3)}
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p><strong>Base 10 first (you already know it).</strong> The
+    number 273 means 2×100 + 7×10 + 3×1. Each place is worth TEN times
+    the one to its right, because you have ten fingers' worth of
+    symbols (0–9). Binary is the same game with two symbols:</p>
+    <table>
+        <tr><th>Place</th><td>8s</td><td>4s</td><td>2s</td><td>1s</td></tr>
+        <tr><th>Bits</th><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+        <tr><th>Worth</th><td>8</td><td>0</td><td>2</td><td>1</td></tr>
+    </table>
+    <p>1011₂ = 8 + 0 + 2 + 1 = <strong>11</strong>. Each place is a
+    power of two: 1, 2, 4, 8, 16, 32, 64, 128.</p>
+
+    <p><strong>Why computers chose 2.</strong> Every wire in the
+    machine holds either HIGH or LOW, on or off, 1 or 0 — your game
+    runs on billions of yes/no questions per second. An 8-bit number
+    (a byte) counts 0–255; an int like your health (3) or coins (0)
+    is 32 bits wide, so its range is enormous — but NOT infinite, and
+    that is the fact that matters:</p>
+    <pre><code>Your turret cooldown 2f stored as a float:
+0 10000000 00000000000000000000000  → the bits of 2.0f
+(int) 2f is 00000000000000000000000000000010  → the bits of 2</code></pre>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            Coins are an int, maxHealth is an int, jumpForce is a
+            float. Why would coins NEVER want to be a float — and
+            what goes wrong with money (0.1 + 0.2) in binary? Try it:
+            Debug.Log(0.1f + 0.2f == 0.3f); — why does it print
+            False?
+        </p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity expand-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p><strong>Step 1 — count in binary with your hands.</strong>
+    Right thumb = 1, right index = 2, right middle = 4, right ring =
+    8, right pinky = 16. Count 0–31 by raising fingers. When you can
+    get to your coin count without stalls, you have it.</p>
+
+    <p><strong>Step 2 — read your own game's numbers.</strong>
+    Convert, on paper, into 8-bit binary. Write the place values
+    down, not just the bits:</p>
+    <ol>
+        <li>health = 3</li>
+        <li>attackCooldown = 2</li>
+        <li>maxAttackRange = 7</li>
+        <li>patrolDistance = 3, chaseDistance = 5 → convert both</li>
+        <li>The number of B days in the semester: 81 lessons → does
+            it fit in 7 bits? (128 says yes, 64 says no — which
+            one is right?)</li>
+    </ol>
+
+    <details class="wt-final wt-gated">
+        <summary>
+            <span class="wt-gated-title">Check your answers</span>
+            <span class="wt-gated-peek">write yours first</span>
+        </summary>
+        <p class="wt-lead">Then compare. Every one of these is something you can now explain, and every one of them is a real value from your own scripts and your own calendar.</p>
+        <ul>
+            <li>health = 3 → <code>00000011</code> (2 + 1)</li>
+            <li>attackCooldown = 2 → <code>00000010</code> (the 2s place alone)</li>
+            <li>maxAttackRange = 7 → <code>00000111</code> (4 + 2 + 1)</li>
+            <li>patrolDistance = 3 → <code>00000011</code>; chaseDistance = 5 → <code>00000101</code> (4 + 1)</li>
+            <li>81 fits: 7 bits is 128 values, 0–127, and 81 is inside that. The place that decides it is the 64s — 81 is bigger than 64, so that bit is a 1.</li>
+        </ul>
+    </details>
+
+    <p><strong>Step 3 — bit tricks your game ALREADY plays.</strong>
+    <code>direction = direction * -1</code> from
+    <a href="4.1.html">4.1</a>? In binary, negation is a bit
+    pattern operation (two's complement: flip every bit, add 1). And
+    your booleans — hasAxe, isGrounded, isOnLadder — are single bits.
+    A byte could hold EIGHT of your booleans. Unity spends a byte
+    per bool anyway — memory is cheap now, but the exam wants you to
+    KNOW a bool is a bit.</p>
+
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Convert any small decimal to binary and back, showing powers of two</li>
+        <li>Explain WHY hardware uses base 2 (voltage states)</li>
+        <li>Demonstrate int overflow and explain it with bits</li>
+        <li>Say what a bool really costs and why range doubles per bit</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-09/binary-and-hex.html">Binary &amp; Hex</a> — the full reference with practice tables</li>
+        <li><a href="../exam/reference-sheet.html">Exam Reference Sheet</a> — binary on the AP exam</li>
+        <li><a href="../docs/unit-09/index.html">Unit 9: Data &amp; Systems</a> — the whole map</li>
+    </ul>
+    <p>Next: <a href="9.2.html">9.2 — Hex, RGB &amp; Data Abstraction</a></p>
+</div>`;
+---
+<Lesson id="9.1" title="9.1 Binary: How Numbers Live in Memory — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

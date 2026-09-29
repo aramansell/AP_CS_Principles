@@ -1,0 +1,468 @@
+---
+// Lesson 2.2 — Spikes: Physics, Damage & Death
+// The pivotal architectural lesson. The student discovers that the movement
+// they wrote in 1.4 ignores the physics world entirely, and must choose a
+// movement method that respects it — then builds health, damage and death on
+// top of that choice.
+// Health lives on PlayerController. StatManager stays the empty stub it ships
+// as until the Unit 5 refactor.
+// NOTE: there is no Spikes instance in any scene, and the Spikes prefab has no
+// collider — both must be created by the student. Spikes.prefab IS tagged.
+//
+// Scaffolding: GUIDED (level 2). The first step down the ladder. The student
+// already built the whole input → direction pipeline in 1.4 and gave the Player
+// a body in 2.1, so the frame of the file is given in full and only the line
+// carrying the NEW idea is left as a gap. The teacher's words: "we can give
+// them everything on the coin and then a little less on the spike."
+//
+// STRUCTURE (this pass): "In the Editor" holds every Inspector setting,
+// including the two Rigidbody 2D settings this lesson turns on — they used to
+// be smuggled into the code block as `//` comments, which taught the wrong
+// thing about where an Inspector change lives. "In the Code" holds the
+// walkthrough, anchored by comments saying which part of the file each block
+// belongs to.
+//
+// FACTUAL CORRECTION (2026-09-14). This lesson used to teach that
+// MovePosition "requires a Kinematic body" and that a Kinematic body stops at
+// walls. Unity's own docs contradict both halves:
+//   - MovePosition: "if the colliders produce a collision then it will affect
+//     the rigidbody movement and potentially stop it from reaching the
+//     specified position" — but "If the rigidbody is kinematic then any
+//     collisions won't affect the rigidbody itself."
+//   - Kinematic Body Type: "only collides with Dynamic Rigidbody 2Ds and not
+//     the other Body Types" (Trigger Colliders excepted).
+// So Kinematic + MovePosition walks through walls, and it also silently kills
+// the cave doors, which run OnCollisionEnter2D against a static collider.
+// The corrected rule: the body must be DYNAMIC for anything to stop you.
+//
+// Answer-box ids are positional and persisted, so this rewrite keeps the two
+// surviving socratic blocks in order (sc1, sc2) and trims the last question off
+// sc2 rather than renumbering anything. The hazard-model and death-design
+// blocks were folded into the build spec; their questions are gone with them.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderPane } from '../../lib/panes';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The two recurring questions, applied to the spike. This is the first lesson
+// on the GUIDED rung, so exactly one part is withheld — the one carrying the
+// idea that is genuinely new here. Three of these four parts are 2.1's coin
+// pickup wearing a different tag (a solid shape, a tag check, a value that
+// changes), and the student can source all three. What they have never done is
+// let the physics engine do the moving: while `transform.Translate` edits
+// coordinates directly, a solid spike is only a picture, and that part is left
+// as the gap — with its reading still attached, because finding the answer is
+// the skill being practised, not guessing it.
+const DECOMPOSE = {
+  big:
+    'Take damage when I touch a spike — for a character that is currently a ghost: the physics ' +
+    'engine knows it is standing there and has never once been asked to move it.',
+  parts: [
+    {
+      name: 'Give the spike a shape that pushes back',
+      does: 'A Collider2D on the Spikes prefab, sized to the art, with `Is Trigger` left **off**, on the object carrying the `Spikes` tag.',
+      doc: 'the `OnCollisionEnter2D(Collision2D c)` row in the quick reference, and the `Is Trigger` setting you used on the coin in 2.1.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Hand the movement to the physics engine',
+      doc: 'the `rb.linearVelocity = v` row and the Body Type warning in the quick reference, and the movement table earlier in this lesson.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+      blank: true,
+    },
+    {
+      name: 'Confirm the thing you hit was a spike',
+      does: '`OnCollisionEnter2D(Collision2D collision)` fires when solid colliders meet, and its parameter is a `Collision2D` — a container, not a collider — which is why the tag is asked of `collision.gameObject` rather than of `collision` itself.',
+      doc: 'the `OnCollisionEnter2D(Collision2D c)` and `other.CompareTag("Coin")` rows in the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Take the damage, and stop at the floor',
+      does: 'Health is a class-body field, and one method changes it by a signed amount so the same method can heal later. The subtraction is guarded: if health is already zero, return before touching the number, so it can never run to -1, -2, -3 and stop meaning anything.',
+      doc: 'the `if (health <= 0) { ... } else { ... }` row in the quick reference, and the coin count field you declared in 2.1.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+  ],
+  why:
+    'Note which part is the gap and which three are last lesson\'s coin pickup wearing a ' +
+    'different tag. What is genuinely new is who moves the Player — and until that changes, a ' +
+    'solid spike is a picture you can stand inside.',
+  sizeTest:
+    'The test: does the part name the thing that does the work? "Take damage" is an effect, not a ' +
+    'part. "Hand the movement to the physics engine" is a part — and it is the only one here that ' +
+    'changes what your character is allowed to do.',
+  turns: [
+    'Your coin count only ever goes up, so it needs no rule at all. Health only goes down, and it has a floor. Which part above keeps health inside the range where the number still means something — and what would the Console print on a second spike without it?',
+  ],
+};
+
+// Three code blocks, each opening with a comment saying where in the file it
+// goes: the field among the fields, the lookup among the 1.6 lookups, the one
+// changed line inside Update(). One gap, on the line that carries the new idea.
+const WALK = {
+  ask: 'how do I stop my character walking through walls?',
+  file: 'Assets/Scripts/PlayerController.cs',
+  label: 'In the Code',
+  intro:
+    'The shape of your file stays exactly as it is: fields in the class body, input read in Update(). Only the lines that change what moves the character are yours to write.',
+  level: 2,
+  steps: [
+    {
+      title: 'Declare a reference to the body',
+      lead: 'You gave the Player a Rigidbody2D in 2.1. To hand it instructions you need a reference to it.',
+      lines: [
+        { code: '// PlayerController.cs — class body, above Start(), with your other fields.', what: '' },
+        { code: '    private Rigidbody2D body;', what: 'A field to hold the Player\'s Rigidbody2D component. `private` and no `[SerializeField]`, because nothing outside this script needs to see it.' , why: 'Class body, not inside a method — the same rule from 1.3. This reference has to still be here on the next frame, so it belongs to the object.' },
+      ],
+    },
+    {
+      title: 'Look it up once, in Start()',
+      lead: '`GetComponent<T>()` is a search. Assign it once in Start() and remember the answer.',
+      lines: [
+        { code: '// PlayerController.cs — inside Start(), with your 1.6 lookups.', what: '' },
+        { code: '        body = GetComponent<Rigidbody2D>();', what: 'Find the Rigidbody2D sitting on this same GameObject and store it in `body`. `GetComponent<T>()` looks a component up on the object this script is attached to.' , why: '**Once, in `Start()` — never in `Update()`.** Calling it every frame is sixty searches a second for an answer that never changes — the same "decide once, remember it" instinct as declaring `inputX` in the class body.' },
+      ],
+    },
+    {
+      title: 'Replace one line in Update()',
+      lead: 'Everything above the gap is the vector you built in 1.4, unchanged. One line at the bottom of Update() is different.',
+      lines: [
+        { code: '// PlayerController.cs — inside Update().', what: '' },
+        { code: '        inputX = Input.GetAxis("Horizontal");', what: 'Unchanged from 1.5.' },
+        { code: '        inputY = Input.GetAxis("Vertical");', what: '' },
+        { code: '', what: '' },
+        { code: '        Vector2 direction = new Vector2(inputX, inputY);', what: 'The two axis values packed into a vector. This is a **direction**: it says which way, not how far.' },
+        { code: '        direction = direction.normalized;', what: 'Unchanged from 1.5 — keeps diagonal movement from being faster.' },
+        { code: '', what: '' },
+        { code: '        body.________________ = direction * moveSpeed;', blank: true, what: 'Hand the body a velocity instead of moving the Transform yourself. This one line replaces `transform.Translate(movement)`, and it is the whole fix.', hint: 'The property on `body` that says how fast it is travelling. In Unity 6 it is no longer called `velocity`.', why: 'Two things changed at once, and both matter. First, **you are asking the physics engine to do the moving** — so it knows where you are going and can stop you. Second, **there is no `Time.deltaTime`**: velocity is already measured *per second*, so the engine applies the time for you. Multiplying by `Time.deltaTime` here is the most common mistake on this line.' },
+      ],
+    },
+  ],
+  finalFile: `using UnityEngine;
+
+public class PlayerController : MonoBehaviour
+{
+    // ---- class body: every field lives up here, above Start() --------------
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private int health = 3;                     // <- new in 2.2
+    [SerializeField] private int coins;                          // from 2.1
+
+    private Rigidbody2D body;                                    // <- new in 2.2
+    private float inputX;
+    private float inputY;
+    private Animator animator;                                   // from 1.6
+    private SpriteRenderer spriteRenderer;                       // from 1.6
+
+    // ---- methods you own --------------------------------------------------
+    void Start()
+    {
+        body = GetComponent<Rigidbody2D>();                      // <- new in 2.2
+        animator = GetComponentInChildren<Animator>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+    }
+
+    void Update()
+    {
+        inputX = Input.GetAxis("Horizontal");
+        inputY = Input.GetAxis("Vertical");
+
+        Vector2 direction = new Vector2(inputX, inputY);
+        direction = direction.normalized;
+
+        // No Time.deltaTime: velocity is per second, not per frame.
+        body.linearVelocity = direction * moveSpeed;
+    }
+
+    void UpdateAnimation()
+    {
+        // unchanged from 1.6
+    }
+
+    // ---- callbacks: Unity calls these, you never do -----------------------
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        // Collision2D, not Collider2D — so the tag is asked of .gameObject.
+        if (collision.gameObject.CompareTag("Spikes"))
+        {
+            TakeDamage(1);
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Coin"))
+        {
+            coins = coins + 1;
+            Debug.Log("Coins collected: " + coins);
+            Destroy(other.gameObject);
+        }
+    }
+
+    private void TakeDamage(int amount)
+    {
+        if (health <= 0)
+        {
+            return;
+        }
+
+        health = health - amount;
+        Debug.Log("Health: " + health);
+
+        if (health <= 0)
+        {
+            Debug.Log("Player died.");
+        }
+    }
+}`,
+  finalNote:
+    'Compare against your own file rather than copying it. The gap is the `linearVelocity` line: there is no `deltaTime` because velocity is per second, and the frozen rotation exists because solid collisions push.',
+};
+
+const body = `<h1>2.2 — Spikes: Physics, Damage &amp; Death</h1>
+
+<p class="lesson-lead">
+    You built a coin you can walk through. Now build a spike you <em>cannot</em>: one checkbox,
+    and it breaks your game — because it reveals something you have been carrying since
+    <a href="1.4.html">1.4</a>. <strong>Your character is a ghost.</strong>
+</p>
+
+${renderAskBanner('how do I take damage when I touch a spike?', 2)}
+
+${renderDecompose('2.2', DECOMPOSE, 2)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Hierarchy →</strong> select the <strong>Overworld</strong> scene's contents, then
+            drag two or three <code>Assets/Prefabs/Spikes</code> instances out of the
+            <strong>Project window</strong> and into the <strong>Scene view</strong>. The scene ships
+            with no spikes placed at all.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/Spikes</code>. Select the prefab
+            <em>asset</em>, then <strong>Inspector → Add Component → Box Collider 2D</strong>.
+            Drag the size handles until the green outline matches the art.
+        </li>
+        <li>
+            <strong>Inspector → Box Collider 2D → Is Trigger ☐ OFF.</strong> Leave it off: this is
+            the one setting that separates a spike from a coin, because a push is the only thing
+            that can stop you.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/Player</code>, then
+            <strong>Inspector → Rigidbody 2D → Body Type = Dynamic</strong>. It is already Dynamic
+            from 2.1. <strong>Leave it.</strong>
+        </li>
+        <li>
+            <strong>Inspector → Rigidbody 2D → Constraints → Freeze Rotation Z ☑ ON.</strong> In 2.1
+            you left Constraints alone because nothing in the world was solid to you. An off-centre
+            push imparts torque, and without this your character tumbles like a dropped coin the
+            first time it hits a wall at an angle.
+${renderPane({
+    pane: 'Inspector',
+    subject: 'Player',
+    caption: 'The Rigidbody 2D from 2.1, scrolled down. `Constraints` is a foldout at the ' +
+        'bottom — click it open and **`Freeze Rotation`** is the second row under it, with a ' +
+        'single `Z` box because a 2D body cannot rotate in the other two axes.',
+    rows: [
+        { kind: 'component', label: 'Sprite Renderer' },
+        { kind: 'component', label: 'Circle Collider 2D' },
+        { kind: 'field', label: 'Radius', value: '0.5' },
+        { kind: 'component', label: 'Rigidbody 2D' },
+        { kind: 'field', label: 'Body Type', value: 'Dynamic' },
+        { kind: 'field', label: 'Mass', value: '1' },
+        { kind: 'field', label: 'Linear Drag', value: '0' },
+        { kind: 'field', label: 'Angular Drag', value: '0.05' },
+        { kind: 'field', label: 'Gravity Scale', value: '0' },
+        { kind: 'field', label: 'Interpolate', value: 'Interpolate' },
+        { kind: 'axis', label: 'Constraints', strong: true, step: 5 },
+        { kind: 'axis', label: 'Freeze Position', axes: ['X', 'Y'], step: 5 },
+        { kind: 'axis', label: 'Freeze Rotation', axes: ['Z'], frozen: ['Z'], step: 5 },
+        { kind: 'button', label: 'Add Component' },
+    ],
+})}
+        </li>
+        <li>
+            <strong>Press Play and walk into your spike.</strong> You walk straight through it. That
+            is the bug this whole lesson exists to fix.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Code: Choose Your Movement Method</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        You read this table in <a href="1.5.html">1.5</a> as a <em>prediction</em>. Now it is a
+        decision you live with for the rest of the year — so read the last two columns, and the
+        warning underneath, because someone already fell into it for you.
+    </p>
+
+    <table>
+        <tr><th>Technique</th><th>How it works</th><th>Stops at walls?</th><th>What it requires</th></tr>
+        <tr>
+            <td><code>transform.Translate(vector)</code></td>
+            <td>Offsets coordinates directly. Never consults physics.</td>
+            <td><strong>No</strong></td>
+            <td>Nothing. This is what you have now.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.linearVelocity = vector</code></td>
+            <td>States how fast the body is travelling; the physics engine performs the motion.</td>
+            <td><strong>Yes</strong></td>
+            <td>A Rigidbody2D with Body Type <strong>Dynamic</strong>. Movement is in units per <em>second</em>, so no <code>Time.deltaTime</code>.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.MovePosition(position)</code></td>
+            <td>Sweeps the body to a target position and tests the path as it goes.</td>
+            <td>Yes &mdash; <strong>but only on a Dynamic body</strong></td>
+            <td>A Dynamic Rigidbody2D — the opposite of what the docs recommend.</td>
+        </tr>
+        <tr>
+            <td><code>Rigidbody2D.AddForce(vector)</code></td>
+            <td>Applies a physical push; mass, drag and inertia all apply.</td>
+            <td>Yes</td>
+            <td>A Dynamic Rigidbody2D with a mass you will have to tune.</td>
+        </tr>
+    </table>
+
+    <div class="callout warn">
+        <strong>The documentation recommends the one combination that does not work.</strong>
+        Unity's page for <code>MovePosition(position)</code> says it <em>"is intended for use with
+        kinematic rigidbodies"</em> — and the same page admits that on a kinematic body
+        <em>"collisions won't affect the rigidbody itself"</em>. The manual goes further: a
+        Kinematic body <em>"only collides with Dynamic Rigidbody 2Ds."</em> On a Kinematic body you
+        arrive wherever you asked and <strong>nothing stops you on the way.</strong> The rule that
+        survives all of it: <strong>for anything to stop you, your body must be Dynamic</strong> —
+        which is why this course uses <code>linearVelocity</code>.
+    </div>
+
+    <div class="callout info">
+        <strong>Why your coins still work either way.</strong> Triggers are the exception: a
+        collider with <strong>Is Trigger</strong> ticked reports the overlap to <em>any</em> body
+        type, including Kinematic. A coin picks up either way; a wall and a cave door only notice a
+        Dynamic you.
+    </div>
+
+    <div class="socratic">
+        <h3>Choose, Then Justify</h3>
+        <ol>
+<li>Your character is a ghost. Which row fixes that with the smallest change to the code you have already written?</li>
+<li>This game is about exploring a world and being shot at by turrets. Do you want your movement to carry momentum? Which row gives you momentum whether you want it or not?</li>
+<li>Only one column in that table has the same value in every row that works. What is it, and why is that column the real decision rather than the technique you picked?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK)}
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code: Health, Damage &amp; Death</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        This one is on you, in the same shape as the walkthrough above — no gap-by-gap guide,
+        because every piece of it you have built once. A field in the class body is 2.1. A method
+        that changes a value is 1.3. A callback that checks a tag is 2.1. Specification:
+    </p>
+
+    <div class="callout">
+        <strong>Health.</strong>
+        <ul>
+            <li>A field on <code>PlayerController</code>, beside <code>coins</code> — what type, what starting value, and how is it exposed as a tuning knob?</li>
+            <li>One method that changes health by a <em>signed</em> amount, so a later heal is the same call with a different sign. Why one method rather than separate heal and damage methods?</li>
+            <li>Which callback holds the spike check, and how do you identify the spike from inside it — given the parameter is a <code>Collision2D</code> and not a collider?</li>
+            <li>What condition means "already dead", and what should the method do at that exact moment?</li>
+            <li>After subtracting health, what do you print so a player can watch the number change with no UI at all?</li>
+        </ul>
+    </div>
+
+    <p>
+        A spike is solid, so it stops you. "Stopping you" and "hurting you" are two separate
+        decisions, and there are three honest ways to build the hazard:
+    </p>
+
+    <table>
+        <tr><th>Approach</th><th>What the player feels</th><th>What fires</th><th>The risk</th></tr>
+        <tr>
+            <td><strong>Solid spike</strong></td>
+            <td>You stop against it. Damage once per touch.</td>
+            <td><code>OnCollisionEnter2D(Collision2D collision)</code></td>
+            <td>You can get wedged against it, and sliding along it may not register at all.</td>
+        </tr>
+        <tr>
+            <td><strong>Trigger spike</strong></td>
+            <td>You walk through it. Damage once per entry.</td>
+            <td><code>OnTriggerEnter2D(Collider2D other)</code></td>
+            <td>Standing inside it deals no further damage — usually wrong for a hazard.</td>
+        </tr>
+        <tr>
+            <td><strong>Trigger spike + cooldown</strong></td>
+            <td>Repeated damage while you stand in it.</td>
+            <td><code>OnTriggerStay2D(Collider2D other)</code></td>
+            <td>It fires every frame. Without a cooldown you lose all your health instantly.</td>
+        </tr>
+    </table>
+
+    <p>
+        Death has more than one defensible design. <strong>Pick one and defend it:</strong>
+        <strong>(a)</strong> reload the current scene with
+        <code>SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex)</code> — everything
+        resets, coin count included; <strong>(b)</strong> reload a scene by name — which scene, and
+        does it contain a Player?; <strong>(c)</strong> do not reload at all — reset health, move
+        the player back to the start, keep the coins.
+    </p>
+
+    <div class="socratic">
+        <h3>Your Decision Record</h3>
+        <ol>
+<li>Which Rigidbody 2D settings did you have to change, and what did you see when one of them was wrong?</li>
+<li>What evidence from your own build proves your choice works &mdash; what did you run into, and what happened?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain why <code>transform.Translate(vector)</code> ignores colliders, and quote the documentation saying so</li>
+        <li>Compare the four movement methods, and name the one setting they all depend on</li>
+        <li>Explain why <code>linearVelocity</code> does not get multiplied by <code>Time.deltaTime</code> when <code>transform.Translate(vector)</code> did</li>
+        <li>Explain <code>OnCollisionEnter2D(Collision2D collision)</code> versus <code>OnTriggerEnter2D(Collider2D other)</code> by their parameter types</li>
+        <li>State exactly what resets and what survives when your player dies</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the complete reference for this physics family, used all year</li>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — colliders, health and death in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Rigidbody2D and physics callbacks</li>
+        <li><a href="../docs/ask.html">How do I…? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="2.3.html">2.3 — Healing Pickups &amp; the Max-Health Cap</a>, where a value with a ceiling needs a rule, not just arithmetic.</p>
+</div>`;
+---
+<Lesson id="2.2" title="2.2 Spikes: Physics, Damage &amp; Death — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

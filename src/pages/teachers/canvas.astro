@@ -1,0 +1,230 @@
+---
+// Teacher guide: the lab-forms -> Canvas loop for the CSP course.
+// Not linked from student navigation; linked from README.md.
+// Excluded from student search.
+import Base from '../../layouts/BaseLayout.astro';
+import {
+  MCQ_SETS,
+  MCQ_BANK,
+  BIG_IDEA_RANGE,
+  bigIdeaShare,
+  questionsForSet,
+  questionId,
+} from '../../data/mcq-bank';
+
+const LETTERS = ['A', 'B', 'C', 'D'];
+
+/** The 48 clinic questions, grouped, for the key table below. */
+const KEY_SETS = ([1, 2, 3] as const).map((set) => ({
+  set,
+  meta: MCQ_SETS[set],
+  rows: questionsForSet(set).map((q, i) => ({
+    n: i + 1,
+    id: questionId(q, i),
+    ced: q.ced,
+    answer: LETTERS[q.answer],
+    correct: q.choices[q.answer],
+    trap: q.trap ?? '',
+    explain: q.explain,
+  })),
+}));
+
+const MIXED_SHARE = bigIdeaShare(MCQ_BANK.filter((q) => q.set !== 2));
+const ALL_SHARE = bigIdeaShare(MCQ_BANK);
+
+const SAMPLE_JSON = [
+  '{',
+  '  "format": "apcsp-lab-answers/1",',
+  '  "student": "Ada Lovelace",',
+  '  "lesson": "4.5",',
+  '  "lessonTitle": "The Full State Machine: Patrol, Chase, Attack",',
+  '  "downloadedAt": "2026-11-17T16:02:11.402Z",',
+  '  "answers": [',
+  '    {',
+  '      "id": "4.5:sc1:q1",',
+  '      "block": "socratic",',
+  '      "question": "The enemy jitters because the flip condition...",',
+  '      "answer": "..."',
+  '    },',
+  '    {',
+  '      "id": "4.5:dc1:q1",',
+  '      "block": "decompose",',
+  '      "question": "Falling out of the chase if means it returns...",',
+  '      "answer": "..."',
+  '    }',
+  '  ]',
+  '}',
+].join('\n');
+---
+<Base title="Collecting Lab Answers via Canvas — AP CS Principles" active={undefined} root=".." docsHome="../docs/index.html" css="../style.css"
+  description="Teacher workflow: students answer lab questions on the lesson pages, download a JSON, and upload it to Canvas.">
+<div class="page" data-pagefind-ignore>
+  <nav>
+    <a href="../index.html">Home</a>
+    <span class="sep">/</span>
+    <span class="here">Teacher: Lab Forms + Canvas</span>
+  </nav>
+
+  <h1>Lab Forms + Canvas</h1>
+
+  <p>
+    Every reflection question in the lessons (socratic checkpoints and bug hunts,
+    where a lesson keeps one) has an answer box, injected at build time by
+    <code>src/lib/formify.ts</code>. Answers save on the student's device
+    as they type, and each lesson has a
+    <strong>Download answers (.json)</strong> button that produces one
+    small, self-describing file — the question text, the student's
+    answer, and a stable question id (like <code>4.5:sc1:q2</code>) all
+    travel together. This page is the whole loop for collecting and
+    returning them through Canvas.
+  </p>
+
+  <h2>1. What students do</h2>
+  <ol>
+    <li>Open the lesson (e.g. <a href="../lessons/1.4.html">1.4</a>).</li>
+    <li>Type their name in the bar at the bottom of the lesson once — it
+      is remembered on that device for every other lesson.</li>
+    <li>Answer the boxed questions as they work through the labs.
+      Everything autosaves locally; nothing is lost if they close the
+      tab.</li>
+    <li>Click <strong>Download answers (.json)</strong> and upload that
+      file to the Canvas assignment.</li>
+  </ol>
+  <p>
+    The Dashboard also has a <strong>My work</strong> panel: one file
+    backs up <em>all</em> answers plus progress, and can be restored on
+    another machine (useful when lab machines get reimaged).
+  </p>
+
+  <h2>2. Set up the Canvas assignment (once per lesson)</h2>
+  <ol>
+    <li>In Canvas: <strong>Assignments &rarr; + Assignment</strong>.</li>
+    <li>Submission Type: <strong>Online</strong>, check
+      <strong>File Uploads</strong>. (Leave "Allowed File Types" blank so
+      .json files upload cleanly.)</li>
+    <li>Set points and the due date, then Publish.</li>
+  </ol>
+
+  <h2>3. Read the submissions</h2>
+  <p>
+    Each submitted file is plain JSON you can open in any text editor,
+    a browser, or <code>cat</code>. It looks like this:
+  </p>
+  <pre class="lang-json"><code>{SAMPLE_JSON}</code></pre>
+  <p>
+    Because the question text rides along in the file, you can grade from
+    the JSON alone — no need to open the site side by side. The id tells
+    you the lesson, the block (bh = bug hunt, sc = socratic, dc = the
+    Break It Down discussion), and the question number.
+  </p>
+
+  <h2>4. Return feedback</h2>
+  <ol>
+    <li>In the Canvas gradebook: <strong>SpeedGrader</strong> shows the
+      .json as an attachment; open it in a new tab and read.</li>
+    <li>Type the score and one line of feedback — the boxes are worth a
+      few completion points, not essays; the labs themselves are where
+      the learning shows.</li>
+    <li>For a whole-class snapshot, <strong>Download Submissions</strong>
+      on the assignment page and skim the files.</li>
+  </ol>
+
+  <div class="callout info">
+    <strong>The MCQ clinic sets grade themselves.</strong> The three exam
+    clinics (11.4a/b/c) now ship 48 real questions rendered from
+    <code>src/data/mcq-bank.ts</code>. Students answer on the page, press
+    <em>Grade this set</em>, and get a score plus the per-family error
+    table the lesson asks them to build by hand. Those letters ride into
+    the same answers <code>.json</code> you already collect — each
+    question carries a hidden answer field, so no separate collection
+    step is needed.
+  </div>
+  <p>
+    Reflective answer boxes are still hand-graded: they are worth a few
+    completion points, and the labs are where the learning shows. Only the
+    MCQ sets are objective, and only they are autoscored.
+  </p>
+
+  <h2>5. MCQ bank — what to change and what it guards</h2>
+  <table>
+    <tr><th>To do this</th><th>Edit</th></tr>
+    <tr><td>Add or reword a question</td><td><code>src/data/mcq-bank.ts</code> — the three clinic lessons, the key below, and <code>/data/mcq-keys.json</code> all regenerate from it</td></tr>
+    <tr><td>Reorder a set</td><td><strong>Do not.</strong> Question ids are positional (<code>11.4a:mc:q3</code>), so reordering re-points students' saved answers and the keys' letter grades at the wrong question. Append, or rewrite a question in place</td></tr>
+    <tr><td>Change an answer</td><td><code>answer:</code> is a 0-based index into <code>choices</code> — 0 is A</td></tr>
+    <tr><td>Check nothing drifted</td><td><code>npm run verify</code> — check 6 fails if any key lacks a rendered question, any explanation is missing, any CED family is unknown, or the mixed sets fall outside the exam's big-idea ranges</td></tr>
+  </table>
+
+  <h3>Published weighting vs. what the sets actually contain</h3>
+  <p>
+    Sets 1 and 3 are the mixed practice sets and are held to the exam's
+    published big-idea ranges. Set 2 is the targeted data-and-networks
+    remediation set, so it deliberately spikes BI2 and BI4 and is
+    <em>excluded</em> from that assertion — compare the two columns below
+    and the reason is visible.
+  </p>
+  <table>
+    <tr><th>Big idea</th><th>Families</th><th>Exam range</th><th>Sets 1 + 3 (mixed)</th><th>All 48</th></tr>
+    {Object.entries(BIG_IDEA_RANGE).map(([bi, r]) => (
+      <tr>
+        <td><strong>{bi}</strong></td>
+        <td>{r.families.join(', ')}</td>
+        <td>{r.min}–{r.max}%</td>
+        <td>{MIXED_SHARE[bi]}%</td>
+        <td>{ALL_SHARE[bi]}%</td>
+      </tr>
+    ))}
+  </table>
+
+  <h2>6. Answer key (48 questions)</h2>
+  <p>
+    The same key the page grader fetches, printed here so you can see it at
+    a glance while grading or reviewing a set in class. Generated from
+    <code>src/data/mcq-bank.ts</code> at build time — never edit this
+    table by hand.
+  </p>
+  {KEY_SETS.map(({ meta, rows }) => (
+    <>
+      <h3>{meta.label} — {rows.length} questions, {meta.minutes} min <span class="muted">({meta.focus})</span></h3>
+      <table>
+        <tr><th>#</th><th>CED</th><th>Ans</th><th>Correct choice</th><th>Trap</th></tr>
+        {rows.map((r) => (
+          <tr>
+            <td>{r.n}</td>
+            <td><code>{r.ced}</code></td>
+            <td><strong>{r.answer}</strong></td>
+            <td>{r.correct}</td>
+            <td>{r.trap || '—'}</td>
+          </tr>
+        ))}
+      </table>
+    </>
+  ))}
+  <p class="muted">
+    Rationales for every question are in the answers
+    <code>.json</code> that ships to students and in
+    <code>src/data/mcq-bank.ts</code> itself; the grader reveals each one on
+    screen when a student presses <em>Grade this set</em>.
+  </p>
+
+  <h2>7. The Create PT exception</h2>
+  <p>
+    College Board collaboration rules apply during the Create PT build
+    days (April 13-27). Answer boxes on those lessons stay usable for
+    <em>standup notes</em>, but the graded artifact is the program itself
+    submitted to the AP Digital Portfolio, not Canvas. Keep Canvas for
+    the process grade (commits, gates hit) and the exam clinics.
+  </p>
+
+  <h2>Site maintenance cheat-sheet</h2>
+  <table>
+    <tr><th>To do this</th><th>Run / edit this</th></tr>
+    <tr><td>Add or re-date a lesson</td><td><code>src/data/curriculum.ts</code> (SEQUENCE) — the dashboard, chain, pace table, and PACING.md all follow automatically</td></tr>
+    <tr><td>Rename a lesson title</td><td><code>src/data/lessons.ts</code> + the lesson page's h1</td></tr>
+    <tr><td>Scaffold a new lesson page</td><td><code>npm run new-lesson -- 5.11</code></td></tr>
+    <tr><td>Check site integrity</td><td><code>npm run build &amp;&amp; npm run verify</code></td></tr>
+    <tr><td>Re-generate PACING.md / sitemap</td><td>happens inside every <code>npm run build</code></td></tr>
+    <tr><td>Search index</td><td>Pagefind runs in build; nothing to maintain</td></tr>
+    <tr><td>Add / reword an MCQ</td><td><code>src/data/mcq-bank.ts</code> — lessons, key page, and <code>/data/mcq-keys.json</code> all regenerate. Never reorder a set (ids are positional)</td></tr>
+  </table>
+</div>
+</Base>

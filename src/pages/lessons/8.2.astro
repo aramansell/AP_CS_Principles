@@ -1,0 +1,416 @@
+---
+// Lesson 8.2 — Boss Body, Health & Phases
+//
+// Scaffolding: OUTLINE ONLY (level 3). The specification and the API are given
+// and no code is. The student specced the fight in 8.1, and every mechanism
+// below that spec — a collider, a signed damage method, a persistence
+// decision, a rule that fires once — is something they have already built, so
+// the work here is the assembly and one decision about where a number lives.
+// The ask banner is the level marker: a level-3 lesson must not render a
+// walkthrough, and verify-site refuses one that does (the `level >= 3 && wt`
+// rule in scripts/verify-site.mjs). This page imports no `renderWalkthrough`.
+//
+// GROUND TRUTH — read out of AP_CS_P_Starter_Project (Unity 6000.6.0f1) on
+// 2026-09-15. Nothing below is inferred from another lesson's text:
+//   - There is no boss prefab: `find Assets -iname '*boss*'` returns nothing,
+//     and Assets/Prefabs holds exactly AxeItem, Coin, MobileEnemy, Player,
+//     Spikes, Switch, Turret and Turret_Projectile.
+//   - The four files the inventory step names are the real contents of
+//     Assets/Artwork/Character/Enemy/: OrcwithAxe1.png, OrcwithAxe2.png,
+//     LoRTowerV2_blue_no_soul_no_fire-Sheet.png and Turret_Bullet.png.
+//   - The tower sheet is literally the turret's own art: Turret.prefab's
+//     SpriteRenderer resolves to LoRTowerV2_blue_no_soul_no_fire-Sheet.png
+//     (guid 465f5cb57952b46b387408a348ba8589). "The same family as your
+//     turret" understates it — it is the same file.
+//   - NO object a boss is assembled from ships with a collider.
+//     MobileEnemy.prefab is GameObject + Transform + EnemyController + a child
+//     named "Sprite" carrying the SpriteRenderer and the Animator: no
+//     Collider2D and no Rigidbody2D (checked again this pass — the !u! class
+//     list is 1, 4, 114, 1, 4, 212, 95, with no 61 and no 50). Coin.prefab
+//     (root + a child named "Animation"), Player.prefab and Turret.prefab are
+//     the same story. The ONE prefab in the project that does carry a collider
+//     is Switch.prefab (a BoxCollider2D, `!u!61 &8741236927416490199`, and no
+//     Rigidbody2D) — the lever machinery, which the student did not build. So
+//     the old sentence "nothing in this project had a collider until you added
+//     one" was FALSE, and is now scoped to the four objects a boss is made from.
+//     EnemyController.cs is still an empty Start()/Update() stub, which is why
+//     the enemy prefab can carry no body at all.
+//   - The enemy animator's clips animate the SPRITE ONLY. Every clip in
+//     Assets/Artwork/Animations/Top_Down/EnemyMotion/ carries
+//     `m_PositionCurves: []`, `m_ScaleCurves: []` and `m_FloatCurves: []`,
+//     plus one m_PPtrCurves entry with `attribute: m_Sprite` and an empty
+//     `path` — the SpriteRenderer on the object the Animator sits on. Nothing
+//     in that controller writes localScale, so the trap callout states the
+//     verified answer instead of implying a 3x scale gets overwritten.
+//   - MobileEnemy's child "Sprite" already carries m_LocalScale 1.5 on
+//     itself, which is why the lesson says "roughly three times" instead of
+//     naming a number for the root.
+//   - The Animator on MobileEnemy is on the CHILD, not the root, and the
+//     controller declares Direction (Int) and Attack (Trigger) with no idle
+//     states — the same facts 4.2 documents.
+//   - The project HAS UI by Unit 8. Overworld.unity contains a Canvas, a
+//     Text (TMP) and an EventSystem, and 5.3 has the student build that same
+//     trio in Start. The old "watch it fall with no UI at all" line was the
+//     false "this project has no Canvas" claim in a new costume; it is now
+//     scoped to "no UI for the boss".
+//   - StatManager.cs is still an empty stub, and Start.unity's StatManager
+//     object carries stale `health: 3` / `coins: 0` serialized fields that do
+//     not exist in the script — the stripped-starter pattern. Nothing here
+//     claims a tuned value lives in a script: the singleton this lesson points
+//     at is the one the student WRITES in 5.3.
+//   - Unity 6 names: `Rigidbody2D.linearVelocity`, and
+//     `Object.FindFirstObjectByType<T>()` in place of the deprecated
+//     `FindObjectOfType<T>()`. The legacy `Input` class is correct here.
+//
+// STRUCTURE (this pass) — the editor/code split 4.2 and 6.5 already have:
+//   In the Editor  the assembly, as numbered pane-named steps. The old
+//                  "You do not get to skip the Inspector read" callout was a
+//                  paragraph TELLING the student to go and read an Inspector;
+//                  it is now seven steps that do it, each naming its pane.
+//   In the Code    the guard examples, the API table (a level-3 lesson gives
+//                  the spec and the API and no code — 4.2's table is the
+//                  shape), the two architectural specifications, and the
+//                  decisions with more than one right answer: the health
+//                  display table and "Choose, Then Justify". There is no
+//                  third container on this page, so the socratic below is
+//                  annotated "(In the Code)" rather than "(Build Lab)".
+//
+// CULLED FOR REPETITION — the health-location decision was stated in four
+// places and asked in two. The survivor is the architectural specification,
+// which is where the student is made to argue it; what went was Step 1's
+// *answer* ("a boss that carried its wounds across a scene change would be a
+// very strange boss"), which handed over what the specification asks, and the
+// "renderer is on a child" lesson from 2.1 re-told in Step 2 when the student
+// is about to look at the child itself. The five guard examples were three
+// ideas, so the railway signal box and the vending machine went; the
+// "Approach" table's cost column was re-argued per row instead of restating
+// the same warning three times.
+//
+// PROTECTED BLOCKS — answer ids are POSITIONAL (see src/lib/formify.ts), so
+// nothing here is reordered, renumbered or re-counted. These are the blocks
+// this page actually renders, in document order, and none has a nested <div>
+// inside it:
+//   socratic  "What Is a Boss Made Of?"          3 items  (In the Editor)
+//   socratic  "Predict Before Building"          3 items  (In the Code)
+//   socratic  "Choose, Then Justify"             3 items  (In the Code)
+//   checklist                                    7 items  (NOT harvested; the
+//                                                          two ladder lines
+//                                                          match 3.4/4.2/6.4)
+// The bug-hunt "Boundary Faults" and the tinker "Phase Feel" this page used to
+// render were removed with the other protected-block cuts, so no bh/tk answer
+// ids exist for 8.2 any more and nothing below points at either of them. Only
+// individual wording changed, and only where the old text asserted something
+// the project files do not say.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import type { DecomposeSpec } from '../../lib/decompose';
+
+// The recurring two-beat block: split the problem, look each part up.
+// Level 3, so the renderer withholds what each part DOES and asks the student
+// to say it — the parts and their doc pointers are the level-3 bargain. Every
+// doc pointer is a lesson the student has finished (2.1, 2.2, 2.3, 3.3, 5.3)
+// or the spec they wrote in 8.1, and nothing points forward: the block may
+// only cite prior work.
+const DECOMPOSE: DecomposeSpec = {
+  big:
+    'A boss that stands in a room, can be hit, and changes its mind twice as its health falls — ' +
+    'in a project that contains no boss at all. As one problem it is not startable, because there ' +
+    'is nothing to drag in: the body, its shape, its number, where that number is kept and the ' +
+    'rules on it all have to be decided before any of them can be written.',
+  parts: [
+    {
+      name: 'Assemble the body out of art that is already here',
+      does: 'There is no boss prefab to find, so the body is built: an existing enemy or the tower, scaled, recombined and renamed until it reads as something the player has not seen. The choice was 8.1\'s; the assembly is this part.',
+      doc: '8.1 — Boss Design: Spec It First: the honest inventory of what this project ships, and the scene you chose to host the fight',
+      href: '8.1.html',
+    },
+    {
+      name: 'Give the body a shape the physics engine can find',
+      does: 'A `Collider2D` fitted to what the renderer actually draws, on the object the player\'s swing will hit — and a decision about which object in the hierarchy that is, because the renderer is often on a child.',
+      doc: '2.1 — Coins: Triggers, Tags & Your First Stat: the collider you added to the coin, the body you added to the Player, and the renderer-on-a-child discovery',
+      href: '2.1.html',
+    },
+    {
+      name: 'Give the body a number, and one method that can subtract from it',
+      does: 'A maximum, a current value, and a single method taking a signed amount — so the only thing that can ever change the number is the one place the rule about it lives.',
+      doc: '2.2 — Spikes: Physics, Damage & Death: the signed damage method, and 2.3 — Healing Pickups & the Max-Health Cap: the rule that bounds a value inside the method that changes it',
+      href: '2.2.html',
+    },
+    {
+      name: 'Decide where that number lives — and it is the opposite answer to the player\'s',
+      does: 'Lifetime decides it. The player\'s numbers had to survive a scene load, which is why they moved onto an object a load cannot delete; the boss exists in one scene, and a boss that carried its wounds out of the room would be a different game.',
+      doc: '5.3 — Into the Cave: Scenes, Persistence & The Refactor: `StatManager.Instance`, the `Awake()` that claims it, `DontDestroyOnLoad(gameObject)` and the duplicate guard',
+      href: '5.3.html',
+    },
+    {
+      name: 'Guard each threshold so it fires once, on a crossing',
+      does: 'The check is not "is health below X" but "has health crossed X, and is the boss not already in that phase" — a rule that fires at a boundary and then refuses to fire again.',
+      doc: '3.3 — Fire Rate: Cooldowns & Time: a rule that fires once and must then wait — and the phase table you wrote in 8.1',
+      href: '3.3.html',
+    },
+    {
+      name: 'Make the change visible before any attack exists',
+      does: 'A readout or an effect the player perceives within about a second, chosen from three honest options with three different costs. Without one you cannot tell a phase change from a bug.',
+      doc: 'the `Debug.Log(...)` readout you have watched since 2.1, against the HUD you built in 5.3',
+      href: '5.3.html',
+    },
+  ],
+  why:
+    'The split follows one number through its whole life: an object is assembled, given a shape, given a value, told where to keep that value, given rules about when it may change, and finally made visible. Four of those six parts are things you have already built — a collider, a signed damage method, a persistence decision and a rule that fires once. What is new is small enough to miss: none of it is boss code. This is the coin, the spike, the singleton and the cooldown, pointed at one object and told to hold still.',
+  sizeTest:
+    'The test for a finished split: does the part name something you could point at — a component, an object in the Hierarchy, a field, a method, a scene? "Build a boss" points at nothing. "Which object carries the collider the player will hit" points at one object in one hierarchy, and that is a part.',
+  turns: [
+    'Your player\'s health and your boss\'s health are both numbers that go down. Say which of the two lives on an object a scene load cannot delete, and what the player would find in the arena if you gave the boss the same answer you gave the player.',
+    'A threshold is a boundary, not a value. Say in one line what your guard actually checks — the crossing, or the current health — and describe what the fight looks like on the day the other one ships.',
+  ],
+};
+
+const body = `<h1>8.2 — Boss Body, Health &amp; Phases</h1>
+
+<p class="lesson-lead">
+    Your spec exists on paper (<a href="8.1.html">8.1</a>). Today it becomes an object standing in
+    a room — and there is nothing to drag in: search <code>Assets/Prefabs</code> for a boss and you
+    come up empty. You assemble one from the enemy art that is already here, give it a shape the
+    physics engine can find, and give it a number that says how alive it is. Health first, attacks
+    in <a href="8.4.html">8.4</a>.
+</p>
+
+${renderAskBanner('how do I build a boss when there is no boss prefab?', 3)}
+
+${renderDecompose('8.2', DECOMPOSE, 3)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Artwork/Character/Enemy</code>:
+            <code>OrcwithAxe1.png</code>, <code>OrcwithAxe2.png</code>,
+            <code>LoRTowerV2_blue_no_soul_no_fire-Sheet.png</code>, <code>Turret_Bullet.png</code>
+            — no boss sheet among them. The three honest ways to assemble a boss out of what is
+            there: <strong>(a)</strong> duplicate an enemy and scale it up —
+            cheapest, and it reads as the same enemy, bigger; <strong>(b)</strong> the tower sheet —
+            a fixed emplacement, so any moving attack in your spec becomes a projectile;
+            <strong>(c)</strong> recombine, a scaled body with a scaled-down tower as a child — a
+            second place attacks come from, and a second thing to keep aligned.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs</code>, select
+            <code>MobileEnemy</code>, <strong>Edit ▸ Duplicate</strong> (<code>Cmd+D</code>) — the
+            copy is your boss. <strong>Inspector →</strong> the name field: call it
+            <code>Boss</code>. <strong>Hierarchy →</strong> drag it into the arena scene you named
+            in <a href="8.1.html">8.1</a>.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> <code>Boss</code>, then <strong>Inspector →</strong> read
+            its component list: a Transform, an <code>EnemyController</code>, and a child named
+            <em>Sprite</em>. Say what is missing out loud: no <code>Collider2D</code>, no
+            <code>Rigidbody2D</code> — the same shape the coin and the Player arrived in as in
+            <a href="2.1.html">2.1</a>.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> the <em>Sprite</em> child, then <strong>Inspector →</strong>
+            <strong>Transform →</strong> Local Scale is already <code>1.5</code> on it, so 3× on the
+            root is nearer 4.5× the art you can see — read that number before you pick yours. That
+            same child carries the <em>Sprite Renderer</em> and the <em>Animator</em>, not the root.
+            Which object draws the boss decides which object a collider must cover, so write both
+            names down.
+        </li>
+        <li>
+            <strong>Project window →</strong>
+            <code>Assets/Artwork/Animations/Top_Down/EnemyMotion/</code>, double-click one clip,
+            then <strong>Window ▸ Animation →</strong> its property list: sprite keys only, no
+            position keys and no scale keys.
+        </li>
+        <li>
+            <strong>Inspector →</strong> <strong>Add Component →</strong>
+            <code>Box Collider 2D</code> on the object you decided is the target, then
+            <strong>Edit Collider</strong> to fit what you can see. <strong>Scene view →</strong>
+            press <em>Play</em>, walk into the boss: does it stop you?
+        </li>
+    </ol>
+
+    <table>
+        <tr><th>Animating the boss</th><th>What it looks like</th><th>What it costs</th><th>When it wins</th></tr>
+        <tr>
+            <td><strong>(a) Reuse the enemy controller</strong></td>
+            <td>Drive <code>MobileEnemy</code>'s controller: a <code>Direction</code> integer (0 = Right, 1 = Up, 2 = Left, 3 = Down) and an <code>Attack</code> trigger.</td>
+            <td>It has <em>no idle states</em>, so a boss standing still still looks like it is walking, and it uses a separate clip per direction rather than flipping the sprite.</td>
+            <td>Your boss moves like your enemies already do, and you want it working today.</td>
+        </tr>
+        <tr>
+            <td><strong>(b) Build a new controller</strong></td>
+            <td>Two states — Idle and Attack — reusing the same clips in a controller you own.</td>
+            <td>You learn the Animator window's transition graph properly, and you inherit every mistake in the original clips.</td>
+            <td>Your spec is standing still and telegraphing, and the walk states would be noise.</td>
+        </tr>
+        <tr>
+            <td><strong>(c) No Animator at all</strong></td>
+            <td>A static sprite whose telegraph is a scale punch or a colour flash driven from your own script.</td>
+            <td>Almost no expressive range — but a colour flash is a genuinely good telegraph, and the cheapest to build.</td>
+            <td>You want the fight working first and the animation second, which is the right order for a deadline.</td>
+        </tr>
+    </table>
+
+    <div class="callout trap">
+        <strong>Read which properties the clips animate before you blame the Animator.</strong>
+        An Animator overwrites exactly the properties its clips carry keys for, every frame, and
+        touches nothing else — so the question is never "does my boss have an Animator", it is "what
+        do those clips write". Every clip in that folder animates the <em>sprite</em> and nothing
+        else, so a 3× scale you set on a body those clips drive survives Play; a controller you
+        build yourself whose telegraph is a scale punch is the other answer, and there the clip
+        wins. Know which of the two you have, and scale a parent if you are ever unsure.
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: What Is a Boss Made Of?</h3>
+        <ol>
+<li>You scaled an enemy to three times its size. Which two things scaled with it that you did <em>not</em> intend to change — one in the scene, one in how the fight feels?</li>
+<li>Your player is a small character in a room. If the boss's collider is enormous, what happens to the player's ability to walk past it — and does your spec's arena still work?</li>
+<li>A boss made of two recombined pieces gives you a second place attacks can come from. Which attack in your <a href="8.1.html">8.1</a> spec could come from a <em>child</em> object rather than the body?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~35 min</span>
+    </div>
+
+    <p>
+        One file today: the script that owns the boss's number. A phase threshold is a
+        <em>guard</em> — a rule that fires once, at a boundary, and never again — so here are three
+        guards from other worlds, none of them game code:
+    </p>
+
+    <p><strong>Example 1 — Stadium floodlights at halftime (once per match, not once per reading):</strong></p>
+    <pre><code>// The halftime cue fires once. Without the guard, every dimmer
+// reading below 50% would re-run the entire sequence.</code></pre>
+
+    <p><strong>Example 2 — A factory quality gate (two thresholds, two responses):</strong></p>
+    <pre><code>// The line inspector flags a batch at a 50% reject rate
+// and stops the line at 20%. Same sensor, two different rules.</code></pre>
+
+    <p><strong>Example 3 — The stadium scoreboard (bolted to the stadium, not to the team):</strong></p>
+    <pre><code>// The scoreboard does not travel with the team. Whatever shows
+// a score has to live where the score is being kept.</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before Building</h3>
+        <ol>
+<li>In the floodlight example, what exactly is the guard — the cue, or the <em>state</em> that says the cue has already run? Which one will you need in your boss script?</li>
+<li>The quality gate fires two different responses from one sensor. In your spec, what are the two responses at your two thresholds — and are they different enough to be worth two thresholds instead of one?</li>
+<li>The scoreboard is bolted to the stadium rather than to the team. Which object in your scene is going to <em>show</em> the boss's health — and is it the same object that keeps it?</li>
+</ol>
+    </div>
+
+    <table>
+        <tr><th>API</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>void TakeDamage(int amount)</code></td>
+            <td>The signed damage method you built on the player in <a href="2.2.html">2.2</a> and moved into <code>StatManager</code> in <a href="5.3.html">5.3</a>. The boss needs that same shape on its own script.</td>
+            <td>A copy is a second place the rule lives — which is why <a href="2.3.html">2.3</a>'s cap travelled with the method.</td>
+        </tr>
+        <tr>
+            <td><code>Mathf.Clamp(int value, int min, int max)</code></td>
+            <td>Bounds a value at both ends, as 2.3 used it to stop healing past the maximum. Here the interesting end is the floor: a hit can take health below zero.</td>
+            <td>It clamps the <em>number</em>, not whatever draws it. The frame the value reaches zero is still yours to handle.</td>
+        </tr>
+        <tr>
+            <td><code>DontDestroyOnLoad(Object target)</code></td>
+            <td>The call that made your player's numbers survive a scene load in <a href="5.3.html">5.3</a>.</td>
+            <td>Reach for it last, not first: whether the boss wants it follows from a property of the boss, not from tidiness.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification: where does the boss's health live?</strong>
+        <ul>
+            <li>Your player's health lives in <code>StatManager</code>, a singleton with <code>DontDestroyOnLoad</code> — a decision you made in <a href="5.3.html">5.3</a> for a reason. What was the reason, and does it apply to a boss?</li>
+            <li>Name the property of the boss's lifetime that decides where its numbers belong — and say whether it is the same property as the player's.</li>
+            <li>Health on a component of its own, or on the script that will schedule its attacks in <a href="8.4.html">8.4</a>? Argue the split point, then write it that way.</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the phase thresholds.</strong>
+        <ul>
+            <li>How many thresholds does your spec have, at what values, and what is the response at each one?</li>
+            <li>A check that reads "health is below X" fires on every frame the boss is below X; a guard that reads "not already in this phase" fires once. Which do you need, and what does the other one do to your fight?</li>
+            <li>Phases only move <em>forward</em>, and only <em>downward</em>. Why is a transition that can run backwards a bug generator rather than a feature?</li>
+            <li>What if two thresholds are crossed in a single hit? Which phase is the boss in afterwards, and what does that say about the order of your checks?</li>
+        </ul>
+    </div>
+
+    <p>Last decision, and the one the player actually perceives: how the boss's remaining health becomes something they can see.</p>
+
+    <table>
+        <tr><th>Health display</th><th>What it looks like</th><th>What it costs</th><th>When it wins</th></tr>
+        <tr>
+            <td><strong>(a) <code>Debug.Log(...)</code></strong></td>
+            <td>Every health change prints the new value.</td>
+            <td>Only you can see it. It is not a game, it is an instrument.</td>
+            <td>Today — and it is the honest instrument for a <em>boss</em>: 5.3's HUD exists to show the player's own stats.</td>
+        </tr>
+        <tr>
+            <td><strong>(b) A world-space bar</strong></td>
+            <td>Three child sprites — a background, a fill, a frame — with the fill's <code>localScale.x</code> driven by the health fraction.</td>
+            <td>You must handle the fraction reaching zero without inverting the sprite, and it scales with the boss.</td>
+            <td>You want the player to watch the bar fall without taking on a whole UI system yet.</td>
+        </tr>
+        <tr>
+            <td><strong>(c) A UI Slider on a Canvas</strong></td>
+            <td>The conventional answer: a Canvas, a Slider anchored to the top of the screen, and a reference from the boss.</td>
+            <td>The subsystem is familiar from <a href="5.3.html">5.3</a>, the anchoring is not: a new RectTransform hierarchy pinned to a corner, and a decision about which scene it belongs to.</td>
+            <td>You want the standard look, and will find out how much of 5.3's HUD you can reuse.</td>
+        </tr>
+    </table>
+
+    <div class="socratic">
+        <h3>Choose, Then Justify</h3>
+        <ol>
+<li>Which health display did you choose, and which row of the table did you reject? What is the cost you accepted?</li>
+<li>The world-space bar drives <code>localScale.x</code> from a fraction. What does that fraction look like on the frame the boss dies, and what would the bar do if you forgot to clamp it?</li>
+<li>The reusable enemy controller has no idle states. What does the player conclude about a boss that appears to be walking while standing still — and is that a bug you can live with, or one you must fix?</li>
+</ol>
+    </div>
+</div>
+
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain why the boss was assembled rather than found, and name the art you assembled it from</li>
+        <li>Say which object in your boss carries the renderer, and which object carries the collider the player will hit</li>
+        <li>Explain why the boss's health is scene-local while the player's is a singleton — in terms of lifetime, not tidiness</li>
+        <li>Explain why a phase threshold must be guarded, and what happens without the guard</li>
+        <li>Defend your choices of health display and animation approach, naming what each one cost</li>
+        <li>Break this feature into parts small enough to look each one up on its own, and say which earlier lesson each came from</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-08/index.html">Unit 8: Boss Fight</a> — health, phases and assembly</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — thresholds and guarded transitions</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>Mathf</code>, clamping and component access</li>
+    </ul>
+    <p>Next: <a href="8.3.html">8.3 — Player Attack: Fight Back</a>, where the number you just built starts going down.</p>
+</div>`;
+---
+<Lesson id="8.2" title="8.2 Boss Body, Health &amp; Phases — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

@@ -1,0 +1,315 @@
+---
+// Lesson 2.4 — Prefabs, Spawning & Playtesting
+// Prefab vs instance, spawning an object from code, and the playtest ritual that
+// runs for the rest of the year.
+//
+// Scaffolding: OUTLINE ONLY (level 3). The spec and the API are given and no
+// code is. The student has built a prefab in 2.1 and 2.3, so the only new idea
+// is Instantiate — and it arrives as a row in a reference table plus a spec that
+// makes the design decisions theirs. The ask banner is the level marker; a
+// level-3 lesson must not render a walkthrough, and verify-site refuses one that
+// does.
+//
+// STRUCTURE (this pass): the level-building work and the prefab-versus-instance
+// demonstration are an explicit "In the Editor" list; the spawner script is "In
+// the Code"; the playtest ritual is its own block, and the checkpoint moved out
+// of it to the end of the page where every other lesson keeps it.
+//
+// GROUND TRUTH: the Overworld ships with one Coin instance and nothing else
+// placed — Spikes in 2.2 and the Potion in 2.3 are placed by the student. The
+// spawner script, and the empty GameObject that carries it, are created here.
+//
+// Answer-box ids are positional and persisted, so this rewrite keeps both
+// socratic blocks in order (sc1, sc2) and trims the last question off sc2.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+import { renderPane } from '../../lib/panes';
+
+// The recurring two-beat block: split the problem, look each part up. Level 3,
+// so the renderer withholds what each part DOES and asks the student to say it.
+// Every doc pointer is either a lesson they have finished or a row of this
+// lesson's own reference table.
+const DECOMPOSE = {
+  big: 'I want a hundred coins in my level, and I am not dragging each one in by hand. The game should make them while it runs — and every one of them has to obey a setup I can still change in one place.',
+  parts: [
+    {
+      name: 'Name the thing that gets copied',
+      does: 'A prefab in `Assets/Prefabs` — the Coin, Spikes and Potion you already built are the definitions a spawner stamps.',
+      doc: '2.1 and 2.3 — the prefabs you built there',
+      href: '2.1.html',
+    },
+    {
+      name: 'Hold a reference to that prefab',
+      does: 'A `[SerializeField] GameObject` field declared at class scope, so a designer can drag the prefab into an Inspector slot.',
+      doc: 'the `GameObject` row of this lesson\'s reference table',
+    },
+    {
+      name: 'Give the spawner a body to live on',
+      does: 'A script attached to an empty GameObject in the Overworld. A script sitting on an inactive object never runs.',
+      doc: '1.3 — Your First Script, and the empty GameObject you attach the spawner to in this lesson\'s Build Lab',
+      href: '1.3.html',
+    },
+    {
+      name: 'Notice the key press',
+      does: '`Input.GetKeyDown(KeyCode key)` tests the single frame a key goes down, so one press makes one clone instead of sixty.',
+      doc: 'the `Input.GetKeyDown(KeyCode key)` row of this lesson\'s reference table',
+    },
+    {
+      name: 'Clone the prefab into the world',
+      does: '`Instantiate(Object original, Vector3 position, Quaternion rotation)` takes the prefab, a position and a rotation; the clone arrives carrying the tag, collider and trigger settings the prefab has.',
+      doc: 'the two `Instantiate(...)` rows of this lesson\'s reference table',
+    },
+    {
+      name: 'Know what a clone is not',
+      does: 'A clone exists only while the game runs — nothing spawned is written into the scene file, and nothing spawned survives Play mode.',
+      doc: 'the `Instantiate(Object original, Vector3 position, Quaternion rotation)` row of this lesson\'s reference table, and the press-Play-then-press-Stop test in the Build Lab',
+    },
+  ],
+  why: 'The split is the difference between a definition and an event. The prefab is the definition, the slot is your reference to it, and the clone call turns a definition into an object that exists for a few seconds. Only one part of the list is new code; the rest is file, field, and object placement you have done since 1.3.',
+  sizeTest: 'The split is finished when every part names something you could point at in the editor: a file in `Assets/Prefabs`, a field in the Inspector, an object in the Hierarchy, a key, a method.',
+  turns: [
+    'This spawner runs inside `Update()`. Why does the key test have to be the one-frame version — and what would the Hierarchy look like at the end of a 90-minute class if it were not?',
+  ],
+};
+
+const body = `<h1>2.4 — Prefabs, Spawning &amp; Playtesting</h1>
+
+<p class="lesson-lead">
+    You have a working coin, spike and potion — singular. Games need dozens of each. Prefabs are
+    the factory: build once, stamp many, change the master and every copy updates. Then the
+    professional ritual that runs the rest of your year: playtesting.
+</p>
+${renderAskBanner('how do I spawn lots of the same object?', 3)}
+
+<!-- ============================================================ -->
+${renderDecompose('2.4', DECOMPOSE, 3)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Hierarchy → Project window → Scene view.</strong> The Overworld ships with exactly
+            one Coin and nothing else placed. Drag a handful of Coins, several Spikes and your Potion
+            prefab out of <code>Assets/Prefabs</code> and lay out something a player could walk
+            around.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> select any one of them. Each instance carries a <strong>blue
+            cube icon</strong>, which marks it as a <strong>prefab instance</strong> — a stamped copy
+            of a master.
+${renderPane({
+    pane: 'Hierarchy',
+    subject: 'Overworld',
+    caption:
+        'Your Hierarchy after step 1. Every object you dragged out of `Assets/Prefabs` carries the ' +
+        'same blue cube the Coin does — and `Spawner`, which you make in step 5, is an ordinary ' +
+        'object: a plain square, no cube.',
+    rows: [
+        { kind: 'object', label: 'Overworld', strong: true },
+        { kind: 'object', label: 'Player', depth: 1 },
+        { kind: 'object', label: 'Spikes', depth: 1, prefab: true },
+        { kind: 'object', label: 'Spikes', depth: 1, prefab: true },
+        { kind: 'object', label: 'Spikes', depth: 1, prefab: true },
+        { kind: 'object', label: 'Coin', depth: 1, prefab: true, step: 2 },
+        { kind: 'object', label: 'Coin', depth: 1, prefab: true },
+        { kind: 'object', label: 'Potion', depth: 1, prefab: true },
+        { kind: 'object', label: 'Spawner', depth: 1 },
+        { kind: 'object', label: 'Main Camera', depth: 1 },
+    ],
+})}
+        </li>
+        <li>
+            <strong>Project window →</strong> double-click <code>Assets/Prefabs/Spikes</code> to open
+            the prefab itself. Change something <em>functional</em>, not cosmetic: make the collider
+            bigger, or change the trigger setting you chose in 2.2. Save, then click the back arrow to
+            return to the scene. <strong>Every spike in the scene updated at once</strong> — one edit,
+            every copy.
+        </li>
+        <li>
+            <strong>Inspector →</strong> now change one <em>instance's</em> position or scale in the
+            scene. That field shows in <strong>bold</strong>: that is an override, and it is anything
+            you changed on this copy only. Master edits still propagate everywhere you did
+            <em>not</em> override.
+        </li>
+        <li>
+            <strong>Hierarchy → right-click → Create Empty</strong>, in the Overworld. Name it
+            something you will recognize. This is the object your spawner script will live on — in
+            the next section.
+        </li>
+    </ol>
+
+    <div class="callout trap">
+        <strong>Never delete a prefab's master file while copies live in scenes.</strong>
+        Missing-script chaos follows, in every scene that ever used it. Treat master files like
+        production code.
+    </div>
+
+    <div class="socratic">
+        <h3>Master and Copy</h3>
+        <ol>
+<li>You changed the spike's collider on the prefab and every spike in the scene changed with it. If you had changed it on one instance instead, what would the other spikes look like — and where in the Inspector would you find the evidence of what you did?</li>
+<li>The Inspector prints an overridden field in bold. Why is an override so easy to forget you made?</li>
+<li>Deleting one prefab file breaks every copy in every scene at once, even though each copy is a separate object in the Hierarchy. What does that tell you about where a copy's definition actually lives?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        Objects do not have to be placed by hand. A game stamps them into existence while it runs —
+        a coin from a broken crate, a bullet from a turret. Unity does that with one method, and the
+        table below is the whole of it. There is no code here on purpose: the API is given, and the
+        script is yours to write.
+    </p>
+
+    <table>
+        <tr><th>API</th><th>What it is</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>Instantiate(Object original, Vector3 position, Quaternion rotation)</code></td>
+            <td>The full form of the clone call.</td>
+            <td>Returns a reference to the clone, complete with every component, tag, collider and trigger setting the prefab carries.</td>
+            <td>Three arguments in a fixed order — what to clone, where, what rotation. The clone belongs to this play session only: press Stop and it is gone, because the scene file was never written to.</td>
+        </tr>
+        <tr>
+            <td><code>Instantiate(Object original)</code></td>
+            <td>The same call with everything left out.</td>
+            <td>Clones at the prefab's own position and rotation.</td>
+            <td>No say in where the clone lands, so two spawns in a row sit on top of each other and look like one object.</td>
+        </tr>
+        <tr>
+            <td><code>Quaternion.identity</code></td>
+            <td>A value, not a method.</td>
+            <td>"No rotation" — the clone aligns with the world axes. This is the constant to pass as the third argument.</td>
+            <td>Only the vocabulary: it is how an API written for 3D says "no rotation".</td>
+        </tr>
+        <tr>
+            <td><code>Input.GetKeyDown(KeyCode key)</code></td>
+            <td>True on the single frame the key goes down.</td>
+            <td>One clone per press, which is what a test key wants.</td>
+            <td>It is a one-frame event: the version without <code>Down</code> is true on every frame the key is held, and one second of holding is about sixty clones.</td>
+        </tr>
+        <tr>
+            <td><code>GameObject</code> — as a type</td>
+            <td>The type that holds a whole object, prefab asset and scene instance alike.</td>
+            <td>What you declare the Inspector slot as, so a designer can drag any prefab into it.</td>
+            <td>It refuses a sprite, but it cannot refuse the <em>wrong</em> prefab — put a Spikes prefab in the slot and it spawns spikes.</td>
+        </tr>
+        <tr>
+            <td><code>Destroy(Object obj)</code></td>
+            <td>Removes an object at the end of the frame.</td>
+            <td>The cleanup you will need the moment spawned objects are meant to disappear.</td>
+            <td>Final, and no undo — this is for objects that have to go <em>during</em> play.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>The slot matters.</strong> A slot filled by dragging an instance out of the Hierarchy
+        holds that <em>scene object</em>, not the asset — so it keeps stamping the old version after
+        you edit the prefab.
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the script and its slot.</strong>
+        <ul>
+            <li>What is the file called, and where does it live? Create it in <code>Assets/Scripts</code> and name the class to match the file — what does Unity tell you if the two disagree?</li>
+            <li>A script on no object never runs. Attach it to the empty GameObject you made in the previous section. Why is a spawner its own object rather than another method on <code>PlayerController</code> — which of the two knows where the spawn should happen?</li>
+            <li>How do you expose a slot in the Inspector? What data type holds a reference to a prefab, and where does that field have to be declared so it survives from one frame to the next?</li>
+            <li>The script compiles whether or not the slot is filled. What happens the moment you press the spawn key with nothing dragged in — and what would you look for in the Console?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the spawn.</strong>
+        <ul>
+            <li>Which input function tests a <em>single</em> key press, and which key will you reserve for testing?</li>
+            <li>Which three arguments does <code>Instantiate(Object original, Vector3 position, Quaternion rotation)</code> take, in order? Which of them is the constant meaning "no rotation"?</li>
+            <li>Where does the clone appear if you pass the spawner's own <code>transform.position</code>? Where does it appear if you leave position out? Which do you want for a test key, and why?</li>
+        </ul>
+    </div>
+
+    <p>
+        Press Play and press your key. Clones should appear in the Hierarchy with
+        <code>(Clone)</code> after their name, and a spawned coin should be collectable exactly like
+        the one you placed by hand. Then press Stop and confirm they are gone.
+    </p>
+
+    <div class="socratic">
+        <h3>What the Clone Inherits</h3>
+        <ol>
+<li>A clone appears already carrying the prefab's tag, collider and trigger settings. What does that prove about what the clone call copies — the file, or the values currently sitting in an Inspector?</li>
+<li>You can clone from the prefab asset in <code>Assets/Prefabs</code>, or from a coin instance sitting in the Hierarchy. Both produce a clone. Which one still follows your edits next week, and what is the other one a snapshot of?</li>
+<li>Press the spawn key thirty times in one place. What does the Hierarchy look like, and what does that say about why a real game reuses objects instead of building new ones forever?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Playtest</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        From today until June, this is the loop that makes every unit real: <strong>swap seats, play
+        someone else's build, write what happened, fix the top three.</strong> Print the playtest
+        sheet from Canvas (or copy its table into your journal):
+    </p>
+
+    <table>
+        <tr><th>Column</th><th>What you write</th></tr>
+        <tr><td>What happened</td><td>Facts only: "died 4 times in the spike hall"</td></tr>
+        <tr><td>How it felt</td><td>One adjective per row: cheap, tense, confusing, satisfying</td></tr>
+        <tr><td>The fix I would try</td><td>One concrete change: "move potion before the narrow hall"</td></tr>
+    </table>
+
+    <p>
+        The rules that make playtests honest: the tester plays and <strong>talks out loud but does
+        not explain yet</strong>; the designer watches <strong>silently</strong> and takes notes; no
+        defending, no arguing. Then swap. You will run this exact sheet on real data in
+        <a href="9.5.html">9.5</a>, where the class's sheets become a dataset — and the AP exam calls
+        evaluating and refining (CRD-2) exactly this skill.
+    </p>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain prefab master vs instance, and show an override in bold in the Inspector</li>
+        <li>Spawn a clone at a position you choose with no rotation, and explain what <code>Quaternion.identity</code> means</li>
+        <li>Explain why a spawned clone vanishes when you press Stop, and what that means for what belongs in a level</li>
+        <li>Choose between a prefab asset and a scene instance in an Inspector slot, and say what goes wrong with the wrong one</li>
+        <li>Run a silent playtest and turn notes into exactly one fix</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the pickup family and prefab patterns</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the clone call, <code>Destroy(Object obj)</code>, prefabs</li>
+        <li><a href="../docs/ask.html">How do I…? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="2.5.html">2.5 — Physics &amp; Stats Studio: Catch Up and Tune</a>, where the unit settles and the movement numbers get re-measured.</p>
+</div>`;
+---
+<Lesson id="2.4" title="2.4 Prefabs, Spawning &amp; Playtesting — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

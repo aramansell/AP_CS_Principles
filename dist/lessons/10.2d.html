@@ -1,0 +1,237 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>10.2d Turn Logic: Selection + Iteration — AP CS Principles</title><meta name="description" content="Lesson 10.2d Turn Logic: Selection + Iteration — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="10.2d Turn Logic: Selection + Iteration — AP CS Principles"><meta property="og:description" content="Lesson 10.2d Turn Logic: Selection + Iteration — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="10.2c.html">&#9664; 10.2c</a><span class="lesson-id">10.2d</span><a href="10.2e.html">10.2e &#9654;</a></div><h1>10.2d — Turn Logic: Selection + Iteration</h1>
+
+<p class="lesson-lead">
+    The starter's other empty method: <code>AI_Turn()</code>. Your
+    opponent's brain, and the last thing between your card game and a
+    game somebody can play alone at home. Your job is to give the game
+    the thing it has never had: a turn that belongs to somebody else.
+</p>
+
+<div class="ask-banner" data-scaffold="3"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I make the computer take a turn?&rdquo;</span><span class="ask-banner-level">Outline only</span></div>
+
+<div class="activity decompose" data-level="3" data-parts="6" data-given="6" data-docs="6"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Outline only</span></div><p class="dc-big">The starter hands you a card game with an opponent that does not exist. <code>AI_Turn()</code> has an empty body, <code>Update()</code> has an empty body, and nothing in the project says whose turn it is. "How do I make the computer take a turn?" is not one problem. It is six: work out what the AI can actually see, visit all of it, apply a rule that picks one thing out, do that one thing, refuse safely when there is nothing to do, and hand the turn back on a schedule the player can read.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Know what the AI can see: a hand that is a list of cards</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="10.2c.html">the <code>ai_hand</code> field in <code>Assets/Scripts/GameManager.cs</code>, the <code>Draw</code> that finally puts something in it (10.2c), and the copy block at the top of <code>Start()</code> in <code>Assets/Scripts/Card.cs</code></a></span></li><li class="dc-part"><span class="dc-name">Visit every card in it</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="../docs/unit-10/lists-arrays.html">patterns 1 and 2 of the Lists &amp; Arrays reference, "traverse to total" and "traverse with a filter" — the same loop with a different body</a></span></li><li class="dc-part"><span class="dc-name">Decide which card to play, by a rule you can say out loud</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="../docs/unit-10/lists-arrays.html">pattern 3, "Find the best (the AI score loop)", in the Lists &amp; Arrays reference — the page that already names this lesson as where that loop lands</a></span></li><li class="dc-part"><span class="dc-name">Do one thing with the winner: move it out of the hand</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="10.2a.html">the <code>RemoveAt</code> and <code>Add</code> columns of the AP-to-C# table in 10.2a, and the two discard-pile fields sitting unused in <code>Assets/Scripts/GameManager.cs</code></a></span></li><li class="dc-part"><span class="dc-name">Refuse safely when there is nothing to play</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="10.2c.html">the empty-deck guard that opens <code>Draw</code> in 10.2c, and "Bug 2 — the bounds" in the Lists &amp; Arrays reference, which is the crash the guard exists to prevent</a></span></li><li class="dc-part"><span class="dc-name">Hand the turn back: a state that says whose turn it is</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="4.5.html">4.5, where one field said what an enemy was doing and every other behaviour read it, and 3.3, where <code>Time.time</code> stopped something happening every single frame</a></span></li></ol><p class="dc-why">Five of these six parts are things you have already typed, and that is the whole reason this lesson is an outline rather than a walkthrough. Iteration is 10.2a's <code>foreach</code>; the running best is pattern 3 of the Lists &amp; Arrays reference, printed with the AP version beside it; sequencing is <code>RemoveAt</code> plus <code>Add</code>; the guard is 10.2c's empty-deck guard pointed at a hand; and the pause is 3.3's timestamp. What is genuinely new is the last part — a state field that decides whose turn it is — and it is new because it is about the GAME, not about the AI. Get the split right and the method is short: a loop, a comparison, a move and a way out. Get it wrong and you write a click handler that plays cards for both players.</p><p class="dc-size">The same test as every other lesson: can this part be looked up on its own, in one search, right now? "Make the computer take a turn" cannot — it is a data question, a loop, a rule, a list operation, a boundary and a piece of game state wearing one name. "How do I remove an item from a C# List" can, and 10.2a already printed the row that answers it.</p><div class="dc-turns"><h4>Your turn</h4><p>Pick two of the parts above and say in one line what each one actually does.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:dc1:q1" data-block="decompose" data-question="Pick two of the parts above and say in one line what each one actually does." placeholder="write your answer, then keep going"></textarea></label><p>Your AI plays its best card every turn, for the whole game, and always wins. Is that a balance problem or an AI problem — and what single number would you change first to find out which one it is?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:dc1:q2" data-block="decompose" data-question="Your AI plays its best card every turn, for the whole game, and always wins. Is that a balance problem or an AI problem — and what single number would you change first to find out which one it is?" placeholder="write your answer, then keep going"></textarea></label><p>An AI that picks a card at random plays worse and is harder to test. What does 9.5 say about a claim you cannot repeat — and which of those two opponents could somebody actually write a bug report about?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:dc1:q3" data-block="decompose" data-question="An AI that picks a card at random plays worse and is harder to test. What does 9.5 say about a claim you cannot repeat — and which of those two opponents could somebody actually write a bug report about?" placeholder="write your answer, then keep going"></textarea></label><p>The turn is one field and the pause before the AI moves is one number. Which of the two is game state and which is presentation — and what does the player lose if you get them the wrong way round?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:dc1:q4" data-block="decompose" data-question="The turn is one field and the pause before the AI moves is one number. Which of the two is game state and which is presentation — and what does the player lose if you get them the wrong way round?" placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity rpg">
+    <div class="activity-header">
+        <span class="activity-label">Concept Lab: What a Turn Is</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p><strong>Three layers, three exam words.</strong> The method you
+    are about to write is the exam's own algorithm definition —
+    sequencing, selection and iteration — assembled into one method you
+    can point at on the exam as yours. Name the layers before you name
+    any code:</p>
+    <ol>
+        <li><strong>Iteration</strong> — visit every card in
+            <code>ai_hand</code>. A <code>foreach</code>, the loop from
+            <a href="10.2a.html">10.2a</a>.</li>
+        <li><strong>Selection</strong> — ask a question about each one
+            and keep an answer: "is this one better than the best so
+            far?"</li>
+        <li><strong>Sequencing</strong> — do exactly ONE thing with the
+            winner, in a fixed order, and then stop.</li>
+    </ol>
+
+    <p><strong>Read your file before you write a line of it.</strong>
+    Open <code>Assets/Scripts/GameManager.cs</code>:
+    <code>AI_Turn()</code> is an empty body and yours today,
+    <code>ai_hand</code> and <code>ai_discard_pile</code> are real
+    <code>List&lt;Card&gt;</code> fields, and no turn state exists
+    anywhere — no energy system, and <code>Update()</code> is empty
+    too. Whose turn it is, and what a turn costs, are yours to
+    decide.</p>
+
+    <div class="callout trap">
+        <strong>If your AI's move needs a random number, the call is
+        <code>UnityEngine.Random.Range(...)</code>.</strong>
+        <code>GameManager.cs</code> opens with
+        <code>using Unity.Mathematics;</code> AND
+        <code>using UnityEngine;</code>, and this template has
+        <code>com.unity.mathematics</code> installed — transitively, so
+        you will not find it in <code>Packages/manifest.json</code>, but
+        <code>Packages/packages-lock.json</code> pins it. That package
+        defines a class called <code>Random</code>, and so does
+        <code>UnityEngine</code>. A bare <code>Random.Range(...)</code>
+        inside THIS file is
+        <code>CS0104: 'Random' is an ambiguous reference</code> and the
+        script does not build — while the identical line compiles happily
+        in every other script you have written this year. Two legal
+        fixes: qualify the call, or delete the
+        <code>using Unity.Mathematics;</code> line.
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic</h3>
+        <p>
+            "AI" in your game is a set of IF statements — no
+            learning, no mystery. Why is that honest design for a
+            card game (what does the player actually want from a
+            jam opponent — cleverness, or READABLE rules)? Where
+            would REAL machine learning belong instead
+            (<a href="9.6.html">9.6</a> — and whose data would
+            it learn from)?
+        </p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="10.2d:sc1:q1" data-block="socratic" data-question="&quot;AI&quot; in your game is a set of IF statements — no learning, no mystery. Why is that honest design for a card game (what does the player actually want from a jam opponent — cleverness, or READABLE rules)? Where would REAL machine learning belong instead ( 9.6 — and whose data would it learn from)?" placeholder="write your answer, then keep going"></textarea></label>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity rpg">
+    <div class="activity-header">
+        <span class="activity-label">Read the Docs: The API for a Turn</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>This is the level-3 substitute for a walkthrough: the API is laid
+    out below and the method is not. Read the <strong>What it
+    costs</strong> column before you choose — that is where the bugs in
+    this method live.</p>
+
+    <table>
+        <tr><th>API</th><th>Signature</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>ai_hand</code></td>
+            <td><code>public List&lt;Card&gt; ai_hand</code> — a field on GameManager, filled in the Inspector and by <code>Draw</code></td>
+            <td>The opponent's hand: a real ordered list of the <code>Card</code> components in front of the AI.</td>
+            <td>It ships EMPTY. The starter's <code>Deal()</code> creates one visual per side and drops the reference, so until <a href="10.2c.html">10.2c</a>'s <code>Draw</code> runs there is nothing in it at all.</td>
+        </tr>
+        <tr>
+            <td><code>foreach</code></td>
+            <td><code>foreach (Card c in ai_hand)</code></td>
+            <td>Every card, in order, with no index to manage.</td>
+            <td>It never tells you WHERE the card was. If your rule needs the position, this is the wrong loop, and the fix is the index loop below.</td>
+        </tr>
+        <tr>
+            <td><code>List&lt;T&gt;.Count</code></td>
+            <td><code>int Count { get; }</code> — the AP's <code>LENGTH(aList)</code></td>
+            <td>How many items are in the list, in one read, with no traversal.</td>
+            <td>A count is not an index: the last valid slot is <code>Count - 1</code>. Ask for <code>ai_hand[ai_hand.Count]</code> and you get an exception, not the last card.</td>
+        </tr>
+        <tr>
+            <td><code>Card.cost</code>, <code>Card.damage</code>, <code>Card.health</code></td>
+            <td>Three <code>public int</code> fields on <code>Assets/Scripts/Card.cs</code></td>
+            <td>The three numbers an AI decision can be made from.</td>
+            <td>They are COPIES. Change the asset while the game runs and the card already on screen keeps the number it copied — the asset is the source of truth, and the component is a snapshot of it.</td>
+        </tr>
+        <tr>
+            <td>running best</td>
+            <td><code>int best = int.MinValue;</code> then <code>if (score &gt; best) best = score;</code></td>
+            <td>Pattern 3 of the <a href="../docs/unit-10/lists-arrays.html">Lists &amp; Arrays</a> reference: score every option, keep the winner.</td>
+            <td>It keeps the best SCORE, not the card that earned it. If you need to remove the winner afterwards, track which card it was as well — or you will find yourself with the winning number and no card to play.</td>
+        </tr>
+        <tr>
+            <td><code>List&lt;T&gt;.RemoveAt</code></td>
+            <td><code>void RemoveAt(int index)</code> — <code>ai_hand.RemoveAt(i)</code>, the AP's <code>REMOVE(aList, i)</code></td>
+            <td>Removes the card at that slot and shifts everything after it down one position.</td>
+            <td>Remove while traversing FORWARD and your loop skips the next card entirely. That is "Bug 1 — remove while traversing" in the Lists &amp; Arrays reference, and this method is where it bites.</td>
+        </tr>
+        <tr>
+            <td><code>List&lt;T&gt;.Add</code></td>
+            <td><code>void Add(T item)</code> — <code>ai_discard_pile.Add(card)</code>, the AP's <code>APPEND(aList, item)</code></td>
+            <td>Appends to the end of the list.</td>
+            <td>Nothing brings a card back out of a discard pile. A reshuffle would be a feature you write, and until you do, a card in there is gone for the rest of the game.</td>
+        </tr>
+        <tr>
+            <td><code>UnityEngine.Random.Range</code></td>
+            <td><code>UnityEngine.Random.Range(int min, int max)</code></td>
+            <td>A random <code>int</code>. For the int overload the top is EXCLUDED, so <code>UnityEngine.Random.Range(0, ai_hand.Count)</code> picks a real index from 0 to <code>Count - 1</code>.</td>
+            <td>It has to be qualified in THIS file (see the callout above), and randomness buys an opponent you cannot reproduce — a real cost the moment you are trying to test a rule.</td>
+        </tr>
+        <tr>
+            <td>the turn gate</td>
+            <td>A <code>bool</code> field you declare, read by the player's input path and flipped at the end of a turn</td>
+            <td>One place that answers "whose turn is it?", so "one action per turn" becomes a property of that field rather than a check scattered through the click handler.</td>
+            <td>It is state, so it survives every frame and it has to be set at the right MOMENT. Flip it early and the player takes a second action while the AI is still resolving the first one.</td>
+        </tr>
+    </table>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity rpg">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: The AI Turn</span>
+        <span class="activity-time">~35 min</span>
+    </div>
+
+    <p>This one is on you. The three specifications below are the whole
+    brief — the decision, the move and the turn gate. The rest is your
+    file.</p>
+
+    <div class="callout">
+        <strong>Architectural specification: the decision.</strong>
+        <ul>
+            <li>Which field does the method read, and which field must already be a real list before it can read it? Which earlier lesson is what made it one?</li>
+            <li>Write your rule aloud in one sentence before you write it in C#: "the AI plays the card with the ______". If you cannot say it in one sentence, it is two rules and one of them is hiding a bug.</li>
+            <li>What does the rule compare — <code>damage</code>, <code>cost</code>, <code>health</code>, or a combination? What does your choice say about the opponent a player is about to face, and can you defend it as a design decision rather than an accident?</li>
+            <li>What value does your "best so far" variable start at, and why can it not start at <code>0</code>? What happens to the first card your loop visits if it does?</li>
+            <li>Two cards tie for best. Which one does your loop keep, is that the one you WANT, and is it the same one every time you press Play? Why does a repeatable choice matter more than a clever one here?</li>
+            <li><code>AI_Turn()</code> is declared with no parameters at all. A procedure that takes none cannot be pointed at a difficulty level, a card pool, or a second kind of opponent later. If you added one parameter, what would it be — and what does adding it turn this method into?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the move.</strong>
+        <ul>
+            <li>Your loop removed an item from the list it was traversing. Did your loop survive that — and if it was a forward loop over an index, which card did it skip? What is the fix, and is your case even affected?</li>
+            <li>Does the card disappear from the screen? The AI's card was instantiated by <code>Deal()</code> and parented to the canvas, so a card removed from <code>ai_hand</code> is still a GameObject in the scene. What is your game supposed to show — and what would you change your field to hold if the screen has to know?</li>
+            <li>Nothing reads <code>damage</code>, <code>cost</code> or <code>health</code> yet — they go from the asset into a text label. Your rule is the first thing in the project that reads one of them as a NUMBER. Which one, and what does that make your AI's rule responsible for that the text labels were not?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the turn gate.</strong>
+        <ul>
+            <li>Where does "whose turn is it" live — a field, and where is it declared so it survives from one frame to the next? Which lesson is that same declaration habit from?</li>
+            <li>Who flips it, and at exactly which moment? Write the sequence of one full turn in order, from the player pressing a card to the AI having played, and mark the flip points. Which flip is the one that is easy to put one line too early?</li>
+            <li>The player's click path has to read that field before it does anything. If your field is a <code>bool</code>, what do the two values MEAN — and is there a third state your game will grow into (game over, resolving, the AI thinking) that a <code>bool</code> could not express?</li>
+            <li>The AI playing the instant the player's turn ends feels like a bug even when it is correct. Which earlier lesson's timestamp pattern gives the turn a beat, and which number do you tune — the delay, or the moment the flip happens?</li>
+        </ul>
+    </div>
+
+    <p><strong>Then prove it, in the Console, before you trust it.</strong>
+    One run with a <code>Debug.Log(...)</code> at the top of <code>AI_Turn()</code>
+    printing <code>ai_hand.Count</code> and the name of the card your rule
+    picked answers the guard, the decision and the move in one pass. Take the
+    AI's turn twice in a row without the player moving and watch what the
+    second one does. Then <strong>delete the log</strong> — a print that
+    survives into the next lesson is noise you will read past.</p>
+
+</div>
+
+<!-- ============================================================ -->
+<div class="activity rpg">
+    <div class="activity-header">
+        <span class="activity-label">Close of Day</span>
+        <span class="activity-time">~5 min</span>
+    </div>
+
+
+    <div class="checklist">
+        <h3>Checkpoint — before moving on, you must be able to:</h3>
+        <ul>
+            <li>Implement a greedy AI: traverse, compare, keep the best, act</li>
+            <li>Move a played card out of the hand into <code>ai_discard_pile</code>, in the order that does not lose it</li>
+            <li>Say why <code>UnityEngine.Random</code> has to be spelled out in <code>GameManager.cs</code></li>
+            <li>Say what one parameter would let <code>AI_Turn</code> do that it cannot do with none</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-10/lists-arrays.html">Lists &amp; Arrays</a> — pattern 3 is this method's decision loop, and "Two bugs, one rule" is its two boundary cases</li>
+        <li><a href="10.2a.html">10.2a — Card Jam Kickoff</a> — the starter's six Lists, and the AP-to-C# table <code>RemoveAt</code> and <code>Add</code> come from</li>
+        <li><a href="10.2c.html">10.2c — Decks: Shuffle, Draw &amp; Traverse</a> — the draw that fills <code>ai_hand</code>, and the guard this method copies</li>
+        <li><a href="../exam/reference-sheet.html">Exam Reference Sheet</a> — RANDOM, selection and iteration in exam form</li>
+        <li><a href="../exam/create-performance-task.html">Create PT</a> — the list, the procedure and the sequencing/selection/iteration inside it are three of the four PPR segments already; a parameter is the fourth</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="10.2e.html">10.2e — Card Jam: Build + Playtest</a></p>
+</div><div class="lab-bar" data-lesson="10.2d" data-lesson-title="Turn Logic: Selection + Iteration" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="10.2d" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="10.2c.html"><span class="dir">&#9664; Previous</span><span class="where">10.2c — Decks: Shuffle, Draw &amp; Traverse</span></a><a class="foot-next" href="10.2e.html"><span class="dir">Next &#9654;</span><span class="where">10.2e — Card Jam: Build + Playtest</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

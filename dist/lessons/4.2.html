@@ -1,0 +1,140 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>4.2 Enemy Animation: A Different State Machine — AP CS Principles</title><meta name="description" content="Lesson 4.2 Enemy Animation: A Different State Machine — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="4.2 Enemy Animation: A Different State Machine — AP CS Principles"><meta property="og:description" content="Lesson 4.2 Enemy Animation: A Different State Machine — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="4.1.html">&#9664; 4.1</a><span class="lesson-id">4.2</span><a href="4.3.html">4.3 &#9654;</a></div><h1>4.2 — Enemy Animation: A Different State Machine</h1>
+
+<p class="lesson-lead">
+    You wired the Player's animator in 1.6, so you know the shape: a parameter goes in, a state
+    comes out. The enemy's animator is that same API with <em>none</em> of your conventions — its
+    rules were decided by somebody else, and reading them before you write a line is the lesson.
+</p>
+
+<div class="ask-banner" data-scaffold="3"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I read an animator somebody else set up?&rdquo;</span><span class="ask-banner-level">Outline only</span></div>
+
+<div class="activity decompose" data-level="3" data-parts="5" data-given="5" data-docs="5"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Outline only</span></div><p class="dc-big">The enemy slides around as a single frozen frame. The art exists, the controller exists, and nothing drives either of them — so "make the enemy animate" is not one problem, it is the job of finding out what somebody else's state machine wants.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Find the Animator somebody else attached</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="1.6.html">the <code>GetComponentInChildren&lt;T&gt;()</code> row of this lesson's reference table, and the same line you wrote for the Player in 1.6</a></span></li><li class="dc-part"><span class="dc-name">Read the contract: the parameter names, their types, and every value they take</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="1.6.html">the reference table below, and the Animator window you learned to read in 1.6</a></span></li><li class="dc-part"><span class="dc-name">Turn "which way is it moving" into one of those four integers</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="1.6.html"><code>Mathf.Abs(float f)</code> from 1.6 and the <code>SetInteger(string name, int value)</code> row of this lesson's reference table</a></span></li><li class="dc-part"><span class="dc-name">Decide which lifecycle method writes the value</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="1.3.html">the <code>Update()</code> and <code>FixedUpdate()</code> row of this lesson's reference table, and the lifecycle split from 1.3</a></span></li><li class="dc-part"><span class="dc-name">Fire the attack, and know what will consume it</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="1.6.html">the <code>SetTrigger(string name)</code> row of this lesson's reference table, and the mouse-click trigger you wrote in 1.6</a></span></li></ol><p class="dc-why">Notice the shape: find the machine, read its contract, choose a value, decide when to write it. Three of those four are things you already did in 1.6 for the Player. The new one is that the contract is not yours — in 1.6 you invented the numbers 0, 1 and 2 for WalkDir, and here you inherit four of them from a controller somebody else built. A wrong one is not an error message; it is an enemy that walks the wrong way.</p><p class="dc-size">The test for a finished split: does the part name something you could point at? A component, a window, a parameter, a method. "Make the enemy animate" points at nothing; "which object carries the Animator" points at one object on one prefab.</p><div class="dc-turns"><h4>Your turn</h4><p>Pick two of the parts above and say in one line what each one actually does.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.2:dc1:q1" data-block="decompose" data-question="Pick two of the parts above and say in one line what each one actually does." placeholder="write your answer, then keep going"></textarea></label><p>The reference table below names four setters. This controller uses two of them. Say which two, and what each of the other two would cost you if you reached for it out of habit.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.2:dc1:q2" data-block="decompose" data-question="The reference table below names four setters. This controller uses two of them. Say which two, and what each of the other two would cost you if you reached for it out of habit." placeholder="write your answer, then keep going"></textarea></label><p>This controller has no state the enemy can stand still in. Before you write anything: what do you want the player to see when the enemy stops walking, and is that something your code can produce at all?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.2:dc1:q3" data-block="decompose" data-question="This controller has no state the enemy can stand still in. Before you write anything: what do you want the player to see when the enemy stops walking, and is that something your code can produce at all?" placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/MobileEnemy</code>, then
+            <strong>Inspector →</strong> the child named <em>Sprite</em>. The Animator and the
+            Sprite Renderer both live there, not on the root — the same arrangement your Player has.
+        </li>
+        <li>
+            <strong>Window → Animation → Animator</strong> with the prefab selected. The
+            <em>Parameters</em> list is the entire contract: <code>Direction</code> (Int) and
+            <code>Attack</code> (Trigger). <em>Two</em> entries, and no Bool at all.
+        </li>
+        <li>
+            <strong>Animator window →</strong> click each transition arrow and read its
+            <em>Conditions</em>, then count the states and look for one the enemy can stand still
+            in. Which value of <code>Direction</code> does each arrow test, and why can the enemy
+            never stop walking? The four integers exist nowhere else, and a line copied from your
+            player's animator compiles happily while aiming the enemy the wrong way. <strong>Project
+            window →</strong> the same folder holds four <code>Idle</code> clips that the controller
+            never references.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Scripts/Package
+            Scripts/TopDown_EnemyAnimator.cs</code>. Read it: short, commented, complete, attached
+            to nothing. Somebody else's solution to today's problem — you will either attach it or
+            write your own.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play and watch a full beat with that window open. The
+            <code>Direction</code> value never changes, and neither does the sprite. Nothing is
+            broken; nothing has been asked for yet.
+        </li>
+    </ol>
+
+    <div class="socratic">
+        <h3>Socratic: Reading Someone Else's Machine</h3>
+        <ol>
+<li>Your player's <code>WalkDir</code> and the enemy's <code>Direction</code> are both Ints set by <code>SetInteger(string name, int value)</code>. Before copying any animator line from one script to the other, what exactly must you check — and where do you check it?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.2:sc1:q1" data-block="socratic" data-question="Your player's WalkDir and the enemy's Direction are both Ints set by SetInteger(string name, int value) . Before copying any animator line from one script to the other, what exactly must you check — and where do you check it?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>The enemy's controller has no idle states. If your code simply stops calling <code>SetInteger(string name, int value)</code> when the enemy stops walking, what does the player see on screen — and is that a bug in your code or a gap in the asset?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.2:sc1:q2" data-block="socratic" data-question="The enemy's controller has no idle states. If your code simply stops calling SetInteger(string name, int value) when the enemy stops walking, what does the player see on screen — and is that a bug in your code or a gap in the asset?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>Your player mirrors one clip with <code>flipX</code>; the enemy uses two separate clips and never flips. What does the enemy's approach give you that yours cannot — and what does it cost?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.2:sc1:q3" data-block="socratic" data-question="Your player mirrors one clip with flipX ; the enemy uses two separate clips and never flips. What does the enemy's approach give you that yours cannot — and what does it cost?" placeholder="write your answer, then keep going"></textarea></label></li>
+</ol>
+    </div>
+</div>
+
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <table>
+        <tr><th>API</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>void SetInteger(string name, int value)</code></td>
+            <td>The setter you used in 1.6 for the player's <code>WalkDir</code>. Here the parameter is <code>Direction</code>, with four values instead of three, and whatever you set stays set until you set it again.</td>
+            <td>The name is a string, not a keyword: the controller must already have a parameter spelled exactly that way, and a near miss is a Console warning and a frozen sprite rather than a crash. The value is the harder half — <code>2</code> is not a direction, it is a number some transition compares against, so a wrong value that is still a valid number moves the enemy into the wrong clip in complete silence.</td>
+        </tr>
+        <tr>
+            <td><code>void SetBool(string name, bool value)</code> and <code>void SetFloat(string name, float value)</code></td>
+            <td>The two other setters from 1.6's table: a Bool that stays set until you clear it, and a Float for smooth values like a walk-to-run blend.</td>
+            <td>Neither fits this controller. It declares no Bool at all, so any name you invent there is a warning and nothing else; and <code>Direction</code> is declared as an <strong>Int</strong>, so a setter whose type does not match the parameter is a warning and no change — the value never arrives, and nothing on screen tells you so.</td>
+        </tr>
+        <tr>
+            <td><code>void SetTrigger(string name)</code></td>
+            <td>The one-shot you fired from 1.6's mouse click. No value is passed, because being fired is the whole message, and the animator clears the trigger once a transition has consumed it.</td>
+            <td>It is an event, so it may not be fired every frame — that is 1.6's <code>Input.GetMouseButton(int button)</code> mistake in a new costume, where holding the button restarted the swing sixty times a second. And a trigger that no transition is listening for is cleared without doing anything at all, which looks exactly like code that never ran.</td>
+        </tr>
+        <tr>
+            <td><code>T GetComponentInChildren&lt;T&gt;()</code> or <code>T GetComponent&lt;T&gt;()</code></td>
+            <td>The lookup from 1.6, in both flavours: the first searches the object this script sits on <em>and everything beneath it</em>; the second looks only at the object it is attached to.</td>
+            <td>On the enemy root the plain version finds nothing and hands you <code>null</code> — 1.6's most-repeated bug, and nastier here: the null is <em>created</em> in <code>Start()</code> and <em>used</em> in the frame loop, so the error points at the line that used it rather than the line that failed. The downward search takes the first match it meets and is slower, which is why it belongs in <code>Start()</code>, once, and not in the method that runs every frame.</td>
+        </tr>
+        <tr>
+            <td><code>float Mathf.Abs(float f)</code></td>
+            <td>The size of a number with the sign thrown away — the comparison you used in 1.6 to work out which axis was being pushed harder, so that walking hard left would not lose to a gentle nudge upward.</td>
+            <td>It throws the sign away, which is exactly what you want in order to <em>choose</em> a direction and exactly what you must not use in order to <em>name</em> one. The losing axis has to be kept raw: on the horizontal axis the sign is the entire difference between the value that means Right and the value that means Left.</td>
+        </tr>
+        <tr>
+            <td><code>void Update()</code> and <code>void FixedUpdate()</code></td>
+            <td><code>Update()</code> is the frame loop you have used since 1.4, once per rendered frame. <code>FixedUpdate()</code> runs once per physics step, in step with movement written onto a Rigidbody2D.</td>
+            <td><code>FixedUpdate()</code> can run twice in one frame or not at all, so a parameter written there can be a rendered frame stale — visible as a half-step of lag on the frame the direction changes. Match the loop to whatever is actually moving the enemy, and the answer is not the same for every enemy you will write.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification: your driver.</strong>
+        <ul>
+            <li>Which quantity tells you which of the four values to write — the movement the enemy was <em>asked</em> for, or the movement that actually happened? On a diagonal step, how do you choose between two axes moving at once with <code>Mathf.Abs(float f)</code> rather than their signed values, and which axis is the one whose sign you must keep?</li>
+            <li>Which loop writes the value — <code>Update()</code> or <code>FixedUpdate()</code> — and what is moving your enemy? Read the package script to see which it chose, then say whether you would have made the same choice.</li>
+            <li>Nothing in the enemy attacks yet, so which parameter is waiting for it, which call fires it, and how often may you set it? Then argue the fork: should the animation decide when damage happens, or damage decide when the animation plays?</li>
+        </ul>
+    </div>
+
+    <p>Save, play, and walk a full beat: the enemy faces the way it walks in all four directions — and stops animating only if you worked out how to make it stop.</p>
+</div>
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Name the enemy's two animator parameters and their types, by reading the controller rather than your memory</li>
+        <li>Recite the four <code>Direction</code> values — and say how they differ from your player's</li>
+        <li>Explain why the enemy's animator needs <code>GetComponentInChildren&lt;T&gt;()</code> and not <code>GetComponent&lt;T&gt;()</code></li>
+        <li>Say which of the four setters this controller's two parameters call for, and what the other two would cost</li>
+        <li>Break this feature into parts small enough to look each one up on its own, naming an earlier lesson for each</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — animation and the state machine</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — how an Animator controller relates to a code state machine</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Animator parameters and <code>GetComponentInChildren&lt;T&gt;()</code></li>
+    </ul>
+    <p>Next: <a href="4.3.html">4.3 — Chase: The Aggro Radius</a>, where the enemy stops walking its beat and starts walking yours.</p>
+</div><div class="lab-bar" data-lesson="4.2" data-lesson-title="Enemy Animation: A Different State Machine" data-count="6" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/6 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="4.2" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="4.1.html"><span class="dir">&#9664; Previous</span><span class="where">4.1 — The Enemy: Patrol</span></a><a class="foot-next" href="4.3.html"><span class="dir">Next &#9654;</span><span class="where">4.3 — Chase: The Aggro Radius</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

@@ -1,0 +1,205 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>3.3 Fire Rate: Cooldowns &amp; Time — AP CS Principles</title><meta name="description" content="Lesson 3.3 Fire Rate: Cooldowns &amp; Time — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="3.3 Fire Rate: Cooldowns &amp; Time — AP CS Principles"><meta property="og:description" content="Lesson 3.3 Fire Rate: Cooldowns &amp; Time — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="3.2.html">&#9664; 3.2</a><span class="lesson-id">3.3</span><a href="3.4.html">3.4 &#9654;</a></div><h1>3.3 — Fire Rate: Cooldowns &amp; Time</h1>
+
+<p class="lesson-lead">
+    Last lesson your turret did not fire shots, it fired a <em>stream</em> — every frame, for as long
+    as you stood in range. Today it learns to wait.
+</p>
+
+<div class="ask-banner" data-scaffold="2"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I stop shooting too fast?&rdquo;</span><span class="ask-banner-level">Guided build</span></div>
+<div class="activity decompose" data-level="2" data-parts="4" data-given="3" data-docs="4"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Guided build</span></div><p class="dc-big">The turret should shoot at me — but not sixty times a second. "Shoot at me, sometimes" is the whole feature, and there is nothing in it yet that a computer can act on.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Notice the player is still inside the radius</span><span class="dc-does">The distance test from 3.1, re-evaluated every frame: true for sixty frames in a row, which is what a condition is.</span><span class="dc-doc">Read: <a href="3.1.html">the range check in your own 3.1 script, and the <code>Vector3.Distance(a, b)</code> row in the quick reference.</a></span></li><li class="dc-part dc-part-blank"><span class="dc-gap">write this part</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">the <code>Time.time</code> row in the quick reference, and the deadline you wrote in 1.3.</a></span></li><li class="dc-part"><span class="dc-name">Refuse to fire until enough time has passed</span><span class="dc-does">One condition attached to the range check with <code>&amp;&amp;</code>: the clock, against that remembered moment plus the gap you want.</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">the <strong>Cooldown</strong> row of the pattern table in the quick reference, and the gate you wrote in 1.3.</a></span></li><li class="dc-part"><span class="dc-name">Record the new moment the instant a shot leaves</span><span class="dc-does">One line, run only when the turret actually fires — the only thing that closes the gate again.</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">the <strong>Cooldown</strong> row in the pattern table (<code>act, set last = Time.time</code>).</a></span></li></ol><p class="dc-why">Three of the four parts are code you have already written. The one with no precedent in this course is the memory: a field that holds a moment rather than a count.</p><p class="dc-size">The test: could you look this part up on its own, in one search? "Fire less often" cannot be looked up. "Compare a timestamp against the current time" can.</p><div class="dc-turns"><h4>Your turn</h4><p>The table in the code half prices four ways to time this action. Which did you choose, and what does your choice cost you — in your own words, not the table's?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3:dc1:q1" data-block="decompose" data-question="The table in the code half prices four ways to time this action. Which did you choose, and what does your choice cost you — in your own words, not the table's?" placeholder="write your answer, then keep going"></textarea></label><p>Today's memory holds a moment on the clock. If the turret had to charge for a second before each shot, what would that field have to hold instead — and which of the four approaches would you reach for?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3:dc1:q2" data-block="decompose" data-question="Today's memory holds a moment on the clock. If the turret had to charge for a second before each shot, what would that field have to hold instead — and which of the four approaches would you reach for?" placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Hierarchy →</strong> the two <strong>Turret</strong> instances in the
+            <strong>Overworld</strong>, then <strong>Inspector → Turret Controller:</strong> the two
+            places today's knob will appear. Instance values override the prefab's, so the two
+            turrets are allowed to disagree on purpose.
+        </li>
+        <li>
+            <strong>Game view → press Play</strong> and stand inside one turret's radius for five
+            seconds, then <strong>Console →</strong> count the lines that appear. Write the number
+            down: it is the rate your frames are running at, not a decision anybody made.
+        </li>
+        <li>
+            <strong>Once the walkthrough is done — Inspector → Turret Controller → your cooldown
+            knob</strong> (it is there now that the field exists). Set one turret to <code>2</code>
+            and the other to <code>0.5</code>, then <strong>Game view → press Play</strong>, stand
+            inside a radius, and time ten shots with a stopwatch. Then change the value <em>while the
+            game is running</em> and watch the pacing change with it.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Pick a Timing Model</span>
+        <span class="activity-time">~35 min</span>
+    </div>
+
+    <table>
+        <tr>
+            <th>Approach</th>
+            <th>What you store</th>
+            <th>The gate</th>
+            <th>What it costs you</th>
+        </tr>
+        <tr>
+            <td><strong>(a) A <code>Time.time</code> timestamp</strong></td>
+            <td>One float: the moment the last shot happened.</td>
+            <td><code>Time.time &gt;= lastShot + cooldown</code></td>
+            <td>One line of state, and one failure mode you will meet in the walkthrough. It
+                remembers <strong>when</strong> the last shot happened, not <strong>how many</strong>
+                are owed — a second press inside the window is discarded, not queued.</td>
+        </tr>
+        <tr>
+            <td><strong>(b) A countdown timer</strong></td>
+            <td>One float: seconds <em>remaining</em> until the next shot is allowed.</td>
+            <td><code>timer &lt;= 0f</code>, then <code>timer = cooldown</code></td>
+            <td>Something has to tick it down, every frame, including the frames where the turret is
+                not firing. In exchange it reads as "seconds until I can shoot", which is what a
+                designer wants to see.</td>
+        </tr>
+        <tr>
+            <td><strong>(c) <code>InvokeRepeating</code></strong></td>
+            <td>Nothing at all — the engine holds the schedule.</td>
+            <td><code>InvokeRepeating(nameof(Fire), 0f, cooldown)</code></td>
+            <td>Almost no code, and that is the trap: your method is called on cadence whether or not
+                the player is in range, so the range check has to move inside it. Cancelling is by
+                method <em>name</em>, so a rename breaks the cancel silently.</td>
+        </tr>
+        <tr>
+            <td><strong>(d) A coroutine loop</strong></td>
+            <td>A running coroutine handle.</td>
+            <td><code>while (true) { yield return new WaitForSeconds(t); }</code></td>
+            <td>A <code>StartCoroutine</code> call, a stored handle to stop it, and a second mental
+                model of when your code runs. It is the only row that expresses "charge, then burst,
+                then rest" cleanly.</td>
+        </tr>
+    </table>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity walkthrough" data-scaffold="2" data-gaps="2"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I stop shooting too fast?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/TurretController.cs</code>. Your 3.1 and 3.2 turret does not change: it still finds the target, measures the distance and spawns a projectile at the muzzle. Today adds one knob, one field and one condition. Keep your own names and read the shape.</p><p class="wt-gapcount">This build leaves <strong>2 lines</strong> for you to write. Everything around them is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Declare the knob and the memory</h4><p class="wt-lead">Both lines go in the class body, outside every method — the placement rule from 1.3.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-cm">// TurretController.cs — class body, above Start(), with your other fields.</span></span>
+<span class="wt-line wt-line-why" data-n="2">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">cooldown</span> = <span class="tk-nu">1.5f</span>;</span>
+<span class="wt-line" data-n="3"></span>
+<span class="wt-line wt-line-why" data-n="4">    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">lastAttackTime</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">2</span><span class="wt-what">The knob: how many seconds must pass between shots. <code>[SerializeField]</code> puts it in the Inspector, so a designer sets the pacing without opening your code.</span><span class="wt-why"><strong>It has to be a <code>float</code>.</strong> An <code>int</code> rounds every Inspector value down to a whole second, so <code>0.5</code> quietly becomes <code>0</code> — back to a turret that fires every frame, from a type the Inspector never shows you.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what"><strong>The memory:</strong> one float holding the moment, on the game clock, when this turret last fired. <code>private</code>, because it is the turret's own bookkeeping.</span><span class="wt-why"><strong>Where this line lives is the memory.</strong> Move it inside the method that reads it and it is rebuilt from nothing every frame, holding the same empty value each time. That is the scope rule from 1.3: the same line in the wrong place is not a memory, it is a habit.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Seed the memory before the first frame</h4><p class="wt-lead">Once, before any frame has run.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-cm">// TurretController.cs — inside Start(), with your 3.1 target lookup.</span></span>
+<span class="wt-line wt-line-why" data-n="2">        <span class="tk-va">lastAttackTime</span> = -<span class="tk-va">cooldown</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">2</span><span class="wt-what">A first value, so the turret may fire the moment the player walks into range instead of serving a penalty for a shot it never took.</span><span class="wt-why"><strong>Zero is a real moment on this clock.</strong> Left at its default, the field claims the last shot happened when the scene began, and the gate below would refuse to fire for the first <code>cooldown</code> seconds with the player standing in front of it.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Close the gate in Update()</h4><p class="wt-lead">The range check stays as you wrote it in 3.1. It is just no longer the only thing deciding whether the turret fires.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-cm">// TurretController.cs — inside Update(), on the range check from 3.1.</span></span>
+<span class="wt-line wt-line-why wt-blank" data-n="2"><span class="wt-gap">        if (distance &lt;= range &amp;&amp; ______________________)</span></span>
+<span class="wt-line" data-n="3">        {</span>
+<span class="wt-line" data-n="4">            <span class="tk-fn">Fire</span>();</span>
+<span class="wt-line" data-n="5"></span>
+<span class="wt-line wt-line-why wt-blank" data-n="6"><span class="wt-gap">            ________________</span></span>
+<span class="wt-line" data-n="7">        }</span></code></pre><ol class="wt-annot"><li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">2</span><span class="wt-what">The gate. Keep the range half, add <code>&amp;&amp;</code>, and add the second condition: fire only when enough time has passed since the last shot.</span><span class="wt-hint">The clock that only counts up is the <code>Time.time</code> row in the quick reference; the last shot is the field from step 1; the gap is the knob. Put those three into one comparison — and ask whether <code>==</code> could ever be true.</span><span class="wt-why"><strong><code>==</code> is the wrong operator.</strong> Frames do not land on exact times, so the clock almost never <em>equals</em> your remembered moment plus the cooldown — it jumps past it. <code>&gt;=</code> means <em>at or past</em>, which is what "enough time has passed" says. The <code>&amp;&amp;</code> is not decoration: drop the range half and the turret fires at nothing, on cadence, from wherever it stands.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Your firing method from 3.2 — the one that spawns a projectile at the muzzle. Unchanged, however you named it.</span></li>
+<li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">6</span><span class="wt-what">The line that closes the gate again. It runs only when a shot has actually left the barrel: write the current moment into the field that remembers the last one.</span><span class="wt-hint">The field remembers a moment, and the gate compared it against the clock you are standing on right now. What is that clock's current value?</span><span class="wt-why"><strong>The most common bug in this lesson.</strong> Leave it out and the gate never closes: the field keeps its old value, the condition stays true on the next frame and every frame after, and the turret is back to firing at your frame rate — the bug you started with, rebuilt inside the fix. Stamping it inside <code>Fire()</code> instead protects any other caller of that method; keep it here for now, where the gate and its consequence sit on the same three lines.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it: your names, your range, your cooldown default and your 3.2 spawn are yours, and the shape is what has to match.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/TurretController.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
+
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">TurretController</span> : <span class="tk-ty">MonoBehaviour</span>
+{
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">range</span> = <span class="tk-nu">6f</span>;              <span class="tk-cm">// your number from 3.1</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">cooldown</span> = <span class="tk-nu">1.5f</span>;         <span class="tk-cm">// the new knob</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">Transform</span> <span class="tk-va">playerTransform</span>;     <span class="tk-cm">// however you acquired it in 3.1</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">GameObject</span> <span class="tk-va">projectilePrefab</span>;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">Transform</span> <span class="tk-va">spawnPoint</span>;
+
+    <span class="tk-kw">private</span> <span class="tk-kw">float</span> <span class="tk-va">lastAttackTime</span>;                           <span class="tk-cm">// the memory: a MOMENT, not a count</span>
+
+    <span class="tk-kw">void</span> <span class="tk-fn">Start</span>()
+    {
+<span class="tk-cm">        // ...the target lookup you chose in 3.1 stays here...</span>
+
+<span class="tk-cm">        // One cooldown BEFORE the game started, so the first shot is legal</span>
+<span class="tk-cm">        // the moment the player walks into range.</span>
+        <span class="tk-va">lastAttackTime</span> = -<span class="tk-va">cooldown</span>;
+    }
+
+    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
+    {
+        <span class="tk-ct">if</span> (<span class="tk-va">playerTransform</span> == <span class="tk-kw">null</span>)
+        {
+            <span class="tk-ct">return</span>;
+        }
+
+        <span class="tk-kw">float</span> <span class="tk-va">distance</span> = <span class="tk-va">Vector3</span>.<span class="tk-fn">Distance</span>(<span class="tk-va">transform</span>.<span class="tk-va">position</span>, <span class="tk-va">playerTransform</span>.<span class="tk-va">position</span>);
+
+<span class="tk-cm">        // Both halves must be true: in range, AND enough time since the last shot.</span>
+        <span class="tk-ct">if</span> (<span class="tk-va">distance</span> &lt;= <span class="tk-va">range</span> &amp;&amp; <span class="tk-va">Time</span>.<span class="tk-va">time</span> &gt;= <span class="tk-va">lastAttackTime</span> + <span class="tk-va">cooldown</span>)
+        {
+            <span class="tk-fn">Fire</span>();
+
+            <span class="tk-va">lastAttackTime</span> = <span class="tk-va">Time</span>.<span class="tk-va">time</span>;                     <span class="tk-cm">// closes the gate again</span>
+        }
+    }
+
+    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">Fire</span>()
+    {
+<span class="tk-cm">        // ...the projectile spawn you wrote in 3.2, unchanged...</span>
+    }
+}</code></pre></details></div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Your Row</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification — for whichever row you chose.</strong>
+        <ul>
+            <li><strong>The knob.</strong> Which serialized float lets a designer set the gap between shots without recompiling, and what default will you ship for it?</li>
+            <li><strong>The memory.</strong> What does <em>your</em> row keep between frames — a moment, a duration, a handle, or nothing the engine is not already holding — and why can it not live inside the method that reads it?</li>
+            <li><strong>The gate and the reset.</strong> Which two conditions must <em>both</em> be true before the turret may fire, and which operator says "both"? What changes at the instant a shot actually leaves?</li>
+        </ul>
+    </div>
+
+    <div class="socratic">
+        <h3>Choosing a Timing Model</h3>
+        <ol>
+<li>Trace your own 3.2 build: standing inside the radius for one second, how many projectile clones did your firing method create — and why did that number depend on the machine rather than on you?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3:sc1:q1" data-block="socratic" data-question="Trace your own 3.2 build: standing inside the radius for one second, how many projectile clones did your firing method create — and why did that number depend on the machine rather than on you?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>Why can't you call a "wait one second" function inside <code>Update()</code>? Describe what the player would see on screen during that wait, and explain why a game engine refuses to let you block the frame.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3:sc1:q2" data-block="socratic" data-question="Why can't you call a &quot;wait one second&quot; function inside Update() ? Describe what the player would see on screen during that wait, and explain why a game engine refuses to let you block the frame." placeholder="write your answer, then keep going"></textarea></label></li>
+<li>Row (a) stores a <em>moment</em>; row (b) stores a <em>duration</em>. Which one can you print in the Console and have a player immediately understand, and which one is easier to compare against a designer's tuning value?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="3.3:sc1:q3" data-block="socratic" data-question="Row (a) stores a moment ; row (b) stores a duration . Which one can you print in the Console and have a player immediately understand, and which one is easier to compare against a designer's tuning value?" placeholder="write your answer, then keep going"></textarea></label></li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Break "the turret should not fire every frame" into its parts, and name the earlier lesson you lifted each one from</li>
+        <li>Explain why your turret was firing once per frame, naming the line responsible</li>
+        <li>Compare the four timing approaches, state what each one costs, and give a reason for your choice that is about <em>this</em> behaviour</li>
+        <li>Explain why the reset line is mandatory, what bug returns without it, and construct a compound condition with <code>&amp;&amp;</code></li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — cooldowns and attack timing in depth</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>Time.time</code>, the Cooldown pattern row, and logical operators</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="3.4.html">3.4 — Projectile Damage, Tuning &amp; Playtest</a>, where the bullets finally do something when they arrive.</p>
+</div><div class="lab-bar" data-lesson="3.3" data-lesson-title="Fire Rate: Cooldowns &amp; Time" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="3.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="3.2.html"><span class="dir">&#9664; Previous</span><span class="where">3.2 — Projectiles: Instantiate, Fire, Destroy</span></a><a class="foot-next" href="3.4.html"><span class="dir">Next &#9654;</span><span class="where">3.4 — Projectile Damage, Tuning &amp; Playtest</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

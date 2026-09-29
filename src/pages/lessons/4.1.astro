@@ -1,0 +1,349 @@
+---
+// Lesson 4.1 — The Enemy: Patrol
+// Unit 4 opens. EnemyController.cs ships as an empty stub on a prefab with NO
+// Collider2D and NO Rigidbody2D, so the student must give it a body before
+// anything can touch it (and before 4.4's contact damage is even possible).
+// Patrol is presented as a DESIGN CHOICE with three approaches compared: a leash
+// from the spawn point, two placed waypoints, and absolute bounds. The reference
+// build in the walkthrough is the waypoint pair — the row the "How do I…?" index
+// names — and the trailing table prices the other two, because the socratic asks
+// the student to defend a choice among them.
+// The Overworld already holds FOUR MobileEnemy instances and exactly ONE Coin.
+// Movement method is never assumed: it is "the method you chose in 2.2".
+//
+// Scaffolding: GUIDED (level 2). The shape of the file is given and exactly one
+// line is a gap: the turn. That line carries the only idea in this lesson with
+// no precedent anywhere before it, because every value this game has remembered
+// so far (a coin count, health, a moment on the clock in 3.3) was a number that
+// changed, and this one is WHERE THE ENEMY IS GOING. A player turns by letting
+// go of a key; an enemy has no keys, so the turn has to be written into the file.
+//
+// STRUCTURE (the editor/code pass): "In the Editor" holds every click, each step
+// naming its pane — including the collider and the Rigidbody2D settings, which
+// used to be smuggled into the walkthrough as `//` comments in a code block. A
+// comment in a .cs file cannot click a checkbox. "In the Code" is the
+// walkthrough, anchored by comments saying which part of the file each block
+// belongs to, plus the priced table of the three beat designs.
+//
+// Answer-box ids are positional and persisted. This rewrite keeps the FIRST
+// socratic block ("Designing a Beat") with its three questions in order, and
+// deletes the trailing "Predict Before Building" block. Nothing above it moved,
+// so no surviving question was renumbered.
+//
+// REPETITION CULL (teach it once): the "Check Yourself" activity that used to
+// follow the walkthrough is gone — it repeated the reading that now sits in the
+// editor half, and its intro paragraph restated the four parts the decompose
+// already renders. The trap callout that asked the student to predict the stuck
+// turn is gone too: the walkthrough's gap already carries that prediction in its
+// hint and its why, and saying it twice spent attention the build needed.
+// SECOND PASS (shape only): table rows and the editor steps are back to the
+// multi-line shape the 2.x lessons use. The earlier pass had squeezed a row and
+// a step onto one long line, which saved nothing a reader pays for — line count
+// is not the metric, words are, and no word moved here.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The two recurring questions, applied to the beat. Level 2, so exactly one
+// part is withheld — the one with no precedent in this course. Everything the
+// game has remembered so far has been a number that changes; today's memory is
+// a PLACE, and the turn is that memory changing its mind. Its reading stays
+// attached, because finding the answer in the docs is the skill being practised.
+const DECOMPOSE = {
+  big:
+    'The enemy should walk a beat — back and forth, forever, with nobody at the keyboard. ' +
+    '"Make the enemy patrol" is the whole feature, and at this moment the enemy is a picture ' +
+    'with an empty script on it: no wall can stop it, and it has never moved once.',
+  parts: [
+    {
+      name: 'Give the enemy a body',
+      does: 'A Collider2D on the prefab root, sized by hand against art that lives on a child, plus a Rigidbody2D with Body Type Dynamic and Gravity Scale 0 — the same pair you gave the Player in 2.1. Until both exist, no wall can stop the enemy and no collision message will ever fire on it, which is exactly what 4.4 needs.',
+      doc: 'the `Collider2D` and `Rigidbody2D` rows and the Body Type warning in the quick reference, and the recipe you followed for the Player in 2.1.',
+      href: '2.1.html',
+    },
+    {
+      name: 'Remember which way it is walking',
+      doc: 'the `[SerializeField] private Transform` row of this lesson\'s table, and the field that remembered a moment on the turret in 3.3.',
+      href: '3.3.html',
+      blank: true,
+    },
+    {
+      name: 'Move it toward the end it is holding',
+      does: 'Every frame: subtract the two positions to get an arrow, normalize it so the enemy does not sprint when it is far away, multiply by a speed and hand the result to the body. Velocity is measured per second, so that line takes no Time.deltaTime.',
+      doc: 'the `(a - b).normalized` row and the `rb.linearVelocity = v` row in the quick reference — the pair you used on the diagonal in 1.5 and on the Player in 2.2.',
+      href: '2.2.html',
+    },
+    {
+      name: 'Notice it has arrived, and turn around',
+      does: 'The distance check from 3.1, against a small threshold instead of a radius. When it is true, the field from part 2 is handed the other end of the beat — nothing about the enemy moves at that moment, only that field changes.',
+      doc: 'the `Vector3.Distance(a, b)` row in the quick reference, and the range check you wrote on the turret in 3.1.',
+      href: '3.1.html',
+    },
+  ],
+  why:
+    'Three of those four parts are work you have already done: a collider and a Dynamic body is 2.1, a ' +
+    'normalized direction and a velocity is 2.2, and a distance compared against a threshold is 3.1. Only ' +
+    'one part has no precedent at all, and it is the smallest one: until today everything this game ' +
+    'remembered was a number that changed, and today the memory is where you are going. That is the whole ' +
+    'reason a beat can run with nobody at the keyboard: a player turns because a key was pressed, and the ' +
+    'enemy has no keys.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Make an enemy patrol" ' +
+    'cannot be looked up. "Move an object toward a position at a constant speed" can — and you wrote that ' +
+    'line in 2.2.',
+  turns: [
+    'The reading prices three ways to define a beat. Which did you choose, and what does your choice cost you — in your own words, not the table\'s?',
+    'A patrolling enemy has no keyboard. Name one thing the Player gets from Input that the enemy now has to keep in a field instead.',
+  ],
+};
+
+// Three code blocks, each opening with a comment saying where in EnemyController
+// .cs it goes: the fields with the fields, the memory and its seed in the class
+// body and Start(), the loop in Update(). One gap, on the turn.
+const WALK = {
+  ask: 'how do I make an enemy follow a patrol route?',
+  file: 'Assets/Scripts/EnemyController.cs',
+  label: 'In the Code',
+  intro: 'The enemy ships as a stub: an empty EnemyController on a prefab you just gave a body to, standing in the Overworld four times over. Today it gets two ends to its beat and one field that remembers which end it is walking toward. The movement line is the one you chose in 2.2 — if you move your Player a different way, keep your method and read the shape.',
+  level: 2,
+  steps: [
+    {
+      title: 'Declare the two ends of the beat and the numbers that tune it',
+      lead: 'Four lines in the class body, and every one of them is a line a designer can see in the Inspector — the `[SerializeField]` pattern from 1.3.',
+      lines: [
+        { code: '// EnemyController.cs — class body, above Start(), with your other fields.', what: '' },
+        { code: '    [SerializeField] private Transform waypointA;', what: 'One end of the beat. A `Transform` holds a position in the world — and, wired from the Inspector, it holds a *reference to another object*, which is what a waypoint slot is.' , why: '**Slots, not typed-in coordinates.** A waypoint is a place in the scene, so it belongs to the scene: you can drag either end while the game is running and watch the beat move. Two hard-coded x values would give the same straight line and break the moment you moved the prefab somewhere else.' },
+        { code: '    [SerializeField] private Transform waypointB;', what: 'The other end. Two slots rather than one, because a beat has two ends and the enemy has to be able to reach both.' },
+        { code: '    [SerializeField] private float moveSpeed = 2f;', what: 'How fast it walks, in units **per second** — the same kind of knob, with the same name, as `moveSpeed` on your Player.' },
+        { code: '    [SerializeField] private float arriveDistance = 0.1f;', what: 'How close counts as **arrived** — the number that decides when the beat turns around.' , why: 'It has to be small enough that the enemy looks like it reached the waypoint, and large enough that it can actually *reach* it. An enemy that travels further in one frame than this number walks straight past the waypoint and never arrives at all.' },
+        { code: '', what: '' },
+        { code: '    private Rigidbody2D body;', what: 'A place to keep the reference to the enemy\'s own body, so the movement line in step 3 does not have to search for it every frame. You keep one of these on the Player for exactly the same reason.' },
+      ],
+    },
+    {
+      title: 'Declare the memory, and give it a value before the first frame',
+      lead: '`Start()` runs once, before `Update()` has ever run — you already use it in 2.2 for the Player\'s body lookup, and the enemy\'s stub already has the method waiting.',
+      lines: [
+        { code: '// EnemyController.cs — the memory field in the class body, the seed inside Start().', what: '' },
+        { code: '    private Transform target;', what: '**The memory.** One field holding which end of the beat the enemy is walking toward right now. It is the only thing in the file that changes when the enemy turns around.' , why: '**Notice that it has no value yet** — the next lines give it one. And notice **where** it lives: in the class body, not inside `Update()`. Move this line into a method and it is rebuilt from nothing sixty times a second, so the enemy can never remember which way it was going.' },
+        { code: '    void Start()', what: '' },
+        { code: '    {', what: '' },
+        { code: '        body = GetComponent<Rigidbody2D>();', what: 'Finds the Rigidbody2D you added in the editor half and keeps the reference. `GetComponent<T>()` is the lookup from 2.1, and calling it once in `Start()` instead of every frame is the rule from 2.2.' , why: '**Without this line the movement in step 3 has nothing to write to.** The field would still be empty, and the Console fills with a NullReferenceException on the first frame, pointing at the line that uses the body. An empty reference is a valid value in C# — nothing complains until you use it.' },
+        { code: '        target = waypointB;', what: 'Seeds the memory, so the enemy knows which way it is walking before the first frame runs. Either end works; starting toward B gives a full first beat.' , why: '**Leave this out and the first frame throws.** A field with no value is `null`, and the arrival check in step 3 asks that reference for its position. The memory needs a value before anything reads it, and the value has to come from somewhere that runs *once*.' },
+        { code: '    }', what: '' },
+      ],
+    },
+    {
+      title: 'Walk toward it every frame, and turn when you get there',
+      lead: 'Two jobs, and together they are the whole beat: go toward the end you are holding, and — when you have arrived — hold the other one.',
+      lines: [
+        { code: '// EnemyController.cs — inside Update().', what: '' },
+        { code: '    void Update()', what: '' },
+        { code: '    {', what: '' },
+        { code: '        Vector2 direction = (target.position - transform.position).normalized;', what: 'The arrow from the enemy to the waypoint it is walking toward, at a length of exactly 1: subtract the two positions, then normalize — the pair you used on the diagonal in 1.5 and to aim a projectile in 3.2.' , why: '**Do not skip `.normalized`.** Without it the vector is as long as the distance to the waypoint, so the enemy sprints when it is far away and creeps when it is close — and on a long beat it covers the whole waypoint in a single frame and never arrives. A position is a Vector3 and a velocity is a Vector2; Unity converts between them by dropping `z`, which is harmless in a flat world.' },
+        { code: '        body.linearVelocity = direction * moveSpeed;', what: 'Hands the body a velocity instead of moving the Transform yourself — the movement method you chose from the 2.2 table, and the only reason a wall can stop the enemy at all.' , why: '**No `Time.deltaTime` on this line.** Velocity is measured in units *per second*, so the physics engine already applies the time for you. Multiply by `deltaTime` and the enemy\'s speed starts depending on your frame rate.' },
+        { code: '', what: '' },
+        { code: '        if (Vector3.Distance(transform.position, target.position) < arriveDistance)', what: 'The arrival test: the distance check from 3.1, with the threshold you declared in step 1 instead of a radius. True on every frame the enemy is standing within `arriveDistance` of the waypoint it was walking toward.' },
+        { code: '        {', what: '' },
+        { code: '', blank: true, what: 'The turn. The enemy has arrived at the waypoint it was walking toward — hand the memory from step 2 the OTHER end of the beat. Nothing else about the enemy changes at this moment: not its position, not its speed, not the waypoints. An `if`/`else` you already know is enough to write it.' , hint: 'The field holds which end it is walking toward. Ask it which one it is holding right now — a Transform can be compared with `==` — and send it to the other. Both waypoints are in scope, and only one of them is the right answer on any given frame.' , why: '**Leave this line out and the enemy walks to the first waypoint and stands there forever.** Nothing else in the file ends the journey: on the Player, letting go of the keys was the turn, and the enemy has no keys. **And a line that always writes the same waypoint is only one beat** — it arrives, sends itself back to the place it is already standing, and never walks again. The two ends have to alternate, which means the line has to *ask* what the field is holding.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: '' },
+      ],
+    },
+  ],
+  finalFile: `using UnityEngine;
+
+// EnemyController.cs — one guard, one beat, forever.
+// The two ends of the beat are objects in the scene. This script keeps exactly
+// one thing about the walk: which end it is heading for. The turn is that
+// field changing its mind.
+public class EnemyController : MonoBehaviour
+{
+    [SerializeField] private Transform waypointA;           // one end of the beat
+    [SerializeField] private Transform waypointB;           // the other end
+    [SerializeField] private float moveSpeed = 2f;          // units per SECOND
+    [SerializeField] private float arriveDistance = 0.1f;   // how close is "there"
+
+    private Transform target;                               // which way it is walking
+    private Rigidbody2D body;
+
+    void Start()
+    {
+        // Looked up once, never inside Update() — the rule from 2.2.
+        body = GetComponent<Rigidbody2D>();
+
+        // Seed the memory. Either end works; this one gives a full first beat.
+        target = waypointB;
+    }
+
+    void Update()
+    {
+        // Arrive first, walk second. The order only matters on the one frame
+        // where the enemy reaches a waypoint.
+        if (Vector3.Distance(transform.position, target.position) < arriveDistance)
+        {
+            TurnAround();
+        }
+
+        // No Time.deltaTime: velocity is per second, not per frame (2.2).
+        Vector2 direction = (target.position - transform.position).normalized;
+        body.linearVelocity = direction * moveSpeed;
+    }
+
+    // The only thing that ends a beat. The player lets go of the keys; the
+    // enemy has no keys, so the turn has to be written here.
+    private void TurnAround()
+    {
+        if (target == waypointA)
+        {
+            target = waypointB;
+        }
+        else
+        {
+            target = waypointA;
+        }
+    }
+}
+
+// Inspector, on Assets/Prefabs/MobileEnemy (this lesson's editor half):
+//   Collider 2D                       =  on the ROOT, resized by hand until the
+//                                        outline covers the art on the Sprite child
+//   Rigidbody 2D ▸ Body Type          =  Dynamic   <- only Dynamic is stopped by walls
+//   Rigidbody 2D ▸ Gravity Scale      =  0         <- the Overworld has no down
+//   Rigidbody 2D ▸ Freeze Rotation Z  =  ON        <- solid hits impart spin
+//   Waypoint A / Waypoint B           =  two empty GameObjects placed in the
+//                                        Overworld, wired per enemy INSTANCE`,
+  finalNote:
+    'Compare against your own file rather than copying it. The gap is the turn, and it is the one line in this lesson with nothing earlier to copy: the field remembers which end of the beat the enemy is heading for, and the turn is that field changing its mind. This file writes it as a small method with an `if`/`else`, and turns *before* it walks where the walkthrough turns after — on every frame but the one where the enemy arrives, those two orders are the same file, and any form that hands the field the *other* waypoint is correct. Your waypoint placement, your speed, your threshold and your movement method from 2.2 are yours; the shape is what has to match.',
+};
+
+const body = `<h1>4.1 — The Enemy: Patrol</h1>
+
+<p class="lesson-lead">
+    The turret never moves. This enemy walks a beat with nobody at the keyboard, and it ships as a
+    picture with an empty script: no collider, no body, and no memory of anything. Today it gets
+    all three.
+</p>
+
+${renderAskBanner('how do I make an enemy follow a patrol route?', 2)}
+
+${renderDecompose('4.1', DECOMPOSE, 2)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Hierarchy →</strong> count the <code>MobileEnemy</code> instances in the
+            Overworld: <strong>four</strong>, against exactly one Coin. Write the count down before
+            you move anything.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/MobileEnemy</code>, and select
+            the prefab <em>asset</em>, not an instance in the scene. Its root carries a Transform,
+            an empty <code>EnemyController</code> and one child named <em>Sprite</em> — and no
+            collider and no body at all.
+        </li>
+        <li>
+            <strong>Inspector → Add Component → Box Collider 2D</strong>, on the <em>root</em>. Then
+            <strong>Scene view →</strong> drag the handles until the green outline covers the enemy
+            you can actually see: the art is not on the root, it lives on the <em>Sprite</em> child,
+            offset and scaled up, so a default collider on the root is a small square in the middle
+            of a much bigger body.
+        </li>
+        <li>
+            <strong>Inspector → Add Component → Rigidbody 2D</strong>, then set <strong>Body Type =
+            Dynamic</strong>, <strong>Gravity Scale = 0</strong> and <strong>Constraints → Freeze
+            Rotation Z ☑ ON</strong>. Only a Dynamic body is stopped by the world, and only a frozen
+            rotation keeps a shoved enemy from spinning.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play with no patrol code at all, then walk into an
+            enemy. It is solid now, and it still does not move on its own. Both halves of that are
+            the point of today.
+        </li>
+        <li>
+            <strong>Hierarchy → right-click → Create Empty</strong>, twice, in the Overworld. Rename
+            them <strong>WaypointA</strong> and <strong>WaypointB</strong>, and place them with the
+            Move tool in the <strong>Scene view</strong> at the two ends of the beat you want — the
+            setup for the waypoint row. If you picked a different row in the table below, you need
+            no scene objects at all.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> select each enemy instance, then <strong>Inspector
+            →</strong> drag <strong>WaypointA</strong> and <strong>WaypointB</strong> into the two
+            slots on <code>EnemyController</code>. An empty slot is a null reference: it throws on
+            the first frame your code reads it, which looks like a patrol bug and is really a wiring
+            bug.
+        </li>
+    </ol>
+
+    <p>
+        Read the three rows below before you write anything. All three are the same four parts in
+        different clothes, and only what the field remembers differs — a sign, a target, or a limit.
+    </p>
+
+    <table>
+        <tr><th>The row</th><th>What it remembers, and how it turns</th><th>What it costs you</th></tr>
+        <tr>
+            <td><strong>A leash from the spawn point</strong></td>
+            <td>The position it started at, plus how far it may wander. It measures the drift with <code>Vector3.Distance(a, b)</code> and flips the stored sign once that exceeds the leash.</td>
+            <td>No scene setup at all, and the beat follows the enemy wherever you drag it. But it is always a straight line centred on the spawn point, and the turn is noticed only <em>after</em> the enemy has moved — so it always overshoots by up to one frame of travel.</td></tr>
+        <tr>
+            <td><strong>Two placed waypoints</strong></td>
+            <td>Two Transforms wired into two Inspector slots. It walks toward the current one and hands the field the other when the distance falls under the arrived threshold.</td>
+            <td>You must create, place and wire two objects, and invent a threshold small enough to be accurate but large enough to be reachable — travel further in one frame than the threshold and the enemy sails straight past and never turns.</td></tr>
+        <tr>
+            <td><strong>Two absolute bounds</strong></td>
+            <td>Two numbers, a minimum and a maximum, and a sign the movement multiplies by.</td>
+            <td>The simplest maths and the most brittle. Those bounds are world coordinates, so moving the enemy leaves its beat behind and a copied prefab turns on frame one. Let the sign ever reach <code>0</code> and the walk stops for good.</td></tr>
+    </table>
+
+    <div class="socratic">
+        <h3>Socratic: Designing a Beat</h3>
+        <ol>
+<li>Which of the three beat definitions fits an enemy you will place four or five times across a map and keep nudging while you design the level? What does your choice cost you?</li>
+<li>The leash approach stores the position the enemy started at. Which lifecycle method must save it, and what would the enemy do if you saved it every frame instead?</li>
+<li>A single int holding <code>1</code> or <code>-1</code> is the enemy's entire memory of where it is going. Why is that enough — and what extra state would a bool such as <code>isGoingRight</code> force you to keep in sync?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK)}
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Say what the MobileEnemy prefab was missing, and why that matters beyond this lesson</li>
+        <li>Compare the three ways to define a beat, name the one you chose, and defend it</li>
+        <li>Explain why the memory gets its first value in <code>Start()</code>, and what breaks if you move that line into <code>Update()</code></li>
+        <li>Point at the one field that is your enemy's whole memory of where it is going, and the single line that changes its mind</li>
+        <li>Say how many enemies and how many coins the Overworld shipped with</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — patrol, chase and the full state machine</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the reference you will build against all unit</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — what a body buys you, reused from Unit 2</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Transform, distance and Inspector fields</li>
+        <li><a href="../docs/ask.html">How do I…? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="4.2.html">4.2 — Enemy Animation: A Different State Machine</a>, where the enemy's animator turns out to follow none of your rules.</p>
+</div>`;
+---
+<Lesson id="4.1" title="4.1 The Enemy: Patrol — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

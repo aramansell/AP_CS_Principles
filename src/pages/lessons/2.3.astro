@@ -1,0 +1,293 @@
+---
+// Lesson 2.3 — Healing Pickups & the Max-Health Cap
+// 3-way comparative analysis: Coin vs Spike vs Potion.
+// GROUND TRUTH: there is no Potion prefab, no Potion tag, and no potion sprite
+// anywhere in the project. The student creates all three by tinting an existing
+// sprite (greyboxing) and places instances in the Overworld themselves.
+// Health and the max-health cap live on PlayerController; StatManager stays the
+// empty stub it ships as until the Unit 5 refactor.
+//
+// Scaffolding: OUTLINE ONLY (level 3). The spec and the API are given and no
+// code is. The student built a pickup in 2.1 and a method that changes health in
+// 2.2, so this lesson names the file, the method and the decision, and stops
+// there. The ask banner is the level marker — a level-3 lesson must not render a
+// walkthrough, and verify-site refuses one that does.
+//
+// STRUCTURE (this pass): the prefab work — sprite, tint, collider, tag, drag to
+// Assets/Prefabs, place two instances — is now an explicit "In the Editor" list
+// with the pane named at every step, instead of prose buried inside a spec
+// bullet. "In the Code" is the API table plus the rule.
+//
+// Answer-box ids are positional and persisted, so this rewrite keeps the first
+// socratic block and trims its last question; the two blocks that followed it
+// are gone with the prose they belonged to.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderPane } from '../../lib/panes';
+import { renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+// The recurring two-beat block: split the problem, look each part up. Level 3,
+// so the renderer withholds what each part DOES and asks the student to say it —
+// the parts and their doc pointers are the level-3 bargain. Every doc pointer
+// here is either a lesson they have finished or a row of this lesson's own
+// reference table.
+const DECOMPOSE = {
+  big: 'I want a potion that heals me when I walk into it, and I want my health to stop at the maximum and never go over it — no matter how many potions I find.',
+  parts: [
+    {
+      name: 'Make the potion something the player can touch',
+      does: 'A sprite tinted so it cannot be mistaken for a coin, a trigger collider on the root, and a tag of its own — created, prefabbed, and placed in the scene.',
+      doc: '2.1 — Coins: Triggers, Tags & Your First Stat (the pickup recipe)',
+      href: '2.1.html',
+    },
+    {
+      name: 'Recognize the potion in the callback',
+      does: '`OnTriggerEnter2D(Collider2D other)` fires on the first frame the shapes overlap; the `CompareTag("Potion")` check is what separates a potion from a spike or a wall.',
+      doc: 'the `OnTriggerEnter2D(Collider2D other)` row of this lesson\'s reference table',
+    },
+    {
+      name: 'Change the health value',
+      does: 'One field holds health and one method changes it by a signed amount, so the spike and the potion call the same method with different signs.',
+      doc: '2.2 — Spikes: Physics, Damage & Death',
+      href: '2.2.html',
+    },
+    {
+      name: 'Hold the value under its ceiling',
+      does: 'The rule: after any change, health never sits above the maximum. Applied inside the method that changes the value, so no future caller can bypass it.',
+      doc: 'the `Mathf.Clamp(value, min, max)`, `Mathf.Min(a, b)`, `Mathf.Max(a, b)` and selection rows of this lesson\'s reference table',
+    },
+    {
+      name: 'Consume the potion',
+      does: 'Destroy the potion\'s GameObject rather than the player\'s, so it cannot be collected twice.',
+      doc: 'the `Destroy(Object)` row of this lesson\'s reference table',
+    },
+    {
+      name: 'Test it at the boundary',
+      does: 'Heal from below the maximum, then heal at the maximum, and confirm the rule holds both times.',
+      doc: 'the `Mathf.Clamp(value, min, max)` row of this lesson\'s reference table, and the full-health test at the end of the Build Lab',
+    },
+  ],
+  why: 'The split follows the life of one value: an object is created, touched, recognized, changes a number, and dies. Five of those six parts you have already built.',
+  sizeTest: 'The split is finished when each part can be looked up on its own: every part above names either a component, an API call, or a method you have already written. If a part needs the word "and" twice to describe it, it is two parts.',
+  turns: [
+    'In one line: what is the exploit that a potion without a ceiling creates?',
+  ],
+};
+
+const body = `<h1>2.3 — Healing Pickups &amp; the Max-Health Cap</h1>
+
+<p class="lesson-lead">
+    You can gain wealth and lose health. Now you need a way to get health back — and healing
+    without a limit is not a feature, it is an exploit. Today you build the potion, and discover
+    that a value with a ceiling needs a <em>rule</em>, not just arithmetic.
+</p>
+
+${renderAskBanner('how do I heal, and how do I cap health at a maximum?', 3)}
+
+<!-- ============================================================ -->
+${renderDecompose('2.3', DECOMPOSE, 3)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <div class="callout info">
+        <strong>There is no potion art in this project — you are going to make one.</strong>
+        No Potion prefab, no Potion tag, no potion sprite in <code>Assets/Artwork</code>: pick a
+        sprite you <em>do</em> have, tint it, and place the instances yourself. Building a mechanic
+        with borrowed art is called <strong>greyboxing</strong>, and it is what professionals do all
+        day: the mechanic is the work, the art is a placeholder.
+    </div>
+
+    <ol>
+        <li>
+            <strong>Hierarchy → right-click → 2D Object → Sprite.</strong> Name it
+            <strong>Potion</strong> (right-click the object in the Hierarchy → Rename).
+        </li>
+        <li>
+            <strong>Inspector → Sprite Renderer → Sprite.</strong> Drag in any sprite you have, then
+            set <strong>Color</strong> to a tint that could not be mistaken for a coin at a glance.
+        </li>
+        <li>
+            <strong>Inspector → Add Component → Circle Collider 2D</strong>, then
+            <strong>Is Trigger ☑ ON</strong> and drag <strong>Radius</strong> to fit. A potion is a
+            pickup like the coin, so it reports an overlap and pushes nothing.
+        </li>
+        <li>
+            <strong>Inspector → Tag → Add Tag…</strong> Create a tag called <strong>Potion</strong>,
+            then come back to the object and set <strong>Tag = Potion</strong> on the object that
+            carries the collider. The tag has to exist in the project before a script can spell it,
+            and the spelling has to be exact.
+${renderPane({
+    pane: 'Inspector',
+    subject: 'Potion',
+    caption: 'The top of the Potion\'s Inspector. `Tag` is above every component, not inside ' +
+        'one — that is why this step is two trips to the same dropdown: **Add Tag…** writes the ' +
+        'name into the project, and only then will it appear in the list.',
+    rows: [
+        { kind: 'field', label: 'Tag', value: 'Potion', step: 4 },
+        { kind: 'field', label: 'Layer', value: 'Default' },
+        { kind: 'component', label: 'Transform', tick: false },
+        { kind: 'component', label: 'Sprite Renderer' },
+        { kind: 'component', label: 'Circle Collider 2D' },
+    ],
+})}
+        </li>
+        <li>
+            <strong>Project window →</strong> drag the Potion object from the <strong>Hierarchy</strong>
+            into <code>Assets/Prefabs</code>. The object in the scene is now an instance; the file in
+            the folder is the definition it was stamped from.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> drag at least two instances into the <strong>Overworld</strong>
+            <strong>Scene view</strong>, somewhere you will walk: one to test against a damaged
+            player, one to test against a full-health player. A mechanic nobody can walk into is not
+            a mechanic.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>
+        There is no code in this section on purpose. Every piece of it you have already built once:
+        a prefab with a trigger collider is 2.1, a method that changes health is 2.2. What is new is
+        the <em>decision</em> — so read the API, then write the file yourself.
+    </p>
+
+    <p>First, where the potion sits among the two things you have already built:</p>
+
+    <table>
+        <tr><th>Comparison</th><th>Analysis</th></tr>
+        <tr>
+            <td><strong>Like the coin</strong></td>
+            <td>A <strong>pickup</strong>: trigger collider, handled by <code>OnTriggerEnter2D(Collider2D other)</code>, destroyed on contact so it cannot be taken twice. Almost all of your coin code is reusable.</td>
+        </tr>
+        <tr>
+            <td><strong>Like the spike</strong></td>
+            <td>It changes <strong>health</strong> — and health lives on <code>PlayerController</code>, exactly where your coin count lives.</td>
+        </tr>
+        <tr>
+            <td><strong>Unlike both</strong></td>
+            <td>It raises a value that now has a <strong>ceiling</strong>. Without a rule, ten potions means ten times the health, and the game stops being a game.</td>
+        </tr>
+    </table>
+
+    <p>
+        Three tools can hold a number inside a range. One selection statement is not a tool at all —
+        it is the thing that can do what none of the three can.
+    </p>
+
+    <table>
+        <tr><th>API</th><th>What it is</th><th>What you get</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>Mathf.Clamp(value, min, max)</code></td>
+            <td>Returns the value pushed inside the range. Integer and float overloads exist.</td>
+            <td><strong>Both ends in one call</strong>, and health stays a whole number.</td>
+            <td>It returns a number and nothing else — it cannot tell you a heal was wasted.</td>
+        </tr>
+        <tr>
+            <td><code>Mathf.Min(a, b)</code></td>
+            <td>Returns the smaller of the two.</td>
+            <td>A <strong>ceiling</strong> in a single expression.</td>
+            <td>One end only, so spikes plus potions means a second tool beside it.</td>
+        </tr>
+        <tr>
+            <td><code>Mathf.Max(a, b)</code></td>
+            <td>Returns the larger of the two.</td>
+            <td>A <strong>floor</strong> — "never below zero", on its own terms.</td>
+            <td>The mirror of <code>Mathf.Min(a, b)</code>, and it caps nothing on its own.</td>
+        </tr>
+        <tr>
+            <td>Selection — <code>if</code> / <code>else if</code> / <code>else</code></td>
+            <td>A statement, not a method. It returns nothing.</td>
+            <td>Runs its block only when the condition holds — and it can change the value <em>and</em> report, or refuse the heal outright.</td>
+            <td>More lines, and the rule sits at the <em>call site</em> instead of inside the method that owns the value, so the next healing source repeats it.</td>
+        </tr>
+        <tr>
+            <td><code>[SerializeField] private int</code></td>
+            <td>A field declaration, not a call — the form you have used since 1.3.</td>
+            <td>A named value that survives every frame and appears in the Inspector as the designer's tuning knob.</td>
+            <td>A value is not a rule: the Inspector can set maximum health below current health and nothing warns you.</td>
+        </tr>
+        <tr>
+            <td><code>OnTriggerEnter2D(Collider2D other)</code></td>
+            <td>Callback. Unity calls it; you never do.</td>
+            <td>Fires on the first frame two shapes overlap. The parameter is the <em>other</em> object's collider.</td>
+            <td>Triggers only — make the potion solid and <code>OnCollisionEnter2D(Collision2D collision)</code> takes over.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>The call returns the number; you still have to store it.</strong> Nothing changes
+        until the result is assigned to the field that holds health — a
+        <code>Mathf.Clamp(value, min, max)</code> whose result you drop is a line that does nothing
+        at all.
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification.</strong>
+        <ul>
+            <li>What field holds the <strong>maximum</strong> health? What type, what starting value, and how is it different from the current-health field? Which of the two is the designer's tuning knob and which is game state?</li>
+            <li>Where exactly does the ceiling get applied — in the potion before it calls the player, or <em>inside</em> the method that changes health? Which of those cannot be bypassed by a future caller?</li>
+            <li>Which tool from the table did you choose, and why? If you chose the one that bounds both ends, what is the <em>lower</em> bound — and what does bounding at 0 mean for the death check you wrote in <a href="2.2.html">2.2</a>?</li>
+            <li>Which callback, and which tag check, recognizes the potion? Which method on the player do you call, and do you pass a positive or a negative number? Why does one method have to serve both the spike and the potion?</li>
+            <li>Do you destroy the potion — and which object's GameObject, the collider's or your own? What should happen when a player already at full health touches one: consume it, or leave it on the ground? Either is defensible — pick one, and name the check your choice requires and where that check belongs.</li>
+        </ul>
+    </div>
+
+    <p>
+        Save, press Play, and verify. Drop your health on a spike, then walk into a potion and
+        confirm it comes back up. Walk into another potion at full health and confirm your rule
+        holds. Then set maximum health in the Inspector <em>while the game is running</em> and see
+        what your rule does when the ceiling moves underneath the value.
+    </p>
+
+    <div class="socratic">
+        <h3>Similar, Different, and Why It Matters</h3>
+        <ol>
+            <li>The potion reuses the coin's trigger, its callback, and its destroy. What is the <em>only</em> thing that genuinely differs?</li>
+            <li>Without a ceiling, a player who collects ten potions has ten times the health. Which breaks first — the challenge, the economy, or the feedback the player gets?</li>
+            <li>The rule "health must never exceed the maximum" has to live <em>somewhere</em>. Where could it live, and which of those places keeps the rule true no matter which script calls the healing method?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Create a prefab and a brand-new project tag from scratch, in the pane each step happens in, and place instances in the scene</li>
+        <li>Explain the overheal exploit, and which rule prevents it</li>
+        <li>Compare <code>if</code>, <code>Mathf.Min(a, b)</code>, <code>Mathf.Max(a, b)</code> and <code>Mathf.Clamp(value, min, max)</code>, and defend the one you chose — including what it costs</li>
+        <li>Explain why the rule lives in the method that changes health rather than in the potion</li>
+        <li>Test at the boundary — health exactly at maximum — instead of only in the middle</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — selection, pickups and health in depth</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — the reference for trigger pickups</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Mathf and selection syntax</li>
+        <li><a href="../docs/ask.html">How do I…? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="2.4.html">2.4 — Prefabs, Spawning &amp; Playtesting</a>, where one working object becomes a whole level.</p>
+</div>`;
+---
+<Lesson id="2.3" title="2.3 Healing Pickups &amp; the Max-Health Cap — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

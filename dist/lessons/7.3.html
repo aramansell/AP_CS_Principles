@@ -1,0 +1,243 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>7.3 Ladders I: The Climbing State — AP CS Principles</title><meta name="description" content="Lesson 7.3 Ladders I: The Climbing State — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="7.3 Ladders I: The Climbing State — AP CS Principles"><meta property="og:description" content="Lesson 7.3 Ladders I: The Climbing State — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="7.2.html">&#9664; 7.2</a><span class="lesson-id">7.3</span><a href="7.4.html">7.4 &#9654;</a></div><h1>7.3 — Ladders I: The Climbing State</h1>
+
+<p class="lesson-lead">
+    Go and look for a ladder. Search the project for a sprite, a tile, a prefab, an animation
+    clip — search the word itself. The word finds nothing, and that is the trap: there is no
+    ladder <em>prefab</em>, no <em>climb animation</em> and no <code>Ladder</code> tag anywhere
+    here. There <em>is</em> art, sliced into the cave tileset and filed under a number. So the
+    ladder splits in two: a <em>look</em> you paint from tiles you already know
+    (<a href="7.1.html">7.1</a>), and a <em>mechanic</em> — a state in which the character may
+    ignore gravity. The mechanic is the work.
+</p>
+
+<div class="ask-banner" data-scaffold="3"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I climb a ladder?&rdquo;</span><span class="ask-banner-level">Outline only</span></div>
+
+<div class="activity decompose" data-level="3" data-parts="5" data-given="5" data-docs="5"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Outline only</span></div><p class="dc-big">Make the character climb. A ladder is not a thing you collide with — it is a place where the normal rules stop applying for a while. So the whole feature is: build a volume that knows you are inside it, let that knowledge change what gravity and your input mean, and then put everything back exactly as it was the moment you step off.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Cut a zone the trigger can see</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="2.3.html">the trigger-versus-collision split from 2.1, and the tag ritual you performed on the potion in 2.3</a></span></li><li class="dc-part"><span class="dc-name">Turn the zone's two messages into one flag</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="2.1.html">the coin's <code>OnTriggerEnter2D</code> in 2.1, and the <code>bool</code> you declared for the first time in 5.1</a></span></li><li class="dc-part"><span class="dc-name">Take gravity away while the flag is up</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="6.3.html">the <code>gravityScale</code> branch in 6.3, and the <code>rb.gravityScale</code> row of the Unity + C# Quick Reference</a></span></li><li class="dc-part"><span class="dc-name">Read the vertical stick, ignore the sideways one</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="2.2.html">the movement method you settled on in 2.2, and the input axes from 1.4</a></span></li><li class="dc-part"><span class="dc-name">Decide which gravity rule gets to win</span><span class="dc-does dc-gap">what does this part do?</span><span class="dc-doc">Read: <a href="6.3.html">the <code>FixedUpdate()</code> gravity branch in 6.3, and the frame-versus-physics-step split from 1.3</a></span></li></ol><p class="dc-why">The split is not five equal problems. Four of them are shapes you have already typed: a trigger that reports a tagged object (2.1), a <code>bool</code> that remembers something (5.1), a movement line that writes <code>linearVelocity</code> (2.2), and a gravity branch (6.3). Only one idea here is new, and it is the reason the lesson exists. Until today every value in your script described <strong>how much</strong> — a speed, a force, a fall multiplier. The climb flag describes <strong>which rules apply</strong>, and it changes the meaning of two numbers you already own without touching either of them. That is what a state is, and it is why the last part of the split is an argument about order rather than a line of code.</p><p class="dc-size">The test: could you look this part up on its own, right now, in one search? "Make the player climb a ladder" cannot be looked up. "Set gravityScale to zero while a bool is true" can — and the page you land on also tells you which body type it applies to, and what a Static body does with the number instead. If a part is small enough to search for, the split is finished.</p><div class="dc-turns"><h4>Your turn</h4><p>Pick two of the parts above and say in one line what each one actually does.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.3:dc1:q1" data-block="decompose" data-question="Pick two of the parts above and say in one line what each one actually does." placeholder="write your answer, then keep going"></textarea></label><p>Name the single number the climb and the fall-speed rule both want to own, and say which piece of code writes it last. Then say what the player sees when you get that order wrong.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.3:dc1:q2" data-block="decompose" data-question="Name the single number the climb and the fall-speed rule both want to own, and say which piece of code writes it last. Then say what the player sees when you get that order wrong." placeholder="write your answer, then keep going"></textarea></label><p>The climb throws the sideways input away. Name a moment in your own level where that would be the wrong call, and say what the player would feel instead.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.3:dc1:q3" data-block="decompose" data-question="The climb throws the sideways input away. Name a moment in your own level where that would be the wrong call, and say what the player would feel instead." placeholder="write your answer, then keep going"></textarea></label><p>Your jump is an impulse — one flick of force — and the climb writes a velocity. Say why an impulse is the wrong tool on a ladder.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.3:dc1:q4" data-block="decompose" data-question="Your jump is an impulse — one flick of force — and the climb writes a velocity. Say why an impulse is the wrong tool on a ladder." placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~25 min</span>
+    </div>
+
+    <p>
+        Confirm the situation before you design around it. <strong>Project window →</strong>
+        search <code>ladder</code>, then <code>climb</code>; <strong>Project window →
+        <code>Assets/Artwork/Character/Player/</code> →</strong> open the Player's Animator
+        controller and read its states. Four things to check, and the first is why this page has
+        a trap in it:
+    </p>
+
+    <table>
+        <tr><th>What you might expect to find</th><th>What is actually there</th></tr>
+        <tr>
+            <td>A ladder sprite or tile</td>
+            <td><strong>It is there, and it is numbered.</strong> <code>MainLev2.0.png</code> is sliced into 1,829 tiles called <code>MainLev2.0_0</code> through <code>MainLev2.0_1828</code>, so the word "ladder" is printed on none of them. The rung column is <code>MainLev2.0_1375</code> (the head) with <code>_1422</code>, <code>_1468</code> and <code>_1514</code> below. This is <a href="7.1.html">7.1</a>'s lesson in one search: the art exists, the <em>name</em> does not.</td>
+        </tr>
+        <tr>
+            <td>A ladder prefab</td>
+            <td>Nothing. The project's prefabs are the Player, Coin, Spikes, Axe Item, Switch, Turret, Turret Projectile and Mobile Enemy.</td>
+        </tr>
+        <tr>
+            <td>Climb frames on the character</td>
+            <td>Nothing. The Player's controller holds three motions — Idle, Walk and Shovel_Swing — each in Up, Horizontal and Down variants. No climb state, no climbing poses in any character sheet.</td>
+        </tr>
+        <tr>
+            <td>A "Ladder" tag</td>
+            <td>Nothing. The tags are Coin, Enemy, Axe, Spikes, Ground and GroundCheck.</td>
+        </tr>
+    </table>
+
+    <p>
+        So the ladder is yours to build, and it splits cleanly in two. The <strong>look</strong> is
+        a painting problem and you have a tileset. The <strong>mechanic</strong> is the part that
+        has never existed here: a <em>state</em> your player can be in that is neither walking nor
+        falling, entered only because a trigger said so.
+    </p>
+
+    <table>
+        <tr><th>Movement state</th><th>Gravity</th><th>Which input drives it</th><th>What it looks like</th></tr>
+        <tr>
+            <td>Top-down (Overworld, <a href="5.3.html">5.3</a>)</td>
+            <td>None — the world has no down</td>
+            <td>WASD, four directions</td>
+            <td>The Walk states, driven by <code>WalkDir</code></td>
+        </tr>
+        <tr>
+            <td>Grounded (Platformer, <a href="6.1.html">6.1</a>)</td>
+            <td>Tuned with <code>gravityScale</code></td>
+            <td>A/D sideways, Space to jump</td>
+            <td>Idle or Walk, driven by <code>IsWalking</code></td>
+        </tr>
+        <tr>
+            <td><strong>Climbing (new today)</strong></td>
+            <td><strong>None — the ladder owns gravity</strong></td>
+            <td><strong>W/S only; sideways is ignored</strong></td>
+            <td><strong>Whatever you decide — see <a href="7.4.html">7.4</a>. A held pose is honest for now.</strong></td>
+        </tr>
+        <tr>
+            <td>Airborne (<a href="6.2.html">6.2</a>, <a href="6.3.html">6.3</a>)</td>
+            <td>Tuned, with the fall multiplier</td>
+            <td>Limited — mostly your own momentum</td>
+            <td>Nothing dedicated; the character just moves</td>
+        </tr>
+    </table>
+
+    <p>
+        Build the clicks first. Every step names its pane; the third is a real design decision,
+        so read all three options before choosing.
+    </p>
+
+    <ol>
+        <li>
+            <strong>Window ▸ 2D ▸ Tile Palette →</strong> open the <code>Caves</code> palette from
+            <a href="7.1.html">7.1</a> and drag three rungs into it from
+            <code>CavesTileSet/</code>: <code>MainLev2.0_1422</code>, <code>_1468</code> and
+            <code>_1514</code>. The head, <code>MainLev2.0_1375</code>, is already in the tray —
+            put it on top and you have a four-tile ladder. <strong>Scene view →</strong> paint it
+            one tile wide, floor to ledge. Invent your own from the vine tiles if you like: the
+            mechanic does not care what the picture is, which is why the picture is the small
+            half of this problem.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> create an empty GameObject over the strip and name it
+            something you would want to find in three weeks. <strong>Inspector →</strong> give it a
+            <strong>Box Collider 2D</strong> with <strong>Is Trigger</strong> ticked, sized to the
+            strip's full height. Then <strong>Edit ▸ Project Settings ▸ Tags and Layers →</strong>
+            create a <code>Ladder</code> tag — the ritual from the potion in
+            <a href="2.3.html">2.3</a> — and assign it.
+        </li>
+        <li>
+            <strong>Inspector → the zone →</strong> decide which tilemap the picture lives on, and
+            defend it. Three options, and they are not equivalent:
+        </li>
+    </ol>
+
+    <table>
+        <tr><th>Where you paint it</th><th>What happens when you climb</th><th>The cost</th></tr>
+        <tr>
+            <td>On <code>No Collision</code>, the picture-only tilemap</td>
+            <td>The player passes cleanly through and rises the whole height. Simplest possible interaction.</td>
+            <td>The ladder is not solid at all — the player can also walk through it sideways at the bottom.</td>
+        </tr>
+        <tr>
+            <td>On a <em>new</em> tilemap child (renderer only, no collider), so the ladder art groups and can be found later</td>
+            <td>Same as above, but the ladder is a named object you can select and reuse.</td>
+            <td>One more tilemap to track, and you must remember it has no collider.</td>
+        </tr>
+        <tr>
+            <td>On <code>Collision</code>, the solid tilemap, with the zone in front of it</td>
+            <td>The player is stopped by their own ladder and cannot climb it at all.</td>
+            <td>Fatal as described — unless you leave a one-tile channel beside it, which changes the level.</td>
+        </tr>
+    </table>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~35 min</span>
+    </div>
+
+    <p>
+        The code is the smallest script in the unit. Answer the two specifications in writing
+        first: they are the whole design, and the code afterwards is transcription.
+    </p>
+
+    <div class="callout">
+        <strong>Architectural specification: the ladder zone.</strong>
+        <ul>
+            <li>What does the zone carry that lets your script recognise it? Need a new tag, or can you reuse one of the six? If a new one, name it exactly.</li>
+            <li>Which two messages does the zone send, and what type is the parameter each hands you?</li>
+            <li>Is the zone a trigger or a solid? What happens to the player if you forget that checkbox — and would any error message tell you?</li>
+            <li>Which single field on the player does the zone write? Name it and name everything that reads it — a flag read by nobody is decoration.</li>
+            <li>The zone is invisible. What is the player actually looking at when they decide to climb?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the climb state.</strong>
+        <ul>
+            <li>What is <code>climbSpeed</code>, what type is it, how is it exposed as a tuning knob, and why slower than walking?</li>
+            <li>Which component's gravity is switched off, and to what value? Where does the number come from when you switch it back on — a literal you type, or a value you cached in <a href="6.3.html">6.3</a>? Justify your answer.</li>
+            <li><a href="6.3.html">6.3</a> already assigns <code>gravityScale</code> on the <em>physics</em> clock, once per physics step, from your vertical velocity. If your climb branch sets it to zero in <code>Update()</code> and 6.3's branch sets it back, which wins? Predict, test, describe the symptom.</li>
+            <li>Your movement is the method you settled on in <a href="2.2.html">2.2</a> — <code>linearVelocity</code> on a <strong>Dynamic</strong> body. What does it need in order to move the player straight up a ladder, and why does that velocity line carry no <code>Time.deltaTime</code>?</li>
+            <li>What exits the climb state? List them — the top, jumping, dying, leaving the zone — and say which happen through the trigger and which need handling by hand.</li>
+        </ul>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Project window → <code>PlayerController</code> →</strong> add the flag and the
+            speed knob, then write the two callbacks the zone sends. This is four lines of
+            behaviour, and the whole difficulty is in the <em>else</em> branch where you restore
+            gravity. Do that first, before any climbing movement, and test it:
+            <strong>Game view → press Play</strong>, walk into the zone, and confirm the flag flips
+            by printing it with <code>Debug.Log()</code>. The HUD from <a href="5.3.html">5.3</a>
+            lives in <code>Start</code> (index 0) and reads only your stats — it is not in this
+            scene, so a climbing experiment reports through the Console.
+        </li>
+        <li>
+            <strong>Same file → the Platformer branch of <code>Update()</code> →</strong> add the
+            climb lane: gravity off, vertical input read, sideways ignored, movement done <em>by
+            the method you chose in <a href="2.2.html">2.2</a></em>. Press Play and climb. Then let
+            go and watch — and be honest about whether the result is what you intended.
+        </li>
+    </ol>
+
+    <div class="callout trap">
+        <strong>The bug you are about to create, and the two ways out.</strong> Jump off the
+        ladder while your body is still inside the trigger. You clear the flag by hand so you can
+        jump — but you never left the zone, so it never sends its exit message. Land, step back
+        on, and nothing happens: the ladder is dead precisely where it used to work. Two standard
+        repairs; pick one and justify it:
+        <ul>
+            <li><strong>A cooldown.</strong> Ignore the zone for a fraction of a second after a deliberate exit. Simple, and it stops a jump from instantly re-grabbing the ladder.</li>
+            <li><strong>Trust only the zone.</strong> Never set the flag by hand: let the exit message be the only thing that clears it, and gate the jump on <code>isOnLadder &amp;&amp; jumpPressed</code>. Cleaner in principle; the jump feels one frame late.</li>
+        </ul>
+        Whichever you pick, write down what the player feels.
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: What Kind of Thing Is a Ladder?</h3>
+        <ol>
+<li>The ladder has art, but no prefab, no climb animation and no tag. Which of those four is a painting job and which one is the engineering — and why does the art being nearly free not make today easy?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.3:sc1:q1" data-block="socratic" data-question="The ladder has art, but no prefab, no climb animation and no tag. Which of those four is a painting job and which one is the engineering — and why does the art being nearly free not make today easy?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>The trigger zone sets a flag on entry and clears it on exit. The lever from <a href="5.2.html">5.2</a> flips a value and keeps it forever. Why is a ladder remembered only while you are inside it, and a lever remembered permanently?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.3:sc1:q2" data-block="socratic" data-question="The trigger zone sets a flag on entry and clears it on exit. The lever from 5.2 flips a value and keeps it forever. Why is a ladder remembered only while you are inside it, and a lever remembered permanently?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>Climbing turns gravity off. Your character also had gravity at zero in the Overworld, in <a href="5.3.html">5.3</a>. One number, two meanings, two scenes. What does each mean — and why is "gravity zero" a fact about the state rather than about the world?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.3:sc1:q3" data-block="socratic" data-question="Climbing turns gravity off. Your character also had gravity at zero in the Overworld, in 5.3 . One number, two meanings, two scenes. What does each mean — and why is &quot;gravity zero&quot; a fact about the state rather than about the world?" placeholder="write your answer, then keep going"></textarea></label></li>
+<li>Your jump is an impulse and gravity was tuned in <a href="6.1.html">6.1</a> to make the arc feel right. If the climb sets <code>gravityScale</code> to zero and restores it, what is the danger of restoring a number you typed rather than the one you saved?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="7.3:sc1:q4" data-block="socratic" data-question="Your jump is an impulse and gravity was tuned in 6.1 to make the arc feel right. If the climb sets gravityScale to zero and restores it, what is the danger of restoring a number you typed rather than the one you saved?" placeholder="write your answer, then keep going"></textarea></label></li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Name the four tiles a ladder is cut from, and why searching for "ladder" finds none of them</li>
+        <li>Say which ladder tiles were already on the <code>Caves</code> palette and which you dragged in</li>
+        <li>Build a trigger zone with its own tag, and say why it must be a trigger</li>
+        <li>Explain climb as a state: gravity off, vertical input only, a deliberate restore</li>
+        <li>Say which gravity assignment wins in your build — 6.3's physics-step one or your climb branch — and how you know</li>
+        <li>Demonstrate the jump-off re-entry bug and defend the repair you chose</li>
+        <li>Explain one input axis serving three meanings, chosen by state</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a></li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — states, all the way down</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — triggers, gravityScale and Rigidbody2D bodies</li>
+    </ul>
+    <p>Next: <a href="7.4.html">7.4 — Ladders II: Mounts, Tops &amp; Polish</a>.</p>
+</div><div class="lab-bar" data-lesson="7.3" data-lesson-title="Ladders I: The Climbing State" data-count="8" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/8 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="7.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="7.2.html"><span class="dir">&#9664; Previous</span><span class="where">7.2 — Tile Collision, Layers &amp; Sorting</span></a><a class="foot-next" href="7.4.html"><span class="dir">Next &#9654;</span><span class="where">7.4 — Ladders II: Mounts, Tops &amp; Polish</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

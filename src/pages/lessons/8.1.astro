@@ -1,0 +1,289 @@
+---
+// Lesson 8.1 — Boss Design: Spec It First
+// DESIGN ONLY. There is no boss sprite, no boss prefab, no arena and no
+// boss door anywhere in this project. All of it is built by the student
+// in 8.2-8.5. This lesson produces a written spec and nothing else.
+//
+// NO LADDER LEVEL, ON PURPOSE. src/data/asks.ts has no entry for 8.1 and
+// verify-site's check 7 fails any lesson that declares a ladder level without
+// one, so there is no ask banner, no walkthrough and no Break It Down block
+// here. The pass gives it the editor/code split, the pane names and the call
+// naming, and nothing else — the same shape 6.5 (the other no-level day) takes.
+//
+// STRUCTURE (this pass): "The Problem: The Boss Does Not Exist" is now the
+// "In the Editor" half, and it has numbered, pane-named steps it never had —
+// the lesson has always opened by sending the student to the Project window's
+// search box, so the clicks are real and now say which pane they happen in.
+// "Read Function-Level Examples" and "Read the Docs: The Six-Part Spec" are one
+// "In the Code" half: no file is written today, and the spec IS the code's
+// specification (every number in it becomes a field, every rule a branch), so
+// the half that decides the numbers is the half that says so.
+//
+// CULLED FOR REPETITION: the "Read this before you spec a single number" callout
+// restated the arithmetic specification's own bullets (HP is relative to your
+// swing's damage and your player's health; the player's health is a value in
+// StatManager and not in this document) and is gone — the specification asks it
+// where the student is doing the arithmetic. The two paragraphs that opened the
+// old Problem activity said "ordering beats discipline" twice, and one of them
+// survives. The five function-level examples were five restatements of two
+// ideas, so two went (the cue sheet and the lighting cue, which were about
+// naming rather than about outcome-and-budget) and the socratic's second
+// question was reworded in place to point at the survivor.
+//
+// PROTECTED BLOCKS — answer ids are POSITIONAL (src/lib/formify.ts), so both
+// socratic blocks stay in document order with their three questions in order:
+//   socratic "What Makes a Boss a Boss?"        3 items  (In the Editor)
+//   socratic "Predict Before You Write the Spec" 3 items (In the Code)
+// The questions are reworded in place only, never moved, inserted into or
+// trimmed from anywhere but the end.
+import Lesson from '../../layouts/LessonLayout.astro';
+
+const body = `<h1>8.1 — Boss Design: Spec It First</h1>
+
+<p class="lesson-lead">
+    Open the Project window, click into the search box and type <code>boss</code>. You will find
+    <strong>nothing</strong> — no sprite, no prefab, no arena, no locked door. Every other unit
+    this year handed you a starter asset and asked you to make it behave. This one hands you an
+    empty search result. So today you build nothing: you read what the project actually has, then
+    write the document that decides what the next four lessons are.
+</p>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <p>
+        The inventory is the first half of a spec. You cannot design a fight against a project you
+        have not read, and the fastest way to write a bad boss is to assume an asset exists that
+        does not.
+    </p>
+
+    <ol>
+        <li>
+            <strong>Project window →</strong> set the search box to <strong>All</strong> and type
+            <code>boss</code>. Nothing. Then open
+            <code>Assets/Artwork/Character/Enemy</code> and read what is genuinely there:
+            <code>OrcwithAxe1.png</code>, <code>OrcwithAxe2.png</code>,
+            <code>LoRTowerV2_blue_no_soul_no_fire-Sheet.png</code> and
+            <code>Turret_Bullet.png</code>. The neighbouring Player folder holds <code>Axe1</code>,
+            <code>Axe2</code> and <code>Shovel</code>. That is the entire palette a boss can be
+            assembled from.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs</code>. Eight prefabs are
+            waiting there, and not one of them is a boss. The enemy, the turret and the tower sheet
+            you just looked at are the three pieces <a href="8.2.html">8.2</a> builds one out of.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/_Scenes</code>, then open each scene in
+            turn and <strong>Hierarchy →</strong> read what it already contains, object by object.
+            One of the three will host the fight, and the table below is the evidence for your
+            choice.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs/Switch</code>, then
+            <strong>Inspector →</strong> the <code>Lever</code> component on it. The UnityEvent
+            slots are <em>empty</em>: that is working door machinery with no door wired to it yet,
+            and it is what <a href="8.5.html">8.5</a> will point at something.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> select one of the enemies in the Overworld and read its
+            <strong>Inspector</strong> from top to bottom. Then ask what a boss needs that this
+            object does not have. That gap, plus the health script you write in
+            <a href="8.2.html">8.2</a>, is the distance between an enemy and a boss.
+        </li>
+    </ol>
+
+    <table>
+        <tr><th>What already exists</th><th>What you must create from nothing</th></tr>
+        <tr>
+            <td>
+                <strong>Scenes:</strong> <code>Start</code> (index 0 — where the game begins; it
+                holds the StatManager object, a Player and the tilemaps), <code>Overworld</code>
+                (the hub, with the Canvas and your enemies), <code>Platformer</code> (your cave).
+                All three contain a Player.
+            </td>
+            <td>
+                <strong>The arena</strong> — a room that does not exist in any of them. You build
+                it with the tilemap skills from <a href="7.1.html">7.1</a>.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <strong>Enemy art:</strong> an orc, an orc again, a tower sheet and a bullet. A
+                scaled orc is a real answer for a boss; so is an oversized turret. A grey rectangle
+                is also honest.
+            </td>
+            <td>
+                <strong>The boss itself</strong> — no boss sprite exists, so it is assembled from
+                that art in <a href="8.2.html">8.2</a> rather than found.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <strong>Systems you own:</strong> the <code>StatManager</code> singleton holding
+                your player's health and coins (the refactor you did in
+                <a href="5.3.html">5.3</a>), an <code>ItemSpawner</code>, a turret that fires
+                projectiles, an enemy state machine, and a lever with a UnityEvent.
+            </td>
+            <td>
+                <strong>The lock, the win and the loss.</strong> There is no boss door. The
+                <code>Switch.prefab</code> carries the working <code>Lever.cs</code> whose events
+                are currently empty — you may reuse that machinery, but the door itself is yours
+                to make in <a href="8.5.html">8.5</a>.
+            </td>
+        </tr>
+    </table>
+
+    <div class="socratic">
+        <h3>Socratic: What Makes a Boss a Boss?</h3>
+        <ol>
+<li>Name the last boss you actually lost to, then beat. What did it teach you <em>before</em> it attacked — and how did it teach you?</li>
+<li>A boss is a conversation: it asks a question with an attack, the player answers with a move, and the boss responds. What happens to that conversation if an attack has no answer the player can perform?</li>
+<li>You searched the Project for "boss" and found nothing. Where else in this project did an object you needed fail to exist — and what did you have to decide before you could build it?</li>
+</ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~45 min</span>
+    </div>
+
+    <p>
+        No <code>.cs</code> file today, and that is the point of the half. A spec fixes an
+        <em>outcome</em> and a <em>budget</em> and leaves the machinery to whoever builds it — and
+        the machinery here is four lessons of C#. Every number you write down becomes a field and
+        every rule becomes a branch, so they get decided here rather than inside the file.
+    </p>
+
+    <p><strong>Example 1 — A siege engine's spec sheet (the numbers are the design):</strong></p>
+    <pre><code>// A trebuchet is specified as: 90 m range, 8-second reload,
+// 300 kg counterweight. The crew drills to those numbers.
+// Nobody specifies the wood.</code></pre>
+
+    <p><strong>Example 2 — A bottling line's throughput (one number constrains every station):</strong></p>
+    <pre><code>// The line is specified as 40,000 bottles per hour.
+// Every station's cycle time must fit inside that.
+// One station out of budget makes the whole line's number a lie.</code></pre>
+
+    <p><strong>Example 3 — A recipe card is a spec (outcome and budget, not method):</strong></p>
+    <pre><code>// "Serves 4. 20 minutes." That is the whole contract.
+// The pan, the flame and the order of operations are the cook's problem.</code></pre>
+
+    <div class="socratic">
+        <h3>Predict Before You Write the Spec</h3>
+        <ol>
+<li>Which of the three examples above specifies a <em>cycle time</em> — a delay between repetitions? Which part of your fight is that same idea?</li>
+<li>The recipe card fixes the outcome and leaves the method to the cook. What is the equivalent of "the method" in your boss, and why should the person playing your game never have to think about it?</li>
+<li>The bottling line's single number constrains every station. Which single number in your boss fight must every attack's timing fit inside?</li>
+</ol>
+    </div>
+
+    <p>
+        Here are the six parts of the document, what each one is <em>for</em>, and the failure each
+        one prevents. Write all six today, on paper, before you touch Unity.
+    </p>
+
+    <table>
+        <tr><th>Part</th><th>What it fixes</th><th>The failure it prevents</th></tr>
+        <tr>
+            <td><strong>1. Identity</strong></td>
+            <td>One sentence naming what the thing is and how it behaves: "The Cave Warden: slow, huge, guards the exit, telegraphs everything."</td>
+            <td>A boss with no personality becomes a stat block, and a stat block is never scary.</td>
+        </tr>
+        <tr>
+            <td><strong>2. Health economy</strong></td>
+            <td>Boss HP, against your swing's damage from <a href="8.3.html">8.3</a>, against the seconds between openings. Hits needed × seconds between openings = fight length.</td>
+            <td>A fight that is over in twelve seconds, or one that outlasts the player's patience.</td>
+        </tr>
+        <tr>
+            <td><strong>3. Phases (two or three)</strong></td>
+            <td>What changes at each threshold — a new attack, a faster rhythm, a hazard waking up.</td>
+            <td>A fight whose second half is identical to its first, which players read as "the boss has more HP than personality."</td>
+        </tr>
+        <tr>
+            <td><strong>4. Attacks</strong></td>
+            <td>Two or three per phase, each with four named properties: <em>telegraph</em> (what tells you it is coming), <em>timing</em> (how long you have to react), <em>counterplay</em> (the move that beats it), <em>punishment</em> (what a mistake costs).</td>
+            <td>The "dodge randomly or take the hit" attack — decoration that reads as unfairness.</td>
+        </tr>
+        <tr>
+            <td><strong>5. Tells and fairness</strong></td>
+            <td>The rule from <a href="7.5.html">7.5</a>: a boss is a level that fights back, so it must be readable. Same signposting standard you applied to the cave.</td>
+            <td>A fight you can only win by memorising it, which is not the same thing as being hard.</td>
+        </tr>
+        <tr>
+            <td><strong>6. Arena</strong></td>
+            <td>Where the fight happens, how the player enters, whether they may leave, and which hazards the boss ignores but the player must respect.</td>
+            <td>An arena that is a featureless box, or a fight the player simply walks away from.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification: the fight's arithmetic.</strong>
+        <ul>
+            <li>Write the target fight length first, in seconds, and defend the number. A fight that is too short cannot teach its own patterns; a fight that is too long has to invent difficulty out of repetition.</li>
+            <li>How many seconds out of every ten is your player actually <em>allowed</em> to attack? That is the inverse of your boss's attack pressure. Estimate it from the rhythm you are planning, then write it down — you will check it against the real build in <a href="8.4.html">8.4</a>.</li>
+            <li>With that fraction fixed, how many hits must land for the fight to reach its target length? That number, times your swing's damage from 8.3, is the boss's HP — which is why HP is the last number you write rather than the first, even though it is the one the player stares at.</li>
+            <li>Where does the player's own health come from in this calculation — a value you invent today, or the max health already sitting in your <code>StatManager</code>? What does that tell you about how many mistakes the fight should allow?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the arena.</strong>
+        <ul>
+            <li>Which scene hosts the fight? The inventory above is the whole answer sheet, so say which one fact about a scene matters most for an arena — and what each of the other two would cost you.</li>
+            <li>Where does the player enter, and can they leave the same way? If your arena has two open exits, what is stopping the player from simply walking out mid-fight?</li>
+            <li>There is no boss door in this project, and you build one in <a href="8.5.html">8.5</a>. Decide now whether the fight is <em>locked</em> (a barrier appears), <em>gated</em> (the way onward opens only when the boss dies) or <em>open</em> (the player may always flee). Write one sentence defending your choice.</li>
+            <li>Which hazards does the boss ignore but the player must respect? Why does a hazard that hurts <em>both</em> of you usually read as a bug rather than a feature?</li>
+            <li>The room's size is a difficulty knob nobody remembers to turn. Sketch it in tiles using the numbers you already know: your player's walk speed and your jump's apex height from <a href="6.3.html">6.3</a>. How wide must the room be before your boss's fastest attack is dodgeable by running rather than by luck?</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <strong>Architectural specification: the attack list.</strong>
+        <ul>
+            <li>For each attack, write the telegraph as something the player can <em>see</em>: a colour flash, a wind-up pose, a sound. "It just happens" is not a telegraph.</li>
+            <li>For each attack, write the counterplay as a sentence naming the player's move and the number that makes it possible: "jump the wave; the wave is one tile tall and the jump apex is two."</li>
+            <li>Is the counterplay available in <em>every</em> phase, or does a later phase remove it? Removing an answer is a legitimate escalation — removing <em>all</em> of them is not.</li>
+            <li>Count your states: a boss with six states is a large build. How many did you write, and which one will you cut first if the build is not working by the end of <a href="8.2.html">8.2</a>?</li>
+            <li>Which single attack is your boss's <em>signature</em> — the one a player would describe if asked what the fight was about? If you cannot name one, you have written a list rather than a boss.</li>
+        </ul>
+    </div>
+</div>
+
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Say what this project actually ships you for a boss, and why the body, the arena and the door must be built rather than found</li>
+        <li>Write all six parts of a boss spec: identity, economy, phases, attacks, tells, arena</li>
+        <li>Derive the boss's HP from your swing's damage and your target fight length instead of guessing it</li>
+        <li>Say the counterplay sentence out loud for every attack you wrote</li>
+        <li>Name the scene that will host the fight, and justify it against the inventory above</li>
+        <li>Commit and push your <code>BOSS_SPEC.md</code></li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-08/index.html">Unit 8: Boss Fight</a> — the spec-to-build pipeline</li>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the machine your boss extends, and the vocabulary you will spec in</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the APIs the next four lessons will use</li>
+    </ul>
+    <p>Next: <a href="8.2.html">8.2 — Boss Body, Health &amp; Phases</a>, where the spec becomes an object in a scene.</p>
+</div>`;
+---
+<Lesson id="8.1" title="8.1 Boss Design: Spec It First — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>
