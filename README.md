@@ -95,6 +95,19 @@ The site builds to static files with `base: '/AP_CS_Principles'`
 builds and deploys on every push to main. The site then lives at
 `https://<user>.github.io/AP_CS_Principles/`.
 
+That workflow file has to be **committed** to work. It was once left
+untracked, so git never carried it, GitHub had no copy, and deleting the
+folder lost it. Deploying needs three things, in this order:
+
+1. `.github/workflows/deploy.yml` tracked in the repo and pushed.
+2. Pages enabled — Settings → Pages → Source: **GitHub Actions** (the
+   workflow also asks for this itself on its first run).
+3. A push to `main`, or a manual run from the Actions tab.
+
+A 404 on the Pages URL means step 1 or 2 is missing, not that the build
+is broken. `npm run build && npm run verify` is exactly what the workflow
+runs, so if that pair passes on your machine the deploy will pass too.
+
 ## Credits
 
 Course design and the starter project: the AP CS Principles class at

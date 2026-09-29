@@ -1,0 +1,70 @@
+# Build the course site and publish it to GitHub Pages.
+#
+# This file MUST stay tracked by git. It once existed only as an untracked file
+# in the working tree, so git never carried it: GitHub had no copy, and deleting
+# the folder destroyed the only one. Anything CI needs has to be committed.
+#
+# Pages is served from an artifact this workflow uploads — not from a branch.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Re-run a deploy from the Actions tab without pushing an empty commit.
+  workflow_dispatch:
+
+# GITHUB_TOKEN scopes: read the repo, publish to Pages, and mint the OIDC token
+# deploy-pages uses to prove the artifact came from this workflow.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. `false` lets an in-flight publish finish instead of
+# being cancelled half-written.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # package.json requires Node >=23.6.0 and the site is developed on
+          # Node 26; pin the same major here so CI and a laptop agree.
+          node-version: '26'
+          cache: npm
+
+      # `npm ci`, not `npm install`: installs exactly what package-lock.json
+      # pins, and fails loudly if the two disagree.
+      - run: npm ci
+
+      # astro build -> scripts/highlight-code.mjs -> pagefind, into dist/.
+      - run: npm run build
+
+      # The gate. A build that fails these checks must not reach students.
+      - run: npm run verify
+
+      - uses: actions/configure-pages@v5
+        with:
+          # Create the Pages site if it does not exist yet, so a freshly
+          # recreated repo does not need a manual Settings -> Pages step first.
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
