@@ -35,9 +35,10 @@
  *     failure — overlap is a heuristic, so the list goes to a human)
  * 14. emphasis that never reaches the student — no page shows literal *asterisks*
  * 15. the syntax colouring is intact — every block that declares a language was
- *     coloured, the palette in public/style.css and the one in
- *     scripts/highlight-code.mjs still name the same eight colours, no colour
- *     reached a page that neither can name, and no marker leaked
+ *     coloured and none was missed for being bare, the palette in
+ *     public/style.css and the one in scripts/highlight-code.mjs still name the
+ *     same nine colours, no colour reached a page that neither can name, and no
+ *     marker leaked
  * 16. every editor pane (src/lib/panes.ts) says what to look at, every
  *     badge it draws on a row is the number of the step the figure sits in,
  *     and no field value is long enough to be clipped by its own box
@@ -1123,12 +1124,16 @@ if (!fs.existsSync(askSrcPath)) {
   // looked like before there was any colour at all — so the source is right and
   // the page is wrong, which is the shape of the other silent traps here.
   //
-  // Four things, all cheap, each one a failure mode that would otherwise be
+  // Five things, all cheap, each one a failure mode that would otherwise be
   // found by a student:
   //
   //   - a `<pre>` that declares a language but carries no `data-lang` was never
   //     coloured: the attribute is only added by the colouring step, so this is
   //     "you edited a lesson and did not rebuild".
+  //   - a block left plain whose lines carry a `;` or a brace is code the
+  //     detector in scripts/highlight-code.mjs missed. The heuristic decides
+  //     language from the block's own shape, so the one shape it cannot afford
+  //     to miss is stated independently here rather than trusted.
   //   - the two lists of hexes (the classes in public/style.css, the map in the
   //     script) must name the same colours, both directions. The script reads
   //     the stylesheet's palette; nothing keeps them together but this.
@@ -1160,7 +1165,7 @@ if (!fs.existsSync(askSrcPath)) {
       ok('the script and the stylesheet name the same ' + inScript.length + ' syntax colours');
     }
 
-    const uncoloured = [], inlined = [], leaked = [];
+    const uncoloured = [], inlined = [], leaked = [], leftPlain = [];
     for (const page of pages) {
       const html = fs.readFileSync(page, 'utf8');
       const rel = path.relative(dist, page);
@@ -1168,6 +1173,20 @@ if (!fs.existsSync(askSrcPath)) {
       for (const m of pres) {
         if (/\blang-/.test(m[1]) && !/data-lang=/.test(m[1])) uncoloured.push(rel);
         if (/style="color:/.test(m[2])) inlined.push(rel);
+        // A block the colouring step passed over now says nothing about its
+        // language, because it only adds `data-lang` when it colours. The
+        // detector in scripts/highlight-code.mjs is a heuristic, and this is the
+        // one shape it must never miss: a statement terminator or a brace on a
+        // line that is not a comment. That is code in every language this site
+        // teaches, and no diagram, transcript or data sheet in it holds one —
+        // which is what makes the test safe to state here without repeating the
+        // keyword list, and wrong to leave to the classifier's good behaviour.
+        if (/data-lang=/.test(m[1])) continue;
+        const text = m[2].replace(/<[^>]*>/g, '')
+          .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+          .replace(/&#0?39;/g, "'").replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
+        const code = text.split('\n').filter((l) => l.trim() !== '' && !l.trim().startsWith('//'));
+        if (/[;{}]/.test(code.join('\n'))) leftPlain.push(rel);
       }
       if (html.includes('zzwtgapmarkerzz')) leaked.push(rel);
     }
@@ -1185,14 +1204,23 @@ if (!fs.existsSync(askSrcPath)) {
         '    token this theme was not known to produce — add its hex to PALETTE in\n' +
         '    scripts/highlight-code.mjs AND to the .tk- block in public/style.css.');
     }
+    if (leftPlain.length) {
+      fail(leftPlain.length + ' page(s) hold a code block that was left plain: ' +
+        [...new Set(leftPlain)].slice(0, 8).join(', ') + '\n' +
+        '    A block with a `;` or a brace, on a line that is not a comment, is code —\n' +
+        '    and one plain listing among coloured ones reads as a mistake rather than a\n' +
+        '    choice. classify() in scripts/highlight-code.mjs did not recognise its shape\n' +
+        '    (see the note there for what deliberately stays plain).');
+    }
     if (leaked.length) {
       fail(leaked.length + ' page(s) leak the blank marker: ' + [...new Set(leaked)].slice(0, 8).join(', ') +
         '\n    A nested span (the guided build\'s green blank) was not restored, so a student\n' +
         '    sees the marker where their blank goes. See the marker note in\n' +
         '    scripts/highlight-code.mjs.');
     }
-    if (!uncoloured.length && !inlined.length && !leaked.length) {
+    if (!uncoloured.length && !inlined.length && !leaked.length && !leftPlain.length) {
       ok('every language-declaring block is coloured, in palette, with no marker leaks');
+      ok('no block left plain holds a statement terminator or a brace');
     }
   }
 

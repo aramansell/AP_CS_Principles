@@ -17,21 +17,21 @@
  * second copy to package.json.
  *
  * The palette does NOT live here. Each token colour becomes a class (`tk-kw`,
- * `tk-ty`, …) and the eight hexes are written once, in public/style.css. This
+ * `tk-ty`, …) and the nine hexes are written once, in public/style.css. This
  * file holds the mapping from hex to class name, which is a duplicate of that
  * list — so `npm run verify` check 15 fails if the two ever disagree, and fails
  * again if any colour reaches the page that the palette cannot name. A colour
  * inlined as `style="color:#…"` is how a future grammar update would try to
  * arrive unnoticed, and check 15 is what stops it.
  *
- * A block is coloured when it says what it is: `class="lang-cs"` on the `<pre>`
- * (also lang-bash, lang-json, lang-yaml). Nothing is guessed from the content.
- * Most of the code blocks in this course that are not walkthrough C# are not code
- * at all — they are trade analogies, a DNS transcript, Unity scene YAML,
- * pseudocode with arrows in it — and a heuristic that colours `nslookup` as C#
- * would be worse than leaving the block alone. The walkthrough renderer declares
- * its own blocks (walkthrough.ts), and the hand-written ones were marked in the
- * lesson sources by hand.
+ * A block that declares `class="lang-cs"` on the `<pre>` (also lang-bash,
+ * lang-json, lang-yaml) is coloured as it says. A block that declares nothing is
+ * no longer left alone: the trade analogies in 6.5, 7.5, 7.7 and 8.1 are written
+ * as `<pre><code>// …` on purpose, and a reader on a page where everything else
+ * is coloured is owed the same treatment. The default is therefore C#, decided
+ * per block by `classify` below — see the note there for what still stays plain
+ * (a DNS transcript, a network path, AP pseudocode with `←` in it) and why.
+ * The walkthrough renderer declares its own blocks (walkthrough.ts).
  *
  *   node scripts/highlight-code.mjs          # colour dist/, report what it did
  */
@@ -52,6 +52,11 @@ const PALETTE = {
   '#CE9178': 'tk-st', // string
   '#B5CEA8': 'tk-nu', // number
   '#6A9955': 'tk-cm', // comment
+  '#C8C8C8': 'tk-lb', // label — `word:` at the start of a line, which the C# grammar
+                      // reads as a goto label. It fires on the AP-vs-C# side-by-side
+                      // in unit 10, where the left column's `AP:` is a heading, not
+                      // a label. Naming the colour keeps the block legible; the
+                      // alternative is a block the palette cannot describe.
 };
 const DEFAULT = '#D4D4D4'; // punctuation and plain text: the page's own colour, no span
 
@@ -79,6 +84,45 @@ const unesc = (s) => s
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); // & first, for the same reason
 
 const attrs = (s) => Object.fromEntries([...s.matchAll(/([\w-]+)(?:="([^"]*)")?/g)].map((m) => [m[1], m[2] ?? '']));
+
+// --- which language, when nothing says --------------------------------------
+// A block that declares `class="lang-cs"` is coloured as it says. A block that
+// declares nothing is no longer left alone: this course has a whole genre of
+// block written to LOOK like code — the trade analogies in 6.5, 7.5, 7.7, 8.1
+// are `<pre><code>// …` on purpose — and a student reading them on a page where
+// every other block is coloured is owed the same treatment.
+//
+// So the default is C# (this course's language, as Java is the A Guide's), with
+// the same refusal to colour what is not code: a network path, the DNS
+// transcript, a licence block, AP pseudocode with `←` in it. The test is made on
+// what sits OUTSIDE the comment lines, so a block that is only `//` reads as the
+// author's chosen form and goes green, while a diagram that merely happens to
+// carry a comment line stays plain rather than being cut up by the tokenizer.
+//
+// A keyword counts only at the START of a line. That is the whole distinction
+// between code and a diagram, and it has to be positional: the handshake walk in
+// unit 9 reads `certificate + public key`, where the bare word `public` matched
+// a word-boundary test and coloured a protocol diagram as C#. C# is written with
+// its statement keywords leading the line (`    foreach (var x in y)`,
+// `public static void Start()`); prose and diagrams carry them mid-sentence.
+// Types (`int`, `string`) are deliberately not in the list — a declaration line
+// has a `;` on it anyway, and a data sheet's `int: 10` does not.
+const CS_STMT = /^[ \t]*(?:public|private|protected|internal|static|readonly|const|sealed|partial|override|virtual|abstract|void|class|struct|interface|enum|namespace|using|var|new|return|if|else|for|foreach|while|do|switch|case|default|break|continue|yield|async|await|try|catch|finally|throw|get|set)\b/m;
+// Operators are the second signal, for an expression-only block with no
+// statement of its own. Every one of these is unambiguous: a diagram writes
+// `→`, not `=>`, and prose writes neither.
+const CS_OP = /&&|\|\||==|!=|<=|>=|\+\+|--|\+=|-=|\*=|=>/;
+const codeish = (t) => /[;{}]|\/\/|\/\*/.test(t) || CS_STMT.test(t) || CS_OP.test(t);
+
+/** The language for a block, or null to leave it alone. */
+function classify(inner, declared) {
+  if (declared) return LANGS[declared.toLowerCase()] || null;
+  const text = unesc(inner.replace(/<[^>]*>/g, ''));
+  const lines = text.split('\n').filter((l) => l.trim() !== '');
+  const code = lines.filter((l) => !l.trim().startsWith('//'));
+  if (code.length === 0) return lines.length ? 'csharp' : null; // an all-comment block
+  return codeish(code.join('\n')) ? 'csharp' : null;
+}
 
 // --- token output -----------------------------------------------------------
 // A token becomes a span, except the default-coloured ones (punctuation, which
@@ -174,7 +218,7 @@ async function main() {
     }
   })(ROOT);
 
-  let coloured = 0, named = 0, skipped = 0, lines_ = 0;
+  let coloured = 0, named = 0, skipped = 0, plain = 0, lines_ = 0;
   for (const file of files) {
     const html = fs.readFileSync(file, 'utf8');
     let out = '', last = 0, touched = false;
@@ -188,8 +232,8 @@ async function main() {
       const codeAttrs = code ? code[2] : '';
 
       const declared = ((a.class || '') + ' ' + codeAttrs).match(/\blang-([\w#]+)/);
-      const lang = declared ? LANGS[declared[1].toLowerCase()] : undefined;
-      if (!lang) { if (declared) skipped++; continue; }
+      const lang = classify(inner, declared && declared[1]);
+      if (!lang) { if (declared) skipped++; else plain++; continue; }
       if (inner.includes('class="tk-')) continue; // already coloured: this ran twice
       named++;
 
@@ -258,8 +302,9 @@ async function main() {
   }
 
   console.log(`highlight: ${coloured} block${coloured === 1 ? '' : 's'} over ${files.length} pages` +
-    (lines_ ? ` (${lines_} walkthrough lines)` : '') + `, ${named} declared a language` +
+    (lines_ ? ` (${lines_} walkthrough lines)` : '') + `, ${named} took a language` +
     (restored ? `, ${restored} guided-build blanks put back` : ''));
+  if (plain) console.log(`  ${plain} block${plain === 1 ? '' : 's'} left plain (not code: transcript, diagram, pseudocode)`);
   if (skipped) console.log(`  ${skipped} declared a language Shiki does not know — left plain`);
   if (unmapped.size) {
     console.log(`  UNMAPPED COLOURS: ${[...unmapped].join(', ')} — inlined; add them to the palette in public/style.css`);
