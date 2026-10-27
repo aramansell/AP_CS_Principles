@@ -81,7 +81,7 @@ export const DAY_NOTES: Record<string, string> = {
   '2026-09-01': 'First B day of the year. Course tour, syllabus, Scratch accounts, first sprite.',
   '2026-09-14': 'Unity begins: fork cs-curriculum-main, clone it, press Play.',
   '2026-11-20': 'Last class before Thanksgiving week (Nov 23-27 off).',
-  '2026-12-17': 'Last class before winter break. Boss specs are due before you go.',
+  '2026-12-17': 'Last class before winter break. The enemy state machine lands before you go.',
   '2027-01-04': 'Back from break. Boss fight build begins.',
   '2027-01-21': 'Semester 1 final - a normal B day on the finals-week schedule.',
   '2027-01-28': 'Semester 2 begins.',
@@ -118,12 +118,22 @@ export const SEQUENCE: SequenceEntry[] = [
   // get-to-know-you starter project. The first Unity project begins Sep 14.
   // Unit 1 is front-loaded: the teacher demonstrates 1.1-1.3 live in about
   // fifteen minutes and the class goes straight into 1.4, so the whole unit
-  // lands in two B days. Unit 2 then moves up into the freed Sep 18/22/24
-  // days, which is exactly the room it needs: its four lessons now each get
-  // their own day instead of 2.2 and 2.3 sharing one, and two studio days
-  // (2.5/2.6) follow on Unit 2's former slots. Unit 3 onward is unchanged.
-  // To keep every later lesson in the year, two lighter lesson pairs still
-  // share a single B day: 6.3+6.4 and 7.5+7.6.
+  // lands in two B days.
+  //
+  // The Sep-Oct rows below record the order the 2026-27 class actually built,
+  // not the order this file was first written for. The differences that matter:
+  //   - 2.4 is a consolidation studio, not a standalone prefabs lesson. Prefabs
+  //     have been in use since 2.1 (the health potion is a cloned coin).
+  //   - A player projectile (the enemy projectile cloned, recolored and
+  //     retagged) and a player melee swing (a child hitbox that remembers the
+  //     enemy it touched) are class-built lessons with no site page yet. They
+  //     are calendar rows with no lesson id, so the dashboard does not list
+  //     them - the pace table is the record.
+  //   - The cave is painted in tilemaps BEFORE the jump exists, which is why
+  //     7.1 sits before Unit 6 in the teaching order.
+  //   - Enemy animation (4.2), contact damage (4.4) and the full state machine
+  //     (4.5) are deferred to December, after the axe, door and scene
+  //     persistence, so the semester still reaches the boss fight.
   { d: '2026-09-01', kind: 'launch', group: '0.1', phase: 1, ced: ['CRD-1', 'CRD-2'],
     title: 'Scratch Starter 1: Course Tour & First Sprites', lessons: [],
     note: 'First 45 min: course tour, how this site works, lab rules. Then Scratch accounts and the first sprite of your get-to-know-you project.' },
@@ -149,69 +159,80 @@ export const SEQUENCE: SequenceEntry[] = [
     note: 'The pivotal lesson of the unit. A solid spike reveals that transform.Translate has made your character a ghost - so you choose a movement method you can live with all year, then build health and death on top of it.' },
   { d: '2026-09-24', kind: 'lesson', group: '2.3', phase: 1, ced: ['AAP-3', 'AAP-2'],
     title: 'Healing Pickups & the Max-Health Cap', lessons: ['2.3'],
-    note: 'Your first selection rule. A value with a ceiling needs a rule, not just arithmetic.' },
-  { d: '2026-09-28', kind: 'lesson', group: '2.4', phase: 1, ced: ['CRD-2'],
-    title: 'Prefabs, Spawning & Playtesting', lessons: ['2.4'],
-    note: 'One working object becomes a whole level, and you run the playtest ritual that ends every jam for the rest of the year.' },
-  { d: '2026-09-30', kind: 'studio', group: '2.5', phase: 1, ced: ['AAP-2', 'AAP-3', 'CRD-2'],
-    title: 'Physics & Stats Studio: Catch Up and Tune', lessons: ['2.5'],
-    note: 'The heaviest unit gets a day to settle. Finish 2.1-2.4 if you are behind, re-tune your movement now that a physics body is doing the work, and fix the top item from your playtest notes.' },
-  { d: '2026-10-02', kind: 'studio', group: '2.6', phase: 1, ced: ['CRD-2', 'AAP-2'],
-    title: 'Unit 2 Review + Second Playtest', lessons: ['2.6'],
-    note: 'Swap seats and playtest again now that your fixes have landed. Compare the two sheets - did the fix actually work? Close the unit by demonstrating your spike, your potion and your death rule.' },
-  { d: '2026-10-06', kind: 'lesson', group: '3.1', phase: 1, ced: ['AAP-2'],
+    note: 'Your first selection rule. The health potion is a prefab cloned from the coin - a different tag and a different png - so the pickup family grows without a new script.' },
+  { d: '2026-09-28', kind: 'studio', group: '2.4', phase: 1, ced: ['AAP-2', 'AAP-3', 'CRD-2'],
+    title: 'Unit 2 Studio: Prefabs, Tuning & Review', lessons: ['2.4', '2.5', '2.6'],
+    note: 'Prefabs are not a standalone lesson in this course - you have used them since 2.1. Today consolidates: instantiate a second copy, re-tune the movement now that a physics body is doing the work, and run the second playtest.' },
+  { d: '2026-09-30', kind: 'lesson', group: '3.1', phase: 1, ced: ['AAP-2'],
     title: 'The Turret: Distance & the Detection Radius', lessons: ['3.1'] },
-  { d: '2026-10-08', kind: 'lesson', group: '3.2', phase: 1, ced: ['AAP-2'],
+  { d: '2026-10-02', kind: 'lesson', group: '3.2', phase: 1, ced: ['AAP-2'],
     title: 'Projectiles: Instantiate, Fire, Destroy', lessons: ['3.2'] },
-  { d: '2026-10-13', kind: 'lesson', group: '3.3', phase: 1, ced: ['AAP-2'],
+  { d: '2026-10-06', kind: 'lesson', group: '3.3', phase: 1, ced: ['AAP-2'],
     title: 'Fire Rate: Cooldowns & Time', lessons: ['3.3'] },
-  { d: '2026-10-16', kind: 'lesson', group: '3.4', phase: 1, ced: ['CRD-2'],
-    title: 'Projectile Damage, Tuning & Playtest', lessons: ['3.4'] },
-  { d: '2026-10-20', kind: 'lesson', group: '4.1', phase: 1, ced: ['AAP-2'],
-    title: 'The Enemy: Patrol', lessons: ['4.1'] },
-  { d: '2026-10-22', kind: 'lesson', group: '4.2', phase: 1, ced: ['AAP-2', 'CRD-2'],
-    title: 'Enemy Animation: A Different State Machine', lessons: ['4.2'] },
-  { d: '2026-10-26', kind: 'lesson', group: '4.3', phase: 1, ced: ['AAP-2'],
-    title: 'Chase: The Aggro Radius', lessons: ['4.3'] },
-  { d: '2026-10-28', kind: 'lesson', group: '4.4', phase: 1, ced: ['AAP-2'],
-    title: 'Attack: Close-Range Contact Damage', lessons: ['4.4'] },
-  { d: '2026-11-03', kind: 'lesson', group: '4.5', phase: 1, ced: ['AAP-2'],
-    title: 'The Full State Machine: Patrol, Chase, Attack', lessons: ['4.5'] },
-  { d: '2026-11-05', kind: 'lesson', group: '5.1', phase: 1, ced: ['AAP-1', 'CRD-2'],
+  { d: '2026-10-08', kind: 'lesson', group: '3.5', phase: 1, ced: ['AAP-2', 'CRD-2'],
+    title: 'Player Projectile: Clone, Retag & Reuse the Cooldown', lessons: [],
+    note: 'The player fires back. Clone the enemy projectile, recolor it, retag it, and give it the cooldown timer you built in 3.3 - the point is that the pattern moves to a new owner.' },
+  { d: '2026-10-13', kind: 'lesson', group: '3.4', phase: 1, ced: ['CRD-2'],
+    title: 'Projectile Damage, Tuning & Playtest', lessons: ['3.4'],
+    note: 'Close the projectile loop: colliders, damage and Destroy on both the turret shot and the player shot, then tune the numbers and playtest.' },
+  { d: '2026-10-16', kind: 'lesson', group: '4.1', phase: 1, ced: ['AAP-2', 'AAP-1'],
+    title: 'The Enemy: Patrol a List of Points', lessons: ['4.1'],
+    note: 'The reference build in 4.1 uses two waypoints; a list of points is the same idea with more stops. The enemy now has a memory of where it is going.' },
+  { d: '2026-10-20', kind: 'lesson', group: '4.3', phase: 1, ced: ['AAP-2', 'CRD-2'],
+    title: 'Chase & Return: The Aggro Radius', lessons: ['4.3'],
+    note: 'The enemy leaves its beat when the player is close and walks back to the next patrol point when the player escapes. No state machine yet - two behaviours and a rule for which one wins.' },
+  { d: '2026-10-22', kind: 'lesson', group: '4.6', phase: 1, ced: ['AAP-2', 'AAP-3', 'CRD-2'],
+    title: 'Player Melee: A Hitbox That Remembers the Enemy', lessons: [],
+    note: 'A sprite child with a BoxCollider2D, moved to the side you are facing. Whatever it touches is stored in a variable, and the swing calls ChangeHealth(int amount) on it. The first time your player does something to the world instead of the world doing something to the player.' },
+
+  // ---------------- PHASE 2: The Cave (Units 4-8) ----------------
+  // The cave is painted before the jump exists: tilemaps land in October,
+  // gravity and jumping in November. 7.1 therefore appears here, ahead of
+  // Unit 6, because that is the order the class built it.
+  { d: '2026-10-26', kind: 'lesson', group: '7.1', phase: 2, ced: ['CRD-2'],
+    title: 'Tilemaps I: The Level Editor', lessons: ['7.1'],
+    note: 'Today you learn to build worlds.' },
+  { d: '2026-10-28', kind: 'lesson', group: '7.1', phase: 2, ced: ['CRD-2'],
+    title: 'Tilemaps II: Building the Cave', lessons: ['7.1'],
+    note: 'Same palette, bigger canvas: the cave becomes a place with an entrance, a route and a goal.' },
+  { d: '2026-11-03', kind: 'lesson', group: '6.1', phase: 2, ced: ['AAP-2'],
+    title: 'Gravity & Jump: The First Flick', lessons: ['6.1'],
+    note: 'Jump code lands in the cave you just painted. Gravity, the first flick, and the moment the top-down RPG becomes a platformer.' },
+  { d: '2026-11-05', kind: 'lesson', group: '6.2', phase: 2, ced: ['AAP-2'],
+    title: 'Ground Checks: No Infinite Jumps', lessons: ['6.2'] },
+  { d: '2026-11-09', kind: 'lesson', group: '6.3', phase: 2, ced: ['AAP-2'],
+    title: 'Jump Feel & Double Jump', lessons: ['6.3', '6.4'] },
+  { d: '2026-11-12', kind: 'studio', group: '6.5', phase: 2, ced: ['CRD-2'],
+    title: 'Platforming Studio: The Gauntlet', lessons: ['6.5'],
+    note: 'The cave has a jump now. Studio day: build the Gauntlet that teaches it.' },
+  { d: '2026-11-16', kind: 'lesson', group: '7.2', phase: 2, ced: ['CRD-2'],
+    title: 'Tile Collision, Layers & Sorting', lessons: ['7.2'] },
+  { d: '2026-11-18', kind: 'lesson', group: '7.3', phase: 2, ced: ['AAP-2'],
+    title: 'Ladders I: The Climbing State', lessons: ['7.3'] },
+  { d: '2026-11-20', kind: 'lesson', group: '7.4', phase: 2, ced: ['AAP-2'],
+    title: 'Ladders II: Mounts, Tops & Polish', lessons: ['7.4'] },
+  { d: '2026-12-01', kind: 'studio', group: '7.5', phase: 2, ced: ['CRD-2'],
+    title: 'Design a Big Cave + Level Studio I', lessons: ['7.5', '7.6'],
+    note: 'Back from Thanksgiving week. Paper first: design the cave, then start painting it. Spikes, coins, the enemy and the turret all have to find a place in the level.' },
+  { d: '2026-12-03', kind: 'studio', group: '7.7', phase: 2, ced: ['CRD-2'],
+    title: 'Level Studio II + Cross-Playtest', lessons: ['7.7'],
+    note: 'Last studio before the axe and the door: polish two beats, then trade machines.' },
+  { d: '2026-12-07', kind: 'lesson', group: '5.1', phase: 2, ced: ['AAP-1', 'CRD-2'],
     title: 'The Axe: Item Pickups & Inventory Bools', lessons: ['5.1'] },
-  { d: '2026-11-09', kind: 'lesson', group: '5.2', phase: 1, ced: ['AAP-2', 'CRD-2'],
+  { d: '2026-12-09', kind: 'lesson', group: '5.2', phase: 2, ced: ['AAP-2', 'CRD-2'],
     title: 'The Door: Opening It with Events', lessons: ['5.2'] },
-  { d: '2026-11-12', kind: 'lesson', group: '5.3', phase: 1, ced: ['AAP-1', 'CRD-2'],
+  { d: '2026-12-11', kind: 'lesson', group: '5.3', phase: 2, ced: ['AAP-1', 'CRD-2'],
     title: 'Into the Cave: Scenes, Persistence & the Refactor', lessons: ['5.3'],
     note: 'The architectural payoff. Leaving the overworld destroys every stat the student owns, because a scene load replaces rather than loses. They refactor stats out of PlayerController into the StatManager singleton that has been an empty stub since Unit 2, guard against duplicates, and put the HUD where the game begins.' },
-
-  // ---------------- PHASE 2: The Cave (Units 6-8) ----------------
-  { d: '2026-11-16', kind: 'lesson', group: '6.1', phase: 2, ced: ['AAP-2'],
-    title: 'Gravity & Jump: The First Flick', lessons: ['6.1'] },
-  { d: '2026-11-18', kind: 'lesson', group: '6.2', phase: 2, ced: ['AAP-2'],
-    title: 'Ground Checks: No Infinite Jumps', lessons: ['6.2'] },
-  { d: '2026-11-20', kind: 'lesson', group: '6.3', phase: 2, ced: ['AAP-2'],
-    title: 'Jump Feel & Double Jump', lessons: ['6.3', '6.4'] },
-  { d: '2026-12-01', kind: 'studio', group: '6.5', phase: 2, ced: ['CRD-2'],
-    title: 'Platforming Studio: The Gauntlet', lessons: ['6.5'],
-    note: 'Back from Thanksgiving week. Studio day: build the Gauntlet.' },
-  { d: '2026-12-03', kind: 'lesson', group: '7.1', phase: 2, ced: ['CRD-2'],
-    title: 'Tilemaps: The Level Editor', lessons: ['7.1'],
-    note: 'Today you learn to build worlds.' },
-  { d: '2026-12-07', kind: 'lesson', group: '7.2', phase: 2, ced: ['CRD-2'],
-    title: 'Tile Collision, Layers & Sorting', lessons: ['7.2'] },
-  { d: '2026-12-09', kind: 'lesson', group: '7.3', phase: 2, ced: ['AAP-2'],
-    title: 'Ladders I: The Climbing State', lessons: ['7.3'] },
-  { d: '2026-12-11', kind: 'lesson', group: '7.4', phase: 2, ced: ['AAP-2'],
-    title: 'Ladders II: Mounts, Tops & Polish', lessons: ['7.4'] },
-  { d: '2026-12-15', kind: 'studio', group: '7.5', phase: 2, ced: ['CRD-2'],
-    title: 'Design a Big Cave + Level Studio I', lessons: ['7.5', '7.6'] },
-  { d: '2026-12-17', kind: 'studio', group: '7.7', phase: 2, ced: ['CRD-2'],
-    title: 'Level Studio II + Cross-Playtest', lessons: ['7.7'],
-    note: 'Last class before winter break - your cave is playable before you go.' },
+  { d: '2026-12-15', kind: 'lesson', group: '4.2', phase: 2, ced: ['AAP-2', 'CRD-2'],
+    title: 'Enemy Animation & Contact Damage', lessons: ['4.2', '4.4'],
+    note: 'The enemy animation you deferred in October, plus the contact-damage rule that makes catching you matter. Both make the enemy read as a creature rather than a moving box; the full state machine follows next class.' },
+  { d: '2026-12-17', kind: 'lesson', group: '4.5', phase: 2, ced: ['AAP-2'],
+    title: 'The Full State Machine: Patrol, Chase, Attack', lessons: ['4.5'],
+    note: 'Last class before winter break. Patrol, chase, return and attack become named states - the enemy is finished before you go.' },
   { d: '2027-01-04', kind: 'lesson', group: '8.1', phase: 2, ced: ['CRD-2'],
     title: 'Boss Design: Spec It First', lessons: ['8.1'],
-    note: 'The first build that is fully yours. Design on paper before you open Unity.' },
+    note: 'Back from break, and the first build that is fully yours. Design on paper before you open Unity.' },
   { d: '2027-01-06', kind: 'lesson', group: '8.2', phase: 2, ced: ['AAP-1', 'CRD-2'],
     title: 'Boss Body, Health & Phases', lessons: ['8.2'] },
   { d: '2027-01-08', kind: 'lesson', group: '8.3', phase: 2, ced: ['AAP-2', 'AAP-3'],
@@ -337,10 +358,10 @@ export interface Phase {
 }
 
 export const PHASES: Record<number, Phase> = {
-  1: { name: 'Phase 1: Scratch + The Overworld', ced: 'CED AAP + CRD', weight: 'Scratch get-to-know-you starter, then Unity fundamentals, Units 1-5',
-       span: 'Sep 1 - Nov 12', units: 'Scratch starter + Units 1-5', color: 'discovery' },
-  2: { name: 'Phase 2: The Cave', ced: 'CED AAP + CRD', weight: 'Platformer + your first boss, Units 6-8',
-       span: 'Nov 16 - Jan 21', units: 'Units 6-8 + final', color: 'basic-app' },
+  1: { name: 'Phase 1: Scratch + The Overworld', ced: 'CED AAP + CRD', weight: 'Scratch get-to-know-you starter, then Unity fundamentals, Units 1-4',
+       span: 'Sep 1 - Oct 22', units: 'Scratch starter + Units 1-4', color: 'discovery' },
+  2: { name: 'Phase 2: The Cave', ced: 'CED AAP + CRD', weight: 'The cave, the deferred enemy work, and your first boss, Units 4-8',
+       span: 'Oct 26 - Jan 21', units: 'Units 4-8 + final', color: 'basic-app' },
   3: { name: 'Phase 3: Data & Systems', ced: 'CED DAT + CSN + IOC', weight: 'The big ideas Unity cannot teach alone, Unit 9',
        span: 'Jan 28 - Feb 24', units: 'Unit 9', color: 'expand-app' },
   4: { name: 'Phase 4: Jam Season', ced: 'CED AAP + CRD', weight: '2-Button Jam + Card Game Jam, Unit 10',

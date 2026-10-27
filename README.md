@@ -13,10 +13,10 @@ deployed to GitHub Pages.
 
 ## The course in one paragraph
 
-Semester 1 is one long build: movement → coins & health → a turret → an
-enemy state machine → the axe & the cave → jumping → tilemap levels →
-ladders → **your own boss fight**, ending with a semester final that is
-"a normal B day" (Jan 21). Semester 2: the CSP big ideas Unity cannot
+Semester 1 is one long build: movement → coins & health → a turret &
+projectiles → a patrolling enemy → tilemap caves → jumping → ladders →
+the axe & the door → the deferred enemy state machine → **your own boss
+fight**, ending with a semester final that is "a normal B day" (Jan 21). Semester 2: the CSP big ideas Unity cannot
 teach alone (data, systems, impact), then the **2-Button Jam**, the
 **Card Game Jam** (lists, arrays, ScriptableObjects — the AP's favorite
 data structures, built for real), the **Create PT** (30% of the AP
@@ -45,7 +45,7 @@ src/
     docs/              # 12 unit guides + concept docs + quick reference
     exam/              # Create PT, written responses, MC strategy,
                       # reference sheet, exam hub
-    lessons/           # 81 lesson pages (the heart of the site)
+    lessons/           # 83 lesson pages (the heart of the site)
     teachers/canvas.astro   # teacher workflow (lab JSON -> Canvas)
 public/
   style.css  js/lab-forms.js  data/playtests.csv  favicon.svg
