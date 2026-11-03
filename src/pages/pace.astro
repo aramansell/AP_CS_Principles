@@ -1,7 +1,9 @@
 ---
 // Pacing Calendar — rebuilt at every `npm run build` from
-// src/data/curriculum.ts. PACING.md is regenerated from the same data
-// by src/integrations/pacing-md.ts.
+// src/data/curriculum.ts. The main Dashboard (index.html) now includes this
+// full schedule with progress tracking; pace.html remains available as a
+// compact single-table printable view with direct lesson links.
+// PACING.md is regenerated from the same data by src/integrations/pacing-md.ts.
 import Base from '../layouts/BaseLayout.astro';
 import { SEQUENCE, DAY_NOTES, KIND_LABEL, EXAM_DATE, EXAM_TIME, CPT_DEADLINE, CED_TOPICS, coveredTopics, prettyDate, longDate } from '../data/curriculum';
 
@@ -12,6 +14,13 @@ const allCovered = covered.size === Object.keys(CED_TOPICS).length;
 <Base title="Pacing Calendar 2026-27 — AP CS Principles" active="dashboard" root="" docsHome="docs/index.html" css="style.css"
   description="Every B day of the 2026-27 school year mapped to its AP CS Principles + Unity work, from the IBW Trivory calendar.">
 <h1>Pacing Calendar, 2026-27</h1>
+
+<div class="callout">
+    <strong>Unified Dashboard:</strong> The <a href="index.html">Dashboard</a>
+    now combines this day-by-day pacing schedule with your lesson progress
+    and one-click build links. This page provides the compact full-year print
+    view.
+</div>
 
 <p>
     Every B-day of the school year, mapped to its work. Built from the IBW
@@ -55,8 +64,20 @@ const allCovered = covered.size === Object.keys(CED_TOPICS).length;
             <td>{KIND_LABEL[e.kind]}</td>
             <td>{e.group}</td>
             <td>
-                {e.title}
-                {e.lessons.length > 0 && <> <span class="day-note">({e.lessons.join(', ')})</span></>}
+                {e.lessons.length === 1 ? (
+                    <a href={`lessons/${e.lessons[0]}.html`}><strong>{e.title}</strong></a>
+                ) : (
+                    <>
+                        <strong>{e.title}</strong>
+                        {e.lessons.length > 1 && (
+                            <span style="margin-left:0.4rem; font-size:12px;">
+                                ({e.lessons.map((lid, idx) => (
+                                    <>{idx > 0 && ', '}<a href={`lessons/${lid}.html`}>{lid}</a></>
+                                ))})
+                            </span>
+                        )}
+                    </>
+                )}
                 {notes.map((n) => <><br /><span class="day-note">{n}</span></>)}
             </td>
             <td class="ced">{e.ced.length ? e.ced.join(', ') : NBSP}</td>

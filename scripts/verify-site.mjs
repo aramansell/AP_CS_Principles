@@ -160,9 +160,12 @@ for (const id of lessonIds) {
 const pace = fs.readFileSync(path.join(dist, 'pace.html'), 'utf8');
 const bdayMatches = [...curriculum.matchAll(/'(202[67]-[0-9]{2}-[0-9]{2})'/g)].map((m) => m[1]);
 const uniqueDays = [...new Set(bdayMatches)];
+const dashDatesOk = uniqueDays.every((d) => dash.includes(d));
+if (!dashDatesOk) fail('index.html (unified dashboard) is missing at least one calendar date from curriculum.ts');
+if (!dash.includes('up-next-banner')) fail('index.html is missing the up-next B-day banner');
 const paceOk = uniqueDays.every((d) => pace.includes(d));
 if (!paceOk) fail('pace.html is missing at least one calendar date from curriculum.ts');
-else ok('pacing calendar covers all ' + uniqueDays.length + ' referenced dates');
+else ok('unified dashboard & pacing calendar cover all ' + uniqueDays.length + ' referenced dates and ' + lessonIds.length + ' lessons');
 
 // ---------- 4. coverage matrix lists every CED family
 console.log('4. coverage matrix...');

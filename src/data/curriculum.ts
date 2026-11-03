@@ -3,8 +3,8 @@
  *
  * ONE source of truth. Everything data-driven on the site derives from this
  * file at build time:
- *   - the dashboard lesson lists (src/pages/index.astro)
- *   - the pacing calendar (src/pages/pace.astro) and PACING.md
+ *   - the unified Dashboard & Pacing Calendar (src/pages/index.astro & src/pages/pace.astro)
+ *   - PACING.md (src/integrations/pacing-md.ts)
  *   - the CED coverage matrix (src/pages/docs/coverage.astro)
  *   - the prev/next chain on every lesson page (src/layouts/LessonLayout.astro)
  *
@@ -400,6 +400,11 @@ export function phaseLessons(phase: number): string[] {
   return out;
 }
 
+/** Sequence entries grouped by phase, in calendar order. */
+export function phaseEntries(phase: number): SequenceEntry[] {
+  return SEQUENCE.filter((e) => e.phase === phase);
+}
+
 /** First sequence entry that teaches a given CED topic family. */
 export function firstTeaching(topic: string): SequenceEntry | undefined {
   return SEQUENCE.find((e) => e.ced.includes(topic));
@@ -447,6 +452,12 @@ export function mdDate(iso: string): string {
 export function shortDate(iso: string): string {
   const dt = parseIso(iso);
   return `${MONTHS[dt.getUTCMonth()]} ${dt.getUTCDate()}`;
+}
+
+/** "Tue Nov 3" - compact weekday + month + day for the unified dashboard. */
+export function compactDate(iso: string): string {
+  const dt = parseIso(iso);
+  return `${WEEKDAYS[dt.getUTCDay()]} ${MONTHS[dt.getUTCMonth()]} ${dt.getUTCDate()}`;
 }
 
 /** "Friday, May 14, 2027" - long form for prose. */
