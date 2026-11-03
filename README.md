@@ -38,14 +38,16 @@ src/
   integrations/
     pacing-md.ts       # regenerates PACING.md + dist/sitemap.xml post-build
   pages/
-    index.astro        # Dashboard (6 phase tabs, My-work backup panel)
-    pace.astro         # Pacing Calendar: every B day mapped to its work
+    index.astro        # Unified Dashboard & Pacing: every B day with progress,
+                       #   lesson launch links, Next B-Day banner, My-work backup
+    pace.astro         # Printable full-year pacing table (the dashboard's
+                       #   compact print view; no separate nav item)
     projects.astro     # The Build: what ships each phase
     search.astro 404.astro
     docs/              # 12 unit guides + concept docs + quick reference
     exam/              # Create PT, written responses, MC strategy,
                       # reference sheet, exam hub
-    lessons/           # 81 lesson pages (the heart of the site)
+    lessons/           # 83 lesson pages (the heart of the site)
     teachers/canvas.astro   # teacher workflow (lab JSON -> Canvas)
 public/
   style.css  js/lab-forms.js  data/playtests.csv  favicon.svg
@@ -63,8 +65,9 @@ scripts/
 
 Everything on the site renders from `src/data/curriculum.ts`:
 - **Add/re-date a lesson**: edit `SEQUENCE` (and add metadata in
-  `lessons.ts`). The dashboard, prev/next chain, pacing calendar, and
-  PACING.md all follow automatically — no per-page wiring.
+  `lessons.ts`). The unified dashboard (which now carries the day-by-day
+  pacing schedule), prev/next chain, printable pacing table, and PACING.md
+  all follow automatically — no per-page wiring.
 - **Sanity checks run at build time**: a SEQUENCE date that is not a
   B day fails the build (this caught a real Nov 30 error during
   construction).

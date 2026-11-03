@@ -77,7 +77,7 @@ Inside the `const body` template literal:
 ## Link map — the ONLY pages you may link to
 
 Relative from a lesson page (lessons live at `lessons/`):
-- Root pages: `../index.html` (Dashboard), `../pace.html`, `../projects.html`, `../search.html`
+- Root pages: `../index.html` (Dashboard & Pacing — the unified schedule), `../pace.html` (printable pacing table), `../projects.html`, `../search.html`
 - Docs unit indexes (always exist, all 12): `../docs/unit-01/index.html` … `../docs/unit-12/index.html`
   - unit-01 Setup & Movement, unit-02 Stats & Pickups, unit-03 The Turret, unit-04 The Enemy,
     unit-05 The Axe & The Cave, unit-06 Jumping, unit-07 Level Building & Ladders, unit-08 The Boss Fight,
