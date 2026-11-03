@@ -49,7 +49,7 @@ export const LESSONS: Record<string, LessonMeta> = {
   '4.2': { title: "Enemy Animation: A Different State Machine", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.2' },
   '4.3': { title: "Chase: The Aggro Radius", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.3' },
   '4.4': { title: "Attack: Close-Range Contact Damage", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.4' },
-  '4.5': { title: "The Full State Machine: Patrol, Chase, Attack", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.5' },
+  '4.5': { title: "The Jump: Getting the Player Off the Ground", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.5' },
 
   // Unit 5 — The Axe & The Cave
   '5.1': { title: "The Axe: Item Pickups & Inventory Bools", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.1' },

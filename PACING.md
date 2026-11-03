@@ -24,7 +24,7 @@ Exam: **Friday, May 14, 2027**, 8:00 AM (Session 1). Create PT due **Friday, Apr
 | 2026-10-22 (Thu) | Lesson | 4.2 | Enemy Animation: A Different State Machine | AAP-2 CRD-2 |
 | 2026-10-26 (Mon) | Lesson | 4.3 | Chase: The Aggro Radius | AAP-2 |
 | 2026-10-28 (Wed) | Lesson | 4.4 | Attack: Close-Range Contact Damage | AAP-2 |
-| 2026-11-03 (Tue) | Lesson | 4.5 | The Full State Machine: Patrol, Chase, Attack | AAP-2 |
+| 2026-11-03 (Tue) | Lesson | 4.5 | The Jump: Getting the Player Off the Ground — The cave opens early: gravity for one scene, one key press and one impulse. The enemy state machine waits. | AAP-2 |
 | 2026-11-05 (Thu) | Lesson | 5.1 | The Axe: Item Pickups & Inventory Bools | AAP-1 CRD-2 |
 | 2026-11-09 (Mon) | Lesson | 5.2 | The Door: Opening It with Events | AAP-2 CRD-2 |
 | 2026-11-12 (Thu) | Lesson | 5.3 | Into the Cave: Scenes, Persistence & the Refactor — The architectural payoff. Leaving the overworld destroys every stat the student owns, because a scene load replaces rather than loses. They refactor stats out of PlayerController into the StatManager singleton that has been an empty stub since Unit 2, guard against duplicates, and put the HUD where the game begins. | AAP-1 CRD-2 |
