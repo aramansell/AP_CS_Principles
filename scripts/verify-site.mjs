@@ -357,6 +357,23 @@ if (!fs.existsSync(askSrcPath)) {
       const bannerLevel = html.match(/class="ask-banner" data-scaffold="([^"]*)"/);
       if (!wtLevel && !bannerLevel) continue; // lesson declares no scaffold level at all
 
+      // The banner at the top of a lesson is the phrase a student types into a
+      // search engine, so it has to read like one: the concrete operations the
+      // lesson teaches ("in unity how to apply a jump force, how to get the
+      // name of the current scene"), not a chapter title and not a riddle.
+      // "How do I make the player jump in a cave?" searches to nothing; the
+      // named operations search to the answer, and naming them is how a
+      // student sees they already know half the list. Read from the RENDERED
+      // page, so a lesson cannot satisfy this by editing a spec field.
+      const bannerText = html.match(/class="ask-banner-q">([\s\S]*?)<\/span>/);
+      if (bannerText) {
+        const phrase = bannerText[1].replace(/&[a-z]+;/gi, ' ').replace(/<[^>]*>/g, ' ');
+        if (!/\b(how to|how do|how does|how can|what is|what does|why|what are)\b/i.test(phrase)) {
+          fail(id + ' ask banner does not read like a search phrase — name the operations, e.g. ' +
+            '"in unity how to apply a jump force, how to get a key press": "' + phrase.trim().slice(0, 90) + '"');
+        }
+      }
+
       if (wt) walkthroughLessons.push(id);
       if (wt && !wtLevel) fail(id + ' renders a walkthrough with no data-scaffold level');
 
