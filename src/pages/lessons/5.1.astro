@@ -150,7 +150,7 @@ const WALK = {
   steps: [
     {
       title: 'Declare the state, and the controller you will become',
-      lead: 'Two lines in the class body, next to your coin count and your health. One of them is what this lesson is about; the other holds an asset that is not wired to anything in the project yet.',
+      lead: 'Two lines in the class body, beside the fields your movement, pickups and hitbox already use. One of them is what this lesson is about; the other holds an asset that is not wired to anything in the project yet.',
       lines: [
         { code: '// PlayerController.cs — class body, above Start(), with your other fields.', what: '' },
         { code: '    [SerializeField] private bool hasAxe = false;', what: '**The capability.** A `bool` holds true or false and nothing else, which is the honest shape of "I have an axe": one item, one yes/no.' , why: 'Get the starting value the right way round. `false` means you do not have the axe until you find it — and because your character already looks like an axe-wielder, starting it at `true` makes the pickup appear to do nothing at all.' },
@@ -167,7 +167,7 @@ const WALK = {
         { code: '    {', what: '' },
         { code: '        if (other.CompareTag("Coin"))', what: '' },
         { code: '        {', what: '' },
-        { code: '            coins = coins + 1;', what: '' },
+        { code: '            manager.ChangeCoins(1);', what: '' },
         { code: '            Destroy(other.gameObject);', what: '' },
         { code: '        }', what: '' },
         { code: '        else if (other.CompareTag("Axe"))', what: '**The new question.** The prefab has carried the tag `Axe` since the day you opened it, so there is nothing to create and nothing to spell-check — but it is still `other.CompareTag("Axe")` and not `==`, for the reason from 2.1.' , why: '`else if` rather than a second `if`, so each object is asked exactly one question. No collider is a coin and an axe at once, so it makes no difference to the game — it says what you mean.' },
@@ -180,129 +180,172 @@ const WALK = {
       ],
     },
   ],
-  finalFile: `using UnityEngine;
+  finalFile: `using System;
+using UnityEngine;
 
-// Your controller at the end of 5.1: movement and health from 2.2, animation
-// from 1.6, the coin pickup from 2.1 — and the axe.
+// Your controller at the end of 5.1: movement from 1.4, animation from 1.6,
+// the pickups from 2.1-2.3, melee and the player projectile from 3.5 and 4.6,
+// the stats moved onto the StatManager in 2.7 — and the axe.
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private int health = 3;
-    [SerializeField] private int coins;
+    float xVector;
+    float yVector;
+    float speed = 4;
+    float xDirection;
+    float yDirection;
+
+    Animator animator;
+    SpriteRenderer renderer;
+
+    float cooldownTimer = .5f;
+    Rigidbody2D rb;
+
+    GameObject currentEnemy;
+    String facing;
+
+    [SerializeField] GameObject projectile;
+    [SerializeField] GameObject attackBox;
+
+    StatManager manager;
 
     // The capability, and the controller that draws it. The starting value is
     // the design: false, until the player earns it.
-    [SerializeField] private bool hasAxe = false;
-    [SerializeField] private RuntimeAnimatorController axeController;
+    [SerializeField] bool hasAxe = false;
+    [SerializeField] RuntimeAnimatorController axeController;
 
-    private Rigidbody2D body;
-    private Animator animator;
-    private SpriteRenderer spriteRenderer;
-
-    private float inputX;
-    private float inputY;
-
-    void Start()
+    private void Start()
     {
         // Looked up once, never inside Update() — the rules from 1.6 and 2.2.
-        body = GetComponent<Rigidbody2D>();
+        renderer = GetComponentInChildren<SpriteRenderer>();
         animator = GetComponentInChildren<Animator>();
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        rb = GetComponent<Rigidbody2D>();
+        manager = FindAnyObjectByType<StatManager>();
     }
 
-    void Update()
+    private void Update()
     {
-        inputX = Input.GetAxis("Horizontal");
-        inputY = Input.GetAxis("Vertical");
+        xDirection = Input.GetAxisRaw("Horizontal");
+        yDirection = Input.GetAxisRaw("Vertical");
+        xVector = xDirection * speed;
+        yVector = yDirection * speed;
 
-        Vector2 direction = new Vector2(inputX, inputY);
+        // Facing moves the hitbox that 4.6's melee checks.
+        if (xDirection > 0)
+        {
+            facing = "Right";
+            attackBox.transform.position = transform.position + new Vector3(.5f, .5f, 0);
+        }
+        else if (xDirection < 0)
+        {
+            facing = "Left";
+            attackBox.transform.position = transform.position + new Vector3(-.5f, .5f, 0);
+        }
+
+        if (yDirection > 0)
+        {
+            facing = "Up";
+            attackBox.transform.position = transform.position + new Vector3(0, 1, 0);
+        }
+        if (yDirection < 0)
+        {
+            facing = "Down";
+            attackBox.transform.position = transform.position + new Vector3(0, 0, 0);
+        }
 
         // No Time.deltaTime: velocity is per second, not per frame.
-        body.linearVelocity = direction * moveSpeed;
+        rb.linearVelocity = new Vector2(xVector, yVector);
+
+        cooldownTimer -= Time.deltaTime;
+
+        if (Input.GetKeyDown(KeyCode.E) && cooldownTimer < 0 && currentEnemy != null)
+        {
+            currentEnemy.GetComponent<EnemyController>().ChangeHealth(-1);
+            cooldownTimer = .5f;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space) && cooldownTimer < 0)
+        {
+            Shoot();
+            cooldownTimer = .5f;
+        }
 
         UpdateAnimation();
-        CheckAttack();
     }
 
     void UpdateAnimation()
     {
-        bool isMoving = inputX != 0f || inputY != 0f;
+        bool isMoving = xVector != 0 || yVector != 0;
         animator.SetBool("IsWalking", isMoving);
 
-        if (Mathf.Abs(inputX) >= Mathf.Abs(inputY))
+        if (Mathf.Abs(xVector) > Mathf.Abs(yVector))
         {
             animator.SetInteger("WalkDir", 1);
-            spriteRenderer.flipX = inputX < 0f;
+            if (xVector < 0)
+            {
+                renderer.flipX = false;
+            }
+            else if (xVector > 0)
+            {
+                renderer.flipX = true;
+            }
         }
-        else if (inputY > 0f)
+        else if (yVector > 0)
         {
             animator.SetInteger("WalkDir", 0);
         }
-        else
+        else if (yVector < 0)
         {
             animator.SetInteger("WalkDir", 2);
         }
     }
 
-    void CheckAttack()
-    {
-        if (Input.GetMouseButtonDown(0))
-        {
-            animator.SetTrigger("Attack");
-        }
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Spikes"))
-        {
-            TakeDamage(1);
-        }
-    }
-
     // Every pickup in the game arrives here. The axe is one more question.
-    // Your potion branch from 2.3 lives in this same callback, under its own
-    // tag — it is left out here only because the tag is the one you invented.
-    private void OnTriggerEnter2D(Collider2D other)
+    void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Coin"))
+        if (other.gameObject.CompareTag("E_Fireball"))
         {
-            coins = coins + 1;
+            manager.ChangeHealth(-2);
             Destroy(other.gameObject);
-            return;
         }
 
-        if (other.CompareTag("Axe"))
+        if (other.gameObject.CompareTag("Enemy"))
         {
-            PickUpAxe();
+            currentEnemy = other.gameObject;
+        }
+
+        if (other.gameObject.CompareTag("Coin"))
+        {
+            manager.ChangeCoins(1);
+            Destroy(other.gameObject);
+        }
+
+        if (other.gameObject.CompareTag("Potion"))
+        {
+            manager.ChangeHealth(1);
+            Destroy(other.gameObject);
+        }
+
+        // New in 5.1: the axe.
+        if (other.gameObject.CompareTag("Axe"))
+        {
+            hasAxe = true;
+            animator.runtimeAnimatorController = axeController;
             Destroy(other.gameObject);
         }
     }
 
-    // The whole of "becoming an axe-wielder", and the only line in the game
-    // that changes what the player IS. Setting a parameter picks a clip inside
-    // one controller; this replaces the whole controller — every state, every
-    // transition, every clip, in one assignment.
-    private void PickUpAxe()
+    void OnTriggerExit2D(Collider2D other)
     {
-        hasAxe = true;
-        animator.runtimeAnimatorController = axeController;
+        if (other.gameObject.CompareTag("Enemy"))
+        {
+            currentEnemy = null;
+        }
     }
 
-    private void TakeDamage(int amount)
+    void Shoot()
     {
-        if (health <= 0)
-        {
-            return;
-        }
-
-        health = health - amount;
-        Debug.Log("Health: " + health);
-
-        if (health <= 0)
-        {
-            Debug.Log("Player died.");
-        }
+        GameObject copy = Instantiate(projectile, transform.position, Quaternion.identity);
+        copy.GetComponent<PlayerProjectile>().SetDirection(facing);
     }
 }
 
@@ -310,7 +353,7 @@ public class PlayerController : MonoBehaviour
 // a trigger collider on Assets/Prefabs/AxeItem, one axe instance standing in the
 // Overworld, and the Axe Controller slot on Assets/Prefabs/Player.`,
   finalNote:
-    'Compare against your own file rather than copying it. Two differences are worth naming, because neither is a mistake. The shape: this file returns early out of each branch and the walkthrough chains `else if` — both ask every object exactly one question. The helper: here the swap lives in a method called `PickUpAxe()`, and the walkthrough writes the same two lines inline, so that "becoming an axe-wielder" has a name you can point at. What is NOT a difference is the gap itself: whichever way you wrote it, the line that changes the player is the assignment to the Animator\'s controller property, and that name is the one you had to go and read.',
+    'Compare against your own file rather than copying it. One difference is worth naming: the walkthrough chains `else if` so each object is asked exactly one question, and this file uses one `if` per tag — at this scale neither is a mistake, and you should be able to say which you chose. What is NOT a difference is the gap itself: whichever way you wrote it, the line that changes the player is the assignment to the Animator\'s controller property, and that name is the one you had to go and read.',
 };
 
 const body = `<h1>5.1 — The Axe: Item Pickups &amp; Inventory Bools</h1>
