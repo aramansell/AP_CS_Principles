@@ -62,7 +62,7 @@ const DECOMPOSE = {
     },
     {
       name: 'Check the owner a scene load is not allowed to destroy',
-      does: 'The StatManager you built on 2.7: a `public static` field holding the one instance, an `Awake()` that claims it and calls `DontDestroyOnLoad(gameObject)` on the first load, and a second branch that destroys the copy every later load brings with it.',
+      does: 'The StatManager you built on 2.7: a `public static` field holding the one instance, an `Awake()` that claims it and calls `DontDestroyOnLoad(gameObject)` on the first load, and an early-return guard that destroys the copy every later load brings with it.',
       doc: '2.7 — Refactor Day: the singleton you wrote, and the `DontDestroyOnLoad(gameObject)` row of the quick reference.',
       href: '2.7.html',
     },
@@ -117,15 +117,16 @@ const WALK_VERIFY = {
         { code: '// StatManager.cs — Awake(), which runs before any Start().', what: '' },
         { code: '    void Awake()', what: 'The earliest lifecycle hook: Unity finishes every `Awake()` in a scene before it runs the first `Start()`. That is what lets every other script assume the slot is already filled.' },
         { code: '    {', what: '' },
-        { code: '        if (original != null && original != this)', what: 'The duplicate branch: *is there already a manager, and is it somebody else?* Walk back into a scene that contains its own StatManager and this is true.' },
+        { code: '        if (original != null && original != this)', what: 'The duplicate guard: *is there already a manager, and is it somebody else?* Walk back into a scene that contains its own StatManager and this is true.' },
         { code: '        {', what: '' },
         { code: '            Destroy(gameObject);', what: 'The newcomer deletes itself — component, fields and the fresh `coins = 0` it was about to claim the slot with.' , why: '**This branch is not a textbook exercise in this project.** `Start (index 0)` contains its own StatManager, and the cave mouths can take you back to it. Without this line the newcomer overwrites `original` with default fields, and your run is erased the instant the scene finishes loading.' },
+        { code: '            return;', what: '**The line that makes the guard a guard.** `Destroy()` is deferred to the end of the frame, so the code below would keep running — and the doomed copy would set `original = this` a moment before it vanished, leaving every later caller pointing at an object that no longer exists.' , why: '**Read the shape, not just the words:** one branch ends in `return;`, and everything that claims the slot sits *after* it. That is an early exit — the same shape as the `if` that stops a dead player in 2.7, used here to keep one object from doing two contradictory things in one frame.' },
         { code: '        }', what: '' },
-        { code: '        else', what: '' },
-        { code: '        {', what: '' },
-        { code: '            original = this;', what: 'The first manager to load claims the slot with itself.' },
-        { code: '            DontDestroyOnLoad(gameObject);', what: 'The one call in Unity that changes what a scene load is allowed to do: this whole object moves into a scene of its own that never unloads.' , why: '**`gameObject`, not `this`.** `DontDestroyOnLoad()` takes whole objects, and a component cannot outlive the GameObject that carries it. Notice what is **not** happening: the numbers are not being saved anywhere. They simply live on an object the loader is no longer allowed to delete.' },
-        { code: '        }', what: '' },
+        { code: '', what: '' },
+        { code: '        original = this;', what: 'The first manager to load claims the slot with itself.' },
+        { code: '', what: '' },
+        { code: '        // Optional: Keep this object alive when switching scenes', what: 'The comment that ships with the file — and the one word in it you should argue with. In *this* project it is not optional: it is the entire mechanism. Delete the call and the comment above becomes true, which is the bug.' },
+        { code: '        DontDestroyOnLoad(gameObject);', what: 'The one call in Unity that changes what a scene load is allowed to do: this whole object moves into a scene of its own that never unloads.' , why: '**`gameObject`, not `this`.** `DontDestroyOnLoad()` takes whole objects, and a component cannot outlive the GameObject that carries it. Notice what is **not** happening: the numbers are not being saved anywhere. They simply live on an object the loader is no longer allowed to delete.' },
         { code: '    }', what: '' },
       ],
     },
@@ -141,6 +142,7 @@ const WALK_VERIFY = {
         { code: '        {', what: '' },
         { code: '            health = maxHealth;', what: 'Clamp down to the ceiling.' },
         { code: '        }', what: '' },
+        { code: '        print("Health: " + health);', what: 'The Console readout you have watched since 2.1. It sits *after* the clamp, so it reports the value the game will actually use — which is also why 3.4\'s fireball shows the drop and 2.3\'s potion shows the cap.' , why: '**This is the line the HUD is about to replace.** The Console tells *you* the number; the HUD will tell the *player*. Same value, same source, one audience each — and because both read the field after the method has finished changing it, they can never disagree.' },
         { code: '        if (health <= 0)', what: 'The death rule: at or below zero, the run ends. Note the `<=` — the build checks at zero and below, so a hit that takes you exactly to zero still kills.' },
         { code: '        {', what: '' },
         { code: '            Die();', what: 'The method below, which owns what death means.' },
@@ -154,24 +156,27 @@ const WALK_VERIFY = {
         { code: '        {', what: '' },
         { code: '            coins = 0;', what: '' },
         { code: '        }', what: '' },
+        { code: '        print("Coins: " + coins);', what: 'The same readout, for the same reason — and the same line the HUD will duplicate for the player.' },
         { code: '    }', what: '' },
         { code: '', what: '' },
-        { code: '    void Die()', what: 'Death, as this game defines it. Private, because nothing outside decides when you die — `ChangeHealth()` does.' },
+        { code: '    public void Die()', what: 'Death, as this game defines it. `public` because the method is a promise the rest of the game can call — though today the only caller is `ChangeHealth()`. That is not an accident: it is what lets a later refactor add a respawn without moving the rule.' },
         { code: '    {', what: '' },
         { code: '        health = maxHealth;', what: 'Back to full. The player does not move: this is a reset, not a respawn.' },
         { code: '        coins = coins / 2;', what: 'Half the coins are lost — integer division, so an odd coin disappears. That is the cost of dying.' },
+        { code: '        print("You died. Coins: " + coins);', what: 'A readout that makes the death visible in the Console, because nothing on screen shows it yet. The `else` of that sentence is the next lesson\'s work, not this one\'s.' },
         { code: '    }', what: '' },
       ],
     },
   ],
   finalFile: `using UnityEngine;
 
-// StatManager.cs — the numbers a run owns, on the one object a scene load is
-// not allowed to destroy.
+
 public class StatManager : MonoBehaviour
 {
     public int health = 3;
+
     public int maxHealth = 3;
+
     public int coins;
 
     public static StatManager original;
@@ -181,44 +186,58 @@ public class StatManager : MonoBehaviour
         if (original != null && original != this)
         {
             Destroy(gameObject);
+            return;
         }
-        else
-        {
-            original = this;
-            DontDestroyOnLoad(gameObject);
-        }
+
+        original = this;
+
+        // Optional: Keep this object alive when switching scenes
+        DontDestroyOnLoad(gameObject);
     }
 
+    // Keeps track of health and prints it.
+    // The cap and the death rule live here so every caller obeys them.
     public void ChangeHealth(int amount)
     {
         health = health + amount;
+
         if (health > maxHealth)
         {
             health = maxHealth;
         }
+
+        print("Health: " + health);
+
         if (health <= 0)
         {
             Die();
         }
     }
 
+    // Keeps track of coins and prints it.
     public void ChangeCoins(int amount)
     {
         coins = coins + amount;
+
         if (coins < 0)
         {
             coins = 0;
         }
+
+        print("Coins: " + coins);
     }
 
-    void Die()
+    // The MVP death rule: reset health and lose half the coins.
+    // No scene reload or respawn yet; that comes in a later refactor.
+    public void Die()
     {
         health = maxHealth;
         coins = coins / 2;
+        print("You died. Coins: " + coins);
     }
 }`,
   finalNote:
-    'Compare against your own file. Two lines have to be exactly right: `public static StatManager original;` — `static`, so the scene loader cannot reach it — and the duplicate branch, which destroys the newcomer rather than the original. Everything else you should be able to explain line by line; if you cannot, that is the line to re-read.',
+    'Compare against your own file. Two lines have to be exactly right: `public static StatManager original;` — `static`, so the scene loader cannot reach it — and the duplicate guard, whose `return;` is what keeps the doomed copy from claiming the slot on its way out. Everything else you should be able to explain line by line; if you cannot, that is the line to re-read.',
 };
 
 const WALK_HUD = {
