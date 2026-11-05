@@ -1,228 +1,196 @@
 ---
 // Lesson 4.1 — The Enemy: Patrol
-// Unit 4 opens. EnemyController.cs ships as an empty stub on a prefab with NO
-// Collider2D and NO Rigidbody2D, so the student must give it a body before
-// anything can touch it (and before 4.4's contact damage is even possible).
-// Patrol is presented as a DESIGN CHOICE with three approaches compared: a leash
-// from the spawn point, two placed waypoints, and absolute bounds. The reference
-// build in the walkthrough is the waypoint pair — the row the "How do I…?" index
-// names — and the trailing table prices the other two, because the socratic asks
-// the student to defend a choice among them.
-// The Overworld already holds FOUR MobileEnemy instances and exactly ONE Coin.
-// Movement method is never assumed: it is "the method you chose in 2.2".
+// Unit 4 opens. EnemyController.cs already exists in the project as a patrol
+// script — this lesson builds the patrol half of it.
+//
+// GROUND TRUTH (read from the teacher's project):
+//   Assets/Scripts/EnemyController.cs — the built patrol:
+//       float speed = 2;
+//       int patrolNumber = 0;
+//       [SerializeField] private List<Transform> patrolPoints = new List<Transform>();
+//       Vector3 targetPosition;
+//       Start():  targetPosition = patrolPoints[patrolNumber].position;
+//       Update():
+//           if (Vector3.Distance(transform.position, patrolPoints[patrolNumber].position) < .1)
+//           { patrolNumber += 1; if (patrolNumber == patrolPoints.Count) patrolNumber = 0; }
+//           targetPosition = patrolPoints[patrolNumber].position;
+//           float step = speed * Time.deltaTime;
+//           transform.position = Vector3.MoveTowards(transform.position, targetPosition, step);
+//   Assets/Prefabs/MobileEnemy.prefab
+//       root  tag Enemy, CapsuleCollider2D (solid), Rigidbody2D Dynamic gravity 0
+//       child "Detection Radius"  CircleCollider2D m_IsTrigger: 1  <- 4.3, not today
+//   Assets/_Scenes/Overworld.unity holds four MobileEnemy instances, one Coin.
+//
+// THE OLD PAGE TAUGHT A DIFFERENT FILE: a two-waypoint beat held in one
+// `Transform target`, moving with `rb.linearVelocity = direction * moveSpeed`,
+// on a prefab it claimed had "no collider and no body at all" (it has both).
+// The build instead holds a LIST of any number of points, remembers an INDEX,
+// and moves the Transform with Vector3.MoveTowards(). That is the MVP move —
+// the same shortcut 1.4 took before 2.2 — and it is worth naming as debt, not
+// hiding, because the body exists for other reasons (4.3's trigger, 4.6's hit).
 //
 // Scaffolding: GUIDED (level 2). The shape of the file is given and exactly one
-// line is a gap: the turn. That line carries the only idea in this lesson with
-// no precedent anywhere before it, because every value this game has remembered
-// so far (a coin count, health, a moment on the clock in 3.3) was a number that
-// changed, and this one is WHERE THE ENEMY IS GOING. A player turns by letting
-// go of a key; an enemy has no keys, so the turn has to be written into the file.
+// line is a gap: the wrap at the end of the list. That line carries the only
+// idea in this lesson with no precedent anywhere before it — a route has an
+// end, and the memory is a number that has to come back to the beginning. An
+// index that reaches the end of a list is not a patrol, it is an exception.
 //
-// STRUCTURE (the editor/code pass): "In the Editor" holds every click, each step
-// naming its pane — including the collider and the Rigidbody2D settings, which
-// used to be smuggled into the walkthrough as `//` comments in a code block. A
-// comment in a .cs file cannot click a checkbox. "In the Code" is the
-// walkthrough, anchored by comments saying which part of the file each block
-// belongs to, plus the priced table of the three beat designs.
-//
-// Answer-box ids are positional and persisted. This rewrite keeps the FIRST
+// Answer-box ids are positional and persisted. The rewrite keeps the FIRST
 // socratic block ("Designing a Beat") with its three questions in order, and
-// deletes the trailing "Predict Before Building" block. Nothing above it moved,
-// so no surviving question was renumbered.
-//
-// REPETITION CULL (teach it once): the "Check Yourself" activity that used to
-// follow the walkthrough is gone — it repeated the reading that now sits in the
-// editor half, and its intro paragraph restated the four parts the decompose
-// already renders. The trap callout that asked the student to predict the stuck
-// turn is gone too: the walkthrough's gap already carries that prediction in its
-// hint and its why, and saying it twice spent attention the build needed.
-// SECOND PASS (shape only): table rows and the editor steps are back to the
-// multi-line shape the 2.x lessons use. The earlier pass had squeezed a row and
-// a step onto one long line, which saved nothing a reader pays for — line count
-// is not the metric, words are, and no word moved here.
+// the decompose block keeps both of its turns where they were.
 import Lesson from '../../layouts/LessonLayout.astro';
 import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
 
 // The two recurring questions, applied to the beat. Level 2, so exactly one
-// part is withheld — the one with no precedent in this course. Everything the
-// game has remembered so far has been a number that changes; today's memory is
-// a PLACE, and the turn is that memory changing its mind. Its reading stays
-// attached, because finding the answer in the docs is the skill being practised.
+// part is withheld — the one with no precedent in this course: not the memory
+// itself (a number that changes is 1.3) but where the number has to go when it
+// runs out. Its reading stays attached, because finding the answer in the docs
+// is the skill being practised.
 const DECOMPOSE = {
   big:
     'The enemy should walk a beat — back and forth, forever, with nobody at the keyboard. ' +
     '"Make the enemy patrol" is the whole feature, and at this moment the enemy is a picture ' +
-    'with an empty script on it: no wall can stop it, and it has never moved once.',
+    'with an empty script on it: it has never moved once.',
   parts: [
     {
-      name: 'Give the enemy a body',
-      does: 'A Collider2D on the prefab root, sized by hand against art that lives on a child, plus a Rigidbody2D with Body Type Dynamic and Gravity Scale 0 — the same pair you gave the Player in 2.1. Until both exist, no wall can stop the enemy and no collision message will ever fire on it, which is exactly what 4.4 needs.',
-      doc: 'the `Collider2D` and `Rigidbody2D` rows and the Body Type warning in the quick reference, and the recipe you followed for the Player in 2.1.',
-      href: '2.1.html',
+      name: 'Write the route down as a list of places',
+      does: 'One serialized `List<Transform>` slot on the prefab. Each entry is a Transform you place in the scene and drag in — a route of two points today, five later, without a line of new code.',
+      doc: 'the `[SerializeField] private List<Transform>` row of this lesson\'s table, and the serialized-field rule from 1.3.',
+      href: '1.3.html',
     },
     {
-      name: 'Remember which way it is walking',
-      doc: 'the `[SerializeField] private Transform` row of this lesson\'s table, and the field that remembered a moment on the turret in 3.3.',
-      href: '3.3.html',
+      name: 'Remember which point it is walking toward',
+      does: 'One `int` — an index into the list, not a Transform. It starts at `0` and it is the only thing in the file that changes when the enemy turns around.',
+      doc: 'the field declarations from 1.3, and the `int` you used for `WalkDir` in 1.6.',
+      href: '1.3.html',
+    },
+    {
+      name: 'Move toward that point at a constant speed',
+      does: '`Vector3.MoveTowards()` with `speed * Time.deltaTime` as the step. It refuses to overshoot, so the enemy lands exactly on the point instead of sailing past it.',
+      doc: 'the `Vector3.MoveTowards()` row of this lesson\'s table, and `Time.deltaTime` from 1.5.',
+      href: '1.5.html',
+    },
+    {
+      name: 'Arrive, advance, and wrap at the end of the list',
+      doc: 'the `Vector3.Distance()` row in the quick reference, and `List<T>.Count` in the scripting reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
       blank: true,
-    },
-    {
-      name: 'Move it toward the end it is holding',
-      does: 'Every frame: subtract the two positions to get an arrow, normalize it so the enemy does not sprint when it is far away, multiply by a speed and hand the result to the body. Velocity is measured per second, so that line takes no Time.deltaTime.',
-      doc: 'the `(a - b).normalized` row and the `rb.linearVelocity = v` row in the quick reference — the pair you used on the diagonal in 1.5 and on the Player in 2.2.',
-      href: '2.2.html',
-    },
-    {
-      name: 'Notice it has arrived, and turn around',
-      does: 'The distance check from 3.1, against a small threshold instead of a radius. When it is true, the field from part 2 is handed the other end of the beat — nothing about the enemy moves at that moment, only that field changes.',
-      doc: 'the `Vector3.Distance(a, b)` row in the quick reference, and the range check you wrote on the turret in 3.1.',
-      href: '3.1.html',
     },
   ],
   why:
-    'Three of those four parts are work you have already done: a collider and a Dynamic body is 2.1, a ' +
-    'normalized direction and a velocity is 2.2, and a distance compared against a threshold is 3.1. Only ' +
-    'one part has no precedent at all, and it is the smallest one: until today everything this game ' +
-    'remembered was a number that changed, and today the memory is where you are going. That is the whole ' +
-    'reason a beat can run with nobody at the keyboard: a player turns because a key was pressed, and the ' +
-    'enemy has no keys.',
+    'Three of those four parts are work you have already done: a serialized field is 1.3, a number that changes ' +
+    'is 1.3, and a distance compared against a threshold is 3.1. Only one part has no precedent at all: a route ' +
+    'has an END. Every number this game has remembered so far was allowed to grow forever, and this one is not — ' +
+    'the moment it equals the size of the list, reading the list throws.',
   sizeTest:
     'The test: could you look this part up on its own, right now, in one search? "Make an enemy patrol" ' +
-    'cannot be looked up. "Move an object toward a position at a constant speed" can — and you wrote that ' +
-    'line in 2.2.',
+    'cannot be looked up. "Move an object toward a position at a constant speed" can.',
   turns: [
-    'The reading prices three ways to define a beat. Which did you choose, and what does your choice cost you — in your own words, not the table\'s?',
-    'A patrolling enemy has no keyboard. Name one thing the Player gets from Input that the enemy now has to keep in a field instead.',
+    'The table prices three ways to define a route. Which did you choose, and what does your choice cost you — in your own words, not the table\'s?',
+    'The enemy\'s whole memory is one `int`. What does it index, and what happens on the first frame it equals `patrolPoints.Count`?',
   ],
 };
 
 // Three code blocks, each opening with a comment saying where in EnemyController
-// .cs it goes: the fields with the fields, the memory and its seed in the class
-// body and Start(), the loop in Update(). One gap, on the turn.
+// .cs it goes: the fields with the fields, the seed in Start(), the loop in
+// Update(). One gap, on the wrap.
 const WALK = {
   ask: 'how do I make an enemy follow a patrol route?',
   file: 'Assets/Scripts/EnemyController.cs',
   label: 'In the Code',
-  intro: 'The enemy ships as a stub: an empty EnemyController on a prefab you just gave a body to, standing in the Overworld four times over. Today it gets two ends to its beat and one field that remembers which end it is walking toward. The movement line is the one you chose in 2.2 — if you move your Player a different way, keep your method and read the shape.',
+  intro: 'The enemy ships as a stub: an EnemyController on a prefab with a body, standing in the Overworld four times over. Today it gets a route, an index into that route, and the line that sends the index back to the start.',
   level: 2,
   steps: [
     {
-      title: 'Declare the two ends of the beat and the numbers that tune it',
-      lead: 'Four lines in the class body, and every one of them is a line a designer can see in the Inspector — the `[SerializeField]` pattern from 1.3.',
+      title: 'Declare the route and the index',
+      lead: 'The `using` goes at the top of the file with the others; the rest goes in the class body, with your fields.',
       lines: [
-        { code: '// EnemyController.cs — class body, above Start(), with your other fields.', what: '' },
-        { code: '    [SerializeField] private Transform waypointA;', what: 'One end of the beat. A `Transform` holds a position in the world — and, wired from the Inspector, it holds a *reference to another object*, which is what a waypoint slot is.' , why: '**Slots, not typed-in coordinates.** A waypoint is a place in the scene, so it belongs to the scene: you can drag either end while the game is running and watch the beat move. Two hard-coded x values would give the same straight line and break the moment you moved the prefab somewhere else.' },
-        { code: '    [SerializeField] private Transform waypointB;', what: 'The other end. Two slots rather than one, because a beat has two ends and the enemy has to be able to reach both.' },
-        { code: '    [SerializeField] private float moveSpeed = 2f;', what: 'How fast it walks, in units **per second** — the same kind of knob, with the same name, as `moveSpeed` on your Player.' },
-        { code: '    [SerializeField] private float arriveDistance = 0.1f;', what: 'How close counts as **arrived** — the number that decides when the beat turns around.' , why: 'It has to be small enough that the enemy looks like it reached the waypoint, and large enough that it can actually *reach* it. An enemy that travels further in one frame than this number walks straight past the waypoint and never arrives at all.' },
+        { code: '// EnemyController.cs — the top of the file, above the class.', what: '' },
+        { code: 'using System.Collections.Generic;', what: 'The namespace `List<>` lives in. Unity adds `using UnityEngine;` for you when the script is created; this one you add yourself.' , why: '**Without it, `List` is an unknown name.** The compiler error points at the type — "The type or namespace name `List` could not be found" — which reads like the list is wrong when the only thing missing is one line at the top of the file.' },
         { code: '', what: '' },
-        { code: '    private Rigidbody2D body;', what: 'A place to keep the reference to the enemy\'s own body, so the movement line in step 3 does not have to search for it every frame. You keep one of these on the Player for exactly the same reason.' },
+        { code: '// EnemyController.cs — class body, above Start(), with your other fields.', what: '' },
+        { code: '    [SerializeField] private List<Transform> patrolPoints = new List<Transform>();', what: '**The route.** A list of Transforms — each entry is an object you placed in the scene and dragged into the Inspector slot. `[SerializeField]` is what puts the slot there at all.' , why: '**`= new List<Transform>()` is not decoration.** Without it the field starts as `null`, and the first thing your code will do is ask it how many points it has — a NullReferenceException instead of an empty list. An empty list is a route with no points, which is a bug you can see; a null list is a crash that reads like a code fault. (Unity fills a serialized list for you once you press Play with one wired, which is exactly why the difference is invisible until it isn\'t.)' },
+        { code: '    int patrolNumber = 0;', what: '**The memory.** Which entry in the list the enemy is walking toward right now. `0` is the first point; the line that moves it is the gap in step 3.' },
+        { code: '    Vector3 targetPosition;', what: 'The spot in the world the enemy is walking to this frame — read out of the list so the movement line does not have to say `patrolPoints[patrolNumber].position` twice.' },
+        { code: '', what: '' },
+        { code: '    float speed = 2;', what: 'How fast it walks, in units **per second**.' },
       ],
     },
     {
-      title: 'Declare the memory, and give it a value before the first frame',
-      lead: '`Start()` runs once, before `Update()` has ever run — you already use it in 2.2 for the Player\'s body lookup, and the enemy\'s stub already has the method waiting.',
+      title: 'Seed the first destination',
+      lead: '`Start()` runs once, before `Update()` has ever run.',
       lines: [
-        { code: '// EnemyController.cs — the memory field in the class body, the seed inside Start().', what: '' },
-        { code: '    private Transform target;', what: '**The memory.** One field holding which end of the beat the enemy is walking toward right now. It is the only thing in the file that changes when the enemy turns around.' , why: '**Notice that it has no value yet** — the next lines give it one. And notice **where** it lives: in the class body, not inside `Update()`. Move this line into a method and it is rebuilt from nothing sixty times a second, so the enemy can never remember which way it was going.' },
-        { code: '    void Start()', what: '' },
-        { code: '    {', what: '' },
-        { code: '        body = GetComponent<Rigidbody2D>();', what: 'Finds the Rigidbody2D you added in the editor half and keeps the reference. `GetComponent<T>()` is the lookup from 2.1, and calling it once in `Start()` instead of every frame is the rule from 2.2.' , why: '**Without this line the movement in step 3 has nothing to write to.** The field would still be empty, and the Console fills with a NullReferenceException on the first frame, pointing at the line that uses the body. An empty reference is a valid value in C# — nothing complains until you use it.' },
-        { code: '        target = waypointB;', what: 'Seeds the memory, so the enemy knows which way it is walking before the first frame runs. Either end works; starting toward B gives a full first beat.' , why: '**Leave this out and the first frame throws.** A field with no value is `null`, and the arrival check in step 3 asks that reference for its position. The memory needs a value before anything reads it, and the value has to come from somewhere that runs *once*.' },
-        { code: '    }', what: '' },
+        { code: '// EnemyController.cs — inside Start().', what: '' },
+        { code: '        targetPosition = patrolPoints[patrolNumber].position;', what: 'Reads entry `0` of the list and keeps its position. `Update()` will overwrite this every frame, so the line is really a declaration of intent: the enemy starts walking toward the first point.' , why: '**This line is where an empty list announces itself.** With nothing wired, `patrolPoints[0]` does not exist, and the Console fills with `ArgumentOutOfRangeException` before the first frame is drawn. The exception names this line, and the bug is in the Inspector.' },
       ],
     },
     {
-      title: 'Walk toward it every frame, and turn when you get there',
-      lead: 'Two jobs, and together they are the whole beat: go toward the end you are holding, and — when you have arrived — hold the other one.',
+      title: 'Arrive, advance, wrap, walk',
+      lead: 'One `Update()` doing four things in order. Only one of them is new.',
       lines: [
         { code: '// EnemyController.cs — inside Update().', what: '' },
-        { code: '    void Update()', what: '' },
-        { code: '    {', what: '' },
-        { code: '        Vector2 direction = (target.position - transform.position).normalized;', what: 'The arrow from the enemy to the waypoint it is walking toward, at a length of exactly 1: subtract the two positions, then normalize — the pair you used on the diagonal in 1.5 and to aim a projectile in 3.2.' , why: '**Do not skip `.normalized`.** Without it the vector is as long as the distance to the waypoint, so the enemy sprints when it is far away and creeps when it is close — and on a long beat it covers the whole waypoint in a single frame and never arrives. A position is a Vector3 and a velocity is a Vector2; Unity converts between them by dropping `z`, which is harmless in a flat world.' },
-        { code: '        body.linearVelocity = direction * moveSpeed;', what: 'Hands the body a velocity instead of moving the Transform yourself — the movement method you chose from the 2.2 table, and the only reason a wall can stop the enemy at all.' , why: '**No `Time.deltaTime` on this line.** Velocity is measured in units *per second*, so the physics engine already applies the time for you. Multiply by `deltaTime` and the enemy\'s speed starts depending on your frame rate.' },
-        { code: '', what: '' },
-        { code: '        if (Vector3.Distance(transform.position, target.position) < arriveDistance)', what: 'The arrival test: the distance check from 3.1, with the threshold you declared in step 1 instead of a radius. True on every frame the enemy is standing within `arriveDistance` of the waypoint it was walking toward.' },
+        { code: '        if (Vector3.Distance(transform.position, patrolPoints[patrolNumber].position) < .1f)', what: 'The arrival test: the distance check from 3.1, against a threshold of a tenth of a unit. True on every frame the enemy is standing close enough to the point it was walking toward.' },
         { code: '        {', what: '' },
-        { code: '', blank: true, what: 'The turn. The enemy has arrived at the waypoint it was walking toward — hand the memory from step 2 the OTHER end of the beat. Nothing else about the enemy changes at this moment: not its position, not its speed, not the waypoints. An `if`/`else` you already know is enough to write it.' , hint: 'The field holds which end it is walking toward. Ask it which one it is holding right now — a Transform can be compared with `==` — and send it to the other. Both waypoints are in scope, and only one of them is the right answer on any given frame.' , why: '**Leave this line out and the enemy walks to the first waypoint and stands there forever.** Nothing else in the file ends the journey: on the Player, letting go of the keys was the turn, and the enemy has no keys. **And a line that always writes the same waypoint is only one beat** — it arrives, sends itself back to the place it is already standing, and never walks again. The two ends have to alternate, which means the line has to *ask* what the field is holding.' },
+        { code: '            patrolNumber += 1;', what: 'The turn: the index moves to the next point in the list. This is the whole reason the enemy can walk a beat with nobody at the keyboard — a player turns because a key was pressed, and the enemy has no keys.' },
+        { code: '            ______________________________', blank: true, what: 'The wrap. The index has just been incremented, so it might now point past the end of the list — write the line that sends it back to the first point when it does.' , hint: 'Ask two questions in one condition: has the index reached the number of points in the list? If so, what should it be instead of that number? The list can tell you its own size.' , why: '**Leave this out and the enemy crashes at the end of its route.** The next line reads `patrolPoints[patrolNumber]`, and an index equal to `Count` is one past the last entry — `ArgumentOutOfRangeException`, every frame, forever. A list does not loop; the number that walks it has to. This is the difference between a route and a count.' },
         { code: '        }', what: '' },
-        { code: '    }', what: '' },
+        { code: '', what: '' },
+        { code: '        targetPosition = patrolPoints[patrolNumber].position;', what: 'Re-read the destination from the list. On most frames this is the same point as last frame; on the frame the enemy arrived, it is the next one.' },
+        { code: '', what: '' },
+        { code: '        float step = speed * Time.deltaTime;', what: 'How far to travel **this frame**: speed is per second, so the frame\'s duration turns it into per frame — the multiplication from 1.5.' },
+        { code: '        transform.position = Vector3.MoveTowards(transform.position, targetPosition, step);', what: 'Moves the object toward the destination by exactly one step, stopping on the point rather than passing it.' , why: '**`MoveTowards()` cannot overshoot.** A velocity line would travel `step` units in the direction of the point even when the point is only half a step away — the enemy would jitter past the waypoint and the arrival test would flicker. Because the third argument is already a distance, this line takes `speed * Time.deltaTime` rather than `speed` alone. **And it moves the Transform, not the body** — the same shortcut the Player took in 1.4 before 2.2 replaced it. That is a debt, not an accident: the body is still there, because 4.3 needs the trigger and 4.6 needs something to hit.' },
       ],
     },
   ],
   finalFile: `using UnityEngine;
+using System.Collections.Generic;
 
-// EnemyController.cs — one guard, one beat, forever.
-// The two ends of the beat are objects in the scene. This script keeps exactly
-// one thing about the walk: which end it is heading for. The turn is that
-// field changing its mind.
 public class EnemyController : MonoBehaviour
 {
-    [SerializeField] private Transform waypointA;           // one end of the beat
-    [SerializeField] private Transform waypointB;           // the other end
-    [SerializeField] private float moveSpeed = 2f;          // units per SECOND
-    [SerializeField] private float arriveDistance = 0.1f;   // how close is "there"
+    float speed = 2;
 
-    private Transform target;                               // which way it is walking
-    private Rigidbody2D body;
+    // The route: objects placed in the scene and dragged into the Inspector.
+    [SerializeField] private List<Transform> patrolPoints = new List<Transform>();
+
+    // The memory: which entry the enemy is walking toward.
+    int patrolNumber = 0;
+
+    Vector3 targetPosition;
 
     void Start()
     {
-        // Looked up once, never inside Update() — the rule from 2.2.
-        body = GetComponent<Rigidbody2D>();
-
-        // Seed the memory. Either end works; this one gives a full first beat.
-        target = waypointB;
+        targetPosition = patrolPoints[patrolNumber].position;
     }
 
     void Update()
     {
-        // Arrive first, walk second. The order only matters on the one frame
-        // where the enemy reaches a waypoint.
-        if (Vector3.Distance(transform.position, target.position) < arriveDistance)
+        if (Vector3.Distance(transform.position, patrolPoints[patrolNumber].position) < .1f)
         {
-            TurnAround();
+            patrolNumber += 1;
+
+            // The wrap: a list does not loop, so the index has to.
+            if (patrolNumber == patrolPoints.Count)
+            {
+                patrolNumber = 0;
+            }
         }
 
-        // No Time.deltaTime: velocity is per second, not per frame (2.2).
-        Vector2 direction = (target.position - transform.position).normalized;
-        body.linearVelocity = direction * moveSpeed;
+        targetPosition = patrolPoints[patrolNumber].position;
+
+        float step = speed * Time.deltaTime;
+        transform.position = Vector3.MoveTowards(transform.position, targetPosition, step);
     }
-
-    // The only thing that ends a beat. The player lets go of the keys; the
-    // enemy has no keys, so the turn has to be written here.
-    private void TurnAround()
-    {
-        if (target == waypointA)
-        {
-            target = waypointB;
-        }
-        else
-        {
-            target = waypointA;
-        }
-    }
-}
-
-// Inspector, on Assets/Prefabs/MobileEnemy (this lesson's editor half):
-//   Collider 2D                       =  on the ROOT, resized by hand until the
-//                                        outline covers the art on the Sprite child
-//   Rigidbody 2D ▸ Body Type          =  Dynamic   <- only Dynamic is stopped by walls
-//   Rigidbody 2D ▸ Gravity Scale      =  0         <- the Overworld has no down
-//   Rigidbody 2D ▸ Freeze Rotation Z  =  ON        <- solid hits impart spin
-//   Waypoint A / Waypoint B           =  two empty GameObjects placed in the
-//                                        Overworld, wired per enemy INSTANCE`,
+}`,
   finalNote:
-    'Compare against your own file rather than copying it. The gap is the turn, and it is the one line in this lesson with nothing earlier to copy: the field remembers which end of the beat the enemy is heading for, and the turn is that field changing its mind. This file writes it as a small method with an `if`/`else`, and turns *before* it walks where the walkthrough turns after — on every frame but the one where the enemy arrives, those two orders are the same file, and any form that hands the field the *other* waypoint is correct. Your waypoint placement, your speed, your threshold and your movement method from 2.2 are yours; the shape is what has to match.',
+    'Compare against your own file rather than copying it. The gap is the wrap, and it is the one idea in this lesson with nothing earlier to copy. The file above writes it across three lines; a single-line `if (patrolNumber == patrolPoints.Count) patrolNumber = 0;` is the same program. Your waypoints, your speed and your threshold are yours; the shape is what has to match.',
 };
 
 const body = `<h1>4.1 — The Enemy: Patrol</h1>
 
 <p class="lesson-lead">
-    The turret never moves. This enemy walks a beat with nobody at the keyboard, and it ships as a
-    picture with an empty script: no collider, no body, and no memory of anything. Today it gets
-    all three.
+    The turret never moves. This enemy walks a beat with nobody at the keyboard — a route it can
+    repeat forever, defined by objects you place in the scene.
 </p>
 
 ${renderAskBanner('how do I make an enemy follow a patrol route?', 2)}
@@ -244,59 +212,57 @@ ${renderDecompose('4.1', DECOMPOSE, 2)}
         </li>
         <li>
             <strong>Project window →</strong> <code>Assets/Prefabs/MobileEnemy</code>, and select
-            the prefab <em>asset</em>, not an instance in the scene. Its root carries a Transform,
-            an empty <code>EnemyController</code> and one child named <em>Sprite</em> — and no
-            collider and no body at all.
+            the prefab <em>asset</em>, not an instance in the scene. Its root is tagged
+            <strong>Enemy</strong>, carries a <strong>Capsule Collider 2D</strong> and a
+            <strong>Rigidbody 2D</strong> set to <strong>Dynamic</strong> with
+            <strong>Gravity Scale 0</strong>. Read those: today's movement does not use the body,
+            but 4.3 will, and you should know it is already there.
         </li>
         <li>
-            <strong>Inspector → Add Component → Box Collider 2D</strong>, on the <em>root</em>. Then
-            <strong>Scene view →</strong> drag the handles until the green outline covers the enemy
-            you can actually see: the art is not on the root, it lives on the <em>Sprite</em> child,
-            offset and scaled up, so a default collider on the root is a small square in the middle
-            of a much bigger body.
-        </li>
-        <li>
-            <strong>Inspector → Add Component → Rigidbody 2D</strong>, then set <strong>Body Type =
-            Dynamic</strong>, <strong>Gravity Scale = 0</strong> and <strong>Constraints → Freeze
-            Rotation Z ☑ ON</strong>. Only a Dynamic body is stopped by the world, and only a frozen
-            rotation keeps a shoved enemy from spinning.
-        </li>
-        <li>
-            <strong>Game view →</strong> press Play with no patrol code at all, then walk into an
-            enemy. It is solid now, and it still does not move on its own. Both halves of that are
-            the point of today.
+            <strong>Hierarchy → MobileEnemy → Detection Radius</strong>: a child with a
+            <strong>Circle Collider 2D</strong>, <strong>Is Trigger</strong> ticked. That is next
+            lesson's aggro radius — leave it alone today, and notice that the project wired it before
+            it wrote the script that uses it.
         </li>
         <li>
             <strong>Hierarchy → right-click → Create Empty</strong>, twice, in the Overworld. Rename
-            them <strong>WaypointA</strong> and <strong>WaypointB</strong>, and place them with the
-            Move tool in the <strong>Scene view</strong> at the two ends of the beat you want — the
-            setup for the waypoint row. If you picked a different row in the table below, you need
-            no scene objects at all.
+            them <strong>PatrolPointA</strong> and <strong>PatrolPointB</strong>, and place them with
+            the Move tool in the <strong>Scene view</strong> at the two ends of a beat that makes
+            sense in the level. They are positions and nothing else.
         </li>
         <li>
-            <strong>Hierarchy →</strong> select each enemy instance, then <strong>Inspector
-            →</strong> drag <strong>WaypointA</strong> and <strong>WaypointB</strong> into the two
-            slots on <code>EnemyController</code>. An empty slot is a null reference: it throws on
-            the first frame your code reads it, which looks like a patrol bug and is really a wiring
-            bug.
+            <strong>Hierarchy →</strong> one enemy instance, <strong>Inspector →
+            Enemy Controller → Patrol Points</strong>: set <strong>Size</strong> to
+            <code>2</code>, then drag the two empty objects into the two slots. Repeat per instance
+            if three enemies should walk three different routes.
+        </li>
+        <li>
+            <strong>Once the code half is done — Game view → press Play</strong> and watch one enemy
+            walk the loop. Then add a third point to the list while Play is running and watch it take
+            the longer route — nothing in the script changed.
+        </li>
+        <li>
+            <strong>Console →</strong> if you see <code>ArgumentOutOfRangeException</code>, the list
+            is empty, or the index ran past its end. Check <strong>Size</strong> in the Inspector
+            before you check the code.
         </li>
     </ol>
 
     <p>
         Read the three rows below before you write anything. All three are the same four parts in
-        different clothes, and only what the field remembers differs — a sign, a target, or a limit.
+        different clothes, and only what the field remembers differs — a place, an index, or a limit.
     </p>
 
     <table>
         <tr><th>The row</th><th>What it remembers, and how it turns</th><th>What it costs you</th></tr>
         <tr>
             <td><strong>A leash from the spawn point</strong></td>
-            <td>The position it started at, plus how far it may wander. It measures the drift with <code>Vector3.Distance(a, b)</code> and flips the stored sign once that exceeds the leash.</td>
+            <td>The position it started at, plus how far it may wander. It measures the drift with <code>Vector3.Distance()</code> and flips the stored sign once that exceeds the leash.</td>
             <td>No scene setup at all, and the beat follows the enemy wherever you drag it. But it is always a straight line centred on the spawn point, and the turn is noticed only <em>after</em> the enemy has moved — so it always overshoots by up to one frame of travel.</td></tr>
         <tr>
-            <td><strong>Two placed waypoints</strong></td>
-            <td>Two Transforms wired into two Inspector slots. It walks toward the current one and hands the field the other when the distance falls under the arrived threshold.</td>
-            <td>You must create, place and wire two objects, and invent a threshold small enough to be accurate but large enough to be reachable — travel further in one frame than the threshold and the enemy sails straight past and never turns.</td></tr>
+            <td><strong>A list of placed waypoints</strong> — <em>this project</em></td>
+            <td>A <code>List&lt;Transform&gt;</code> wired in the Inspector, plus an <code>int</code> remembering which entry it is heading for. It walks to that point, advances the index, and wraps to <code>0</code> at the end.</td>
+            <td>You must place and wire every point, per instance, and guard the wrap — an index one past the end is an exception. In exchange the route is as long as you like without new code.</td></tr>
         <tr>
             <td><strong>Two absolute bounds</strong></td>
             <td>Two numbers, a minimum and a maximum, and a sign the movement multiplies by.</td>
@@ -306,9 +272,9 @@ ${renderDecompose('4.1', DECOMPOSE, 2)}
     <div class="socratic">
         <h3>Socratic: Designing a Beat</h3>
         <ol>
-<li>Which of the three beat definitions fits an enemy you will place four or five times across a map and keep nudging while you design the level? What does your choice cost you?</li>
+<li>Which of the three route definitions fits an enemy you will place four or five times across a map and keep nudging while you design the level? What does your choice cost you?</li>
 <li>The leash approach stores the position the enemy started at. Which lifecycle method must save it, and what would the enemy do if you saved it every frame instead?</li>
-<li>A single int holding <code>1</code> or <code>-1</code> is the enemy's entire memory of where it is going. Why is that enough — and what extra state would a bool such as <code>isGoingRight</code> force you to keep in sync?</li>
+<li>The enemy's whole memory is one <code>int</code> that counts up. Why is an index enough to define a route — and what would go wrong with a bool such as <code>isGoingRight</code> once the route has five points?</li>
 </ol>
     </div>
 </div>
@@ -317,14 +283,14 @@ ${renderDecompose('4.1', DECOMPOSE, 2)}
 ${renderWalkthrough(WALK)}
 
 <!-- ============================================================ -->
-
 <div class="checklist">
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
-        <li>Say what the MobileEnemy prefab was missing, and why that matters beyond this lesson</li>
-        <li>Compare the three ways to define a beat, name the one you chose, and defend it</li>
-        <li>Explain why the memory gets its first value in <code>Start()</code>, and what breaks if you move that line into <code>Update()</code></li>
-        <li>Point at the one field that is your enemy's whole memory of where it is going, and the single line that changes its mind</li>
+        <li>Compare the three ways to define a route, name the one this project uses, and defend it</li>
+        <li>Explain why the route lives in a serialized list rather than in two hard-coded positions</li>
+        <li>Point at the one field that is your enemy's whole memory of where it is going, and the line that changes it</li>
+        <li>Explain what happens without the wrap, and name the exception it produces</li>
+        <li>Say what <code>Vector3.MoveTowards()</code> refuses to do that a velocity line does, and why the third argument is <code>speed * Time.deltaTime</code></li>
         <li>Say how many enemies and how many coins the Overworld shipped with</li>
         <li>Commit and push</li>
     </ul>
@@ -338,7 +304,7 @@ ${renderWalkthrough(WALK)}
         <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — patrol, chase and the full state machine</li>
         <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the reference you will build against all unit</li>
         <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — what a body buys you, reused from Unit 2</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Transform, distance and Inspector fields</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — Transform, distance and list fields</li>
         <li><a href="../docs/ask.html">How do I…? index</a> — find this lesson again by the question you were asking</li>
     </ul>
     <p>Next: <a href="4.3.html">4.3 — Chase: The Aggro Radius</a>, where the enemy stops walking its beat and starts walking yours.</p>
