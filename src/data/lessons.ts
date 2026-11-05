@@ -57,7 +57,7 @@ export const LESSONS: Record<string, LessonMeta> = {
   // Unit 5 — The Axe & The Cave
   '5.1': { title: "The Axe: Item Pickups & Inventory Bools", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.1' },
   '5.2': { title: "The Door: Opening It with Events", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.2' },
-  '5.3': { title: "Into the Cave: Scenes, Persistence & The Refactor", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.3' },
+  '5.3': { title: "Into the Cave: Persistence & the HUD", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.3' },
 
   // Unit 6 — Jumping
   '6.1': { title: "Gravity & Jump: The First Flick", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.1' },

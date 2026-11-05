@@ -224,7 +224,7 @@ export const SEQUENCE: SequenceEntry[] = [
   { d: '2026-12-09', kind: 'lesson', group: '5.2', phase: 2, ced: ['AAP-2', 'CRD-2'],
     title: 'The Door: Opening It with Events', lessons: ['5.2'] },
   { d: '2026-12-11', kind: 'lesson', group: '5.3', phase: 2, ced: ['AAP-1', 'CRD-2'],
-    title: 'Into the Cave: Scenes, Persistence & the Refactor', lessons: ['5.3'],
+    title: 'Into the Cave: Persistence & the HUD', lessons: ['5.3'],
     note: 'The architectural payoff. Leaving the overworld destroys every stat the student owns, because a scene load replaces rather than loses. They refactor stats out of PlayerController into the StatManager singleton that has been an empty stub since Unit 2, guard against duplicates, and put the HUD where the game begins.' },
   { d: '2026-12-15', kind: 'lesson', group: '4.2', phase: 2, ced: ['AAP-2', 'CRD-2'],
     title: 'Enemy Animation & Contact Damage', lessons: ['4.2', '4.4'],
