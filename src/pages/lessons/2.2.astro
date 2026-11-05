@@ -77,8 +77,8 @@ const DECOMPOSE = {
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
-      name: 'Take the damage, and stop at the floor',
-      does: 'Health is a class-body field, and one method changes it by a signed amount so the same method can heal later. The subtraction is guarded: if health is already zero, return before touching the number, so it can never run to -1, -2, -3 and stop meaning anything.',
+      name: 'Take the damage, and decide what zero means',
+      does: 'Health is a class-body field, and one method changes it by a signed amount so the same method can heal later. The zero check is `<= 0`, not `== 0`, so a bigger hit cannot sail past zero; and dying is its own method with its own rule — lose half your coins and come back at full health.',
       doc: 'the `if (health <= 0) { ... } else { ... }` row in the quick reference, and the coin count field you declared in 2.1.',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
@@ -112,7 +112,7 @@ const WALK = {
       lead: 'You gave the Player a Rigidbody2D in 2.1. To hand it instructions you need a reference to it.',
       lines: [
         { code: '// PlayerController.cs — class body, above Start(), with your other fields.', what: '' },
-        { code: '    private Rigidbody2D body;', what: 'A field to hold the Player\'s Rigidbody2D component. `private` and no `[SerializeField]`, because nothing outside this script needs to see it.' , why: 'Class body, not inside a method — the same rule from 1.3. This reference has to still be here on the next frame, so it belongs to the object.' },
+        { code: '    Rigidbody2D rb;', what: 'A field to hold the Player\'s Rigidbody2D component. `private` and no `[SerializeField]`, because nothing outside this script needs to see it.' , why: 'Class body, not inside a method — the same rule from 1.3. This reference has to still be here on the next frame, so it belongs to the object.' },
       ],
     },
     {
@@ -120,21 +120,62 @@ const WALK = {
       lead: '`GetComponent<T>()` is a search. Assign it once in Start() and remember the answer.',
       lines: [
         { code: '// PlayerController.cs — inside Start(), with your 1.6 lookups.', what: '' },
-        { code: '        body = GetComponent<Rigidbody2D>();', what: 'Find the Rigidbody2D sitting on this same GameObject and store it in `body`. `GetComponent<T>()` looks a component up on the object this script is attached to.' , why: '**Once, in `Start()` — never in `Update()`.** Calling it every frame is sixty searches a second for an answer that never changes — the same "decide once, remember it" instinct as declaring `inputX` in the class body.' },
+        { code: '        rb = GetComponent<Rigidbody2D>();', what: 'Find the Rigidbody2D sitting on this same GameObject and store it in `rb`. `GetComponent<T>()` looks a component up on the object this script is attached to.' , why: '**Once, in `Start()` — never in `Update()`.** Calling it every frame is sixty searches a second for an answer that never changes — the same "decide once, remember it" instinct as declaring `xVector` in the class body.' },
       ],
     },
     {
       title: 'Replace one line in Update()',
-      lead: 'Everything above the gap is the vector you built in 1.4, unchanged. One line at the bottom of Update() is different.',
+      lead: 'Everything above the gap is your 1.5 movement, unchanged. One line at the bottom of Update() is different.',
       lines: [
         { code: '// PlayerController.cs — inside Update().', what: '' },
-        { code: '        inputX = Input.GetAxis("Horizontal");', what: 'Unchanged from 1.5.' },
-        { code: '        inputY = Input.GetAxis("Vertical");', what: '' },
+        { code: '        xDirection = Input.GetAxisRaw("Horizontal");', what: 'Unchanged from 1.5.' },
+        { code: '        yDirection = Input.GetAxisRaw("Vertical");', what: '' },
         { code: '', what: '' },
-        { code: '        Vector2 direction = new Vector2(inputX, inputY);', what: 'The two axis values packed into a vector. This is a **direction**: it says which way, not how far.' },
-        { code: '        direction = direction.normalized;', what: 'Unchanged from 1.5 — keeps diagonal movement from being faster.' },
+        { code: '        xVector = xDirection * speed;', what: 'Unchanged from 1.5 — the two axes in units per second.' },
+        { code: '        yVector = yDirection * speed;', what: '' },
         { code: '', what: '' },
-        { code: '        body.________________ = direction * moveSpeed;', blank: true, what: 'Hand the body a velocity instead of moving the Transform yourself. This one line replaces `transform.Translate(movement)`, and it is the whole fix.', hint: 'The property on `body` that says how fast it is travelling. In Unity 6 it is no longer called `velocity`.', why: 'Two things changed at once, and both matter. First, **you are asking the physics engine to do the moving** — so it knows where you are going and can stop you. Second, **there is no `Time.deltaTime`**: velocity is already measured *per second*, so the engine applies the time for you. Multiplying by `Time.deltaTime` here is the most common mistake on this line.' },
+        { code: '        ____', blank: true, what: 'Hand the body a velocity instead of moving the Transform yourself. This one line replaces `transform.Translate(...)`, and it is the whole fix. The two numbers you already have go into one `Vector2`, and the body is told to travel at that speed.', hint: 'The property on `rb` that says how fast it is travelling. In Unity 6 it is no longer called `velocity`.', why: 'Two things changed at once, and both matter. First, **you are asking the physics engine to do the moving** — so it knows where you are going and can stop you. Second, **there is no `Time.deltaTime`**: velocity is already measured *per second*, so the engine applies the time for you. Multiplying by `Time.deltaTime` here is the most common mistake on this line.' },
+      ],
+    },
+    {
+      title: 'Give the player a health number and one method to change it',
+      lead: 'A second method of your own, below `UpdateAnimation()`. Nothing calls it yet — the spike will.',
+      lines: [
+        { code: '// PlayerController.cs — class body, with your other fields.', what: '' },
+        { code: '    int health = 3;', what: '**How many hits you can take.** A plain `int` with a starting value, in the class body, for the same reason `coins` lives there: it has to survive the frame.' },
+        { code: '', what: '' },
+        { code: '// PlayerController.cs — below UpdateAnimation().', what: '' },
+        { code: '    void ChangeHealth(int amount)', what: '**One method that changes health by a signed amount.** Pass `-1` to hurt, `+1` to heal. One door in, so the rule about the floor can live behind it — and when 2.3 adds a cap on the way up, it goes in this same method, not in five callers.' },
+        { code: '    {', what: '' },
+        { code: '        health = health + amount;', what: 'The same `+` for both directions: a negative `amount` subtracts. No `if` in front of it, because the amount already carries the direction.' },
+        { code: '', what: '' },
+        { code: '        print("Health: " + health);', what: 'One line in the Console, so you can watch the number without a UI. This game has no health bar yet — 5.3 builds one.' },
+        { code: '', what: '' },
+        { code: '        if (health <= 0)', what: '`<= 0`, not `== 0`. A bigger hit must still kill: `== 0` would sail straight past zero and leave the player alive at `-1`.' },
+        { code: '        {', what: '' },
+        { code: '            Die();', what: 'A separate method, because dying is not the same job as subtracting. It is also where every death rule in the game will live.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: '' },
+        { code: '', what: '' },
+        { code: '    void Die()', what: '**The MVP death rule:** you keep playing, you lose half of what you earned, and your health comes back. No reload, no respawn point, no animation — those are later.' },
+        { code: '    {', what: '' },
+        { code: '        health = 3;', what: 'Back to full. The `3` is a **literal** here, and that is a wart: 2.3 gives it a name (`maxHealth`) so the two numbers cannot drift apart.' },
+        { code: '        coins = coins / 2;', what: 'Half your coins, rounded down. Integer division throws the remainder away, which is the right answer for coins — you cannot carry half of one.' },
+        { code: '        print("You died. Coins: " + coins);', what: '', },
+        { code: '    }', what: '' },
+      ],
+    },
+    {
+      title: 'Make the spike call it',
+      lead: 'The collision callback from the editor half, below the coin trigger.',
+      lines: [
+        { code: '    void OnCollisionEnter2D(Collision2D other)', what: 'Unity calls this when two **solid** shapes meet — the spike is solid, so this is a collision rather than a trigger. The parameter is a `Collision2D`: a container, not a collider.' },
+        { code: '    {', what: '' },
+        { code: '        if (other.gameObject.CompareTag("Spikes"))', what: 'The tag is asked of `other.gameObject`, because a `Collision2D` is not itself a GameObject. This is the one place a collision callback differs from the trigger callback in 2.1.' },
+        { code: '        {', what: '' },
+        { code: '            ChangeHealth(-1);', what: '**One call, and the sign carries the meaning.** The player does not know how much health it has — the method does. Every spike, fireball and enemy in the rest of this game reaches the player through this same door.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: '' },
       ],
     },
   ],
@@ -143,34 +184,39 @@ const WALK = {
 public class PlayerController : MonoBehaviour
 {
     // ---- class body: every field lives up here, above Start() --------------
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private int health = 3;                     // <- new in 2.2
-    [SerializeField] private int coins;                          // from 2.1
+    float speed = 4;                                             // from 1.4
+    float xDirection;                                            // from 1.4
+    float yDirection;
+    float xVector;                                               // from 1.5
+    float yVector;
 
-    private Rigidbody2D body;                                    // <- new in 2.2
-    private float inputX;
-    private float inputY;
-    private Animator animator;                                   // from 1.6
-    private SpriteRenderer spriteRenderer;                       // from 1.6
+    int health = 3;                                              // <- new in 2.2
+    int coins;                                                   // from 2.1
+
+    Rigidbody2D rb;                                              // <- new in 2.2
+    Animator animator;                                           // from 1.6
+    SpriteRenderer renderer;                                     // from 1.6
 
     // ---- methods you own --------------------------------------------------
     void Start()
     {
-        body = GetComponent<Rigidbody2D>();                      // <- new in 2.2
+        rb = GetComponent<Rigidbody2D>();                        // <- new in 2.2
+        renderer = GetComponentInChildren<SpriteRenderer>();
         animator = GetComponentInChildren<Animator>();
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
     }
 
     void Update()
     {
-        inputX = Input.GetAxis("Horizontal");
-        inputY = Input.GetAxis("Vertical");
+        xDirection = Input.GetAxisRaw("Horizontal");
+        yDirection = Input.GetAxisRaw("Vertical");
 
-        Vector2 direction = new Vector2(inputX, inputY);
-        direction = direction.normalized;
+        xVector = xDirection * speed;
+        yVector = yDirection * speed;
 
         // No Time.deltaTime: velocity is per second, not per frame.
-        body.linearVelocity = direction * moveSpeed;
+        rb.linearVelocity = new Vector2(xVector, yVector);
+
+        UpdateAnimation();
     }
 
     void UpdateAnimation()
@@ -178,17 +224,34 @@ public class PlayerController : MonoBehaviour
         // unchanged from 1.6
     }
 
-    // ---- callbacks: Unity calls these, you never do -----------------------
-    private void OnCollisionEnter2D(Collision2D collision)
+    void ChangeHealth(int amount)
     {
-        // Collision2D, not Collider2D — so the tag is asked of .gameObject.
-        if (collision.gameObject.CompareTag("Spikes"))
+        health = health + amount;
+        print("Health: " + health);
+
+        if (health <= 0)
         {
-            TakeDamage(1);
+            Die();
         }
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    void Die()
+    {
+        health = 3;                 // 2.3 gives this number a name
+        coins = coins / 2;
+        print("You died. Coins: " + coins);
+    }
+
+    // ---- callbacks: Unity calls these, you never do -----------------------
+    void OnCollisionEnter2D(Collision2D other)
+    {
+        if (other.gameObject.CompareTag("Spikes"))
+        {
+            ChangeHealth(-1);
+        }
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Coin"))
         {
@@ -197,25 +260,9 @@ public class PlayerController : MonoBehaviour
             Destroy(other.gameObject);
         }
     }
-
-    private void TakeDamage(int amount)
-    {
-        if (health <= 0)
-        {
-            return;
-        }
-
-        health = health - amount;
-        Debug.Log("Health: " + health);
-
-        if (health <= 0)
-        {
-            Debug.Log("Player died.");
-        }
-    }
 }`,
   finalNote:
-    'Compare against your own file rather than copying it. The gap is the `linearVelocity` line: there is no `deltaTime` because velocity is per second, and the frozen rotation exists because solid collisions push.',
+    'Compare against your own file. Three things to check hardest: the movement line has no `Time.deltaTime` on it, the damage method takes an `amount` and uses `<= 0` rather than `== 0`, and the collision callback asks the tag of `other.gameObject` rather than of `other`.',
 };
 
 const body = `<h1>2.2 — Spikes: Physics, Damage &amp; Death</h1>
