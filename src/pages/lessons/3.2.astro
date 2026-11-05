@@ -1,26 +1,44 @@
 ---
 // Lesson 3.2 — Projectiles: Instantiate, Fire, Destroy
-// SOLO BUILD (scaffold level 4). This is the lesson the course has been
-// building toward: everything a projectile needs has already been done once,
-// somewhere else, wearing different clothes. So nothing here is given — the
-// student splits the problem, looks each part up, and writes the script.
+// SOLO BUILD (scaffold level 4). Everything a projectile needs has already been
+// done once, somewhere else, wearing different clothes. So nothing here is
+// given — the student splits the problem, looks each part up, and writes the
+// script.
 //
-// GROUND TRUTH: Projectile.cs is an empty stub but IS already attached to
-// Turret_Projectile.prefab. That prefab has NO Rigidbody2D and NO Collider2D,
-// so any physics-based movement option costs the student an added component.
-// Turret.prefab has a child "SpawnPoint" that serves as the muzzle.
+// GROUND TRUTH (read from the teacher's project) — and the reason this page was
+// rewritten:
+//   Assets/Scripts/Projectile.cs — TARGET-SEEDED, not direction-committed:
+//       float speed = 8;
+//       public Transform target;
+//       Vector3 targetPosition;
+//       [SerializeField] float lifespan = 3f;
+//       Start(): if (target != null) targetPosition = target.position;
+//                else targetPosition = transform.position;
+//       Update(): transform.position = Vector3.MoveTowards(transform.position, targetPosition, speed * Time.deltaTime);
+//                 lifespan -= Time.deltaTime; if (lifespan < 0) Destroy(gameObject);
+//   Assets/Scripts/TurretController.cs — Shoot():
+//       GameObject fireballCopy = Instantiate(fireballPrefab, spawnPoint.position, Quaternion.identity);
+//       Projectile projectileScript = fireballCopy.GetComponent<Projectile>();
+//       projectileScript.target = target;      // target is the PLAYER's Transform, set in 3.1's trigger
+//   Assets/Prefabs/Turret_Projectile.prefab — tag E_Fireball; the finished
+//       project gives it a CircleCollider2D set Is Trigger (that pair is 3.4's
+//       work); it has NO Rigidbody2D and is moved by writing the Transform.
 //
-// STRUCTURE (this pass, "teach it once"): one editor block, one code block. The
-// wiring and the first run are the last steps of the same editor list, marked
-// "Once the code half is done". Culled as repetition: the paragraph introducing
-// each half, and the six-item reread list — its lessons are already linked from
-// the decompose block, the resources block and the steps themselves.
+// THE OLD PAGE TAUGHT THE OPPOSITE MECHANISM: derive a direction with vector
+// subtraction, normalize it, store it on the clone, and move along it. Nothing
+// in the build does that. Vector3.MoveTowards() computes the direction from two
+// positions every frame, so the bullet needs one thing from the turret — a
+// destination — and the whole "normalized direction" part of the old lesson
+// disappears. The new centre is the SNAPSHOT: the bullet reads the player's
+// position once, in Start(), which is what makes it commit to the shot instead
+// of homing.
 //
 // The parts below are NOT rendered at level 4 (see src/lib/decompose.ts) — they
 // are the record of the intended split. Do not delete them as "unused".
 //
-// 3.2 had no socratic block at all, so sc1 is new: three questions at the end of
-// the code half. The decompose block keeps its single turn (dc1:q2).
+// Answer-box ids are positional and persisted: the socratic block keeps its
+// three questions in order (reworded, never moved) and the decompose block keeps
+// its single turn (dc1:q2).
 import Lesson from '../../layouts/LessonLayout.astro';
 import { renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
@@ -31,47 +49,47 @@ const DECOMPOSE = {
     'in your head at once — which is exactly why every lesson in this course starts the same way.',
   parts: [
     {
-      name: 'Notice the player is close enough',
-      does: 'Compare the distance between turret and player against a radius, every frame.',
-      doc: 'You already wrote this in 3.1 — Vector3.Distance(a, b) and a range check in Update().',
+      name: 'Notice the player is close enough, and keep hold of them',
+      does: 'The trigger circle from 3.1 already sets `inRange`; it also stores the player\'s `Transform` in a field called `target`. That reference is the only thing the turret needs to hand on.',
+      doc: '3.1 — The Turret: the trigger radius, `inRange`, and the `target` field it writes on the way in.',
       href: '3.1.html',
     },
     {
-      name: 'Stamp out a copy of the bullet',
-      does: 'Clone the projectile prefab into the scene at the muzzle, at the moment of firing.',
-      doc: 'Instantiate(Object original, Vector3 position, Quaternion rotation), met in 2.4 when you spawned pickups.',
+      name: 'Stamp out a copy of the bullet at the muzzle',
+      does: '`Instantiate(fireballPrefab, spawnPoint.position, Quaternion.identity)` — clone the prefab at the SpawnPoint child, not at the turret\'s centre.',
+      doc: '2.4 — Prefabs: `Instantiate(Object original, Vector3 position, Quaternion rotation)`.',
       href: '2.4.html',
     },
     {
-      name: 'Tell that copy where to go',
-      does: 'Hand the clone a direction, computed once, from the muzzle toward where the player was.',
-      doc: 'Vector subtraction, then .normalized — the same pair you used for the diagonal fix in 1.5.',
-      href: '1.5.html',
+      name: 'Hand the copy a target, not a direction',
+      does: '`GetComponent<Projectile>()` on the clone, then `projectileScript.target = target;` — one reference, passed across the file boundary. The turret does not compute where to aim.',
+      doc: '2.1 — a component looked up with `GetComponent<T>()`; 3.1 — the `target` it stores.',
+      href: '2.1.html',
     },
     {
-      name: 'Move it, every frame',
-      does: 'Advance the projectile along its stored direction at a speed, without depending on frame rate.',
-      doc: 'transform.Translate(Vector3 translation) from 1.4 with deltaTime, or your movement method from 2.2. The trade-off is yours to make.',
-      href: '2.2.html',
+      name: 'Read the destination once, then walk toward it',
+      does: '`targetPosition = target.position` in `Start()`, and `Vector3.MoveTowards(transform.position, targetPosition, speed * Time.deltaTime)` in `Update()`. The snapshot is the commitment; `MoveTowards()` works out the direction.',
+      doc: 'Look up `Vector3.MoveTowards()` in the quick reference: it takes a start, a destination and a step, and computes the direction itself.',
+      href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
-      name: 'Get rid of it',
-      does: 'Schedule the clone to destroy itself after a few seconds so misses do not accumulate.',
-      doc: 'Destroy(Object obj) — the same call that made a coin vanish in 2.1.',
+      name: 'Give it a lifespan, then destroy it',
+      does: '`lifespan -= Time.deltaTime; if (lifespan < 0) { Destroy(gameObject); }` — a countdown from 3 seconds, so misses do not pile up. The same shape becomes 3.3\'s subject next class.',
+      doc: '2.1 — `Destroy(Object obj)`, the call that made a coin vanish.',
       href: '2.1.html',
     },
   ],
   why:
-    'Notice what is NOT on that list: no new API except the spawner, and even that you have ' +
-    'seen. Five parts, four of them lifted straight out of lessons you have already finished. ' +
-    'That is what a well-sequenced course feels like from the inside — not "here is a new ' +
-    'thing you have never seen", but "here is the same five things, pointed at a new target".',
+    'Notice what is NOT on that list: no new API except the movement call, and even that is one ' +
+    'lookup. Five parts, and the turret only supplies a position and a reference. That is what a ' +
+    'well-sequenced course feels like from the inside — not "here is a new thing you have never ' +
+    'seen", but "here are the same parts, handed across a file boundary".',
   sizeTest:
     'The test for a finished split: could you look this part up on its own, right now, in one ' +
     'search? "Make the turret shoot" cannot be looked up. "Clone a prefab at a position" can. ' +
     'If a part is still too big to search for, it is two parts.',
   turns: [
-    'There is more than one way to make the bullet travel. Name two, say what each one costs you in components, and say which you picked and why.',
+    'The bullet is handed a live `Transform` but reads only its position, and only once. Say which line makes that a snapshot, and what the player would see if the read happened every frame instead.',
   ],
 };
 
@@ -79,8 +97,8 @@ const body = `<h1>3.2 — Projectiles: Instantiate, Fire, Destroy</h1>
 
 <p class="lesson-lead">
     Your turret knows when you are near; now it needs teeth. Everything a projectile needs, you
-    have already written once, somewhere else. Your job today is to recognise that, and then prove
-    it — no API table this time, two files, and neither of them new.
+    have already written once, somewhere else — and the turret will hand the bullet one thing it
+    cannot work out for itself. No API table this time: two files, and one lookup.
 </p>
 
 ${renderAskBanner('how do I shoot a projectile?', 4)}
@@ -97,8 +115,12 @@ ${renderDecompose('3.2', DECOMPOSE, 4)}
     <ol>
         <li>
             <strong>Project window →</strong> <code>Assets/Prefabs/Turret_Projectile</code>, then
-            <strong>Inspector →</strong> an empty <strong>Projectile</strong> component and nothing
-            else — no collider, no body. Whatever your bullet needs to move, you add it yourself.
+            <strong>Inspector →</strong> an empty <strong>Projectile</strong> component — already
+            attached to the prefab, waiting for the script you are about to give it. In the finished
+            project this prefab also carries a <strong>Circle Collider 2D</strong> with
+            <strong>Is Trigger</strong> ticked and the <code>E_Fireball</code> tag; that pair is
+            <a href="3.4.html">3.4</a>'s work, not today's. Today's script needs neither, and it
+            does not need a <strong>Rigidbody 2D</strong> either.
         </li>
         <li>
             <strong>Hierarchy →</strong> a <strong>Turret</strong> instance in the
@@ -110,9 +132,9 @@ ${renderDecompose('3.2', DECOMPOSE, 4)}
         <li>
             <strong>Once the code half is done — Inspector → Turret Controller →</strong> drag
             <code>Assets/Prefabs/Turret_Projectile</code> from the <strong>Project window</strong>
-            into the prefab slot, and the <strong>Hierarchy's</strong> SpawnPoint into the muzzle
-            slot. Do both turrets. An empty slot says nothing at startup and throws the instant you
-            step into range, which looks like a firing bug and is a setup bug.
+            into the Fireball Prefab slot, and the <strong>Hierarchy's</strong> SpawnPoint into the
+            Spawn Point slot. Do both turrets. An empty slot says nothing at startup and throws the
+            instant you step into range, which looks like a firing bug and is a setup bug.
         </li>
         <li>
             <strong>Game view → press Play</strong> and walk into range: a projectile appears at the
@@ -152,17 +174,19 @@ ${renderDecompose('3.2', DECOMPOSE, 4)}
     <div class="callout">
         <strong>Architectural constraint (the only thing I will hand you):</strong> you are editing
         two files and neither knows the other's details. <code>TurretController.cs</code> decides
-        <em>when</em> to fire and <em>where</em> the bullet starts. <code>Projectile.cs</code> owns
-        everything after that — which way it goes, how fast, and when it dies. If you find yourself
-        writing the bullet's speed into the turret, stop: the turret should not know that number
-        exists.
+        <em>when</em> to fire and <em>where</em> the bullet starts; <code>Projectile.cs</code> owns
+        everything after that — <em>which place it is heading for</em>, how fast, and when it dies.
+        The one thing that crosses the boundary is a <code>Transform</code>: the turret already
+        holds the player it noticed in <a href="3.1.html">3.1</a>, and it hands that reference to
+        the clone. If you find yourself writing the bullet's speed into the turret, stop — the
+        turret should not know that number exists.
     </div>
 
     <div class="socratic">
         <h3>Two Files, One Shot</h3>
         <ol>
 <li>The turret fires from its muzzle rather than from its centre. Which of your parts does that change, and what would a bullet spawned at the turret's centre look like to the player?</li>
-<li>The bullet commits to the direction it was fired in and does not follow you. Which line of your plan makes that true, and what would you have to add to make it home in on the player instead?</li>
+<li>The bullet is handed the player's <code>Transform</code>, yet it does not follow you. Which line makes the shot a commitment rather than a chase — and what single change would turn this bullet into one that homes in?</li>
 <li>To turn this into a shotgun that fires five bullets in a spread, which of the two files do you rewrite — and what does your answer prove about why the split is worth having?</li>
 </ol>
     </div>
@@ -173,9 +197,10 @@ ${renderDecompose('3.2', DECOMPOSE, 4)}
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
         <li>Break a feature into parts small enough to look each one up on its own, and say where you reread the part you lifted from an earlier lesson</li>
-        <li>Explain why the bullet starts at the muzzle and commits to one direction instead of following the player</li>
-        <li>Explain why a direction vector is normalized, and what goes wrong without it</li>
-        <li>Name two ways to move a projectile, state what each one costs you in components, and explain why your turret currently fires every frame</li>
+        <li>Explain why the bullet starts at the muzzle, and why the turret hands it a <code>Transform</code> instead of computing a direction</li>
+        <li>Point at the line that turns a live target into a snapshot, and say what the player would see if that read happened every frame</li>
+        <li>Explain why <code>Vector3.MoveTowards()</code> needs no subtraction and no <code>.normalized</code>, and why the bullet needs no Rigidbody 2D</li>
+        <li>Explain what a lifespan is protecting you from, and why your turret currently fires every frame</li>
         <li>Commit and push</li>
     </ul>
 </div>
@@ -186,7 +211,7 @@ ${renderDecompose('3.2', DECOMPOSE, 4)}
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
         <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — the projectile lifecycle and aiming in depth</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the clone call, the destroy call, and Mathf</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the clone call, the destroy call, and <code>Vector3.MoveTowards()</code></li>
         <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
     </ul>
     <p>Next: <a href="3.3.html">3.3 — Fire Rate: Cooldowns &amp; Time</a>, where you fix the bullet hose you just built.</p>

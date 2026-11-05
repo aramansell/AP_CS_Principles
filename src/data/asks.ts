@@ -35,7 +35,7 @@
  *      is a variation rather than a mechanism. Health ceilings (2.3), spawning
  *      (2.4), detection ranges (3.1), enemies following you (4.3).
  *   4  Solo build — the same parts in a new arrangement, with nothing new at
- *      all. The projectile (3.2) is a coin with a direction. A double jump
+ *      all. The projectile (3.2) is a coin with a destination. A double jump
  *      (6.4) is a jump with a counter.
  *
  * A lesson marked 3 or 4 that introduces a genuinely new mechanism is a bug in
@@ -92,15 +92,15 @@ export const ASK_GROUPS: AskGroup[] = [
     title: 'Making things happen at a distance',
     blurb: 'Detection ranges, projectiles, and enemies that react to you.',
     asks: [
-      { q: 'how do I make a turret notice the player?', lesson: '3.1', note: 'Distance between two objects, and a detection radius.', level: 3 },
-      { q: 'how do I shoot a projectile?', lesson: '3.2', note: 'Instantiate, direction vectors, and Destroy.', level: 4 },
+      { q: 'how do I make a turret notice the player?', lesson: '3.1', note: 'A trigger circle on a child object, and a bool that remembers who is inside it.', level: 3 },
+      { q: 'how do I shoot a projectile?', lesson: '3.2', note: 'Instantiate at the muzzle, hand the copy a target, and give it a lifespan.', level: 4 },
       { q: 'how do I make an object disappear?', lesson: '3.2', note: 'Destroy, and the difference between hiding something and removing it.', level: 4 },
-      { q: 'how do I stop shooting too fast?', lesson: '3.3', note: 'Cooldowns with Time.time — the interval pattern from 1.3, reused.', level: 2 },
-      { q: 'how do I make my bullet hurt the player?', lesson: '3.4', note: 'Putting a body on a moving object, detecting the hit, and calling a method on another script.', level: 3 },
+      { q: 'how do I stop shooting too fast?', lesson: '3.3', note: 'A countdown that only ticks while the player is in range.', level: 2 },
+      { q: 'how do I make my bullet hurt the player?', lesson: '3.4', note: 'Receiving the hit on the player, and spending health through the StatManager.', level: 3 },
       { q: 'how do I let the player shoot back?', lesson: '3.5', note: 'Cloning the enemy bullet, retagging it, and pointing it in the direction you are facing.', level: 2 },
       { q: 'how do I give the player a sword swing?', lesson: '4.6', note: 'A hitbox child that moves with your facing, and remembers the enemy it touched.', level: 2 },
-      { q: 'how do I make an enemy chase me?', lesson: '4.3', note: 'An aggro radius, and moving toward a target you did not choose.', level: 4 },
-      { q: 'how do I make an enemy follow a patrol route?', lesson: '4.1', note: 'Waypoints, and a state that runs without you.', level: 2 },
+      { q: 'how do I make an enemy chase me?', lesson: '4.3', note: 'A trigger that hands the enemy a target, and a second destination for the movement you already wrote.', level: 4 },
+      { q: 'how do I make an enemy follow a patrol route?', lesson: '4.1', note: 'A list of waypoints, an index, and a movement that runs without you.', level: 2 },
       { q: 'how do I read an animator somebody else set up?', lesson: '4.2', note: 'The same Animator API following rules you did not choose — reading a state machine you did not build.', level: 3 },
       { q: 'how do I stop a contact hit hurting me sixty times a second?', lesson: '4.4', note: 'Rate-limiting a collision callback, and choosing between three hazard models.', level: 3 },
       { q: 'how do I make an enemy switch between patrolling, chasing and attacking?', lesson: '4.5', note: 'A state field, the arrows between the states, and one place that says what the enemy is doing.', level: 2 },
