@@ -25,8 +25,8 @@ Exam: **Friday, May 14, 2027**, 8:00 AM (Session 1). Create PT due **Friday, Apr
 | 2026-10-26 (Mon) | Lesson | 7.1 | Tilemaps I: The Level Editor — Today you learn to build worlds. | CRD-2 |
 | 2026-10-28 (Wed) | Lesson | 7.1 | Tilemaps II: Building the Cave — Same palette, bigger canvas: the cave becomes a place with an entrance, a route and a goal. | CRD-2 |
 | 2026-11-03 (Tue) | Lesson | 6.1 | Gravity & Jump: The First Flick — Jump code lands in the cave you just painted. Gravity, the first flick, and the moment the top-down RPG becomes a platformer. | AAP-2 |
-| 2026-11-05 (Thu) | Lesson | 6.2 | Ground Checks: No Infinite Jumps | AAP-2 |
-| 2026-11-09 (Mon) | Lesson | 6.3 | Jump Feel & Double Jump | AAP-2 |
+| 2026-11-05 (Thu) | Lesson | 2.7 | Refactor Day: Moving Stats into the StatManager — A deliberate trip back to Unit 2. Coins, health and the ceiling leave PlayerController and move onto the StatManager singleton that has been an empty stub since September. Nothing the game does changes - only who owns the numbers. This is the day the course keeps promising: the MVP was allowed to be a shortcut, and now we go back and make it right. | AAP-1 CRD-2 |
+| 2026-11-09 (Mon) | Lesson | 6.2 | Ground Checks & Jump Feel — Jumping is unlimited in mid-air, and today you find out why and stop it with a tag and a collision callback. A longer studio half follows: tune the fall, then add the double jump the cave is going to need. | AAP-2 |
 | 2026-11-12 (Thu) | Studio | 6.5 | Platforming Studio: The Gauntlet — The cave has a jump now. Studio day: build the Gauntlet that teaches it. | CRD-2 |
 | 2026-11-16 (Mon) | Lesson | 7.2 | Tile Collision, Layers & Sorting | CRD-2 |
 | 2026-11-18 (Wed) | Lesson | 7.3 | Ladders I: The Climbing State | AAP-2 |

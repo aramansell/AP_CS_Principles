@@ -1,0 +1,424 @@
+---
+// Lesson 4.6 — Player Melee: A Hitbox That Remembers the Enemy
+// Taught 2026-10-22. Until today the player has only ever been acted on: coins
+// come to it, spikes hurt it, turrets shoot it. Today it acts back.
+//
+// GROUND TRUTH (read from the teacher's project):
+//   - Player.prefab has a child called `Square` — BoxCollider2D, m_IsTrigger: 1,
+//     m_Size 1x1, offset 0 — and a SpriteRenderer, kept visible so you can see the
+//     box while you build it. The Player root carries the solid BoxCollider2D
+//     (0.4 x 1, offset y 0.4).
+//   - PlayerController: `GameObject currentEnemy;`, `[SerializeField] GameObject
+//     attackBox;`, and in Update() the facing block, which sets BOTH `facing` (the
+//     string 3.5's bullet reads) and attackBox.transform.position:
+//         Right -> transform.position + new Vector3( .5f, .5f, 0)
+//         Left  -> transform.position + new Vector3(-.5f, .5f, 0)
+//         Up    -> transform.position + new Vector3(   0,   1,  0)
+//         Down  -> transform.position + new Vector3(   0,   0,  0)
+//     The offsets are not symmetric, and that is what the file does. Do not
+//     "fix" them in the lesson — say so and let the student decide.
+//   - OnTriggerEnter2D: tag "Enemy" -> currentEnemy = other.gameObject.
+//     OnTriggerExit2D: same tag -> currentEnemy = null.
+//   - The swing, in Update():
+//         if (Input.GetKeyDown(KeyCode.E) && cooldownTimer < 0 && currentEnemy != null)
+//         { currentEnemy.GetComponent<EnemyController>().ChangeHealth(-1);
+//           cooldownTimer = .5f; }
+//   - `cooldownTimer` is the SAME field the Space/Shoot path uses (3.3/3.5), so
+//     shooting and swinging take turns.
+//   - EnemyController.ChangeHealth uses `<= 0` -> Die(), and an enemy starts with
+//     3 health. Three swings kill one.
+//   - The Overworld's Canvas already carries the text "Press [E] to Interact".
+//   - KNOWN TRAP, taught rather than hidden: the Turret root is ALSO tagged
+//     "Enemy" and has NO EnemyController, so swinging at a turret throws a
+//     NullReferenceException on the GetComponent line.
+//
+// LADDER: level 2. Every shape has a precedent — a child collider (2.1), a trigger
+// callback (2.1), a cooldown (3.3), a facing string (1.6). One line is blank: the
+// call that turns a remembered object into damage on that object.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+const DECOMPOSE = {
+  big:
+    'Every mechanic so far has happened *to* the player. Today it happens *from* the player. The shape ' +
+    'is three pieces that look like one: a box that follows you around, a box that remembers what it is ' +
+    'touching, and a rule that says what touching means. Get any one of the three wrong and the sword ' +
+    'swings and nothing happens — with no error to tell you which piece.',
+  parts: [
+    {
+      name: 'Put a trigger box on the player where a sword would be',
+      does: 'A child `Square` with a `BoxCollider2D` that is **Is Trigger**, one unit on a side. A child, not a component on the root, so it can sit somewhere other than the player\'s centre without moving the body.',
+      doc: 'the trigger-versus-collision distinction from 2.1.',
+      href: '2.1.html',
+    },
+    {
+      name: 'Move that box to whichever side you are facing',
+      does: 'Four branches in the same `if`/`else if` chain that already sets `facing`. One block, two jobs: the string the bullet reads and the position the box sits at.',
+      doc: 'the facing block from 1.6.',
+      href: '1.6.html',
+    },
+    {
+      name: 'Remember what the box is touching',
+      does: '`OnTriggerEnter2D()` stores the object and `OnTriggerExit2D()` forgets it. That pair *is* the memory: at any moment, `currentEnemy` is either the thing in front of you or `null`.',
+      doc: 'the pickup trigger from 2.1, pointed at a moving object instead of a coin.',
+      href: '2.1.html',
+    },
+    {
+      name: 'Swing on a key, gated by the cooldown you already have',
+      does: '`Input.GetKeyDown(KeyCode.E)`, `cooldownTimer < 0`, and `currentEnemy != null`. Three conditions, and all three matter: a swing with nothing in front of you must not throw.',
+      doc: 'the countdown timer from 3.3.',
+      href: '3.3.html',
+    },
+    {
+      // The new idea of the lesson, and the one part the student produces.
+      name: 'Turn the remembered object into damage on itself',
+      blank: true,
+      doc: 'the enemy damage method from 4.1.',
+      href: '4.1.html',
+    },
+  ],
+  why:
+    'Four of the five parts are shapes you have built before, which is why the lesson is not level 1. ' +
+    'The new idea is narrow and worth naming: the player holds a *reference* to another object and calls ' +
+    'a method on it. Damage is a message, not a number the player keeps.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Make a sword swing" ' +
+    'cannot be looked up. "Call a method on the object my trigger is touching" can.',
+  turns: [
+    'The player calls `ChangeHealth(-1)` on the enemy. What would change about the design if the enemy instead asked the player "did you hit me?" every frame?',
+    'The two boxes on the player do different jobs: the root box is solid and stops you walking through walls, the child box is a trigger and lets everything through. Say what would break if you swapped them.',
+  ],
+};
+
+const WALK_MELEE = {
+  ask: 'how do I give the player a sword swing?',
+  file: 'Assets/Scripts/PlayerController.cs',
+  label: 'In the Code',
+  intro:
+    'No new script: every line today goes into the file you already have, beside the movement and the bullet. One line is left for you — the one that turns a remembered object into damage.',
+  level: 2,
+  steps: [
+    {
+      title: 'Add the two fields: the box, and the memory',
+      lead: 'In the class body, next to `projectile` and `facing`.',
+      lines: [
+        { code: '    [SerializeField] GameObject attackBox;', what: 'A slot for the child you built in the editor. It is serialized because it is a reference you drag in, and it is a `GameObject` rather than a `Transform` because nothing here needs to know it is a transform.' },
+        { code: '    GameObject currentEnemy;', what: '**The memory.** Not serialized, not set in the Inspector — it is `null` until the box touches something, and `null` again the moment that thing walks away.' },
+      ],
+    },
+    {
+      title: 'Move the box in the block that already sets facing',
+      lead: 'You have an `if`/`else if` chain from 1.6 that decides `facing`. Add one line to each branch instead of writing a second chain — two chains deciding the same thing is how they start disagreeing.',
+      lines: [
+        { code: '        if (xDirection > 0)', what: '' },
+        { code: '        {', what: '' },
+        { code: '            facing = "Right";', what: 'The string from 3.5 — the bullet reads it.' },
+        { code: '            attackBox.transform.position = transform.position + new Vector3(.5f, .5f, 0);', what: '**The box, half a unit right and half a unit up.** `transform.position` on the left is the box\'s; the one on the right is the player\'s, because it has no object in front of it. Adding a `Vector3` to a position is a move, not a direction.' },
+        { code: '        }', what: '' },
+        { code: '        else if (xDirection < 0)', what: '' },
+        { code: '        {', what: '' },
+        { code: '            facing = "Left";', what: '' },
+        { code: '            attackBox.transform.position = transform.position + new Vector3(-.5f, .5f, 0);', what: 'The same offset mirrored on X.' },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        { code: '        if (yDirection > 0)', what: 'A separate `if`, not an `else if`. Vertical facing wins over horizontal because it is checked after it — which is what makes "up" and "down" reachable at all when both axes are pressed at once.' },
+        { code: '        {', what: '' },
+        { code: '            facing = "Up";', what: '' },
+        { code: '            attackBox.transform.position = transform.position + new Vector3(0, 1, 0);', what: 'One unit straight up.' },
+        { code: '        }', what: '' },
+        { code: '        if (yDirection < 0)', what: '' },
+        { code: '        {', what: '' },
+        { code: '            facing = "Down";', what: '' },
+        { code: '            attackBox.transform.position = transform.position + new Vector3(0, 0, 0);', what: '**Zero offset** — the box sits exactly on the player. It is the one branch that looks like a mistake, and it is not: swinging downward puts the box under you, and the player\'s own centre is where "under you" starts.' },
+        { code: '        }', what: '' },
+      ],
+    },
+    {
+      title: 'Remember the enemy, and forget it when it leaves',
+      lead: 'Two callbacks, the same pair you wrote for the coin in 2.1 — except the coin was destroyed on contact and this one is not.',
+      lines: [
+        { code: '    void OnTriggerEnter2D(Collider2D other)', what: 'The same signature as the coin branch. Unity calls this on every trigger that overlaps this object — which now includes your attack box, because the box is your object\'s child and the collision is reported to the player.' },
+        { code: '    {', what: '' },
+        { code: '        if (other.gameObject.CompareTag("Enemy"))', what: 'Only enemies. A coin inside the swing radius must not be remembered as something to hit — `CompareTag()` is a filter, and this is how you keep one callback from meaning two things.' },
+        { code: '        {', what: '' },
+        { code: '            currentEnemy = other.gameObject;', what: '**Store the object, not its health.** The player has no business knowing how much health an enemy has; it only needs to know who is in front of it.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: '' },
+        { code: '', what: '' },
+        { code: '    void OnTriggerExit2D(Collider2D other)', what: 'The other half. Without it, `currentEnemy` would still point at the last thing you touched from anywhere on the map — and the swing would reach it across the level.' },
+        { code: '    {', what: '' },
+        { code: '        if (other.gameObject.CompareTag("Enemy"))', what: '' },
+        { code: '        {', what: '' },
+        { code: '            currentEnemy = null;', what: 'Forget. Note that this says nothing about *which* enemy left: if two enemies overlap the box and one walks away, the field clears anyway. That is a real limitation of remembering one thing, and Unit 4\'s state work is where it gets addressed.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: '' },
+      ],
+    },
+    {
+      title: 'Swing on E — this is the blank',
+      lead: 'Four lines in `Update()`, below the shooting code.',
+      lines: [
+        { code: '        if (Input.GetKeyDown(KeyCode.E) && cooldownTimer < 0 && currentEnemy != null)', what: 'Three conditions joined by `&&`, and all three are load-bearing. `GetKeyDown` = one swing per press. `cooldownTimer < 0` = the same half-second the bullet pays, so you cannot swing and shoot at once. `currentEnemy != null` = a swing with nothing in front of you does nothing instead of throwing.' },
+        { code: '        {', what: '' },
+        { code: '', blank: true, what: '**The hit, and the only line in this lesson you have not built before.** `currentEnemy` is a `GameObject`. Reach into it, get its `EnemyController`, and call that enemy\'s `ChangeHealth(int)` with a negative amount — the signed convention from 2.7, arriving at a second kind of health. Two method calls with a dot between them.' },
+        { code: '            cooldownTimer = .5f;', what: '**Reset after the hit, not before** — the same order as 3.3 and 3.5.' },
+        { code: '        }', what: '' },
+      ],
+    },
+  ],
+  finalFile: `using UnityEngine;
+// ... plus UnityEngine.SceneManagement and System, from 6.1 and 3.5 ...
+
+public class PlayerController : MonoBehaviour
+{
+    // ... speed, direction, animator, renderer, rb, manager, jumpsRemaining ...
+    float cooldownTimer = .5f;
+
+    GameObject currentEnemy;                 // what the sword box is touching, or null
+    [SerializeField] GameObject attackBox;   // the Square child
+
+    void Update()
+    {
+        // ... input, movement, gravity, jump ...
+
+        // The facing block now does two jobs: the string the bullet reads,
+        // and the position of the box the sword uses.
+        if (xDirection > 0)
+        {
+            facing = "Right";
+            attackBox.transform.position = transform.position + new Vector3(.5f, .5f, 0);
+        }
+        else if (xDirection < 0)
+        {
+            facing = "Left";
+            attackBox.transform.position = transform.position + new Vector3(-.5f, .5f, 0);
+        }
+
+        if (yDirection > 0)
+        {
+            facing = "Up";
+            attackBox.transform.position = transform.position + new Vector3(0, 1, 0);
+        }
+        if (yDirection < 0)
+        {
+            facing = "Down";
+            attackBox.transform.position = transform.position + new Vector3(0, 0, 0);
+        }
+
+        cooldownTimer -= Time.deltaTime;
+
+        if (Input.GetKeyDown(KeyCode.E) && cooldownTimer < 0 && currentEnemy != null)
+        {
+            currentEnemy.GetComponent<EnemyController>().ChangeHealth(-1);
+            cooldownTimer = .5f;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space) && cooldownTimer < 0)
+        {
+            Shoot();
+            cooldownTimer = .5f;
+        }
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        // ... the coin, potion and fireball branches from 2.1, 2.3 and 3.4 ...
+        if (other.gameObject.CompareTag("Enemy"))
+        {
+            currentEnemy = other.gameObject;
+        }
+    }
+
+    void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.gameObject.CompareTag("Enemy"))
+        {
+            currentEnemy = null;
+        }
+    }
+}`,
+  finalNote:
+    'Compare against your own file rather than copying it. Three things to check: the box moves in the SAME block that sets `facing`, `currentEnemy` is cleared on exit as well as set on enter, and the swing is gated by all three conditions. The offsets are the ones in the reference build and they are not symmetric — up sits a full unit away where right and left sit half. If yours are symmetric and you prefer them, keep yours and be ready to say why.',
+};
+
+const body = `<h1>4.6 — Player Melee: A Hitbox That Remembers the Enemy</h1>
+
+<p class="lesson-lead">
+    Every mechanic so far has happened <em>to</em> you. Coins came to you, spikes hurt you, turrets shot
+    at you. Today the player acts back: a box that follows your facing, a variable that remembers what
+    the box is touching, and a key that turns remembering into damage.
+</p>
+
+${renderAskBanner('how do I give the player a sword swing?', 2)}
+
+${renderDecompose('4.6', DECOMPOSE, 2)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Hierarchy →</strong> select the <strong>Player</strong> → right-click →
+            <strong>2D Object → Sprites → Square</strong>, and name the child
+            <code>Square</code>. It is a child, so it inherits the player's position every frame.
+        </li>
+        <li>
+            <strong>Inspector → Square → Transform</strong>: set <strong>Scale</strong> to
+            <code>1, 1, 1</code> and <strong>Position</strong> to <code>0, 0, 0</code>. You are about
+            to move this object from code, so its starting place barely matters — but its
+            <em>scale</em> does, because it is the size of your sword.
+        </li>
+        <li>
+            <strong>Inspector → Square → Add Component → Box Collider 2D</strong>, then tick
+            <strong>Is Trigger</strong>. A trigger reports that something is inside it without pushing
+            anything — the same choice you made for the coin in <a href="2.1.html">2.1</a>, and the
+            opposite of the player's own collider, which is solid.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play and watch the square. It sits on the player and
+            follows it. Leave the sprite visible for now — you are about to move it, and a box you
+            cannot see is a box you cannot debug.
+        </li>
+        <li>
+            <strong>Once the walkthrough is done — Hierarchy → Player → Inspector → Player
+            Controller → Attack Box</strong>: drag the <code>Square</code> in. Then
+            <strong>Overrides → Apply All</strong>, so every Player in the project gets the same child.
+        </li>
+        <li>
+            <strong>Game view →</strong> play, walk up to an enemy and press <strong>E</strong>. Then
+            <strong>Hierarchy → Square → Sprite Renderer</strong> and untick it: the box still works
+            with nothing drawn, which is what you want in a finished game.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <table>
+        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>other.gameObject</code></td>
+            <td>The object behind a collider — what you store when the box touches an enemy.</td>
+            <td>It is a whole object, not a component: you still have to look up what you need on it.</td>
+        </tr>
+        <tr>
+            <td><code>GetComponent<EnemyController>()</code></td>
+            <td>The enemy's own script, so you can call a method on it.</td>
+            <td>Returns <code>null</code> when the object has no such component — and the next dot throws.</td>
+        </tr>
+        <tr>
+            <td><code>transform.position + new Vector3(x, y, 0)</code></td>
+            <td>Somewhere relative to the player, recomputed every frame.</td>
+            <td>It writes a world position, so it overwrites whatever the box's own Transform said.</td>
+        </tr>
+        <tr>
+            <td><code>Input.GetKeyDown(KeyCode.E)</code></td>
+            <td>One swing per press, from the Input class you have used since 1.4.</td>
+            <td>Held down it stays true for one frame only — which is what you want for a swing.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>The game already tells the player which key this is.</strong> The Overworld's Canvas
+        carries the text <code>Press [E] to Interact</code> — so the prompt you inherited and the key
+        you are wiring today are the same key. That is not a coincidence, and it is worth keeping true:
+        if you ever move the swing to another key, the sign on the wall has to move with it.
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: Who Owns the Damage?</h3>
+        <ol>
+            <li>The player calls <code>ChangeHealth(-1)</code> on the enemy rather than subtracting from a health number the player keeps. What does that arrangement make harder, and what does it make impossible?</li>
+            <li><code>currentEnemy</code> holds one object. Two enemies in the box at once, one walks away — what goes wrong, and is that acceptable for a sword?</li>
+            <li>The attack box is a trigger, not a solid collider, even though a sword feels solid. What would happen to your player if you unticked <em>Is Trigger</em>?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK_MELEE)}
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: The Turret Is Not an Enemy</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>
+        Play, walk up to a <strong>turret</strong>, and press E. The Console turns red:
+    </p>
+
+<pre><code class="lang-bash">NullReferenceException: Object reference not set to an instance of an object
+PlayerController.OnTriggerEnter2D / Update ()</code></pre>
+
+    <p>
+        Nothing is wrong with your code. Open <strong>Hierarchy → Turret</strong> and look at two
+        things: its <strong>Tag</strong> is <code>Enemy</code>, and its component list has no
+        <code>EnemyController</code> on it. Your swing asked it for one, got <code>null</code>, and
+        called <code>ChangeHealth</code> on nothing.
+    </p>
+
+    <table>
+        <tr><th>Fix</th><th>What it costs</th></tr>
+        <tr>
+            <td>Give the turret its own <code>EnemyController</code> with more health</td>
+            <td>The turret becomes a thing you can kill — which may be exactly what you want, and is what the boss in Unit 8 assumes.</td>
+        </tr>
+        <tr>
+            <td>Re-tag the turret, e.g. <code>Turret</code></td>
+            <td>One tag, and the turret stops being hittable. Cheap, and it quietly removes a feature your game might want.</td>
+        </tr>
+        <tr>
+            <td>Ask first: <code>TryGetComponent(...)</code></td>
+            <td>One line, and nothing is broken — but you have hidden a design question behind a null check instead of answering it.</td>
+        </tr>
+    </table>
+
+    <div class="callout trap">
+        <strong>A tag is a promise, and nothing enforces it.</strong> <code>CompareTag("Enemy")</code>
+        only says what an object <em>is called</em>. Your code then assumed that everything called
+        "Enemy" has an <code>EnemyController</code> — an assumption the project does not keep. When a
+        tag and a component disagree, decide which one is lying and fix that one.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain why the hitbox is a trigger on a child rather than a collider on the root</li>
+        <li>Say what <code>currentEnemy</code> holds between swings, and when it becomes <code>null</code></li>
+        <li>Explain why the swing needs all three conditions, and what a missing <code>!= null</code> costs</li>
+        <li>Say who owns the enemy's health, and why the player only sends a message</li>
+        <li>Explain the turret crash without opening the project</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — what the enemy will do with the health you are now taking away</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>GetComponent()</code>, <code>CompareTag()</code> and trigger callbacks</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="7.1.html">7.1 — Tilemaps: The Level Editor</a>, where the cave you have been filling with hazards gets its floor.</p>
+</div>`;
+---
+<Lesson id="4.6" title="4.6 Player Melee: A Hitbox That Remembers the Enemy — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

@@ -85,6 +85,7 @@ export const ASK_GROUPS: AskGroup[] = [
       { q: 'how do I heal, and how do I cap health at a maximum?', lesson: '2.3', note: 'Clamping a value, and why the cap belongs where the value changes.', level: 3 },
       { q: 'how do I spawn lots of the same object?', lesson: '2.4', note: 'Prefabs, Instantiate, and placing many copies from one definition.', level: 3 },
       { q: 'how do I add an item to my inventory?', lesson: '5.1', note: 'Boolean flags as the simplest possible inventory.', level: 2 },
+      { q: 'how do I move my stats off the player?', lesson: '2.7', note: 'A refactor: same game, different owner, and the compiler as your list of call sites.', level: 1 },
     ],
   },
   {
@@ -96,6 +97,8 @@ export const ASK_GROUPS: AskGroup[] = [
       { q: 'how do I make an object disappear?', lesson: '3.2', note: 'Destroy, and the difference between hiding something and removing it.', level: 4 },
       { q: 'how do I stop shooting too fast?', lesson: '3.3', note: 'Cooldowns with Time.time — the interval pattern from 1.3, reused.', level: 2 },
       { q: 'how do I make my bullet hurt the player?', lesson: '3.4', note: 'Putting a body on a moving object, detecting the hit, and calling a method on another script.', level: 3 },
+      { q: 'how do I let the player shoot back?', lesson: '3.5', note: 'Cloning the enemy bullet, retagging it, and pointing it in the direction you are facing.', level: 2 },
+      { q: 'how do I give the player a sword swing?', lesson: '4.6', note: 'A hitbox child that moves with your facing, and remembers the enemy it touched.', level: 2 },
       { q: 'how do I make an enemy chase me?', lesson: '4.3', note: 'An aggro radius, and moving toward a target you did not choose.', level: 4 },
       { q: 'how do I make an enemy follow a patrol route?', lesson: '4.1', note: 'Waypoints, and a state that runs without you.', level: 2 },
       { q: 'how do I read an animator somebody else set up?', lesson: '4.2', note: 'The same Animator API following rules you did not choose — reading a state machine you did not build.', level: 3 },

@@ -1,0 +1,643 @@
+---
+// Lesson 2.7 — Refactor Day: Moving Stats into the StatManager
+// A deliberate return to Unit 2, taught between 6.1 (jump) and 6.2 (ground
+// check). The class built coins and health ON the player in 2.1/2.2 because that
+// was the shortest path to a working game. It was right then and it is a problem
+// now: the cave mouths in the Overworld lead to scenes that hold their own Player,
+// and the next unit is where the game starts changing scenes on purpose.
+//
+// This is the lesson the course keeps promising: "we did not do it the best on the
+// MVP, so we come back and make it better." Nothing the game DOES changes. What
+// changes is which object owns the numbers.
+//
+// GROUND TRUTH (read from the teacher's project):
+//   - StatManager.cs is a real singleton in the build: `public static
+//     StatManager original;`, an Awake() with the `original != null && original
+//     != this` duplicate guard, and DontDestroyOnLoad(gameObject).
+//   - The three stat fields are PUBLIC (`public int health = 3; public int
+//     maxHealth = 3; public int coins;`) — deliberately, because this course
+//     teaches access levels with `[SerializeField]` and then lets the student
+//     feel why a public field is a trade-off, not a crime.
+//   - The three methods keep the names the player already had: ChangeHealth(int
+//     amount), ChangeCoins(int amount), Die(). Moving a method does not rename
+//     it — that is the definition of a refactor and the lesson's spine.
+//   - ChangeHealth takes a SIGNED amount (the fireball calls -2, the potion
+//     calls +1), caps with an if (not Mathf.Clamp), and calls Die() at <= 0.
+//   - Die() resets health to maxHealth and halves coins. There is no respawn and
+//     no scene reload; the player simply keeps playing. 2.2 taught a choice here;
+//     this page teaches what the build does and says so.
+//   - The player reaches the manager with `manager = FindAnyObjectByType<
+//     StatManager>();` in Start() and a null check that logs an error. The
+//     reference to the player's own copy of the fields is what disappears.
+//   - StatManager lives in Start.unity and in Overworld.unity, and Start is build
+//     index 0 — which is what makes the duplicate guard a real branch rather than
+//     a textbook exercise.
+//
+// SHAPE: two level-1 walkthroughs (the manager, then the player that calls it),
+// one decompose, one Socratic of three. Answer-box ids are fresh — this page did
+// not exist before — so nothing positional is at risk.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+const DECOMPOSE = {
+  big:
+    'Coins, health and the ceiling on health all live on the Player. That was the fastest way to ' +
+    'make a game in September and it is the wrong home for them now: the cave mouths lead to scenes ' +
+    'that build their own Player, and a number that lives on a Player is a number that belongs to ' +
+    'one scene. Today nothing about the game changes except *who owns the numbers* — and that is ' +
+    'called a refactor.',
+  parts: [
+    {
+      name: 'Notice which numbers are about the player and which are about the run',
+      does: 'Speed, the body and the input belong to *this Player in this room*. Coins, current health and the cap belong to *your run at this game*. Same file today, two different lifetimes tomorrow — and only one of those lifetimes survives a scene change.',
+      doc: 'the coin branch you wrote in 2.1 and the damage method from 2.2.',
+      href: '2.1.html',
+    },
+    {
+      name: 'Build one object a scene load is not allowed to destroy',
+      does: 'A singleton: one `static` field holding the instance, an `Awake()` that claims it on the first load and calls `DontDestroyOnLoad(gameObject)`, and a second branch that destroys the copy every later load brings with it.',
+      doc: 'the Singleton row of the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Move the three fields across without renaming them',
+      does: '`coins`, `health` and `maxHealth` leave `PlayerController` and become fields on `StatManager`. A move, not a redesign — same names, same types, same starting values.',
+      doc: 'the fields you declared in 2.1 and capped in 2.3.',
+      href: '2.3.html',
+    },
+    {
+      name: 'Move the three methods, signed amounts and all',
+      does: '`ChangeHealth(int amount)`, `ChangeCoins(int amount)` and `Die()` follow their fields. The signed-amount convention, the ceiling and the death rule travel together, because a rule and the value it protects are one thing.',
+      doc: 'the death rule you wrote in 2.2.',
+      href: '2.2.html',
+    },
+    {
+      name: 'Repoint every caller, and let the compiler find the ones you forgot',
+      does: 'Delete the fields from the player first, then read the errors. Every caller swaps a field on `this` for a method call on `manager` — the reference `Start()` looks up once.',
+      doc: 'the `FindAnyObjectByType` row of the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+  ],
+  why:
+    'Four of the five parts are housekeeping you have done before: declare a field, move a method, ' +
+    'update a call site. One part has no precedent at all — the object the scene loader is not ' +
+    'allowed to delete — and that is why this page walks it line by line.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Move my stats off ' +
+    'the player" cannot be looked up — it is a decision about your own code. "Do not destroy this ' +
+    'object when a new scene loads" can.',
+  turns: [
+    'Your three stat fields are `public` after this refactor, where everything you wrote in 2.1 was `[SerializeField] private`. Name one thing a public field lets another script do that a method would not — and one bug it makes possible.',
+    'The duplicate guard exists because `Start (index 0)` has its own StatManager and one cave mouth leads back to it. What would happen to your coins the moment you walked in, if that branch were deleted?',
+  ],
+};
+
+const WALK_MANAGER = {
+  ask: 'how do I keep my coins and my health when I change scenes?',
+  file: 'Assets/Scripts/StatManager.cs',
+  label: 'In the Code',
+  intro:
+    'This file has been `public class StatManager : MonoBehaviour { }` since Unit 2 — an empty stub that has never done anything. Today it becomes the owner. Every line is given; the only judgement is the order you read them in.',
+  level: 1,
+  steps: [
+    {
+      title: 'Claim a slot on load, and refuse to be destroyed',
+      lead: 'The mechanism the whole lesson exists for: one shared field, and a setup method that decides whether this copy is the original or a newcomer.',
+      lines: [
+        {
+          code: '    public static StatManager original;',
+          what: 'The one field every other script will reach for. `public` so they can, `static` so it belongs to the **class** rather than to any object, and typed `StatManager` because what it holds is *this component*. It starts as `null` — nothing has claimed it yet.',
+          why: '**Every word on that line is load-bearing.** Drop `static` and the field becomes a fact about one object — and the object is exactly what a scene load destroys, so the slot would be empty again the moment you walked through a cave mouth. That is the whole trick: a `static` field is stored against the class, and the scene loader has no idea the class exists.',
+        },
+        { code: '', what: '' },
+        {
+          code: '    void Awake()',
+          what: 'The earliest hook Unity has. Every `Awake()` in a scene finishes before the first `Start()` runs, which is exactly the guarantee a singleton needs — somebody has to be first, and everything else must be able to assume they already were.',
+          why: '**Not `Start()`.** Unity promises no order between two different scripts\' `Start()` methods, so a script whose `Start()` happened to run before the manager\'s would read a `null` and throw — pointing at itself, not at the manager. Move this into `Start()` and the bug shows up only sometimes, which is the worst kind there is.',
+        },
+        { code: '    {', what: '' },
+        {
+          code: '        if (original != null && original != this)',
+          what: '**Are you a newcomer?** Two questions in one: is somebody already in the slot, and are they somebody other than you. The second half matters because `Awake()` runs on *every* load — including a reload where the slot already holds this very object.',
+          why: '**The `&& original != this` half is the line people delete because it looks like caution. It is not.** Without it, an object that runs `Awake()` twice destroys itself, and a singleton that destroys itself is a singleton that stops existing — with no error to explain it.',
+        },
+        { code: '        {', what: '' },
+        {
+          code: '            Destroy(gameObject);',
+          what: 'The newcomer leaves, taking its fresh `coins = 0` with it. `gameObject` is the whole object this component sits on — the StatManager object, not the script.',
+        },
+        {
+          code: '            return;',
+          what: '**Stop here, do not fall through.** Without this line the newcomer is destroyed *and* still claims the slot on the way out, so `original` ends up pointing at an object that is about to stop existing. Every later caller then talks to a dead reference.',
+        },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        {
+          code: '        original = this;',
+          what: '`this` is the component this method is running inside — this very StatManager. Claim the slot with it, so every later caller reaches this object and the numbers on it.',
+        },
+        {
+          code: '        DontDestroyOnLoad(gameObject);',
+          what: 'The one call in Unity that changes what a scene load is allowed to do. It moves the whole object into a scene of its own that never unloads, so it rides along through every load from now on.',
+          why: '**`gameObject`, not `this`.** `DontDestroyOnLoad` is defined for whole objects, and it has to be: a component cannot outlive the GameObject carrying it. And notice what is *not* happening — nothing is being made permanent about the values. They are just sitting on an object the scene loader can no longer delete.',
+        },
+        { code: '    }', what: 'One branch for the first scene and one for every scene after it. That pair *is* the singleton.' },
+      ],
+    },
+    {
+      title: 'Move the three fields, and leave the names alone',
+      lead: 'They come off `PlayerController` and land here unchanged. Delete them from the player as you add them here — never both at once, or you will not know which file the compile error is about.',
+      lines: [
+        {
+          code: '    public int health = 3;',
+          what: 'Current health, with whatever starting value your player shipped with. Same name, same type, same number.',
+          why: '**`public`, where September taught you `[SerializeField] private`.** Both work, and the difference is worth feeling rather than memorising: `[SerializeField]` puts the field in the Inspector and keeps other scripts out, while `public` puts it in the Inspector *and* lets any script in the project write it. Here the fields are public so the lesson stays about ownership; the methods below are what you should call, and they are where the rules live.',
+        },
+        {
+          code: '    public int maxHealth = 3;',
+          what: 'The ceiling from 2.3.',
+          why: '**It travels in the same step as `health`, and that is the point.** A ceiling is a fact *about the value it bounds*. Leave `maxHealth` behind on the player while `health` lives here and the rule gets enforced across two objects that are free to disagree.',
+        },
+        {
+          code: '    public int coins;',
+          what: 'The coin count from 2.1. An `int` that starts at zero, which is what an `int` field does when you do not give it a value.',
+        },
+        { code: '', what: '' },
+        {
+          code: '    // ...and nothing else. PlayerController keeps its speed, its body',
+          what: 'That is the entire move. The player keeps what it is actually for — input, movement, the collision callbacks — and stops being the place the game keeps its numbers.',
+          why: 'The line between the two is the difference between a refactor and a mess: the player is *how you move through the world*, and the manager is *what the world has done to you*.',
+        },
+        { code: '    // and its input. The numbers are not the player\'s business.', what: '' },
+      ],
+    },
+    {
+      title: 'Move the three methods, and let them keep their names',
+      lead: 'The bodies come across from `PlayerController` with one word changed at most. If you find yourself improving a rule while you are in there, stop — you are rewriting, and now nothing you break is traceable to a single change.',
+      lines: [
+        {
+          code: '    public void ChangeHealth(int amount)',
+          what: '**Your 2.2 method, moved.** Same name, same `int amount`, same meaning: a **signed** amount, where a negative number hurts and a positive one heals.',
+          why: '**Same name and same signature on purpose.** Every call site in your project already reads `ChangeHealth(-1)` or `ChangeHealth(1)`, so keeping the name means this refactor changes *who* is called and nothing else. Rename it and you are editing every caller by hand, hoping you found them all.',
+        },
+        { code: '    {', what: '' },
+        {
+          code: '        health = health + amount;',
+          what: 'The subtraction from 2.2, unchanged. `-2` from the fireball takes two off; `+1` from the potion puts one back.',
+        },
+        {
+          code: '        if (health > maxHealth)',
+          what: 'The cap from 2.3 — written as an `if` rather than a `Mathf.Clamp()`, which is what the build does. Either tool is correct; the point is that the ceiling is enforced **here**, on the only object that holds both numbers.',
+          why: '**This line is why the ceiling had to travel with the value.** The rule now lives inside the only method that can change health, on the only object that holds it — so no caller, today or next month, can put health above the maximum.',
+        },
+        { code: '        {', what: '' },
+        { code: '            health = maxHealth;', what: 'Snap to the ceiling rather than overflowing past it. A potion at full health does nothing, which is the behaviour you want and the reason the cap exists.' },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        {
+          code: '        print("Health: " + health);',
+          what: 'Your Console readout, exactly as it was. Still worth keeping while you test: until 5.3 puts the numbers on screen, the Console is the only place you can see them.',
+        },
+        {
+          code: '        if (health <= 0)',
+          what: 'The other half of the 2.2 rule: what happens when health runs out.',
+          why: '**`<= 0`, not `< 0`.** With a signed amount, health reaches exactly `0` on the hit that kills you, and a `< 0` test would let you walk around at zero health for one more hit. Read your own 2.2 line before you copy this one — if yours says `< 0`, change it now and say why in your commit message.',
+        },
+        { code: '        {', what: '' },
+        { code: '            Die();', what: 'A call, not a print. The death rule is about to grow, and a named method is where a rule that grows belongs.' },
+        { code: '        }', what: '' },
+        { code: '    }', what: '' },
+        { code: '', what: '' },
+        {
+          code: '    public void ChangeCoins(int amount)',
+          what: '**Your 2.1 coin method, moved.** Note the rename from `ChangeCoin` to `ChangeCoins` — singular to plural — so that it reads as the sibling of `ChangeHealth`: both take a signed amount, both are the only way in.',
+        },
+        { code: '    {', what: '' },
+        {
+          code: '        coins = coins + amount;',
+          what: 'The line from 2.1, with the `1` replaced by the parameter. A coin is `ChangeCoins(1)`; a five-coin bonus needs no new code at all.',
+        },
+        {
+          code: '        if (coins < 0)',
+          what: 'The floor. Coins can be taken away — `Die()` takes half — and halves round down, so a player with one coin would otherwise be left at zero and a player at zero could go negative. A number on the screen that can read `-1` is a bug the player can see.',
+        },
+        { code: '        {', what: '' },
+        { code: '            coins = 0;', what: 'Clamp to the floor, the same shape as the ceiling above.' },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        {
+          code: '        print("Coins: " + coins);',
+          what: 'Your 2.1 readout. Same deal as the health line — it is the instrument, not the feature.',
+        },
+        { code: '    }', what: '' },
+        { code: '', what: '' },
+        {
+          code: '    public void Die()',
+          what: '**Public, because it moves.** In 2.2 nothing outside the player called it. Now anything that resolves a death — a boss, a pit, a scene transition in Unit 5 — can call the same rule instead of reimplementing it.',
+        },
+        { code: '    {', what: '' },
+        {
+          code: '        health = maxHealth;',
+          what: 'Refill. The build does not reload the scene and does not move the player: you keep playing from where you are, at full health, with half your money gone.',
+          why: '**2.2 offered you a choice here — reload the scene, reset the position, or just reset the numbers — and this is the option the build took.** It is the cheapest one, and it is honest about being cheap: it exists so the game keeps running while you test everything else. A real death loop is Unit 8.',
+        },
+        {
+          code: '        coins = coins / 2;',
+          what: 'The cost of dying. Integer division throws the remainder away, so `5 / 2` is `2`, not `2.5` — and the floor in `ChangeCoins` is what keeps the result from ever going negative.',
+        },
+        {
+          code: '        print("You died. Coins: " + coins);',
+          what: 'The line that proves the rule ran. Three prints in one file, and each of them is a number you cannot otherwise see.',
+        },
+        { code: '    }', what: '' },
+      ],
+    },
+  ],
+  finalFile: `using UnityEngine;
+
+// StatManager.cs - the numbers the player earned, on the one object a scene
+// load is not allowed to destroy.
+public class StatManager : MonoBehaviour
+{
+    public int health = 3;
+    public int maxHealth = 3;
+    public int coins;
+
+    public static StatManager original;
+
+    void Awake()
+    {
+        // Somebody is already alive. This copy is the one that leaves - the
+        // Start scene has its own manager, and you can walk back to it.
+        if (original != null && original != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        original = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    public void ChangeHealth(int amount)
+    {
+        health = health + amount;
+
+        // The ceiling from 2.3, on the only object that holds the value it
+        // protects. No caller can get above it.
+        if (health > maxHealth)
+        {
+            health = maxHealth;
+        }
+
+        print("Health: " + health);
+
+        if (health <= 0)
+        {
+            Die();
+        }
+    }
+
+    public void ChangeCoins(int amount)
+    {
+        coins = coins + amount;
+
+        if (coins < 0)
+        {
+            coins = 0;
+        }
+
+        print("Coins: " + coins);
+    }
+
+    public void Die()
+    {
+        health = maxHealth;
+        coins = coins / 2;
+        print("You died. Coins: " + coins);
+    }
+}`,
+  finalNote:
+    'Compare against your own file rather than copying it. Three things have to match: the fields are gone from `PlayerController` rather than copied, the duplicate branch really is there — `Start (index 0)` holds a second StatManager and one cave mouth leads back to it — and your own rules came across from 2.1, 2.2 and 2.3 exactly as you wrote them. The names are the ones every caller will use: `original`, `ChangeHealth`, `ChangeCoins`, `Die`.',
+};
+
+const WALK_PLAYER = {
+  ask: 'how does the player call the manager?',
+  file: 'Assets/Scripts/PlayerController.cs',
+  label: 'In the Code',
+  intro:
+    'The manager exists and nothing talks to it. This walkthrough is the other half of a refactor: delete first, compile, and let the errors tell you exactly which callers you missed. Five minutes of red underlines beats twenty minutes of guessing.',
+  level: 1,
+  steps: [
+    {
+      title: 'Delete the stat fields, then compile on purpose',
+      lead: 'Before you write a single new line. The file will not compile and that is the point — the compiler is the only complete list of call sites you will ever get.',
+      lines: [
+        {
+          code: '    [SerializeField] private int coins;',
+          what: 'Delete. This line and the two below it are the ones that moved.',
+        },
+        { code: '    [SerializeField] private int health = 3;', what: 'Delete.' },
+        { code: '    [SerializeField] private int maxHealth = 3;', what: 'Delete — along with `ChangeCoin`, `ChangeHealth` and `Die` from further down the file.' },
+        { code: '', what: '' },
+        {
+          code: '// Ctrl/Cmd+S, then read the Console',
+          what: 'Every place the player, the projectile or a pickup still touches one of those names is now an error, with a file and a line number. That list is the rest of this lesson.',
+          why: '**Work the errors top to bottom and recompile after each fix.** Fixing five at once and compiling once turns a list of small, specific problems into one long, ambiguous one.',
+        },
+      ],
+    },
+    {
+      title: 'Look the manager up once, in Start()',
+      lead: 'The player needs a reference to the manager. It has found its own components with `GetComponent()` since 2.2 — this is the same idea for an object that is not on this GameObject.',
+      lines: [
+        {
+          code: '    StatManager manager;',
+          what: 'A field in the class body, beside `rb` and `animator`. Not serialized: you are not going to drag it in, the script is going to find it.',
+        },
+        { code: '', what: '' },
+        {
+          code: '        manager = FindAnyObjectByType<StatManager>();',
+          what: '**One lookup, in `Start()`.** It searches the loaded scene for the first component of that type and hands it back. `GetComponent()` only ever looks at this one GameObject; this asks the whole scene.',
+          why: '**Once, not every frame.** The same rule as the body lookup in 2.2 and the scene name in 6.1: a thing that cannot change while the scene is loaded is looked up once and remembered. In `Update()` this search would run sixty times a second for an answer that never moves.',
+        },
+        { code: '', what: '' },
+        {
+          code: '        if (manager == null)',
+          what: 'The guard, and here it genuinely earns its place: two of the three scenes contain a Player, and only some of them contain a manager.',
+        },
+        { code: '        {', what: '' },
+        {
+          code: '            Debug.LogError("No StatManager in this scene.");',
+          what: '**Red, not a print.** `Debug.LogError` paints the Console red and makes the failure impossible to scroll past — which is what you want for a scene that is missing a whole object, not for a number you are watching.',
+          why: '**A guard that hides a broken scene is worse than no guard.** Logging and carrying on means the game runs, the coins do nothing, and the Console says why. Silently returning would look identical to working code until someone noticed their coin count never moved.',
+        },
+        { code: '        }', what: '' },
+      ],
+    },
+    {
+      title: 'Repoint the callers — the part people forget',
+      lead: 'Each of these is one word changed: the receiver. The amount, the condition and the `Destroy()` beside it are all untouched.',
+      lines: [
+        {
+          code: '            manager.ChangeCoins(1);',
+          what: '2.1\'s coin branch. `coins = coins + 1;` became a method call on the manager, and the `Destroy(other.gameObject)` underneath it stays exactly where it was.',
+        },
+        {
+          code: '            manager.ChangeHealth(1);',
+          what: '2.3\'s potion. A positive amount heals, and the ceiling you just moved decides whether it does anything at all.',
+        },
+        { code: '', what: '' },
+        {
+          code: '            manager.ChangeHealth(-2);',
+          what: '3.4\'s fireball. A **negative** amount hurts — the same signed-amount convention from 2.2, now arriving from a projectile instead of a spike. The `Destroy(other.gameObject)` that removes the bullet stays right below it.',
+          why: '**This is the line the whole refactor was for.** The projectile used to hold a reference to the Player purely so it could call a damage method on it. It does not need one now: anything that can reach the manager can hurt you, and the rule that resolves the damage lives in exactly one file.',
+        },
+        { code: '', what: '' },
+        {
+          code: '        // Nothing else changes: movement, input, the tag checks and the',
+          what: 'That sentence is the definition of a refactor. If you find yourself rewriting a condition or "improving" a branch while you are in there, stop — you are rewriting.',
+        },
+        { code: '        // Destroy calls are all untouched. Only the receivers changed.', what: '' },
+      ],
+    },
+  ],
+  finalFile: `using UnityEngine;
+using UnityEngine.SceneManagement;
+
+// PlayerController.cs - the stat fields and their three methods are gone.
+// What is left is what the player is for: input, movement, and the callbacks
+// that tell the manager something happened.
+public class PlayerController : MonoBehaviour
+{
+    float speed = 4;
+    bool isPlatformer = false;
+
+    Rigidbody2D rb;
+    StatManager manager;          // found once in Start(), never searched again
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        manager = FindAnyObjectByType<StatManager>();
+
+        if (manager == null)
+        {
+            Debug.LogError("No StatManager in this scene. Start from the Start scene, or add one.");
+        }
+
+        // ... the scene-name gravity block from 6.1 ...
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.gameObject.CompareTag("Coin"))
+        {
+            manager.ChangeCoins(1);
+            Destroy(other.gameObject);
+        }
+
+        if (other.gameObject.CompareTag("Potion"))
+        {
+            manager.ChangeHealth(1);
+            Destroy(other.gameObject);
+        }
+
+        if (other.gameObject.CompareTag("E_Fireball"))
+        {
+            manager.ChangeHealth(-2);
+            Destroy(other.gameObject);
+        }
+    }
+}`,
+  finalNote:
+    'Compare against your own file rather than copying it. The test is negative and it is easy to run: search `PlayerController.cs` for the words `coins`, `health` and `maxHealth`, and the only hits left should be `ChangeCoins` and `ChangeHealth` — calls, not fields. If a field survived, you have two homes for one number again, and the one you are looking at is the wrong one.',
+};
+
+const body = `<h1>2.7 — Refactor Day: Moving Stats into the StatManager</h1>
+
+<p class="lesson-lead">
+    In September you put coins and health on the Player, because that was the shortest way to a
+    working game. It was the right call then. It is the wrong home now, and you are going to move
+    them — without changing a single thing about how the game plays. That move has a name:
+    <strong>refactor</strong>.
+</p>
+
+${renderAskBanner('how do I move my stats off the player?', 1)}
+
+${renderDecompose('2.7', DECOMPOSE, 1)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Project window →</strong> open <code>Assets/Scripts/StatManager.cs</code>. It reads
+            <code>public class StatManager : MonoBehaviour { }</code> — an empty stub that has been
+            sitting in the project since Unit 2 doing nothing at all. Today it earns its place.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> open <code>Assets/_Scenes/Start.unity</code> and find the
+            <strong>StatManager</strong> object. Then open <code>Overworld.unity</code> and find the
+            <strong>StatManager</strong> there as well. <em>Two objects, same script.</em> Write down
+            what you think happens if you walk from one scene to the other.
+        </li>
+        <li>
+            <strong>File → Build Profiles → Scene List</strong> (older tutorials call this Build
+            Settings): <strong>Start (index 0)</strong> is first, which is the scene a built game
+            loads by default — and it is one of the two that carries a manager.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play in the <strong>Overworld</strong> and collect three
+            coins. Watch the Console. Then stop, press Play again from
+            <strong>Start (index 0)</strong>, walk into the overworld and collect one coin. The number
+            in the Console is the whole story, and it is the reason for today's work.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> select the Player and read
+            <strong>Inspector → Player Controller</strong>. Every number you are about to move —
+            <code>Coins</code>, <code>Health</code>, <code>Max Health</code> — is a box you can watch
+            change while you play. That is what you are giving up by moving them, and it is why the
+            walkthrough keeps the prints.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <table>
+        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>public static StatManager original;</code></td>
+            <td>A field that belongs to the <strong>class</strong>, not to an object — reachable with no reference and no search.</td>
+            <td>It starts as <code>null</code>, and nothing claims it for you.</td>
+        </tr>
+        <tr>
+            <td><code>void Awake()</code></td>
+            <td>Unity's earliest hook: it runs once per object, and every <code>Awake()</code> in a scene finishes before the first <code>Start()</code> runs.</td>
+            <td>Order between two objects' <code>Awake()</code> methods is still not promised.</td>
+        </tr>
+        <tr>
+            <td><code>DontDestroyOnLoad(gameObject)</code></td>
+            <td>The object moves into a scene of its own that never unloads, so it survives every load from then on.</td>
+            <td>It takes a whole <strong>GameObject</strong>, not a component.</td>
+        </tr>
+        <tr>
+            <td><code>FindAnyObjectByType&lt;StatManager&gt;()</code></td>
+            <td>Hands back the first component of that type anywhere in the loaded scene.</td>
+            <td>It searches, so it costs something — call it once, never in <code>Update()</code>.</td>
+        </tr>
+        <tr>
+            <td><code>Debug.LogError(message)</code></td>
+            <td>A Console line painted red, impossible to scroll past.</td>
+            <td>It does not stop the game, so the broken behaviour still runs.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification — this is a refactor, not a rewrite.</strong>
+        Nothing your game <em>does</em> changes; what changes is where the numbers live. Answer these
+        before you open the files.
+        <ul>
+            <li><strong>The move.</strong> Which fields leave <code>PlayerController</code>, and which stay — and why does the one you keep belong to the player rather than to the run?</li>
+            <li><strong>The owner.</strong> Which setup hook claims the slot, and what does its other branch do with a second copy?</li>
+            <li><strong>The seam.</strong> Which single method may change health, and what ceiling does it enforce?</li>
+            <li><strong>The callers.</strong> How will you find every place that used to reach for those fields — by reading the file, or by deleting them first?</li>
+        </ul>
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: Who Owns a Number?</h3>
+        <ol>
+            <li>Your stat fields are <code>public</code> after this refactor, where September taught you <code>[SerializeField] private</code>. What does <code>public</code> let another script do that a method call would not — and why might that be a problem in a project with more than one programmer?</li>
+            <li><code>Start (index 0)</code> already contains its own StatManager object. If you walk back to it later, what will be there — and what happens if nothing stops it from registering itself a second time?</li>
+            <li>When you delete a field and let the compiler list your call sites, you are using a tool to find something you could have searched for by hand. Which is more reliable, and what does the answer tell you about why refactoring is usually a two-step job — delete, then compile?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK_MANAGER)}
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK_PLAYER)}
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Prove the Move</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        A refactor is only finished when you can show that nothing changed. Four checks, in this
+        order:
+    </p>
+
+    <table>
+        <tr><th>Check</th><th>What it proves</th></tr>
+        <tr>
+            <td>Collect a coin</td>
+            <td>The coin branch reaches the manager. Console says <code>Coins: 1</code>.</td>
+        </tr>
+        <tr>
+            <td>Walk into a spike</td>
+            <td>The signed amount still hurts. Console says <code>Health: 2</code>.</td>
+        </tr>
+        <tr>
+            <td>Pick up a potion at full health</td>
+            <td>The ceiling travelled with the value. Health stays at <code>3</code>.</td>
+        </tr>
+        <tr>
+            <td>Take damage until death</td>
+            <td><code>Die()</code> runs from inside <code>ChangeHealth</code>. Health is back at max, coins are halved.</td>
+        </tr>
+    </table>
+
+    <div class="callout trap">
+        <strong>A refactor that also changes behaviour is not a refactor.</strong> If the jump feels
+        different, the movement is slower, or a pickup stopped working while you were in these files,
+        you touched something that was not part of the move. Put it back and commit the move on its
+        own — a commit that says "moved stats to StatManager" should contain nothing else.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Say what a refactor is, and name the thing about your game that did <em>not</em> change</li>
+        <li>Explain why a <code>static</code> field survives a scene load when an instance field does not</li>
+        <li>Explain why the duplicate branch needs <code>original != this</code>, and why it needs <code>return</code></li>
+        <li>Say why the ceiling and the death rule had to move with the values they protect</li>
+        <li>Find call sites by deleting a field and compiling, instead of searching by hand</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the singleton pattern, DontDestroyOnLoad and FindAnyObjectByType</li>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the coin, the spike and the ceiling you are moving today</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="6.2.html">6.2 — Ground Checks: No Infinite Jumps</a>, back to the cave, where your jump is still working perfectly in mid-air.</p>
+</div>`;
+---
+<Lesson id="2.7" title="2.7 Refactor Day: Moving Stats into the StatManager — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

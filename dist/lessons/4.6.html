@@ -1,0 +1,307 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>4.6 Player Melee: A Hitbox That Remembers the Enemy — AP CS Principles</title><meta name="description" content="Lesson 4.6 Player Melee: A Hitbox That Remembers the Enemy — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="4.6 Player Melee: A Hitbox That Remembers the Enemy — AP CS Principles"><meta property="og:description" content="Lesson 4.6 Player Melee: A Hitbox That Remembers the Enemy — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="4.3.html">&#9664; 4.3</a><span class="lesson-id">4.6</span><a href="7.1.html">7.1 &#9654;</a></div><h1>4.6 — Player Melee: A Hitbox That Remembers the Enemy</h1>
+
+<p class="lesson-lead">
+    Every mechanic so far has happened <em>to</em> you. Coins came to you, spikes hurt you, turrets shot
+    at you. Today the player acts back: a box that follows your facing, a variable that remembers what
+    the box is touching, and a key that turns remembering into damage.
+</p>
+
+<div class="ask-banner" data-scaffold="2"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I give the player a sword swing?&rdquo;</span><span class="ask-banner-level">Guided build</span></div>
+
+<div class="activity decompose" data-level="2" data-parts="5" data-given="4" data-docs="5"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Guided build</span></div><p class="dc-big">Every mechanic so far has happened <em>to</em> the player. Today it happens <em>from</em> the player. The shape is three pieces that look like one: a box that follows you around, a box that remembers what it is touching, and a rule that says what touching means. Get any one of the three wrong and the sword swings and nothing happens — with no error to tell you which piece.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Put a trigger box on the player where a sword would be</span><span class="dc-does">A child <code>Square</code> with a <code>BoxCollider2D</code> that is <strong>Is Trigger</strong>, one unit on a side. A child, not a component on the root, so it can sit somewhere other than the player's centre without moving the body.</span><span class="dc-doc">Read: <a href="2.1.html">the trigger-versus-collision distinction from 2.1.</a></span></li><li class="dc-part"><span class="dc-name">Move that box to whichever side you are facing</span><span class="dc-does">Four branches in the same <code>if</code>/<code>else if</code> chain that already sets <code>facing</code>. One block, two jobs: the string the bullet reads and the position the box sits at.</span><span class="dc-doc">Read: <a href="1.6.html">the facing block from 1.6.</a></span></li><li class="dc-part"><span class="dc-name">Remember what the box is touching</span><span class="dc-does"><code>OnTriggerEnter2D()</code> stores the object and <code>OnTriggerExit2D()</code> forgets it. That pair <em>is</em> the memory: at any moment, <code>currentEnemy</code> is either the thing in front of you or <code>null</code>.</span><span class="dc-doc">Read: <a href="2.1.html">the pickup trigger from 2.1, pointed at a moving object instead of a coin.</a></span></li><li class="dc-part"><span class="dc-name">Swing on a key, gated by the cooldown you already have</span><span class="dc-does"><code>Input.GetKeyDown(KeyCode.E)</code>, <code>cooldownTimer &lt; 0</code>, and <code>currentEnemy != null</code>. Three conditions, and all three matter: a swing with nothing in front of you must not throw.</span><span class="dc-doc">Read: <a href="3.3.html">the countdown timer from 3.3.</a></span></li><li class="dc-part dc-part-blank"><span class="dc-gap">write this part</span><span class="dc-doc">Read: <a href="4.1.html">the enemy damage method from 4.1.</a></span></li></ol><p class="dc-why">Four of the five parts are shapes you have built before, which is why the lesson is not level 1. The new idea is narrow and worth naming: the player holds a <em>reference</em> to another object and calls a method on it. Damage is a message, not a number the player keeps.</p><p class="dc-size">The test: could you look this part up on its own, right now, in one search? "Make a sword swing" cannot be looked up. "Call a method on the object my trigger is touching" can.</p><div class="dc-turns"><h4>Your turn</h4><p>The player calls <code>ChangeHealth(-1)</code> on the enemy. What would change about the design if the enemy instead asked the player "did you hit me?" every frame?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.6:dc1:q1" data-block="decompose" data-question="The player calls `ChangeHealth(-1)` on the enemy. What would change about the design if the enemy instead asked the player &quot;did you hit me?&quot; every frame?" placeholder="write your answer, then keep going"></textarea></label><p>The two boxes on the player do different jobs: the root box is solid and stops you walking through walls, the child box is a trigger and lets everything through. Say what would break if you swapped them.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.6:dc1:q2" data-block="decompose" data-question="The two boxes on the player do different jobs: the root box is solid and stops you walking through walls, the child box is a trigger and lets everything through. Say what would break if you swapped them." placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Hierarchy →</strong> select the <strong>Player</strong> → right-click →
+            <strong>2D Object → Sprites → Square</strong>, and name the child
+            <code>Square</code>. It is a child, so it inherits the player's position every frame.
+        </li>
+        <li>
+            <strong>Inspector → Square → Transform</strong>: set <strong>Scale</strong> to
+            <code>1, 1, 1</code> and <strong>Position</strong> to <code>0, 0, 0</code>. You are about
+            to move this object from code, so its starting place barely matters — but its
+            <em>scale</em> does, because it is the size of your sword.
+        </li>
+        <li>
+            <strong>Inspector → Square → Add Component → Box Collider 2D</strong>, then tick
+            <strong>Is Trigger</strong>. A trigger reports that something is inside it without pushing
+            anything — the same choice you made for the coin in <a href="2.1.html">2.1</a>, and the
+            opposite of the player's own collider, which is solid.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play and watch the square. It sits on the player and
+            follows it. Leave the sprite visible for now — you are about to move it, and a box you
+            cannot see is a box you cannot debug.
+        </li>
+        <li>
+            <strong>Once the walkthrough is done — Hierarchy → Player → Inspector → Player
+            Controller → Attack Box</strong>: drag the <code>Square</code> in. Then
+            <strong>Overrides → Apply All</strong>, so every Player in the project gets the same child.
+        </li>
+        <li>
+            <strong>Game view →</strong> play, walk up to an enemy and press <strong>E</strong>. Then
+            <strong>Hierarchy → Square → Sprite Renderer</strong> and untick it: the box still works
+            with nothing drawn, which is what you want in a finished game.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <table>
+        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>other.gameObject</code></td>
+            <td>The object behind a collider — what you store when the box touches an enemy.</td>
+            <td>It is a whole object, not a component: you still have to look up what you need on it.</td>
+        </tr>
+        <tr>
+            <td><code>GetComponent<EnemyController>()</code></td>
+            <td>The enemy's own script, so you can call a method on it.</td>
+            <td>Returns <code>null</code> when the object has no such component — and the next dot throws.</td>
+        </tr>
+        <tr>
+            <td><code>transform.position + new Vector3(x, y, 0)</code></td>
+            <td>Somewhere relative to the player, recomputed every frame.</td>
+            <td>It writes a world position, so it overwrites whatever the box's own Transform said.</td>
+        </tr>
+        <tr>
+            <td><code>Input.GetKeyDown(KeyCode.E)</code></td>
+            <td>One swing per press, from the Input class you have used since 1.4.</td>
+            <td>Held down it stays true for one frame only — which is what you want for a swing.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>The game already tells the player which key this is.</strong> The Overworld's Canvas
+        carries the text <code>Press [E] to Interact</code> — so the prompt you inherited and the key
+        you are wiring today are the same key. That is not a coincidence, and it is worth keeping true:
+        if you ever move the swing to another key, the sign on the wall has to move with it.
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: Who Owns the Damage?</h3>
+        <ol>
+            <li>The player calls <code>ChangeHealth(-1)</code> on the enemy rather than subtracting from a health number the player keeps. What does that arrangement make harder, and what does it make impossible?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.6:sc1:q1" data-block="socratic" data-question="The player calls ChangeHealth(-1) on the enemy rather than subtracting from a health number the player keeps. What does that arrangement make harder, and what does it make impossible?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li><code>currentEnemy</code> holds one object. Two enemies in the box at once, one walks away — what goes wrong, and is that acceptable for a sword?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.6:sc1:q2" data-block="socratic" data-question="currentEnemy holds one object. Two enemies in the box at once, one walks away — what goes wrong, and is that acceptable for a sword?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>The attack box is a trigger, not a solid collider, even though a sword feels solid. What would happen to your player if you unticked <em>Is Trigger</em>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="4.6:sc1:q3" data-block="socratic" data-question="The attack box is a trigger, not a solid collider, even though a sword feels solid. What would happen to your player if you unticked Is Trigger ?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I give the player a sword swing?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. No new script: every line today goes into the file you already have, beside the movement and the bullet. One line is left for you — the one that turns a remembered object into damage.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Add the two fields: the box, and the memory</h4><p class="wt-lead">In the class body, next to <code>projectile</code> and <code>facing</code>.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    [<span class="tk-ty">SerializeField</span>] <span class="tk-ty">GameObject</span> <span class="tk-va">attackBox</span>;</span>
+<span class="wt-line" data-n="2">    <span class="tk-ty">GameObject</span> <span class="tk-va">currentEnemy</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">A slot for the child you built in the editor. It is serialized because it is a reference you drag in, and it is a <code>GameObject</code> rather than a <code>Transform</code> because nothing here needs to know it is a transform.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what"><strong>The memory.</strong> Not serialized, not set in the Inspector — it is <code>null</code> until the box touches something, and <code>null</code> again the moment that thing walks away.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Move the box in the block that already sets facing</h4><p class="wt-lead">You have an <code>if</code>/<code>else if</code> chain from 1.6 that decides <code>facing</code>. Add one line to each branch instead of writing a second chain — two chains deciding the same thing is how they start disagreeing.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">        <span class="tk-ct">if</span> (<span class="tk-va">xDirection</span> &gt; <span class="tk-nu">0</span>)</span>
+<span class="wt-line" data-n="2">        {</span>
+<span class="wt-line" data-n="3">            <span class="tk-va">facing</span> = <span class="tk-st">"Right"</span>;</span>
+<span class="wt-line" data-n="4">            <span class="tk-va">attackBox</span>.<span class="tk-va">transform</span>.<span class="tk-va">position</span> = <span class="tk-va">transform</span>.<span class="tk-va">position</span> + <span class="tk-kw">new</span> <span class="tk-ty">Vector3</span>(<span class="tk-nu">.5f</span>, <span class="tk-nu">.5f</span>, <span class="tk-nu">0</span>);</span>
+<span class="wt-line" data-n="5">        }</span>
+<span class="wt-line" data-n="6">        <span class="tk-ct">else</span> <span class="tk-ct">if</span> (<span class="tk-va">xDirection</span> &lt; <span class="tk-nu">0</span>)</span>
+<span class="wt-line" data-n="7">        {</span>
+<span class="wt-line" data-n="8">            <span class="tk-va">facing</span> = <span class="tk-st">"Left"</span>;</span>
+<span class="wt-line" data-n="9">            <span class="tk-va">attackBox</span>.<span class="tk-va">transform</span>.<span class="tk-va">position</span> = <span class="tk-va">transform</span>.<span class="tk-va">position</span> + <span class="tk-kw">new</span> <span class="tk-ty">Vector3</span>(-<span class="tk-nu">.5f</span>, <span class="tk-nu">.5f</span>, <span class="tk-nu">0</span>);</span>
+<span class="wt-line" data-n="10">        }</span>
+<span class="wt-line" data-n="11"></span>
+<span class="wt-line" data-n="12">        <span class="tk-ct">if</span> (<span class="tk-va">yDirection</span> &gt; <span class="tk-nu">0</span>)</span>
+<span class="wt-line" data-n="13">        {</span>
+<span class="wt-line" data-n="14">            <span class="tk-va">facing</span> = <span class="tk-st">"Up"</span>;</span>
+<span class="wt-line" data-n="15">            <span class="tk-va">attackBox</span>.<span class="tk-va">transform</span>.<span class="tk-va">position</span> = <span class="tk-va">transform</span>.<span class="tk-va">position</span> + <span class="tk-kw">new</span> <span class="tk-ty">Vector3</span>(<span class="tk-nu">0</span>, <span class="tk-nu">1</span>, <span class="tk-nu">0</span>);</span>
+<span class="wt-line" data-n="16">        }</span>
+<span class="wt-line" data-n="17">        <span class="tk-ct">if</span> (<span class="tk-va">yDirection</span> &lt; <span class="tk-nu">0</span>)</span>
+<span class="wt-line" data-n="18">        {</span>
+<span class="wt-line" data-n="19">            <span class="tk-va">facing</span> = <span class="tk-st">"Down"</span>;</span>
+<span class="wt-line" data-n="20">            <span class="tk-va">attackBox</span>.<span class="tk-va">transform</span>.<span class="tk-va">position</span> = <span class="tk-va">transform</span>.<span class="tk-va">position</span> + <span class="tk-kw">new</span> <span class="tk-ty">Vector3</span>(<span class="tk-nu">0</span>, <span class="tk-nu">0</span>, <span class="tk-nu">0</span>);</span>
+<span class="wt-line" data-n="21">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">3</span><span class="wt-what">The string from 3.5 — the bullet reads it.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what"><strong>The box, half a unit right and half a unit up.</strong> <code>transform.position</code> on the left is the box's; the one on the right is the player's, because it has no object in front of it. Adding a <code>Vector3</code> to a position is a move, not a direction.</span></li>
+<li><span class="wt-ref">9</span><span class="wt-what">The same offset mirrored on X.</span></li>
+<li><span class="wt-ref">12</span><span class="wt-what">A separate <code>if</code>, not an <code>else if</code>. Vertical facing wins over horizontal because it is checked after it — which is what makes "up" and "down" reachable at all when both axes are pressed at once.</span></li>
+<li><span class="wt-ref">15</span><span class="wt-what">One unit straight up.</span></li>
+<li><span class="wt-ref">20</span><span class="wt-what"><strong>Zero offset</strong> — the box sits exactly on the player. It is the one branch that looks like a mistake, and it is not: swinging downward puts the box under you, and the player's own centre is where "under you" starts.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Remember the enemy, and forget it when it leaves</h4><p class="wt-lead">Two callbacks, the same pair you wrote for the coin in 2.1 — except the coin was destroyed on contact and this one is not.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    <span class="tk-kw">void</span> <span class="tk-fn">OnTriggerEnter2D</span>(<span class="tk-ty">Collider2D</span> <span class="tk-va">other</span>)</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line" data-n="3">        <span class="tk-ct">if</span> (<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Enemy"</span>))</span>
+<span class="wt-line" data-n="4">        {</span>
+<span class="wt-line" data-n="5">            <span class="tk-va">currentEnemy</span> = <span class="tk-va">other</span>.<span class="tk-va">gameObject</span>;</span>
+<span class="wt-line" data-n="6">        }</span>
+<span class="wt-line" data-n="7">    }</span>
+<span class="wt-line" data-n="8"></span>
+<span class="wt-line" data-n="9">    <span class="tk-kw">void</span> <span class="tk-fn">OnTriggerExit2D</span>(<span class="tk-ty">Collider2D</span> <span class="tk-va">other</span>)</span>
+<span class="wt-line" data-n="10">    {</span>
+<span class="wt-line" data-n="11">        <span class="tk-ct">if</span> (<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Enemy"</span>))</span>
+<span class="wt-line" data-n="12">        {</span>
+<span class="wt-line" data-n="13">            <span class="tk-va">currentEnemy</span> = <span class="tk-kw">null</span>;</span>
+<span class="wt-line" data-n="14">        }</span>
+<span class="wt-line" data-n="15">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The same signature as the coin branch. Unity calls this on every trigger that overlaps this object — which now includes your attack box, because the box is your object's child and the collision is reported to the player.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Only enemies. A coin inside the swing radius must not be remembered as something to hit — <code>CompareTag()</code> is a filter, and this is how you keep one callback from meaning two things.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what"><strong>Store the object, not its health.</strong> The player has no business knowing how much health an enemy has; it only needs to know who is in front of it.</span></li>
+<li><span class="wt-ref">9</span><span class="wt-what">The other half. Without it, <code>currentEnemy</code> would still point at the last thing you touched from anywhere on the map — and the swing would reach it across the level.</span></li>
+<li><span class="wt-ref">13</span><span class="wt-what">Forget. Note that this says nothing about <em>which</em> enemy left: if two enemies overlap the box and one walks away, the field clears anyway. That is a real limitation of remembering one thing, and Unit 4's state work is where it gets addressed.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Swing on E — this is the blank</h4><p class="wt-lead">Four lines in <code>Update()</code>, below the shooting code.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">        <span class="tk-ct">if</span> (<span class="tk-va">Input</span>.<span class="tk-fn">GetKeyDown</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">E</span>) &amp;&amp; <span class="tk-va">cooldownTimer</span> &lt; <span class="tk-nu">0</span> &amp;&amp; <span class="tk-va">currentEnemy</span> != <span class="tk-kw">null</span>)</span>
+<span class="wt-line" data-n="2">        {</span>
+<span class="wt-line wt-blank" data-n="3"><span class="wt-gap">________________</span></span>
+<span class="wt-line" data-n="4">            <span class="tk-va">cooldownTimer</span> = <span class="tk-nu">.5f</span>;</span>
+<span class="wt-line" data-n="5">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Three conditions joined by <code>&amp;&amp;</code>, and all three are load-bearing. <code>GetKeyDown</code> = one swing per press. <code>cooldownTimer &lt; 0</code> = the same half-second the bullet pays, so you cannot swing and shoot at once. <code>currentEnemy != null</code> = a swing with nothing in front of you does nothing instead of throwing.</span></li>
+<li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">3</span><span class="wt-what"><strong>The hit, and the only line in this lesson you have not built before.</strong> <code>currentEnemy</code> is a <code>GameObject</code>. Reach into it, get its <code>EnemyController</code>, and call that enemy's <code>ChangeHealth(int)</code> with a negative amount — the signed convention from 2.7, arriving at a second kind of health. Two method calls with a dot between them.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what"><strong>Reset after the hit, not before</strong> — the same order as 3.3 and 3.5.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things to check: the box moves in the SAME block that sets <code>facing</code>, <code>currentEnemy</code> is cleared on exit as well as set on enter, and the swing is gated by all three conditions. The offsets are the ones in the reference build and they are not symmetric — up sits a full unit away where right and left sit half. If yours are symmetric and you prefer them, keep yours and be ready to say why.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/PlayerController.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
+<span class="tk-cm">// ... plus UnityEngine.SceneManagement and System, from 6.1 and 3.5 ...</span>
+
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">PlayerController</span> : <span class="tk-ty">MonoBehaviour</span>
+{
+<span class="tk-cm">    // ... speed, direction, animator, renderer, rb, manager, jumpsRemaining ...</span>
+    <span class="tk-kw">float</span> <span class="tk-va">cooldownTimer</span> = <span class="tk-nu">.5f</span>;
+
+    <span class="tk-ty">GameObject</span> <span class="tk-va">currentEnemy</span>;                 <span class="tk-cm">// what the sword box is touching, or null</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-ty">GameObject</span> <span class="tk-va">attackBox</span>;   <span class="tk-cm">// the Square child</span>
+
+    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
+    {
+<span class="tk-cm">        // ... input, movement, gravity, jump ...</span>
+
+<span class="tk-cm">        // The facing block now does two jobs: the string the bullet reads,</span>
+<span class="tk-cm">        // and the position of the box the sword uses.</span>
+        <span class="tk-ct">if</span> (<span class="tk-va">xDirection</span> &gt; <span class="tk-nu">0</span>)
+        {
+            <span class="tk-va">facing</span> = <span class="tk-st">"Right"</span>;
+            <span class="tk-va">attackBox</span>.<span class="tk-va">transform</span>.<span class="tk-va">position</span> = <span class="tk-va">transform</span>.<span class="tk-va">position</span> + <span class="tk-kw">new</span> <span class="tk-ty">Vector3</span>(<span class="tk-nu">.5f</span>, <span class="tk-nu">.5f</span>, <span class="tk-nu">0</span>);
+        }
+        <span class="tk-ct">else</span> <span class="tk-ct">if</span> (<span class="tk-va">xDirection</span> &lt; <span class="tk-nu">0</span>)
+        {
+            <span class="tk-va">facing</span> = <span class="tk-st">"Left"</span>;
+            <span class="tk-va">attackBox</span>.<span class="tk-va">transform</span>.<span class="tk-va">position</span> = <span class="tk-va">transform</span>.<span class="tk-va">position</span> + <span class="tk-kw">new</span> <span class="tk-ty">Vector3</span>(-<span class="tk-nu">.5f</span>, <span class="tk-nu">.5f</span>, <span class="tk-nu">0</span>);
+        }
+
+        <span class="tk-ct">if</span> (<span class="tk-va">yDirection</span> &gt; <span class="tk-nu">0</span>)
+        {
+            <span class="tk-va">facing</span> = <span class="tk-st">"Up"</span>;
+            <span class="tk-va">attackBox</span>.<span class="tk-va">transform</span>.<span class="tk-va">position</span> = <span class="tk-va">transform</span>.<span class="tk-va">position</span> + <span class="tk-kw">new</span> <span class="tk-ty">Vector3</span>(<span class="tk-nu">0</span>, <span class="tk-nu">1</span>, <span class="tk-nu">0</span>);
+        }
+        <span class="tk-ct">if</span> (<span class="tk-va">yDirection</span> &lt; <span class="tk-nu">0</span>)
+        {
+            <span class="tk-va">facing</span> = <span class="tk-st">"Down"</span>;
+            <span class="tk-va">attackBox</span>.<span class="tk-va">transform</span>.<span class="tk-va">position</span> = <span class="tk-va">transform</span>.<span class="tk-va">position</span> + <span class="tk-kw">new</span> <span class="tk-ty">Vector3</span>(<span class="tk-nu">0</span>, <span class="tk-nu">0</span>, <span class="tk-nu">0</span>);
+        }
+
+        <span class="tk-va">cooldownTimer</span> -= <span class="tk-va">Time</span>.<span class="tk-va">deltaTime</span>;
+
+        <span class="tk-ct">if</span> (<span class="tk-va">Input</span>.<span class="tk-fn">GetKeyDown</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">E</span>) &amp;&amp; <span class="tk-va">cooldownTimer</span> &lt; <span class="tk-nu">0</span> &amp;&amp; <span class="tk-va">currentEnemy</span> != <span class="tk-kw">null</span>)
+        {
+            <span class="tk-va">currentEnemy</span>.<span class="tk-fn">GetComponent</span>&lt;<span class="tk-ty">EnemyController</span>&gt;().<span class="tk-fn">ChangeHealth</span>(-<span class="tk-nu">1</span>);
+            <span class="tk-va">cooldownTimer</span> = <span class="tk-nu">.5f</span>;
+        }
+
+        <span class="tk-ct">if</span> (<span class="tk-va">Input</span>.<span class="tk-fn">GetKeyDown</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">Space</span>) &amp;&amp; <span class="tk-va">cooldownTimer</span> &lt; <span class="tk-nu">0</span>)
+        {
+            <span class="tk-fn">Shoot</span>();
+            <span class="tk-va">cooldownTimer</span> = <span class="tk-nu">.5f</span>;
+        }
+    }
+
+    <span class="tk-kw">void</span> <span class="tk-fn">OnTriggerEnter2D</span>(<span class="tk-ty">Collider2D</span> <span class="tk-va">other</span>)
+    {
+<span class="tk-cm">        // ... the coin, potion and fireball branches from 2.1, 2.3 and 3.4 ...</span>
+        <span class="tk-ct">if</span> (<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Enemy"</span>))
+        {
+            <span class="tk-va">currentEnemy</span> = <span class="tk-va">other</span>.<span class="tk-va">gameObject</span>;
+        }
+    }
+
+    <span class="tk-kw">void</span> <span class="tk-fn">OnTriggerExit2D</span>(<span class="tk-ty">Collider2D</span> <span class="tk-va">other</span>)
+    {
+        <span class="tk-ct">if</span> (<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Enemy"</span>))
+        {
+            <span class="tk-va">currentEnemy</span> = <span class="tk-kw">null</span>;
+        }
+    }
+}</code></pre></details></div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Bug Hunt: The Turret Is Not an Enemy</span>
+        <span class="activity-time">~10 min</span>
+    </div>
+
+    <p>
+        Play, walk up to a <strong>turret</strong>, and press E. The Console turns red:
+    </p>
+
+<pre data-lang="Shell"><code class="lang-bash"><span class="tk-fn">NullReferenceException:</span> <span class="tk-st">Object</span> <span class="tk-st">reference</span> <span class="tk-st">not</span> <span class="tk-st">set</span> <span class="tk-st">to</span> <span class="tk-st">an</span> <span class="tk-st">instance</span> <span class="tk-st">of</span> <span class="tk-st">an</span> <span class="tk-st">object</span>
+<span class="tk-fn">PlayerController.OnTriggerEnter2D</span> <span class="tk-st">/</span> <span class="tk-st">Update</span> ()</code></pre>
+
+    <p>
+        Nothing is wrong with your code. Open <strong>Hierarchy → Turret</strong> and look at two
+        things: its <strong>Tag</strong> is <code>Enemy</code>, and its component list has no
+        <code>EnemyController</code> on it. Your swing asked it for one, got <code>null</code>, and
+        called <code>ChangeHealth</code> on nothing.
+    </p>
+
+    <table>
+        <tr><th>Fix</th><th>What it costs</th></tr>
+        <tr>
+            <td>Give the turret its own <code>EnemyController</code> with more health</td>
+            <td>The turret becomes a thing you can kill — which may be exactly what you want, and is what the boss in Unit 8 assumes.</td>
+        </tr>
+        <tr>
+            <td>Re-tag the turret, e.g. <code>Turret</code></td>
+            <td>One tag, and the turret stops being hittable. Cheap, and it quietly removes a feature your game might want.</td>
+        </tr>
+        <tr>
+            <td>Ask first: <code>TryGetComponent(...)</code></td>
+            <td>One line, and nothing is broken — but you have hidden a design question behind a null check instead of answering it.</td>
+        </tr>
+    </table>
+
+    <div class="callout trap">
+        <strong>A tag is a promise, and nothing enforces it.</strong> <code>CompareTag("Enemy")</code>
+        only says what an object <em>is called</em>. Your code then assumed that everything called
+        "Enemy" has an <code>EnemyController</code> — an assumption the project does not keep. When a
+        tag and a component disagree, decide which one is lying and fix that one.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain why the hitbox is a trigger on a child rather than a collider on the root</li>
+        <li>Say what <code>currentEnemy</code> holds between swings, and when it becomes <code>null</code></li>
+        <li>Explain why the swing needs all three conditions, and what a missing <code>!= null</code> costs</li>
+        <li>Say who owns the enemy's health, and why the player only sends a message</li>
+        <li>Explain the turret crash without opening the project</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — what the enemy will do with the health you are now taking away</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>GetComponent()</code>, <code>CompareTag()</code> and trigger callbacks</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="7.1.html">7.1 — Tilemaps: The Level Editor</a>, where the cave you have been filling with hazards gets its floor.</p>
+</div><div class="lab-bar" data-lesson="4.6" data-lesson-title="Player Melee: A Hitbox That Remembers the Enemy" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="4.6" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="4.3.html"><span class="dir">&#9664; Previous</span><span class="where">4.3 — Chase: The Aggro Radius</span></a><a class="foot-next" href="7.1.html"><span class="dir">Next &#9654;</span><span class="where">7.1 — Tilemaps: The Level Editor</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

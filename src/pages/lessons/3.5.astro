@@ -1,0 +1,380 @@
+---
+// Lesson 3.5 — Player Projectile: Clone, Retag & Reuse the Cooldown
+// Taught 2026-10-08. The row has existed in curriculum.ts since the calendar was
+// rewritten; the page did not. The player stops being only a target.
+//
+// GROUND TRUTH (read from the teacher's project):
+//   - Assets/Prefabs/Player_Projectile.prefab is a clone of Turret_Projectile:
+//     tag `Fireball` (the enemy one is `E_Fireball`), CircleCollider2D with
+//     m_IsTrigger: 1 and m_Radius: 0.07, no Rigidbody2D. Same sprite, recolored.
+//   - Assets/Scripts/PlayerProjectile.cs: `float speed = 10;`, a `Vector3
+//     direction;`, `float lifespan = 2;`, an Update that counts the lifespan down
+//     to Destroy and then does `transform.position += direction * speed *
+//     Time.deltaTime;` — transform movement, not a body, exactly like the turret
+//     bullet it was cloned from. `public void SetDirection(String facing)` maps
+//     "Right"/"Left"/"Up"/"Down" to a unit Vector3. There is no default case, so a
+//     null or unexpected facing leaves direction at (0,0,0) and the bullet sits
+//     still until its lifespan eats it.
+//   - PlayerController: `[SerializeField] GameObject projectile;` wired in
+//     Player.prefab to the Player_Projectile prefab, `String facing;` written by
+//     the direction block in Update(), and
+//         void Shoot() {
+//             GameObject playerProjectileCopy = Instantiate(projectile,
+//                 transform.position, Quaternion.identity);
+//             playerProjectileCopy.GetComponent<PlayerProjectile>().SetDirection(facing);
+//         }
+//     fired from `if (Input.GetKeyDown(KeyCode.Space) && cooldownTimer < 0)`.
+//   - NOTHING in the project receives the `Fireball` tag yet. This page must not
+//     claim the player's bullet damages anything. 4.2/4.5 make the enemy care.
+//
+// LADDER: level 2 — every shape here has a precedent (3.2 built Instantiate, 3.3
+// built the cooldown, 1.6 built `facing`). One new idea is left blank: the line
+// that hands the spawned copy its direction.
+import Lesson from '../../layouts/LessonLayout.astro';
+import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
+import { renderDecompose } from '../../lib/decompose';
+
+const DECOMPOSE = {
+  big:
+    'The turret already shoots. The player should shoot back, and almost none of that is new code: the ' +
+    'bullet is the turret\'s bullet with a different tag and a different colour, the trigger is the ' +
+    'trigger it already had, and the rate limit is the timer from 3.3. What is genuinely new is that the ' +
+    'bullet cannot aim itself — it has to be told, at the instant it is born, which way it is going.',
+  parts: [
+    {
+      name: 'Clone the enemy bullet instead of writing a second one',
+      does: 'Right-click `Turret_Projectile` in the Project window and duplicate it. A bullet is a sprite, a trigger and a script; you already built all three, and the second one is a copy.',
+      doc: 'the prefab you assembled in 3.2.',
+      href: '3.2.html',
+    },
+    {
+      name: 'Change the two things that make it yours',
+      does: 'Rename it `Player_Projectile`, set its tag to `Fireball` — the enemy bullet is `E_Fireball`, and the tag is the only thing that will ever tell the two apart — and recolour the sprite so a human can tell them apart too.',
+      doc: 'the tag-versus-type discussion in 3.4.',
+      href: '3.4.html',
+    },
+    {
+      name: 'Give the new script a direction and a lifespan',
+      does: '`Vector3 direction;` and `float lifespan = 2;`. A direction is not a speed — it is a unit vector saying *which way*, multiplied by `speed` on the frame it moves.',
+      doc: 'the `Vector3` and `Time.deltaTime` rows of the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Turn a facing into a direction',
+      does: '`SetDirection(String facing)` compares the string your player already stores against `"Right"`, `"Left"`, `"Up"` and `"Down"` and assigns the matching unit `Vector3`. Four branches, no maths.',
+      doc: 'the facing block you wrote in 1.6.',
+      href: '1.6.html',
+    },
+    {
+      // The one part with no precedent — the student produces it.
+      name: 'Spawn it in front of the player and hand it the answer',
+      blank: true,
+      doc: 'the `Instantiate()` row from 3.2 and the timer from 3.3.',
+      href: '3.3.html',
+    },
+  ],
+  why:
+    'Four of the five parts are a copy of work you have already done — and that is the lesson. The one ' +
+    'part with no precedent is the hand-off: the object is created by one script and configured by it ' +
+    'in the same breath, before the first `Update()` ever runs.',
+  sizeTest:
+    'The test: could you look this part up on its own, right now, in one search? "Make the player shoot" ' +
+    'cannot be looked up. "Tell a newly created object which way to move" can — it is one method call ' +
+    'on the result of `Instantiate()`.',
+  turns: [
+    'The bullet is cloned from the turret\'s and told its direction by a string. Name one thing that would break if you later added a fifth facing, like "UpRight" — and say where the fix would go.',
+    'Nothing in this project reacts to the `Fireball` tag yet, so your bullet currently passes through every enemy in the game. Is that a bug, or a feature that is one lesson away from working?',
+  ],
+};
+
+const WALK_PLAYER_BULLET = {
+  ask: 'how do I let the player shoot back?',
+  file: 'Assets/Scripts/PlayerProjectile.cs',
+  label: 'In the Code',
+  intro:
+    'A new script on the cloned prefab, and one new method on the player. The bullet moves itself; the player only decides the direction and pays the cooldown. One line is left for you — the hand-off.',
+  level: 2,
+  steps: [
+    {
+      title: 'Store what the bullet needs to know',
+      lead: 'Three fields at the top of a brand-new `PlayerProjectile` script. Two of them you have written before.',
+      lines: [
+        { code: '    float speed = 10;', what: 'Faster than the turret\'s `8`, because a player who has to line up a shot should be rewarded for it. A plain field, not serialized — no designer is going to tune a bullet mid-fight.' },
+        { code: '    Vector3 direction;', what: '**Which way it is going**, as a unit vector: `(1,0,0)` right, `(-1,0,0)` left, and so on. It starts as zero and stays zero until somebody sets it — which is what the blank line below is about.' },
+        { code: '    float lifespan = 2;', what: 'The cleanup from 3.2, shortened. A player bullet that misses should disappear before it can cross the whole level.' },
+      ],
+    },
+    {
+      title: 'Move it, and destroy it when its time is up',
+      lead: 'The same two jobs as `Projectile.cs`, in the same order — but this bullet has no `target` to seek, so the movement is one line of arithmetic instead of a `MoveTowards` call.',
+      lines: [
+        { code: '    void Update()', what: '' },
+        { code: '    {', what: '' },
+        { code: '        lifespan -= Time.deltaTime;', what: 'Count down using `deltaTime`, exactly as 3.3 taught you: subtracting a per-frame constant would make the bullet live longer on a faster machine.' },
+        { code: '        if (lifespan < 0)', what: 'When the timer runs out, the bullet removes itself. Note `< 0` and not `<= 0`: it does not matter here, and matching the file you already wrote matters more than shaving a frame.' },
+        { code: '        {', what: '' },
+        { code: '            Destroy(gameObject);', what: '`gameObject` is the bullet — the object this component sits on.' },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        { code: '        transform.position += direction * speed * Time.deltaTime;', what: '**The movement.** A unit direction times a speed times a frame time, added to where the bullet already is. This is `transform` movement, not a body — the same choice the turret bullet made, and it is fine here because nothing in this project collides with a bullet.' },
+        { code: '    }', what: '' },
+      ],
+    },
+    {
+      title: 'Turn a facing into a direction',
+      lead: '`SetDirection` is public because the player calls it from a different object, and it takes the same four strings the animation code already uses.',
+      lines: [
+        { code: '    public void SetDirection(String facing)', what: '`String` (capital S) is the `System` type — the same `using System;` at the top of your player file. Its parameter is the word your `facing` field holds.' },
+        { code: '    {', what: '' },
+        { code: '        if (facing == "Right")', what: 'Four independent branches, one per direction. Compare a string with `==` in C# and you get a value comparison, not a check that they are the same object — which is the behaviour you want and not what some other languages give you.' },
+        { code: '        {', what: '' },
+        { code: '            direction = new Vector3(1, 0, 0);', what: 'Right is positive X. **Unit length on purpose** — `(1,0,0)` is one unit long, so multiplying by `speed` gives exactly `speed`. Writing `new Vector3(5, 0, 0)` here would silently make the bullet five times faster.' },
+        { code: '        }', what: '' },
+        { code: '        else if (facing == "Left")', what: '' },
+        { code: '        {', what: '' },
+        { code: '            direction = new Vector3(-1, 0, 0);', what: 'The same length in the opposite direction.' },
+        { code: '        }', what: '' },
+        { code: '        else if (facing == "Up")', what: '' },
+        { code: '        {', what: '' },
+        { code: '            direction = new Vector3(0, 1, 0);', what: '' },
+        { code: '        }', what: '' },
+        { code: '        else if (facing == "Down")', what: '' },
+        { code: '        {', what: '' },
+        { code: '            direction = new Vector3(0, -1, 0);', what: '' },
+        { code: '        }', what: '' },
+        { code: '    }', what: 'There is no `else`. If `facing` is ever null or something unexpected, `direction` stays `(0,0,0)` and the bullet sits where it spawned until the lifespan deletes it. Watch for that if you ever rename a facing string.' },
+      ],
+    },
+    {
+      title: 'Spawn it, and tell it which way — this is the blank',
+      lead: 'Back in `PlayerController`. The prefab is in the Inspector slot; the spawn and the hand-off are two lines.',
+      lines: [
+        { code: '    [SerializeField] GameObject projectile;', what: 'The slot, wired in the Prefab overrides on your Player. A `GameObject`, not a component, because `Instantiate()` needs the whole object to copy.' },
+        { code: '', what: '' },
+        { code: '    void Shoot()', what: '' },
+        { code: '    {', what: '' },
+        { code: '        GameObject playerProjectileCopy = Instantiate(projectile, transform.position, Quaternion.identity);', what: '**Three arguments, same three as the turret.** What to copy, where to put it — here `transform.position`, the player\'s own centre — and what rotation. `Quaternion.identity` is "no rotation", and `Instantiate()` hands you back the copy so you can talk to it.' },
+        { code: '', blank: true, what: '**The hand-off, and the whole new idea in this lesson.** You have a copy of the prefab and a `facing` string. Reach into the copy, get its `PlayerProjectile` component, and call `SetDirection(facing)`. Two method calls with a dot between them; no `new`, no loop.' },
+        { code: '    }', what: '' },
+        { code: '', what: '' },
+        { code: '        if (Input.GetKeyDown(KeyCode.Space) && cooldownTimer < 0)', what: 'The trigger, inside `Update()`. `cooldownTimer` is the field from 3.3 that counts down every frame; `< 0` means "the weapon is ready". It is shared with the melee swing, so shooting and swinging take turns — one timer, two weapons.' },
+        { code: '        {', what: '' },
+        { code: '            Shoot();', what: '' },
+        { code: '            cooldownTimer = .5f;', what: '**Reset after firing, not before.** The same order as 3.3: act, then arm the next one.' },
+        { code: '        }', what: '' },
+      ],
+    },
+  ],
+  finalFile: `using System;
+using UnityEngine;
+
+// PlayerProjectile.cs - a bullet that knows where it is going because the
+// player told it, once, at the moment it spawned.
+public class PlayerProjectile : MonoBehaviour
+{
+    float speed = 10;
+    Vector3 direction;
+    float lifespan = 2;
+
+    void Update()
+    {
+        lifespan -= Time.deltaTime;
+        if (lifespan < 0)
+        {
+            Destroy(gameObject);
+        }
+
+        transform.position += direction * speed * Time.deltaTime;
+    }
+
+    public void SetDirection(String facing)
+    {
+        if (facing == "Right")
+        {
+            direction = new Vector3(1, 0, 0);
+        }
+        else if (facing == "Left")
+        {
+            direction = new Vector3(-1, 0, 0);
+        }
+        else if (facing == "Up")
+        {
+            direction = new Vector3(0, 1, 0);
+        }
+        else if (facing == "Down")
+        {
+            direction = new Vector3(0, -1, 0);
+        }
+    }
+}
+
+// PlayerController.cs - the half that spawns and aims it:
+//   [SerializeField] GameObject projectile;
+//
+//   void Shoot()
+//   {
+//       GameObject playerProjectileCopy =
+//           Instantiate(projectile, transform.position, Quaternion.identity);
+//       playerProjectileCopy.GetComponent<PlayerProjectile>().SetDirection(facing);
+//   }`,
+  finalNote:
+    'Compare against your own file rather than copying it. Three things to check: the tag on the clones is `Fireball` and the turret\'s is still `E_Fireball`; the `projectile` slot on your Player is filled in the Prefab overrides, not left empty; and `SetDirection` is called on the *copy*, not on the prefab. A bullet with no direction does not error — it just sits there, which is much harder to diagnose.',
+};
+
+const body = `<h1>3.5 — Player Projectile: Clone, Retag & Reuse the Cooldown</h1>
+
+<p class="lesson-lead">
+    The turret has been shooting you since 3.2. Time to shoot back. None of today's code is really new
+    — the bullet is a clone, the trigger was already on it, and the rate limit is the timer you built
+    in 3.3. What is new is that a bullet cannot aim itself, so the player has to tell it where to go.
+</p>
+
+${renderAskBanner('how do I let the player shoot back?', 2)}
+
+${renderDecompose('3.5', DECOMPOSE, 2)}
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Prefabs</code>, right-click
+            <code>Turret_Projectile</code> → <strong>Duplicate</strong>, and rename the copy
+            <code>Player_Projectile</code>. You are copying a prefab that already works.
+        </li>
+        <li>
+            <strong>Inspector → Player_Projectile → Tag</strong>: set it to <code>Fireball</code>.
+            The turret's bullet is <code>E_Fireball</code>, and that tag is the only thing that will
+            ever tell the two apart. If <code>Fireball</code> is not in the list, add it in
+            <strong>Tags and Layers</strong> first.
+        </li>
+        <li>
+            <strong>Inspector → Sprite Renderer → Color</strong>: tint it. A bullet the player cannot
+            tell from the enemy's is a bullet the player will run into.
+        </li>
+        <li>
+            <strong>Project window →</strong> <code>Assets/Scripts</code> → right-click →
+            <strong>Create → C# Script</strong> → <code>PlayerProjectile</code>. Note the name matches
+            the class inside it — Unity requires that, and a mismatch stops the script from attaching.
+        </li>
+        <li>
+            <strong>Inspector → Player_Projectile</strong> → <strong>Add Component → Player Projectile</strong>,
+            then remove the old <code>Projectile</code> component. One bullet, one script. Two scripts
+            both moving the same object is a bug that looks like a framerate problem.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> select <strong>Player</strong> → <strong>Inspector → Player
+            Controller</strong>. Because the Player in a scene is a prefab instance, an empty
+            <code>Projectile</code> slot here is an <em>override</em> — click <strong>Overrides →
+            Apply All</strong> after you wire it, or the next Player you place will be missing it.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <table>
+        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>Instantiate(prefab, position, Quaternion.identity)</code></td>
+            <td>A live copy of the prefab, and the copy itself back as a return value so you can configure it.</td>
+            <td>Every copy is a new object in the scene — nothing cleans them up for you.</td>
+        </tr>
+        <tr>
+            <td><code>GetComponent&lt;PlayerProjectile&gt;()</code></td>
+            <td>The component on the object at the other end of the reference.</td>
+            <td>It returns <code>null</code> if the object has no such component — and then throws on the next dot.</td>
+        </tr>
+        <tr>
+            <td><code>Vector3 direction * speed * Time.deltaTime</code></td>
+            <td>A movement step that is frame-independent and points anywhere you like.</td>
+            <td>A direction that is not unit length quietly changes the speed.</td>
+        </tr>
+        <tr>
+            <td><code>CompareTag("Fireball")</code></td>
+            <td>The cheapest way for something else to know what hit it.</td>
+            <td>Nothing on the other side has it yet — the tag only starts working when a receiver asks.</td>
+        </tr>
+    </table>
+
+    <div class="callout info">
+        <strong>The tag is doing nothing yet, and that is on purpose.</strong> Nothing in this project
+        reacts to <code>Fireball</code> today, so your bullet passes through every enemy in the game.
+        It is not broken — it is waiting for a receiver. The enemy that flinches when it is hit arrives
+        in Unit 4, and the tag you set today is the handle it will grab.
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: Whose Job Is Aiming?</h3>
+        <ol>
+            <li>The turret's bullet seeks a target it was handed; the player's bullet moves in a direction it was told. Both were written by you. Which model is better for a weapon the player aims — and what does the turret's version get that yours cannot?</li>
+            <li><code>SetDirection</code> takes a <code>String</code>. What would you have to change if the player could face eight directions instead of four, and where would that change have to happen?</li>
+            <li>Your bullet and the turret's are two nearly identical files. What is the argument for keeping them separate, and what is the argument for one script with a flag?</li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+${renderWalkthrough(WALK_PLAYER_BULLET)}
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Shoot It</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>Play, and check four things in this order. If number one fails, the rest cannot work.</p>
+
+    <table>
+        <tr><th>Check</th><th>What it proves</th></tr>
+        <tr><td>Press Space four times quickly</td><td>Exactly one bullet appears every half second. The 3.3 timer is doing its job for a second weapon.</td></tr>
+        <tr><td>Face each direction and fire</td><td>The bullet leaves in the right one. If it always goes right, <code>facing</code> was never set before <code>Shoot()</code> ran.</td></tr>
+        <tr><td>Fire and wait</td><td>The bullet disappears after about two seconds instead of living forever.</td></tr>
+        <tr><td>Fire at a turret</td><td>Nothing happens. The tag has no receiver yet — see the callout above.</td></tr>
+    </table>
+
+    <div class="callout trap">
+        <strong>An empty <code>projectile</code> slot throws on the first Space press, not at startup.</strong>
+        <code>Instantiate(null, ...)</code> is an error that only appears the first time you shoot, so it is
+        easy to test everything else and assume the file is fine. Wire the slot, then apply the override.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Explain why the player's bullet is a clone with a different tag rather than a new prefab</li>
+        <li>Say what a unit direction is, and what happens if it is not unit length</li>
+        <li>Configure an object you just created, in the same method that created it</li>
+        <li>Say which tag on which prefab belongs to which side, without opening the project</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/unit-03/index.html">Unit 3: The Turret</a> — the projectile you cloned today, built from nothing</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>Instantiate()</code>, <code>GetComponent()</code> and <code>Vector3</code></li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="3.4.html">3.4 — Projectile Damage, Tuning &amp; Playtest</a>, where the bullets start hurting and the tags finally have something to say.</p>
+</div>`;
+---
+<Lesson id="3.5" title="3.5 Player Projectile: Clone, Retag &amp; Reuse the Cooldown — AP CS Principles" root=".." css="../style.css">
+  <Fragment set:html={body} />
+</Lesson>

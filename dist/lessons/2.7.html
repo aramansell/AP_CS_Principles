@@ -1,0 +1,408 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>2.7 Refactor Day: Moving Stats into the StatManager — AP CS Principles</title><meta name="description" content="Lesson 2.7 Refactor Day: Moving Stats into the StatManager — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="2.7 Refactor Day: Moving Stats into the StatManager — AP CS Principles"><meta property="og:description" content="Lesson 2.7 Refactor Day: Moving Stats into the StatManager — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="6.1.html">&#9664; 6.1</a><span class="lesson-id">2.7</span><a href="6.2.html">6.2 &#9654;</a></div><h1>2.7 — Refactor Day: Moving Stats into the StatManager</h1>
+
+<p class="lesson-lead">
+    In September you put coins and health on the Player, because that was the shortest way to a
+    working game. It was the right call then. It is the wrong home now, and you are going to move
+    them — without changing a single thing about how the game plays. That move has a name:
+    <strong>refactor</strong>.
+</p>
+
+<div class="ask-banner" data-scaffold="1"><span class="ask-banner-label">In this lesson you will be able to answer</span><span class="ask-banner-q">&ldquo;how do I move my stats off the player?&rdquo;</span><span class="ask-banner-level">Full walkthrough</span></div>
+
+<div class="activity decompose" data-level="1" data-parts="5" data-given="5" data-docs="5"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Full walkthrough</span></div><p class="dc-big">Coins, health and the ceiling on health all live on the Player. That was the fastest way to make a game in September and it is the wrong home for them now: the cave mouths lead to scenes that build their own Player, and a number that lives on a Player is a number that belongs to one scene. Today nothing about the game changes except <em>who owns the numbers</em> — and that is called a refactor.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Notice which numbers are about the player and which are about the run</span><span class="dc-does">Speed, the body and the input belong to <em>this Player in this room</em>. Coins, current health and the cap belong to <em>your run at this game</em>. Same file today, two different lifetimes tomorrow — and only one of those lifetimes survives a scene change.</span><span class="dc-doc">Read: <a href="2.1.html">the coin branch you wrote in 2.1 and the damage method from 2.2.</a></span></li><li class="dc-part"><span class="dc-name">Build one object a scene load is not allowed to destroy</span><span class="dc-does">A singleton: one <code>static</code> field holding the instance, an <code>Awake()</code> that claims it on the first load and calls <code>DontDestroyOnLoad(gameObject)</code>, and a second branch that destroys the copy every later load brings with it.</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">the Singleton row of the quick reference.</a></span></li><li class="dc-part"><span class="dc-name">Move the three fields across without renaming them</span><span class="dc-does"><code>coins</code>, <code>health</code> and <code>maxHealth</code> leave <code>PlayerController</code> and become fields on <code>StatManager</code>. A move, not a redesign — same names, same types, same starting values.</span><span class="dc-doc">Read: <a href="2.3.html">the fields you declared in 2.1 and capped in 2.3.</a></span></li><li class="dc-part"><span class="dc-name">Move the three methods, signed amounts and all</span><span class="dc-does"><code>ChangeHealth(int amount)</code>, <code>ChangeCoins(int amount)</code> and <code>Die()</code> follow their fields. The signed-amount convention, the ceiling and the death rule travel together, because a rule and the value it protects are one thing.</span><span class="dc-doc">Read: <a href="2.2.html">the death rule you wrote in 2.2.</a></span></li><li class="dc-part"><span class="dc-name">Repoint every caller, and let the compiler find the ones you forgot</span><span class="dc-does">Delete the fields from the player first, then read the errors. Every caller swaps a field on <code>this</code> for a method call on <code>manager</code> — the reference <code>Start()</code> looks up once.</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">the <code>FindAnyObjectByType</code> row of the quick reference.</a></span></li></ol><p class="dc-why">Four of the five parts are housekeeping you have done before: declare a field, move a method, update a call site. One part has no precedent at all — the object the scene loader is not allowed to delete — and that is why this page walks it line by line.</p><p class="dc-size">The test: could you look this part up on its own, right now, in one search? "Move my stats off the player" cannot be looked up — it is a decision about your own code. "Do not destroy this object when a new scene loads" can.</p><div class="dc-turns"><h4>Your turn</h4><p>Your three stat fields are <code>public</code> after this refactor, where everything you wrote in 2.1 was <code>[SerializeField] private</code>. Name one thing a public field lets another script do that a method would not — and one bug it makes possible.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.7:dc1:q1" data-block="decompose" data-question="Your three stat fields are `public` after this refactor, where everything you wrote in 2.1 was `[SerializeField] private`. Name one thing a public field lets another script do that a method would not — and one bug it makes possible." placeholder="write your answer, then keep going"></textarea></label><p>The duplicate guard exists because <code>Start (index 0)</code> has its own StatManager and one cave mouth leads back to it. What would happen to your coins the moment you walked in, if that branch were deleted?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.7:dc1:q2" data-block="decompose" data-question="The duplicate guard exists because `Start (index 0)` has its own StatManager and one cave mouth leads back to it. What would happen to your coins the moment you walked in, if that branch were deleted?" placeholder="write your answer, then keep going"></textarea></label></div></div>
+
+<!-- ============================================================ -->
+<div class="activity discovery">
+    <div class="activity-header">
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <ol>
+        <li>
+            <strong>Project window →</strong> open <code>Assets/Scripts/StatManager.cs</code>. It reads
+            <code>public class StatManager : MonoBehaviour { }</code> — an empty stub that has been
+            sitting in the project since Unit 2 doing nothing at all. Today it earns its place.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> open <code>Assets/_Scenes/Start.unity</code> and find the
+            <strong>StatManager</strong> object. Then open <code>Overworld.unity</code> and find the
+            <strong>StatManager</strong> there as well. <em>Two objects, same script.</em> Write down
+            what you think happens if you walk from one scene to the other.
+        </li>
+        <li>
+            <strong>File → Build Profiles → Scene List</strong> (older tutorials call this Build
+            Settings): <strong>Start (index 0)</strong> is first, which is the scene a built game
+            loads by default — and it is one of the two that carries a manager.
+        </li>
+        <li>
+            <strong>Game view →</strong> press Play in the <strong>Overworld</strong> and collect three
+            coins. Watch the Console. Then stop, press Play again from
+            <strong>Start (index 0)</strong>, walk into the overworld and collect one coin. The number
+            in the Console is the whole story, and it is the reason for today's work.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> select the Player and read
+            <strong>Inspector → Player Controller</strong>. Every number you are about to move —
+            <code>Coins</code>, <code>Health</code>, <code>Max Health</code> — is a box you can watch
+            change while you play. That is what you are giving up by moving them, and it is why the
+            walkthrough keeps the prints.
+        </li>
+    </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~20 min</span>
+    </div>
+
+    <table>
+        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
+        <tr>
+            <td><code>public static StatManager original;</code></td>
+            <td>A field that belongs to the <strong>class</strong>, not to an object — reachable with no reference and no search.</td>
+            <td>It starts as <code>null</code>, and nothing claims it for you.</td>
+        </tr>
+        <tr>
+            <td><code>void Awake()</code></td>
+            <td>Unity's earliest hook: it runs once per object, and every <code>Awake()</code> in a scene finishes before the first <code>Start()</code> runs.</td>
+            <td>Order between two objects' <code>Awake()</code> methods is still not promised.</td>
+        </tr>
+        <tr>
+            <td><code>DontDestroyOnLoad(gameObject)</code></td>
+            <td>The object moves into a scene of its own that never unloads, so it survives every load from then on.</td>
+            <td>It takes a whole <strong>GameObject</strong>, not a component.</td>
+        </tr>
+        <tr>
+            <td><code>FindAnyObjectByType&lt;StatManager&gt;()</code></td>
+            <td>Hands back the first component of that type anywhere in the loaded scene.</td>
+            <td>It searches, so it costs something — call it once, never in <code>Update()</code>.</td>
+        </tr>
+        <tr>
+            <td><code>Debug.LogError(message)</code></td>
+            <td>A Console line painted red, impossible to scroll past.</td>
+            <td>It does not stop the game, so the broken behaviour still runs.</td>
+        </tr>
+    </table>
+
+    <div class="callout">
+        <strong>Architectural specification — this is a refactor, not a rewrite.</strong>
+        Nothing your game <em>does</em> changes; what changes is where the numbers live. Answer these
+        before you open the files.
+        <ul>
+            <li><strong>The move.</strong> Which fields leave <code>PlayerController</code>, and which stay — and why does the one you keep belong to the player rather than to the run?</li>
+            <li><strong>The owner.</strong> Which setup hook claims the slot, and what does its other branch do with a second copy?</li>
+            <li><strong>The seam.</strong> Which single method may change health, and what ceiling does it enforce?</li>
+            <li><strong>The callers.</strong> How will you find every place that used to reach for those fields — by reading the file, or by deleting them first?</li>
+        </ul>
+    </div>
+
+    <div class="socratic">
+        <h3>Socratic: Who Owns a Number?</h3>
+        <ol>
+            <li>Your stat fields are <code>public</code> after this refactor, where September taught you <code>[SerializeField] private</code>. What does <code>public</code> let another script do that a method call would not — and why might that be a problem in a project with more than one programmer?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.7:sc1:q1" data-block="socratic" data-question="Your stat fields are public after this refactor, where September taught you [SerializeField] private . What does public let another script do that a method call would not — and why might that be a problem in a project with more than one programmer?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li><code>Start (index 0)</code> already contains its own StatManager object. If you walk back to it later, what will be there — and what happens if nothing stops it from registering itself a second time?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.7:sc1:q2" data-block="socratic" data-question="Start (index 0) already contains its own StatManager object. If you walk back to it later, what will be there — and what happens if nothing stops it from registering itself a second time?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>When you delete a field and let the compiler list your call sites, you are using a tool to find something you could have searched for by hand. Which is more reliable, and what does the answer tell you about why refactoring is usually a two-step job — delete, then compile?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="2.7:sc1:q3" data-block="socratic" data-question="When you delete a field and let the compiler list your call sites, you are using a tool to find something you could have searched for by hand. Which is more reliable, and what does the answer tell you about why refactoring is usually a two-step job — delete, then compile?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I keep my coins and my health when I change scenes?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/StatManager.cs</code>. This file has been <code>public class StatManager : MonoBehaviour { }</code> since Unit 2 — an empty stub that has never done anything. Today it becomes the owner. Every line is given; the only judgement is the order you read them in.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Claim a slot on load, and refuse to be destroyed</h4><p class="wt-lead">The mechanism the whole lesson exists for: one shared field, and a setup method that decides whether this copy is the original or a newcomer.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    <span class="tk-kw">public</span> <span class="tk-kw">static</span> <span class="tk-ty">StatManager</span> <span class="tk-va">original</span>;</span>
+<span class="wt-line" data-n="2"></span>
+<span class="wt-line wt-line-why" data-n="3">    <span class="tk-kw">void</span> <span class="tk-fn">Awake</span>()</span>
+<span class="wt-line" data-n="4">    {</span>
+<span class="wt-line wt-line-why" data-n="5">        <span class="tk-ct">if</span> (<span class="tk-va">original</span> != <span class="tk-kw">null</span> &amp;&amp; <span class="tk-va">original</span> != <span class="tk-kw">this</span>)</span>
+<span class="wt-line" data-n="6">        {</span>
+<span class="wt-line" data-n="7">            <span class="tk-fn">Destroy</span>(<span class="tk-va">gameObject</span>);</span>
+<span class="wt-line" data-n="8">            <span class="tk-ct">return</span>;</span>
+<span class="wt-line" data-n="9">        }</span>
+<span class="wt-line" data-n="10"></span>
+<span class="wt-line" data-n="11">        <span class="tk-va">original</span> = <span class="tk-kw">this</span>;</span>
+<span class="wt-line wt-line-why" data-n="12">        <span class="tk-fn">DontDestroyOnLoad</span>(<span class="tk-va">gameObject</span>);</span>
+<span class="wt-line" data-n="13">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">The one field every other script will reach for. <code>public</code> so they can, <code>static</code> so it belongs to the <strong>class</strong> rather than to any object, and typed <code>StatManager</code> because what it holds is <em>this component</em>. It starts as <code>null</code> — nothing has claimed it yet.</span><span class="wt-why"><strong>Every word on that line is load-bearing.</strong> Drop <code>static</code> and the field becomes a fact about one object — and the object is exactly what a scene load destroys, so the slot would be empty again the moment you walked through a cave mouth. That is the whole trick: a <code>static</code> field is stored against the class, and the scene loader has no idea the class exists.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The earliest hook Unity has. Every <code>Awake()</code> in a scene finishes before the first <code>Start()</code> runs, which is exactly the guarantee a singleton needs — somebody has to be first, and everything else must be able to assume they already were.</span><span class="wt-why"><strong>Not <code>Start()</code>.</strong> Unity promises no order between two different scripts' <code>Start()</code> methods, so a script whose <code>Start()</code> happened to run before the manager's would read a <code>null</code> and throw — pointing at itself, not at the manager. Move this into <code>Start()</code> and the bug shows up only sometimes, which is the worst kind there is.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what"><strong>Are you a newcomer?</strong> Two questions in one: is somebody already in the slot, and are they somebody other than you. The second half matters because <code>Awake()</code> runs on <em>every</em> load — including a reload where the slot already holds this very object.</span><span class="wt-why"><strong>The <code>&amp;&amp; original != this</code> half is the line people delete because it looks like caution. It is not.</strong> Without it, an object that runs <code>Awake()</code> twice destroys itself, and a singleton that destroys itself is a singleton that stops existing — with no error to explain it.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what">The newcomer leaves, taking its fresh <code>coins = 0</code> with it. <code>gameObject</code> is the whole object this component sits on — the StatManager object, not the script.</span></li>
+<li><span class="wt-ref">8</span><span class="wt-what"><strong>Stop here, do not fall through.</strong> Without this line the newcomer is destroyed <em>and</em> still claims the slot on the way out, so <code>original</code> ends up pointing at an object that is about to stop existing. Every later caller then talks to a dead reference.</span></li>
+<li><span class="wt-ref">11</span><span class="wt-what"><code>this</code> is the component this method is running inside — this very StatManager. Claim the slot with it, so every later caller reaches this object and the numbers on it.</span></li>
+<li><span class="wt-ref">12</span><span class="wt-what">The one call in Unity that changes what a scene load is allowed to do. It moves the whole object into a scene of its own that never unloads, so it rides along through every load from now on.</span><span class="wt-why"><strong><code>gameObject</code>, not <code>this</code>.</strong> <code>DontDestroyOnLoad</code> is defined for whole objects, and it has to be: a component cannot outlive the GameObject carrying it. And notice what is <em>not</em> happening — nothing is being made permanent about the values. They are just sitting on an object the scene loader can no longer delete.</span></li>
+<li><span class="wt-ref">13</span><span class="wt-what">One branch for the first scene and one for every scene after it. That pair <em>is</em> the singleton.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Move the three fields, and leave the names alone</h4><p class="wt-lead">They come off <code>PlayerController</code> and land here unchanged. Delete them from the player as you add them here — never both at once, or you will not know which file the compile error is about.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">health</span> = <span class="tk-nu">3</span>;</span>
+<span class="wt-line wt-line-why" data-n="2">    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">maxHealth</span> = <span class="tk-nu">3</span>;</span>
+<span class="wt-line" data-n="3">    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">coins</span>;</span>
+<span class="wt-line" data-n="4"></span>
+<span class="wt-line wt-line-why" data-n="5"><span class="tk-cm">    // ...and nothing else. PlayerController keeps its speed, its body</span></span>
+<span class="wt-line" data-n="6"><span class="tk-cm">    // and its input. The numbers are not the player's business.</span></span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Current health, with whatever starting value your player shipped with. Same name, same type, same number.</span><span class="wt-why"><strong><code>public</code>, where September taught you <code>[SerializeField] private</code>.</strong> Both work, and the difference is worth feeling rather than memorising: <code>[SerializeField]</code> puts the field in the Inspector and keeps other scripts out, while <code>public</code> puts it in the Inspector <em>and</em> lets any script in the project write it. Here the fields are public so the lesson stays about ownership; the methods below are what you should call, and they are where the rules live.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">The ceiling from 2.3.</span><span class="wt-why"><strong>It travels in the same step as <code>health</code>, and that is the point.</strong> A ceiling is a fact <em>about the value it bounds</em>. Leave <code>maxHealth</code> behind on the player while <code>health</code> lives here and the rule gets enforced across two objects that are free to disagree.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The coin count from 2.1. An <code>int</code> that starts at zero, which is what an <code>int</code> field does when you do not give it a value.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">That is the entire move. The player keeps what it is actually for — input, movement, the collision callbacks — and stops being the place the game keeps its numbers.</span><span class="wt-why">The line between the two is the difference between a refactor and a mess: the player is <em>how you move through the world</em>, and the manager is <em>what the world has done to you</em>.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Move the three methods, and let them keep their names</h4><p class="wt-lead">The bodies come across from <code>PlayerController</code> with one word changed at most. If you find yourself improving a rule while you are in there, stop — you are rewriting, and now nothing you break is traceable to a single change.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">ChangeHealth</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line" data-n="3">        <span class="tk-va">health</span> = <span class="tk-va">health</span> + <span class="tk-va">amount</span>;</span>
+<span class="wt-line wt-line-why" data-n="4">        <span class="tk-ct">if</span> (<span class="tk-va">health</span> &gt; <span class="tk-va">maxHealth</span>)</span>
+<span class="wt-line" data-n="5">        {</span>
+<span class="wt-line" data-n="6">            <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;</span>
+<span class="wt-line" data-n="7">        }</span>
+<span class="wt-line" data-n="8"></span>
+<span class="wt-line" data-n="9">        <span class="tk-fn">print</span>(<span class="tk-st">"Health: "</span> + <span class="tk-va">health</span>);</span>
+<span class="wt-line wt-line-why" data-n="10">        <span class="tk-ct">if</span> (<span class="tk-va">health</span> &lt;= <span class="tk-nu">0</span>)</span>
+<span class="wt-line" data-n="11">        {</span>
+<span class="wt-line" data-n="12">            <span class="tk-fn">Die</span>();</span>
+<span class="wt-line" data-n="13">        }</span>
+<span class="wt-line" data-n="14">    }</span>
+<span class="wt-line" data-n="15"></span>
+<span class="wt-line" data-n="16">    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">ChangeCoins</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)</span>
+<span class="wt-line" data-n="17">    {</span>
+<span class="wt-line" data-n="18">        <span class="tk-va">coins</span> = <span class="tk-va">coins</span> + <span class="tk-va">amount</span>;</span>
+<span class="wt-line" data-n="19">        <span class="tk-ct">if</span> (<span class="tk-va">coins</span> &lt; <span class="tk-nu">0</span>)</span>
+<span class="wt-line" data-n="20">        {</span>
+<span class="wt-line" data-n="21">            <span class="tk-va">coins</span> = <span class="tk-nu">0</span>;</span>
+<span class="wt-line" data-n="22">        }</span>
+<span class="wt-line" data-n="23"></span>
+<span class="wt-line" data-n="24">        <span class="tk-fn">print</span>(<span class="tk-st">"Coins: "</span> + <span class="tk-va">coins</span>);</span>
+<span class="wt-line" data-n="25">    }</span>
+<span class="wt-line" data-n="26"></span>
+<span class="wt-line" data-n="27">    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">Die</span>()</span>
+<span class="wt-line" data-n="28">    {</span>
+<span class="wt-line wt-line-why" data-n="29">        <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;</span>
+<span class="wt-line" data-n="30">        <span class="tk-va">coins</span> = <span class="tk-va">coins</span> / <span class="tk-nu">2</span>;</span>
+<span class="wt-line" data-n="31">        <span class="tk-fn">print</span>(<span class="tk-st">"You died. Coins: "</span> + <span class="tk-va">coins</span>);</span>
+<span class="wt-line" data-n="32">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what"><strong>Your 2.2 method, moved.</strong> Same name, same <code>int amount</code>, same meaning: a <strong>signed</strong> amount, where a negative number hurts and a positive one heals.</span><span class="wt-why"><strong>Same name and same signature on purpose.</strong> Every call site in your project already reads <code>ChangeHealth(-1)</code> or <code>ChangeHealth(1)</code>, so keeping the name means this refactor changes <em>who</em> is called and nothing else. Rename it and you are editing every caller by hand, hoping you found them all.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">The subtraction from 2.2, unchanged. <code>-2</code> from the fireball takes two off; <code>+1</code> from the potion puts one back.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">The cap from 2.3 — written as an <code>if</code> rather than a <code>Mathf.Clamp()</code>, which is what the build does. Either tool is correct; the point is that the ceiling is enforced <strong>here</strong>, on the only object that holds both numbers.</span><span class="wt-why"><strong>This line is why the ceiling had to travel with the value.</strong> The rule now lives inside the only method that can change health, on the only object that holds it — so no caller, today or next month, can put health above the maximum.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what">Snap to the ceiling rather than overflowing past it. A potion at full health does nothing, which is the behaviour you want and the reason the cap exists.</span></li>
+<li><span class="wt-ref">9</span><span class="wt-what">Your Console readout, exactly as it was. Still worth keeping while you test: until 5.3 puts the numbers on screen, the Console is the only place you can see them.</span></li>
+<li><span class="wt-ref">10</span><span class="wt-what">The other half of the 2.2 rule: what happens when health runs out.</span><span class="wt-why"><strong><code>&lt;= 0</code>, not <code>&lt; 0</code>.</strong> With a signed amount, health reaches exactly <code>0</code> on the hit that kills you, and a <code>&lt; 0</code> test would let you walk around at zero health for one more hit. Read your own 2.2 line before you copy this one — if yours says <code>&lt; 0</code>, change it now and say why in your commit message.</span></li>
+<li><span class="wt-ref">12</span><span class="wt-what">A call, not a print. The death rule is about to grow, and a named method is where a rule that grows belongs.</span></li>
+<li><span class="wt-ref">16</span><span class="wt-what"><strong>Your 2.1 coin method, moved.</strong> Note the rename from <code>ChangeCoin</code> to <code>ChangeCoins</code> — singular to plural — so that it reads as the sibling of <code>ChangeHealth</code>: both take a signed amount, both are the only way in.</span></li>
+<li><span class="wt-ref">18</span><span class="wt-what">The line from 2.1, with the <code>1</code> replaced by the parameter. A coin is <code>ChangeCoins(1)</code>; a five-coin bonus needs no new code at all.</span></li>
+<li><span class="wt-ref">19</span><span class="wt-what">The floor. Coins can be taken away — <code>Die()</code> takes half — and halves round down, so a player with one coin would otherwise be left at zero and a player at zero could go negative. A number on the screen that can read <code>-1</code> is a bug the player can see.</span></li>
+<li><span class="wt-ref">21</span><span class="wt-what">Clamp to the floor, the same shape as the ceiling above.</span></li>
+<li><span class="wt-ref">24</span><span class="wt-what">Your 2.1 readout. Same deal as the health line — it is the instrument, not the feature.</span></li>
+<li><span class="wt-ref">27</span><span class="wt-what"><strong>Public, because it moves.</strong> In 2.2 nothing outside the player called it. Now anything that resolves a death — a boss, a pit, a scene transition in Unit 5 — can call the same rule instead of reimplementing it.</span></li>
+<li><span class="wt-ref">29</span><span class="wt-what">Refill. The build does not reload the scene and does not move the player: you keep playing from where you are, at full health, with half your money gone.</span><span class="wt-why"><strong>2.2 offered you a choice here — reload the scene, reset the position, or just reset the numbers — and this is the option the build took.</strong> It is the cheapest one, and it is honest about being cheap: it exists so the game keeps running while you test everything else. A real death loop is Unit 8.</span></li>
+<li><span class="wt-ref">30</span><span class="wt-what">The cost of dying. Integer division throws the remainder away, so <code>5 / 2</code> is <code>2</code>, not <code>2.5</code> — and the floor in <code>ChangeCoins</code> is what keeps the result from ever going negative.</span></li>
+<li><span class="wt-ref">31</span><span class="wt-what">The line that proves the rule ran. Three prints in one file, and each of them is a number you cannot otherwise see.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things have to match: the fields are gone from <code>PlayerController</code> rather than copied, the duplicate branch really is there — <code>Start (index 0)</code> holds a second StatManager and one cave mouth leads back to it — and your own rules came across from 2.1, 2.2 and 2.3 exactly as you wrote them. The names are the ones every caller will use: <code>original</code>, <code>ChangeHealth</code>, <code>ChangeCoins</code>, <code>Die</code>.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/StatManager.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
+
+<span class="tk-cm">// StatManager.cs - the numbers the player earned, on the one object a scene</span>
+<span class="tk-cm">// load is not allowed to destroy.</span>
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">StatManager</span> : <span class="tk-ty">MonoBehaviour</span>
+{
+    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">health</span> = <span class="tk-nu">3</span>;
+    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">maxHealth</span> = <span class="tk-nu">3</span>;
+    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">coins</span>;
+
+    <span class="tk-kw">public</span> <span class="tk-kw">static</span> <span class="tk-ty">StatManager</span> <span class="tk-va">original</span>;
+
+    <span class="tk-kw">void</span> <span class="tk-fn">Awake</span>()
+    {
+<span class="tk-cm">        // Somebody is already alive. This copy is the one that leaves - the</span>
+<span class="tk-cm">        // Start scene has its own manager, and you can walk back to it.</span>
+        <span class="tk-ct">if</span> (<span class="tk-va">original</span> != <span class="tk-kw">null</span> &amp;&amp; <span class="tk-va">original</span> != <span class="tk-kw">this</span>)
+        {
+            <span class="tk-fn">Destroy</span>(<span class="tk-va">gameObject</span>);
+            <span class="tk-ct">return</span>;
+        }
+
+        <span class="tk-va">original</span> = <span class="tk-kw">this</span>;
+        <span class="tk-fn">DontDestroyOnLoad</span>(<span class="tk-va">gameObject</span>);
+    }
+
+    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">ChangeHealth</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)
+    {
+        <span class="tk-va">health</span> = <span class="tk-va">health</span> + <span class="tk-va">amount</span>;
+
+<span class="tk-cm">        // The ceiling from 2.3, on the only object that holds the value it</span>
+<span class="tk-cm">        // protects. No caller can get above it.</span>
+        <span class="tk-ct">if</span> (<span class="tk-va">health</span> &gt; <span class="tk-va">maxHealth</span>)
+        {
+            <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;
+        }
+
+        <span class="tk-fn">print</span>(<span class="tk-st">"Health: "</span> + <span class="tk-va">health</span>);
+
+        <span class="tk-ct">if</span> (<span class="tk-va">health</span> &lt;= <span class="tk-nu">0</span>)
+        {
+            <span class="tk-fn">Die</span>();
+        }
+    }
+
+    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">ChangeCoins</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)
+    {
+        <span class="tk-va">coins</span> = <span class="tk-va">coins</span> + <span class="tk-va">amount</span>;
+
+        <span class="tk-ct">if</span> (<span class="tk-va">coins</span> &lt; <span class="tk-nu">0</span>)
+        {
+            <span class="tk-va">coins</span> = <span class="tk-nu">0</span>;
+        }
+
+        <span class="tk-fn">print</span>(<span class="tk-st">"Coins: "</span> + <span class="tk-va">coins</span>);
+    }
+
+    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">Die</span>()
+    {
+        <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;
+        <span class="tk-va">coins</span> = <span class="tk-va">coins</span> / <span class="tk-nu">2</span>;
+        <span class="tk-fn">print</span>(<span class="tk-st">"You died. Coins: "</span> + <span class="tk-va">coins</span>);
+    }
+}</code></pre></details></div>
+
+<!-- ============================================================ -->
+<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how does the player call the manager?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. The manager exists and nothing talks to it. This walkthrough is the other half of a refactor: delete first, compile, and let the errors tell you exactly which callers you missed. Five minutes of red underlines beats twenty minutes of guessing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Delete the stat fields, then compile on purpose</h4><p class="wt-lead">Before you write a single new line. The file will not compile and that is the point — the compiler is the only complete list of call sites you will ever get.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">coins</span>;</span>
+<span class="wt-line" data-n="2">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">health</span> = <span class="tk-nu">3</span>;</span>
+<span class="wt-line" data-n="3">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-kw">int</span> <span class="tk-va">maxHealth</span> = <span class="tk-nu">3</span>;</span>
+<span class="wt-line" data-n="4"></span>
+<span class="wt-line wt-line-why" data-n="5"><span class="tk-cm">// Ctrl/Cmd+S, then read the Console</span></span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Delete. This line and the two below it are the ones that moved.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">Delete.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Delete — along with <code>ChangeCoin</code>, <code>ChangeHealth</code> and <code>Die</code> from further down the file.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">Every place the player, the projectile or a pickup still touches one of those names is now an error, with a file and a line number. That list is the rest of this lesson.</span><span class="wt-why"><strong>Work the errors top to bottom and recompile after each fix.</strong> Fixing five at once and compiling once turns a list of small, specific problems into one long, ambiguous one.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Look the manager up once, in Start()</h4><p class="wt-lead">The player needs a reference to the manager. It has found its own components with <code>GetComponent()</code> since 2.2 — this is the same idea for an object that is not on this GameObject.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    <span class="tk-ty">StatManager</span> <span class="tk-va">manager</span>;</span>
+<span class="wt-line" data-n="2"></span>
+<span class="wt-line wt-line-why" data-n="3">        <span class="tk-va">manager</span> = <span class="tk-fn">FindAnyObjectByType</span>&lt;<span class="tk-ty">StatManager</span>&gt;();</span>
+<span class="wt-line" data-n="4"></span>
+<span class="wt-line" data-n="5">        <span class="tk-ct">if</span> (<span class="tk-va">manager</span> == <span class="tk-kw">null</span>)</span>
+<span class="wt-line" data-n="6">        {</span>
+<span class="wt-line wt-line-why" data-n="7">            <span class="tk-va">Debug</span>.<span class="tk-fn">LogError</span>(<span class="tk-st">"No StatManager in this scene."</span>);</span>
+<span class="wt-line" data-n="8">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">A field in the class body, beside <code>rb</code> and <code>animator</code>. Not serialized: you are not going to drag it in, the script is going to find it.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what"><strong>One lookup, in <code>Start()</code>.</strong> It searches the loaded scene for the first component of that type and hands it back. <code>GetComponent()</code> only ever looks at this one GameObject; this asks the whole scene.</span><span class="wt-why"><strong>Once, not every frame.</strong> The same rule as the body lookup in 2.2 and the scene name in 6.1: a thing that cannot change while the scene is loaded is looked up once and remembered. In <code>Update()</code> this search would run sixty times a second for an answer that never moves.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">The guard, and here it genuinely earns its place: two of the three scenes contain a Player, and only some of them contain a manager.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what"><strong>Red, not a print.</strong> <code>Debug.LogError</code> paints the Console red and makes the failure impossible to scroll past — which is what you want for a scene that is missing a whole object, not for a number you are watching.</span><span class="wt-why"><strong>A guard that hides a broken scene is worse than no guard.</strong> Logging and carrying on means the game runs, the coins do nothing, and the Console says why. Silently returning would look identical to working code until someone noticed their coin count never moved.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Repoint the callers — the part people forget</h4><p class="wt-lead">Each of these is one word changed: the receiver. The amount, the condition and the <code>Destroy()</code> beside it are all untouched.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">            <span class="tk-va">manager</span>.<span class="tk-fn">ChangeCoins</span>(<span class="tk-nu">1</span>);</span>
+<span class="wt-line" data-n="2">            <span class="tk-va">manager</span>.<span class="tk-fn">ChangeHealth</span>(<span class="tk-nu">1</span>);</span>
+<span class="wt-line" data-n="3"></span>
+<span class="wt-line wt-line-why" data-n="4">            <span class="tk-va">manager</span>.<span class="tk-fn">ChangeHealth</span>(-<span class="tk-nu">2</span>);</span>
+<span class="wt-line" data-n="5"></span>
+<span class="wt-line" data-n="6"><span class="tk-cm">        // Nothing else changes: movement, input, the tag checks and the</span></span>
+<span class="wt-line" data-n="7"><span class="tk-cm">        // Destroy calls are all untouched. Only the receivers changed.</span></span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">2.1's coin branch. <code>coins = coins + 1;</code> became a method call on the manager, and the <code>Destroy(other.gameObject)</code> underneath it stays exactly where it was.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">2.3's potion. A positive amount heals, and the ceiling you just moved decides whether it does anything at all.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">3.4's fireball. A <strong>negative</strong> amount hurts — the same signed-amount convention from 2.2, now arriving from a projectile instead of a spike. The <code>Destroy(other.gameObject)</code> that removes the bullet stays right below it.</span><span class="wt-why"><strong>This is the line the whole refactor was for.</strong> The projectile used to hold a reference to the Player purely so it could call a damage method on it. It does not need one now: anything that can reach the manager can hurt you, and the rule that resolves the damage lives in exactly one file.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what">That sentence is the definition of a refactor. If you find yourself rewriting a condition or "improving" a branch while you are in there, stop — you are rewriting.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare against your own file rather than copying it. The test is negative and it is easy to run: search <code>PlayerController.cs</code> for the words <code>coins</code>, <code>health</code> and <code>maxHealth</code>, and the only hits left should be <code>ChangeCoins</code> and <code>ChangeHealth</code> — calls, not fields. If a field survived, you have two homes for one number again, and the one you are looking at is the wrong one.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/PlayerController.cs</span>
+<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
+<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
+<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
+<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
+<span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>.<span class="tk-ty">SceneManagement</span>;
+
+<span class="tk-cm">// PlayerController.cs - the stat fields and their three methods are gone.</span>
+<span class="tk-cm">// What is left is what the player is for: input, movement, and the callbacks</span>
+<span class="tk-cm">// that tell the manager something happened.</span>
+<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">PlayerController</span> : <span class="tk-ty">MonoBehaviour</span>
+{
+    <span class="tk-kw">float</span> <span class="tk-va">speed</span> = <span class="tk-nu">4</span>;
+    <span class="tk-kw">bool</span> <span class="tk-va">isPlatformer</span> = <span class="tk-kw">false</span>;
+
+    <span class="tk-ty">Rigidbody2D</span> <span class="tk-va">rb</span>;
+    <span class="tk-ty">StatManager</span> <span class="tk-va">manager</span>;          <span class="tk-cm">// found once in Start(), never searched again</span>
+
+    <span class="tk-kw">void</span> <span class="tk-fn">Start</span>()
+    {
+        <span class="tk-va">rb</span> = <span class="tk-fn">GetComponent</span>&lt;<span class="tk-ty">Rigidbody2D</span>&gt;();
+        <span class="tk-va">manager</span> = <span class="tk-fn">FindAnyObjectByType</span>&lt;<span class="tk-ty">StatManager</span>&gt;();
+
+        <span class="tk-ct">if</span> (<span class="tk-va">manager</span> == <span class="tk-kw">null</span>)
+        {
+            <span class="tk-va">Debug</span>.<span class="tk-fn">LogError</span>(<span class="tk-st">"No StatManager in this scene. Start from the Start scene, or add one."</span>);
+        }
+
+<span class="tk-cm">        // ... the scene-name gravity block from 6.1 ...</span>
+    }
+
+    <span class="tk-kw">void</span> <span class="tk-fn">OnTriggerEnter2D</span>(<span class="tk-ty">Collider2D</span> <span class="tk-va">other</span>)
+    {
+        <span class="tk-ct">if</span> (<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Coin"</span>))
+        {
+            <span class="tk-va">manager</span>.<span class="tk-fn">ChangeCoins</span>(<span class="tk-nu">1</span>);
+            <span class="tk-fn">Destroy</span>(<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>);
+        }
+
+        <span class="tk-ct">if</span> (<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Potion"</span>))
+        {
+            <span class="tk-va">manager</span>.<span class="tk-fn">ChangeHealth</span>(<span class="tk-nu">1</span>);
+            <span class="tk-fn">Destroy</span>(<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>);
+        }
+
+        <span class="tk-ct">if</span> (<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"E_Fireball"</span>))
+        {
+            <span class="tk-va">manager</span>.<span class="tk-fn">ChangeHealth</span>(-<span class="tk-nu">2</span>);
+            <span class="tk-fn">Destroy</span>(<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>);
+        }
+    }
+}</code></pre></details></div>
+
+<!-- ============================================================ -->
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Prove the Move</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        A refactor is only finished when you can show that nothing changed. Four checks, in this
+        order:
+    </p>
+
+    <table>
+        <tr><th>Check</th><th>What it proves</th></tr>
+        <tr>
+            <td>Collect a coin</td>
+            <td>The coin branch reaches the manager. Console says <code>Coins: 1</code>.</td>
+        </tr>
+        <tr>
+            <td>Walk into a spike</td>
+            <td>The signed amount still hurts. Console says <code>Health: 2</code>.</td>
+        </tr>
+        <tr>
+            <td>Pick up a potion at full health</td>
+            <td>The ceiling travelled with the value. Health stays at <code>3</code>.</td>
+        </tr>
+        <tr>
+            <td>Take damage until death</td>
+            <td><code>Die()</code> runs from inside <code>ChangeHealth</code>. Health is back at max, coins are halved.</td>
+        </tr>
+    </table>
+
+    <div class="callout trap">
+        <strong>A refactor that also changes behaviour is not a refactor.</strong> If the jump feels
+        different, the movement is slower, or a pickup stopped working while you were in these files,
+        you touched something that was not part of the move. Put it back and commit the move on its
+        own — a commit that says "moved stats to StatManager" should contain nothing else.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="checklist">
+    <h3>Checkpoint — before moving on, you must be able to:</h3>
+    <ul>
+        <li>Say what a refactor is, and name the thing about your game that did <em>not</em> change</li>
+        <li>Explain why a <code>static</code> field survives a scene load when an instance field does not</li>
+        <li>Explain why the duplicate branch needs <code>original != this</code>, and why it needs <code>return</code></li>
+        <li>Say why the ceiling and the death rule had to move with the values they protect</li>
+        <li>Find call sites by deleting a field and compiling, instead of searching by hand</li>
+        <li>Commit and push</li>
+    </ul>
+</div>
+
+<!-- ============================================================ -->
+<div class="resources">
+    <h3>Reference Docs</h3>
+    <p>Need a deeper explanation? These pages cover the same concepts:</p>
+    <ul>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — the singleton pattern, DontDestroyOnLoad and FindAnyObjectByType</li>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the coin, the spike and the ceiling you are moving today</li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
+    </ul>
+    <p>Next: <a href="6.2.html">6.2 — Ground Checks: No Infinite Jumps</a>, back to the cave, where your jump is still working perfectly in mid-air.</p>
+</div><div class="lab-bar" data-lesson="2.7" data-lesson-title="Refactor Day: Moving Stats into the StatManager" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="2.7" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="6.1.html"><span class="dir">&#9664; Previous</span><span class="where">6.1 — Gravity &amp; Jump: The First Flick</span></a><a class="foot-next" href="6.2.html"><span class="dir">Next &#9654;</span><span class="where">6.2 — Ground Checks: No Infinite Jumps</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+     restores the hidden bridge textareas first, and mc-quiz.js reads those
+     restored values to re-check the radios. Swapping the order breaks
+     answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

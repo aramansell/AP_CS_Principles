@@ -37,12 +37,14 @@ export const LESSONS: Record<string, LessonMeta> = {
   '2.4': { title: "Prefabs, Spawning & Playtesting", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.4' },
   '2.5': { title: "Physics & Stats Studio: Catch Up and Tune", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.5' },
   '2.6': { title: "Unit 2 Review + Second Playtest", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.6' },
+  '2.7': { title: "Refactor Day: Moving Stats into the StatManager", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '2.7' },
 
   // Unit 3 — The Turret
   '3.1': { title: "The Turret: Distance & the Detection Radius", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '3.1' },
   '3.2': { title: "Projectiles: Instantiate, Fire, Destroy", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '3.2' },
   '3.3': { title: "Fire Rate: Cooldowns & Time", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '3.3' },
   '3.4': { title: "Projectile Damage, Tuning & Playtest", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '3.4' },
+  '3.5': { title: "Player Projectile: Clone, Retag & Reuse the Cooldown", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '3.5' },
 
   // Unit 4 — The Enemy
   '4.1': { title: "The Enemy: Patrol", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.1' },
@@ -50,6 +52,7 @@ export const LESSONS: Record<string, LessonMeta> = {
   '4.3': { title: "Chase: The Aggro Radius", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.3' },
   '4.4': { title: "Attack: Close-Range Contact Damage", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.4' },
   '4.5': { title: "The Full State Machine: Patrol, Chase, Attack", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.5' },
+  '4.6': { title: "Player Melee: A Hitbox That Remembers the Enemy", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '4.6' },
 
   // Unit 5 — The Axe & The Cave
   '5.1': { title: "The Axe: Item Pickups & Inventory Bools", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '5.1' },
