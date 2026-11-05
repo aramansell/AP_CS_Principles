@@ -31,19 +31,19 @@
 //   - Rigidbody2D.linearVelocity is the Unity 6 spelling (the quick reference
 //     says so and 2.2/4.1 already teach it); `velocity` does not compile.
 //   - 6.1's technique table offers FOUR ways to leave the ground and this page
-//     is compatible with three of them. Both `AddForce(...)` rows and the
+//     is compatible with three of them. Both `AddForceY(...)` rows and the
 //     direct `linearVelocity` row presuppose a Dynamic body with Gravity Scale
 //     above 0 — which is what the fall multiplier acts on. The fourth row,
 //     `MovePosition()` on a Kinematic body, has no gravity and no velocity, so
 //     the walkthrough names it out loud rather than leaving a student to tune a
 //     knob that can never do anything. The launch written here is 6.1's BUILT
 //     row — the impulse — under 6.1's own field name (`jumpForce = 7f`). 6.1
-//     also proves that `AddForce(...)` leaves `linearVelocity` untouched until
+//     also proves that `AddForceY(...)` leaves `linearVelocity` untouched until
 //     the next physics step, which is the one-frame edge case the rise cut has
 //     to survive (a press and release inside a single frame).
 //   - verify check 11 strips <head>, <nav>, <h1> and <pre> and then fails any
 //     bare Unity method name. Prose here therefore writes `MovePosition()`,
-//     `AddForce(...)`, `Start()`, `Update()` and `Debug.Log(...)` with their
+//     `AddForceY(...)`, `Start()`, `Update()` and `Debug.Log(...)` with their
 //     parentheses; the bare spellings live only inside <pre> code.
 //
 // Scaffolding: GUIDED (level 2), and asks.ts agrees. Two of the four numbers
@@ -138,8 +138,8 @@ const DECOMPOSE = {
     },
     {
       name: 'Gate the jump on two windows instead of on the ground',
-      does: 'A press is on file **and** the body is either standing on something **or** still inside the grace window. `&&` and `||` in one condition, and the only line in the file that launches anything.',
-      doc: 'the `&&` you combined the turret\'s range and cooldown checks with in 3.3, and the `isGrounded` bool your own 6.2 check produces.',
+      does: 'A press is on file **and** the body is either standing on something **or** still inside the grace window — with 6.2\'s `jumpsRemaining >= 1` still on the end. `&&` and `||` in one condition, and the only line in the file that launches anything.',
+      doc: 'the `&&` you combined the turret\'s range and cooldown checks with in 3.3, the `isGrounded` bool your own 6.2 check produces, and the budget the same check refills.',
       href: '6.2.html',
     },
     {
@@ -177,7 +177,7 @@ const WALK = {
   steps: [
     {
       title: 'Declare the four numbers and the two moments',
-      lead: 'Seven lines in the class body, beside `moveSpeed` and your jump force. Four are knobs a designer turns; the other three are this script\'s own bookkeeping — the same split as `range` and `lastAttackTime` on the turret in 3.3.',
+      lead: 'Seven lines in the class body, beside `speed` and your jump force. Four are knobs a designer turns; the other three are this script\'s own bookkeeping — the same split as `range` and `lastAttackTime` on the turret in 3.3.',
       lines: [
         { code: '    [SerializeField] private float fallMultiplier = 2.5f;', what: '**The fall-speed knob.** A multiplier on the body\'s own gravity, applied only while it is falling. `1` is the balloon you have now, `2.5` is what most platformers use.' , why: '**A multiplier, not a gravity value.** The cave\'s gravity lives on the body. Type `9` here and you own two gravity numbers that have to agree, and the day either one changes, the jump is quietly wrong.' },
         { code: '    [SerializeField] private float riseCut = 0.5f;', what: '**The fourth number.** How much of the rise survives when the player lets go of the key — `0.5` halves it. `1` switches the knob off entirely, which is where your game is now.' },
@@ -194,13 +194,13 @@ const WALK = {
       lines: [
         { code: '    void FixedUpdate()', what: 'The physics step. `gravityScale` is a property the physics engine reads, so it belongs on the clock the physics engine runs on.' , why: '**`FixedUpdate()` and not `Update()`.** FixedUpdate runs fifty times a second in this project whatever rate the machine draws frames at. On a 144 Hz monitor `Update()` runs about three times per physics step and writes the same number three times for nothing.' },
         { code: '    {', what: '' },
-        { code: '        if (body.linearVelocity.y < 0f)', what: '**The switch,** and the only line in this lesson about direction instead of time. `linearVelocity` is the body\'s velocity as a `Vector2`; `.y` is the vertical half; below zero means it is on its way down.' , why: '**Read it, never re-derive it.** The sign of the velocity is the engine\'s own answer to "am I falling", and it is already correct — on the way up after a jump it is positive even though gravity is pulling the whole time. A boolean of your own would need setting true and false in the right places, and the frame it is wrong is a frame the fall speed is wrong.' },
+        { code: '        if (rb.linearVelocity.y < 0f)', what: '**The switch,** and the only line in this lesson about direction instead of time. `linearVelocity` is the body\'s velocity as a `Vector2`; `.y` is the vertical half; below zero means it is on its way down.' , why: '**Read it, never re-derive it.** The sign of the velocity is the engine\'s own answer to "am I falling", and it is already correct — on the way up after a jump it is positive even though gravity is pulling the whole time. A boolean of your own would need setting true and false in the right places, and the frame it is wrong is a frame the fall speed is wrong.' },
         { code: '        {', what: '' },
-        { code: '            body.gravityScale = baseGravity * fallMultiplier;', what: 'The fall is now heavier. Notice what is **not** here: no `Time.deltaTime`, no `Time.fixedDeltaTime`. Gravity Scale is a multiplier, not a rate, so time is not part of it anywhere.' , why: '**Multiply, never add.** `baseGravity + fallMultiplier` looks plausible at `2.5` and is nonsense the moment somebody sets the knob to `0.5`.' },
+        { code: '            rb.gravityScale = baseGravity * fallMultiplier;', what: 'The fall is now heavier. Notice what is **not** here: no `Time.deltaTime`, no `Time.fixedDeltaTime`. Gravity Scale is a multiplier, not a rate, so time is not part of it anywhere.' , why: '**Multiply, never add.** `baseGravity + fallMultiplier` looks plausible at `2.5` and is nonsense the moment somebody sets the knob to `0.5`.' },
         { code: '        }', what: '' },
         { code: '        else', what: '' },
         { code: '        {', what: '' },
-        { code: '            body.gravityScale = baseGravity;', what: '**The branch everybody leaves out.** While the body is rising — and standing still, and on the first frame after a jump — gravity goes back to the body\'s own value.' , why: '**Without this line the multiplier is permanent.** Write only the falling branch and every jump after the first is crushed by heavy gravity: the first looks fine and the rest barely leave the floor. Build exactly that once, on purpose, and watch it happen.' },
+        { code: '            rb.gravityScale = baseGravity;', what: '**The branch everybody leaves out.** While the body is rising — and standing still, and on the first frame after a jump — gravity goes back to the body\'s own value.' , why: '**Without this line the multiplier is permanent.** Write only the falling branch and every jump after the first is crushed by heavy gravity: the first looks fine and the rest barely leave the floor. Build exactly that once, on purpose, and watch it happen.' },
         { code: '        }', what: '' },
         { code: '    }', what: 'Closes `FixedUpdate()`. Your `Update()` is still the only place anything else happens.' },
       ],
@@ -220,25 +220,26 @@ const WALK = {
       title: 'Remember the last press, and open the gate that uses both',
       lead: 'The mirror of step 3, written by the key instead of by the floor. Then one condition that needs both memories to be true.',
       lines: [
-        { code: '        if (Input.GetKeyDown(KeyCode.Space))', what: 'The **single-frame** key check from 6.1. It is not the jump — it only writes the moment down. In 6.2 this check was the second half of `if (isGrounded && Input.GetKeyDown(...))`, so a press was only ever **considered** while you were standing: made in mid-air, it was not rejected, it was never seen at all.' , why: '**And the held-key version would refresh the memory every frame.** Lean on the jump key and you would have a press on file for as long as you held it, so the buffer would fire the instant you touched the floor. The one-frame version is the whole point of a **press**.' },
+        { code: '        if (Input.GetKeyDown(KeyCode.J))', what: 'The **single-frame** key check from 6.1. It is not the jump — it only writes the moment down. In 6.2 this check was half of `if (Input.GetKeyDown(KeyCode.J) && jumpsRemaining >= 1)`, so a press was only ever **considered** while the budget had a jump in it: made with none left, it was not rejected, it was never seen at all.' , why: '**And the held-key version would refresh the memory every frame.** Lean on the jump key and you would have a press on file for as long as you held it, so the buffer would fire the instant you touched the floor. The one-frame version is the whole point of a **press**.' },
         { code: '        {', what: '' },
         { code: '            lastJumpPressedTime = Time.time;', what: 'The same stamp, on the other field. If it looks like the line above, that is the lesson: two timers, written by two events, read by two questions.' },
         { code: '        }', what: '' },
         { code: '        bool pressedRecently = Time.time - lastJumpPressedTime <= jumpBufferTime;', what: '**The buffer\'s window — the line you wrote in step 3, with the other field and the other knob in it.** Nothing about the shape changed, which is exactly why step 3 asked you to produce it.' },
         { code: '', what: '' },
-        { code: '        if (pressedRecently && (isGrounded || stillInGrace))', what: 'The gate, and the only line in the file that launches anything. Read it as a sentence: a press is on file, **and** the body is either standing on something **or** still inside the grace window.' , why: '**This is the line that keeps two mercies from becoming a jetpack.** Drop `stillInGrace` and you have 6.2\'s plain ground check — correct, and it refuses the press a player made one step past the lip. Drop `pressedRecently` and the jump fires the instant you touch down whether or not anybody asked. Drop the `isGrounded` half and you can jump from anywhere at all.' },
+        { code: '        if (pressedRecently && (isGrounded || stillInGrace) && jumpsRemaining >= 1)', what: '**The gate, and the only line in the file that launches anything.** Read it as a sentence: a press is on file, **and** the body is either standing on something **or** still inside the grace window, **and** the budget from 6.2 still has a jump in it. Three conditions on one line, and each one was written in a different lesson.' , why: '**This is the line that keeps the mercies from becoming a jetpack.** Drop `stillInGrace` and you have 6.2\'s rule — correct, and it refuses the press a player made one step past the lip. Drop `pressedRecently` and the jump fires the instant you touch down whether or not anybody asked. Drop `jumpsRemaining >= 1` and the mercy becomes infinite: every frame you are inside the window is a frame you could jump again. Leave that term exactly where 6.2 put it.' },
         { code: '        {', what: '' },
         { code: '            Jump();', what: 'The method from 6.1, called from exactly one place — and that place now has a rule about when. Whatever your launch is, nothing about it changes today except the company it keeps.' },
         { code: '        }', what: '' },
       ],
     },
     {
-      title: 'Spend both windows the moment the jump fires',
-      lead: 'Two lines, and they are the difference between a mercy and a jetpack. Without them the window you just used is still open on the next frame.',
+      title: 'Spend the windows and the jump the moment it fires',
+      lead: 'Three lines, and they are the difference between a mercy and a jetpack. Without them the window you just used is still open on the next frame.',
       lines: [
-        { code: '        body.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);', what: 'Your launch from 6.1, unchanged. If you picked one of the other Dynamic-body rows instead — writing `linearVelocity` directly — keep that one: it is the same jump by a different route.' , why: '**One of 6.1\'s four rows cannot be used with this lesson at all.** `MovePosition()` on a Kinematic body: a Kinematic body ignores gravity, so it never falls, which means there is no velocity for the heavy branch to read and no gravity for it to fight. If that is the row you wrote in 6.1, switch it now — it is one line.' },
+        { code: '        rb.AddForceY(jumpForce, ForceMode2D.Impulse);', what: 'Your launch from 6.1, unchanged. If you picked one of the other Dynamic-body rows instead — writing `linearVelocity` directly — keep that one: it is the same jump by a different route.' , why: '**One of 6.1\'s four rows cannot be used with this lesson at all.** `MovePosition()` on a Kinematic body: a Kinematic body ignores gravity, so it never falls, which means there is no velocity for the heavy branch to read and no gravity for it to fight. If that is the row you wrote in 6.1, switch it now — it is one line.' },
         { code: '        lastGroundedTime = -999f;', what: '**The spend, and the new idea in this lesson.** A moment far enough in the past that no subtraction can bring it back inside the window. The jump you just made has used the grace up; the next frame must not be able to use it again.' , why: '**Why not one cooldown-length back, the way 3.3 seeded its turret?** Because the question is different. 3.3 asked "has enough time passed since `last`", so pushing `last` back by one cooldown closed the gate. This window asks whether **too little** has passed, so pushing the moment back by exactly one window leaves it sitting on the boundary, ready to open again on frame one.' },
         { code: '        lastJumpPressedTime = -999f;', what: 'The same spend, on the other window. Both have to be closed: the press you just honoured must not be honoured again when you leave the ground, and the grace you just used must not survive into the next frame.' },
+        { code: '        jumpsRemaining -= 1;', what: '**6.2\'s spend, still in the same place: inside the jump, after the launch.** This line does not care how the gate got there — two windows or one — only that a jump happened. That is why it survives a lesson that rewrote the gate around it.' , why: '**It is the one line in `Jump()` that 6.4 depends on.** Next period the maximum becomes 2 and the counter becomes the whole feature; nothing here moves.' },
         { code: '    }', what: 'Closes the jump. One more `}` closes the class.' },
       ],
     },
@@ -246,9 +247,9 @@ const WALK = {
       title: 'The fourth number: cut the rise when the key comes back up',
       lead: 'Three lines, and the player\'s **release** becomes an input for the first time. Press for a full jump, tap for a small one.',
       lines: [
-        { code: '        if (Input.GetKeyUp(KeyCode.Space) && body.linearVelocity.y > 0f)', what: 'The key coming **up**, and the body still rising. Two conditions, because a release while you are already falling must not do anything — there is no rise left to cut.' , why: '**And 6.1\'s own proof leaves an edge case here.** `AddForce(...)` does not change `linearVelocity` until the physics engine next runs, so a player who presses **and** releases inside a single frame lets go before the rise exists. Nothing to cut, nothing errors — which is why this line asks the body whether it is rising instead of assuming a jump just happened.' },
+        { code: '        if (Input.GetKeyUp(KeyCode.J) && rb.linearVelocity.y > 0f)', what: 'The key coming **up**, and the body still rising. Two conditions, because a release while you are already falling must not do anything — there is no rise left to cut.' , why: '**And 6.1\'s own proof leaves an edge case here.** `AddForceY(...)` does not change `linearVelocity` until the physics engine next runs, so a player who presses **and** releases inside a single frame lets go before the rise exists. Nothing to cut, nothing errors — which is why this line asks the body whether it is rising instead of assuming a jump just happened.' },
         { code: '        {', what: '' },
-        { code: '            body.linearVelocity = new Vector2(body.linearVelocity.x, body.linearVelocity.y * riseCut);', what: 'Multiply the upward half of the velocity down instead of setting it to zero. A hard `0` kills the rise dead and reads as a collision; a multiplier reads as the character choosing to come down.' , why: '**This is where the buffer and the rise cut collide.** A buffered jump fires the instant you land, from a press made before the landing — and if the player has already released the key, this block cuts that jump on its very first frame, so it arrives already half spent. Test the two together before you decide the numbers.' },
+        { code: '            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * riseCut);', what: 'Multiply the upward half of the velocity down instead of setting it to zero. A hard `0` kills the rise dead and reads as a collision; a multiplier reads as the character choosing to come down.' , why: '**This is where the buffer and the rise cut collide.** A buffered jump fires the instant you land, from a press made before the landing — and if the player has already released the key, this block cuts that jump on its very first frame, so it arrives already half spent. Test the two together before you decide the numbers.' },
         { code: '        }', what: '' },
       ],
     },
@@ -260,8 +261,8 @@ const WALK = {
 // 6.1, the ground check from 6.2 — and the two mercies.
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float jumpForce = 7f;          // yours already — 6.1's step 1
+    float speed = 4f;
+    [SerializeField] float jumpForce;                       // yours already — 6.1's step 1
 
     // ---- the four numbers this lesson is about --------------------------
     [SerializeField] private float fallMultiplier = 2.5f;   // heavier going down
@@ -269,24 +270,30 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float coyoteTime = 0.1f;       // grace after the ledge
     [SerializeField] private float jumpBufferTime = 0.12f;  // grace before the floor
 
-    // ---- your 6.2 check, unchanged. This file writes the raycast row; if you
-    // picked a different one, CheckGround() is the only place that changes. ---
-    [SerializeField] private float groundDistance = 0.6f;
-    [SerializeField] private LayerMask groundMask;
+    // ---- your 6.2 check, unchanged: the ray, the distance, the mask, the
+    // empty child at the feet. CheckGround() is the one place any of it moves. ---
+    [SerializeField] Transform groundCheck;
+    [SerializeField] float groundDistance = 0.2f;
+    [SerializeField] LayerMask groundMask;
 
-    private Rigidbody2D body;
+    Rigidbody2D rb;
     private float baseGravity;          // read once, so the Inspector still owns it
 
     private bool isGrounded;
     private float lastGroundedTime;     // a MOMENT, not a count
     private float lastJumpPressedTime;  // the other moment, a different field
 
+    int jumpsRemaining;                 // 6.2's budget, unchanged
+    int maxJumps = 1;                   // ... and the ceiling it refills to
+
     void Start()
     {
-        body = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
 
         // ... your 6.1 gravity line, if you wrote one for the scene ...
-        baseGravity = body.gravityScale;    // read it LAST — after your 6.1 gravity line above
+        baseGravity = rb.gravityScale;    // read it LAST — after your 6.1 gravity line above
+
+        jumpsRemaining = maxJumps;        // 6.2: you start on the floor
     }
 
     void Update()
@@ -298,10 +305,15 @@ public class PlayerController : MonoBehaviour
         if (isGrounded)
         {
             lastGroundedTime = Time.time;
+            jumpsRemaining = maxJumps;          // 6.2: feet down, budget full
+        }
+        else if (jumpsRemaining == maxJumps)
+        {
+            jumpsRemaining -= 1;                // 6.2: full budget in the air = you fell
         }
 
         // The other memory: written by the key, on the frame it goes down.
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.J))
         {
             lastJumpPressedTime = Time.time;
         }
@@ -310,15 +322,15 @@ public class PlayerController : MonoBehaviour
         bool stillInGrace = Time.time - lastGroundedTime <= coyoteTime;
         bool pressedRecently = Time.time - lastJumpPressedTime <= jumpBufferTime;
 
-        if (pressedRecently && (isGrounded || stillInGrace))
+        if (pressedRecently && (isGrounded || stillInGrace) && jumpsRemaining >= 1)
         {
             Jump();
         }
 
         // The fourth number: let go early and the rise is cut short.
-        if (Input.GetKeyUp(KeyCode.Space) && body.linearVelocity.y > 0f)
+        if (Input.GetKeyUp(KeyCode.J) && rb.linearVelocity.y > 0f)
         {
-            body.linearVelocity = new Vector2(body.linearVelocity.x, body.linearVelocity.y * riseCut);
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * riseCut);
         }
     }
 
@@ -326,13 +338,13 @@ public class PlayerController : MonoBehaviour
     // physics clock: fifty times a second here, whatever the frame rate is.
     void FixedUpdate()
     {
-        if (body.linearVelocity.y < 0f)
+        if (rb.linearVelocity.y < 0f)
         {
-            body.gravityScale = baseGravity * fallMultiplier;
+            rb.gravityScale = baseGravity * fallMultiplier;
         }
         else
         {
-            body.gravityScale = baseGravity;
+            rb.gravityScale = baseGravity;
         }
     }
 
@@ -341,24 +353,27 @@ public class PlayerController : MonoBehaviour
         // Your launch from 6.1: one flick. Writing linearVelocity directly
         // works identically here — the Kinematic MovePosition row does not,
         // because a Kinematic body has no gravity for the fall branch to fight.
-        body.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+        rb.AddForceY(jumpForce, ForceMode2D.Impulse);
 
         // Spend both windows. A window that is never closed is a jetpack —
         // and unlike the turret's cooldown, this one cannot close itself.
         lastGroundedTime = -999f;
         lastJumpPressedTime = -999f;
+
+        // 6.2's spend, still here: a jump happened, so one is gone.
+        jumpsRemaining -= 1;
     }
 
     private void CheckGround()
     {
         // A RaycastHit2D is true when the ray hit something and false when it
-        // did not, so it stores straight into the bool. Your 6.2 technique,
-        // whichever of the four you chose, belongs on this line.
-        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundDistance, groundMask);
+        // did not, so it stores straight into the bool. This is 6.2's method,
+        // unchanged — the jump in this lesson only reads the answer.
+        isGrounded = Physics2D.Raycast(groundCheck.position, Vector2.down, groundDistance, groundMask);
     }
 }`,
   finalNote:
-    'Compare against your own file rather than copying it. Three things have to match and nothing else does: the fall multiplier is written on the physics clock and **restored on the way up**, the jump is gated by two windows rather than by the ground check alone, and **both windows are spent the instant the jump fires**. Your launch, your ground check, your names and all four of your numbers are yours.',
+    'Compare against your own file rather than copying it. Three things have to match and nothing else does: the fall multiplier is written on the physics clock and **restored on the way up**, the jump is gated by two windows **with 6.2\'s count still on the end**, and **both windows and the jump are spent the instant it fires**. Your launch, your ground check, your names and all four of your numbers are yours.',
 };
 
 const body = `<h1>6.3 — Jump Feel: Fall Speed &amp; Coyote Time</h1>
@@ -543,7 +558,7 @@ ${renderWalkthrough(WALK)}
         <li><a href="6.2.html">6.2 — Ground Checks: No Infinite Jumps</a> — the <code>isGrounded</code> bool these two windows hang off</li>
         <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
     </ul>
-    <p>Next: <a href="6.4.html">6.4 — Boots: Double Jump</a>, where one pickup changes what your level design is allowed to ask for.</p>
+    <p>Next: <a href="6.4.html">6.4 — Double Jump: Boots or Potion</a>, where one pickup changes what your level design is allowed to ask for.</p>
 </div>`;
 ---
 <Lesson id="6.3" title="6.3 Jump Feel: Fall Speed &amp; Coyote Time — AP CS Principles" root=".." css="../style.css">

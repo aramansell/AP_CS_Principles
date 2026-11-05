@@ -63,7 +63,7 @@ export const LESSONS: Record<string, LessonMeta> = {
   '6.1': { title: "Gravity & Jump: The First Flick", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.1' },
   '6.2': { title: "Ground Checks: No Infinite Jumps", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.2' },
   '6.3': { title: "Jump Feel: Fall Speed & Coyote Time", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.3' },
-  '6.4': { title: "Boots: Double Jump", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.4' },
+  '6.4': { title: "Double Jump: Boots or Potion", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.4' },
   '6.5': { title: "Platforming Studio: The Gauntlet", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.5' },
 
   // Unit 7 — Level Building & Ladders
