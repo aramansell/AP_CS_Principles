@@ -1,55 +1,41 @@
 ---
 // Lesson 4.3 — Chase: The Aggro Radius
-// SOLO BUILD (scaffold level 4) — the second rung-4 lesson in the course, and
-// like 3.2 it hands over no code and no API table. Every part of this feature
-// has been built once already, somewhere else: the radius is 3.1's distance
-// comparison, closing on the player is 4.1's movement-toward-a-target, and
-// facing the way it walks is 4.2's Direction value. The one genuinely new
-// part — and the part the lesson tells the student to slow down on — is
-// deriving a direction from two positions that are BOTH moving, rather than
-// from input or from a target the student placed.
-// The design problem on top of the maths is still the PATROL -> CHASE
-// TRANSITION, and the bug that comes from letting both behaviours write the
-// same transform. The three coexistence designs stay in the body because the
-// socratic and the specification both ask the student to choose between them
-// rather than to invent them from nothing.
+// SOLO BUILD (scaffold level 4) — like 3.2 it hands over no code and no API
+// table. Every part has been built once already: the radius is 3.1's trigger,
+// the two callbacks that answer it are 2.1's, and moving toward a point is
+// 4.1's single MoveTowards line. The one genuinely new part is the BRANCH: the
+// chase does not get its own movement code, it gets its own DESTINATION.
 //
-// GROUND TRUTH: EnemyController.cs ships as an empty stub — by now it holds
-// the patrol the student wrote in 4.1, and everything in this lesson is an
-// addition to that file. The MobileEnemy prefab exists FOUR times in the
-// Overworld, and carries no Collider2D and no Rigidbody2D unless 4.1 added them.
+// GROUND TRUTH (read from the teacher's project):
+//   Assets/Prefabs/MobileEnemy.prefab
+//       root  tag Enemy, CapsuleCollider2D, Rigidbody2D Dynamic gravity 0
+//       child "Detection Radius"  CircleCollider2D m_IsTrigger: 1, radius 5
+//   Assets/Scripts/EnemyController.cs — the built chase:
+//       bool inRange = false;  Transform target;
+//       Update():
+//           if (inRange) { targetPosition = target.position; }
+//           else { ...the 4.1 arrival/advance...; targetPosition = patrolPoints[patrolNumber].position; }
+//           float step = speed * Time.deltaTime;
+//           transform.position = Vector3.MoveTowards(transform.position, targetPosition, step);
+//       OnTriggerEnter2D: CompareTag("Player") -> inRange = true; target = other.gameObject.transform;
+//       OnTriggerExit2D:  CompareTag("Player") -> inRange = false; target = null;
 //
-// STRUCTURE (the editor/code pass, then the "teach it once" cull): an
-// "In the Editor" list of the setup and the before-state, then an "In the Code"
-// half that gives the one architectural constraint the lesson hands over, the
-// three coexistence designs, one compact specification and the socratic. It no
-// longer lists the seven parts: at level 4 the decompose prompts the student to
-// find those themselves, and handing them over in prose was doing the level-4
-// exercise for them.
+// THE OLD PAGE TAUGHT A DIFFERENT MECHANISM: a serialized float aggro radius, a
+// Vector3.Distance() check every frame, GameObject.FindWithTag(), and a
+// normalised direction vector the student had to derive. The build does none of
+// it — the radius is a collider, and Vector3.MoveTowards() computes the
+// direction for every target. The lesson's centre of gravity moves with it:
+// the hard part is no longer the maths, it is choosing the destination so that
+// exactly ONE movement line writes the transform.
 //
-// CULLED for repetition by the "teach it once" pass: the seven-item "from the
-// player's seat" acceptance list (its middle items were the third telling of
-// the coexistence table's "What the player sees" column, and its last two were
-// already in the specification); the six-item reread list 3.2 also dropped (its
-// lessons are linked from the decompose block, the steps and the resources);
-// two specification bullets that restated the hand-over callout and the
-// coexistence table; the subtraction-order and normalizing line from the
-// checkpoint for the same reason; the "stand where the enemy ought to notice
-// you" editor step (a question, and the checkpoint already carries the radius
-// decision); and the enemy-state-machines resource link (a second telling of
-// the unit hub's link).
+// There is no enemy animator call in EnemyController, so the old "face the way
+// it is chasing" part is gone. Do not reintroduce it without a build to match.
 //
 // The parts below are NOT rendered at level 4 (see src/lib/decompose.ts) —
-// they are written out because they are the record of the intended split, and
-// because they are what the lesson hands over verbatim if it is ever taught at
-// a lower rung. Do not delete them as "unused".
-// SECOND PASS: the decompose turn and socratic q2 were the same question asked
-// in two sections — check 13 measured them at 53% overlap, both asking which
-// behaviour wins while the enemy is inside its beat AND inside the radius. The
-// socratic keeps it, because the coexistence table it argues about is beside it;
-// the turn now asks the thing this lesson actually hands over, the value that
-// has to be recomputed every frame and what the enemy's speed depends on. Table
-// rows and editor steps are back to the 2.x multi-line shape.
+// they are the record of the intended split.
+//
+// Answer-box ids are positional and persisted: the socratic block keeps its
+// three questions in order, and the decompose block keeps its one turn.
 import Lesson from '../../layouts/LessonLayout.astro';
 import { renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
@@ -61,82 +47,58 @@ const DECOMPOSE = {
     'which you have never solved before.',
   parts: [
     {
-      name: 'Find the player once, and hold on to them',
+      name: 'Give the enemy a circle that notices the player',
       does:
-        'Get a reference to the player at startup and keep it, with a guard for the case where there is no player in the scene at all.',
+        'The Detection Radius child that is already on the MobileEnemy prefab: a Circle Collider 2D with Is Trigger ticked. The radius is a shape in the scene, so it is visible and per-instance.',
       doc:
-        'Your targeting choice from 3.1 — GameObject.FindWithTag(String tag) or a serialized reference — and the null guard that has to follow either one.',
+        '3.1 — The Turret: the same child collider and the same checkbox, on a different prefab.',
       href: '3.1.html',
     },
     {
-      name: 'Measure how far away they are',
-      does: 'Ask for the straight-line distance between the enemy and the player, every frame.',
-      doc:
-        'Vector3.Distance(a, b) against sqrMagnitude — the same comparison you chose between for the turret in 3.1.',
+      name: 'Remember whether the player is inside it',
+      does:
+        'One bool, `inRange`, starting false, and one reference, `target`, to the player who walked in. Two fields, and only one of them changes when the player leaves.',
+      doc: '3.1 — the `inRange` field and the `target` reference you wrote on the turret.',
       href: '3.1.html',
     },
     {
-      name: 'Decide that close enough means chase',
+      name: 'Hear the player arrive, and hear them leave',
       does:
-        'Compare that distance against a designer-tunable aggro radius and set the enemy\'s mode from the answer.',
-      doc:
-        'The range condition, and the boundary you argued about at the exact radius, in 3.1. The tuning knob itself is the serialized field you have used since 1.4.',
-      href: '3.1.html',
+        'OnTriggerEnter2D() and OnTriggerExit2D(), each checking other.gameObject.CompareTag("Player"). Two callbacks, because a circle has two edges.',
+      doc: '2.1 — the trigger callbacks, and their exit twin from 3.1.',
+      href: '2.1.html',
     },
     {
-      name: 'Derive a direction from the two positions',
+      name: 'Choose the destination before you move',
       does:
-        'Subtract the enemy\'s position from the player\'s, in that order, and give the result length one — every frame, because both ends are moving.',
-      doc:
-        'The genuinely new part. The subtraction and the normalizing are the pair you aimed a projectile with in 3.2; what is new is doing it continuously, at a target you do not control.',
-      href: '3.2.html',
-    },
-    {
-      name: 'Move the enemy along that direction',
-      does: 'Multiply the direction by a speed and move the transform, frame-rate independently.',
-      doc:
-        'The movement method you chose for the patrol in 4.1 — the same call, pointed at a target that moves.',
+        'One branch: while inRange, the destination is the player\'s position; otherwise it is the patrol point you already picked. The chase is a new answer to "where am I going", not a new movement.',
+      doc: 'the destination variable from your own 4.1 patrol.',
       href: '4.1.html',
     },
     {
-      name: 'Face the way it is chasing',
+      name: 'Let the movement line you already wrote do the work',
       does:
-        'Set the animator\'s Direction value from the direction of travel, so the sprite reads as a hunter instead of a guard.',
-      doc:
-        'The enemy animator you drove in 4.2 — the four Direction values, and the controller that has no idle state to fall back on.',
-      href: '4.2.html',
-    },
-    {
-      name: 'Stop walking the beat while the chase runs',
-      does:
-        'Guarantee that exactly one behaviour writes the enemy\'s position in any given frame, and decide what the beat remembers when the chase ends.',
-      doc:
-        'The patrol you wrote in 4.1 — its direction field and the anchor it turns around.',
+        'Vector3.MoveTowards() with the same speed and the same deltaTime. It computes the direction from the two positions on every frame, which is why nothing has to be normalized here.',
+      doc: 'the movement line in your own 4.1 patrol.',
       href: '4.1.html',
     },
   ],
   why:
-    'Most of the parts inside this feature are things you have already built somewhere else: a ' +
-    'distance check written for a turret, a movement toward a target written for a guard, an ' +
-    'animator value driven from a direction, a tuning knob, a null guard. Only one part has no ' +
-    'earlier version, and it is the one to slow down on — a direction worked out from two ' +
-    'positions, one of which you do not control, recomputed every frame. That is what a ' +
-    'well-sequenced course feels like from the inside: the same parts, standing in a new order, ' +
-    'with one genuinely new one among them.',
+    'Most of the parts inside this feature are things you have already built somewhere else: a trigger and a bool from the turret, a movement toward a target from the guard. Only one part has no earlier version — deciding which place the enemy is walking toward, and guaranteeing that exactly one movement line runs. That is what a well-sequenced course feels like from the inside: the same parts in a new order, with one genuinely new one among them.',
   sizeTest:
     'The test for a finished split: could you look this part up on its own, right now, in one ' +
-    'search? "Make the enemy chase me" cannot be looked up. "Subtract two positions to get a ' +
-    'direction" can. If a part is still too big to search for, it is two parts.',
+    'search? "Make the enemy chase me" cannot be looked up. "Do something different while the player is inside a trigger" can. If a part is still too big to search for, it is two parts.',
   turns: [
-    'Write the rule down before you code it: name the value this lesson recomputes every frame, why computing it once is not enough, and what the enemy\'s speed depends on without length one.',
+    'The enemy never gets a second movement line — it gets a second destination. Name the one variable both behaviours write, and say what the player would see if you added a separate chase movement instead.',
   ],
 };
 
 const body = `<h1>4.3 — Chase: The Aggro Radius</h1>
 
 <p class="lesson-lead">
-    Patrol is calm. One distance check turns a guard into a hunter — and you wrote that check in
-    <a href="3.1.html">3.1</a>. What is new is not the maths: the target <em>moves</em>.
+    Patrol is calm. One trigger turns a guard into a hunter — and you built that trigger's answer in
+    <a href="3.1.html">3.1</a>. What is new is not the movement: it is choosing which place the
+    enemy is walking toward.
 </p>
 
 ${renderAskBanner('how do I make an enemy chase me?', 4)}
@@ -152,25 +114,30 @@ ${renderDecompose('4.3', DECOMPOSE, 4)}
     <ol>
         <li>
             <strong>Scene view →</strong> save the Overworld before you touch anything, then
-            <strong>Hierarchy →</strong> the four <code>MobileEnemy</code> instances, then
             <strong>Project window →</strong> <code>Assets/Prefabs/MobileEnemy</code>. All four
-            share one prefab, so one serialized aggro field is one number for all four. Decide
-            whether that is what you want <em>before</em> you write the field.
+            instances share one prefab, so a change to the radius changes all four — but the radius
+            is a <em>collider</em>, so an instance can override it. Decide before you write anything.
+        </li>
+        <li>
+            <strong>Hierarchy → MobileEnemy → Detection Radius</strong>: a
+            <strong>Circle Collider 2D</strong> with <strong>Is Trigger</strong> ticked and
+            <strong>Radius</strong> <code>5</code>. That is the aggro radius — a shape the player can
+            see in the Scene view, not a number buried in a script.
         </li>
         <li>
             <strong>Inspector →</strong> the prefab root: the <code>EnemyController</code> from 4.1,
-            with the collider and body you gave it. A chase needs a body a wall can stop, and 4.1
-            already made that true.
-        </li>
-        <li>
-            <strong>Inspector →</strong> the child named <em>Sprite</em>, then <strong>Window →
-            Animation → Animator</strong>. Re-read the four <code>Direction</code> values from 4.2:
-            a hunter that keeps the guard's facing reads as a bug, and those four integers are how
-            you fix it.
+            with its <strong>Capsule Collider 2D</strong> and <strong>Dynamic Rigidbody 2D</strong>.
+            The body is already there; today's code still moves the Transform, and the note at the
+            bottom of the code half says what that costs.
         </li>
         <li>
             <strong>Game view →</strong> press Play and walk near an enemy with the Console open. It
             ignores you and walks its beat. That is the "before" you are about to change.
+        </li>
+        <li>
+            <strong>Once the code half is done — Play again</strong> and cross the ring slowly. Watch
+            where the change of direction happens relative to the circle you can see in the Scene
+            view: it is the collider, not a distance the enemy measured.
         </li>
     </ol>
 </div>
@@ -184,8 +151,8 @@ ${renderDecompose('4.3', DECOMPOSE, 4)}
     <p>No API table: every call today is one you have already made. One file — <code>Assets/Scripts/EnemyController.cs</code>, your patrol from <a href="4.1.html">4.1</a>.</p>
 
     <div class="callout info">
-        <strong>Slow down on one part: working out the direction.</strong> Every direction you have written so far came from something you were handed — keys you pressed in <a href="1.4.html">1.4</a>, a target you placed in <a href="4.1.html">4.1</a>, a muzzle you aimed at the instant of firing in <a href="3.2.html">3.2</a>. This time both ends move, and it is worked out again from the two positions, every frame. That is where the bugs will be.
-        <p>The one fact I will hand you: the vector from the enemy to the player is the player's position minus the enemy's, <em>in that order</em>. Swap the operands and you have built something that runs away instead. Give it length one before you multiply it by a speed — otherwise the enemy's speed depends on how far away you are, and it crawls the moment it reaches you.</p>
+        <strong>Slow down on one part: choosing the destination.</strong> Every target you have moved toward so far was placed in the scene — a patrol point you wired in <a href="4.1.html">4.1</a>. This time the same movement line has two possible destinations, and a remembered answer decides which one it gets. That is where the bugs will be: not in the arithmetic, but in which branch ran.
+        <p>The one fact I will hand you: <code>Vector3.MoveTowards(transform.position, targetPosition, step)</code> already works out the direction from the two positions, every frame. You do not need a subtraction, a <code>.normalized</code> or a velocity — the 4.1 line is the whole chase as long as <code>targetPosition</code> is right.</p>
     </div>
 
     <p>The second decision is not about maths. Your <code>Update()</code> patrols unconditionally and now has to chase as well — two behaviours that want the same object, with no earlier lesson to copy from. Pick one of these three on purpose:</p>
@@ -193,16 +160,16 @@ ${renderDecompose('4.3', DECOMPOSE, 4)}
     <table>
         <tr><th>How the two behaviours coexist</th><th>What the code does each frame</th><th>What the player sees</th><th>The risk</th></tr>
         <tr>
-            <td><strong>Chase is an <code>if</code>; patrol is the <code>else</code></strong></td>
-            <td>Exactly one of the two runs.</td>
-            <td>A clean switch: the moment you cross the line, the enemy turns and comes for you.</td>
-            <td>Nothing holds the answer to "am I chasing?", so no other part of your code can ask. It also forces you to decide which wins when you are inside the patrol beat <em>and</em> the radius at once.</td>
+            <td><strong>Chase is an <code>if</code>; patrol is the <code>else</code></strong> — <em>this project</em></td>
+            <td>The branch picks a destination; then the one movement line runs, wherever the destination came from.</td>
+            <td>A clean switch: the moment you cross the line, the enemy stops walking its beat and comes for you.</td>
+            <td>Exactly one writer moves the enemy, so nothing fights — but the branch has to be written in the right order, and the patrol's own index is frozen while the chase runs, not reset.</td>
         </tr>
         <tr>
             <td><strong>Chase is an <code>if</code>; the patrol keeps running anyway</strong></td>
-            <td>Both write to the enemy's position in the same frame.</td>
-            <td>A stutter, or an enemy that drifts toward you while still dutifully flipping at the end of its beat.</td>
-            <td>Two systems moving one object, and their sum is a third movement <em>nobody designed</em>. With the <a href="4.1.html">4.1</a> leash this is easy to miss: the patrol's flip check still measures from the spawn anchor, so it reverses your chase mid-pursuit.</td>
+            <td>Both call a movement in the same frame, each with its own destination.</td>
+            <td>A stutter, or an enemy that drifts toward you while still dutifully stepping through its route.</td>
+            <td>Two systems moving one object, and their sum is a third movement <em>nobody designed</em>. With the <a href="4.1.html">4.1</a> route this is easy to miss: the patrol's arrival check still fires, so the index advances underneath the chase and the beat restarts somewhere new.</td>
         </tr>
         <tr>
             <td><strong>Chase is an <code>if</code>; the patrol is switched off by a flag</strong></td>
@@ -215,20 +182,20 @@ ${renderDecompose('4.3', DECOMPOSE, 4)}
     <div class="callout">
         <strong>Architectural specification for the chase.</strong>
         <ul>
-            <li>Which of the two targeting options from <a href="3.1.html">3.1</a> did you choose, what does that choice cost across four enemy instances, and what does <code>GameObject.FindWithTag(String tag)</code> hand back when nothing matches? Which lifecycle method holds that lookup so it runs once — and does the guard clause after it stop the whole update, or only the chase half, given what the enemy still has to do with no player in the scene?</li>
-            <li>Which serialized float lets a designer say how close you must get, and what do you name it so that a stranger reading the Inspector sees its relationship to the patrol knob beside it?</li>
-            <li>Which movement call moves the enemy — the one your patrol uses, or a different one? If they differ, what does the Rigidbody2D have to satisfy for both to work?</li>
-            <li>Should the patrol's own memory — its target and its anchor — be reset or preserved when the chase ends? Say what the player sees either way.</li>
-            <li>How do you print the current mode to the Console so you can watch the transition happen, and which animator <code>Direction</code> value does the enemy carry while chasing? (Re-read your <a href="4.2.html">4.2</a> notes rather than guessing.)</li>
+            <li>Which two fields does the trigger write, and which one has to start <code>false</code>? What does <code>target</code> hold — the player's collider, the player's GameObject, or the player's Transform — and which of those does the destination line need?</li>
+            <li>What happens on the way <em>out</em> of the circle, and why does the exit callback set <code>target = null</code> rather than leave the old reference lying around? Name the exception the other choice leaves behind.</li>
+            <li>Which branch wins when the enemy is inside its patrol beat and inside the aggro radius at the same time? Point at the line that decides it.</li>
+            <li>Does the patrol's own memory — its index — reset or freeze while the chase runs? Say what the player sees either way.</li>
+            <li>What does the enemy do while chasing that a wall should stop, and what actually stops it? The body is Dynamic and the movement is a Transform write — say what that means in one sentence.</li>
         </ul>
     </div>
 
     <div class="socratic">
         <h3>Socratic: States, Transitions and Two Writers</h3>
         <ol>
-<li>You gave the turret a distance check in 3.1 and it opened fire. What does the enemy do with that same answer that the turret did not do — and why does that make the enemy harder to build?</li>
+<li>You gave the turret a trigger in 3.1 and it opened fire. What does the enemy do with that same answer that the turret did not do — and why does that make the enemy harder to build?</li>
 <li>Your enemy is inside its patrol beat and inside the aggro radius at the same time. Which behaviour must win? Describe exactly what the player sees if you pick the other one.</li>
-<li>If both behaviours move the transform in one frame, what is the sum of "walk right at 2 units per second" and "walk toward the player at 2 units per second"? Why is that sum not a chase — and which direction does the enemy actually travel?</li>
+<li>If both behaviours moved the enemy in one frame, what is the sum of "walk right at 2 units per second" and "walk toward the player at 2 units per second"? Why is that sum not a chase — and how does one shared destination avoid it?</li>
 </ol>
     </div>
 </div>
@@ -237,9 +204,9 @@ ${renderDecompose('4.3', DECOMPOSE, 4)}
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
         <li>Break the chase into parts, and say in one line what each part does and where you built it before</li>
-        <li>Compare <code>Vector3.Distance(a, b)</code> against <code>sqrMagnitude</code>, and say which you chose for the enemy and why</li>
-        <li>Compare <code>GameObject.FindWithTag(String tag)</code> against a serialized reference, and account for the four enemy instances</li>
+        <li>Explain why the aggro radius is a collider rather than a number in the script, and what the trigger needs in order to fire at all</li>
         <li>Explain your patrol-to-chase transition, point at the construct that stops both behaviours running at once, and say why two writers on one transform produce motion nobody designed</li>
+        <li>Say what <code>target</code> holds, what happens to it on exit, and why <code>null</code> is the right value there</li>
         <li>Design an aggro radius that reads as fair next to the turret's detection range, and say which of the two the player should meet first</li>
         <li>Commit and push</li>
     </ul>
@@ -251,7 +218,8 @@ ${renderDecompose('4.3', DECOMPOSE, 4)}
     <ul>
         <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
         <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — chase and pursuit in depth</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — normalizing, <code>GameObject.FindWithTag(String tag)</code> and vector maths</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — what a trigger reports, and when</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — trigger callbacks, <code>CompareTag()</code> and <code>Vector3.MoveTowards()</code></li>
     </ul>
     <p>Next: <a href="7.1.html">7.1 — Tilemaps: The Level Editor</a> — the enemy has a beat; now the cave gets a floor plan.</p>
 </div>`;
