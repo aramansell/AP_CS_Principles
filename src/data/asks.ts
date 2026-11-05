@@ -103,7 +103,7 @@ export const ASK_GROUPS: AskGroup[] = [
       { q: 'how do I make an enemy follow a patrol route?', lesson: '4.1', note: 'A list of waypoints, an index, and a movement that runs without you.', level: 2 },
       { q: 'how do I read an animator somebody else set up?', lesson: '4.2', note: 'The same Animator API following rules you did not choose — reading a state machine you did not build.', level: 3 },
       { q: 'how do I stop a contact hit hurting me sixty times a second?', lesson: '4.4', note: 'Rate-limiting a collision callback, and choosing between three hazard models.', level: 3 },
-      { q: 'how do I make an enemy switch between patrolling, chasing and attacking?', lesson: '4.5', note: 'A state field, the arrows between the states, and one place that says what the enemy is doing.', level: 2 },
+      { q: 'how do I make the player jump in the cave?', lesson: '4.5', note: 'Gravity for one scene, a one-frame key check, and the impulse that leaves the ground.', level: 1 },
     ],
   },
   {

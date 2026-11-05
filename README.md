@@ -13,10 +13,10 @@ deployed to GitHub Pages.
 
 ## The course in one paragraph
 
-Semester 1 is one long build: movement → coins & health → a turret &
-projectiles → a patrolling enemy → tilemap caves → jumping → ladders →
-the axe & the door → the deferred enemy state machine → **your own boss
-fight**, ending with a semester final that is "a normal B day" (Jan 21). Semester 2: the CSP big ideas Unity cannot
+Semester 1 is one long build: movement → coins & health → a turret → an
+enemy state machine → the axe & the cave → jumping → tilemap levels →
+ladders → **your own boss fight**, ending with a semester final that is
+"a normal B day" (Jan 21). Semester 2: the CSP big ideas Unity cannot
 teach alone (data, systems, impact), then the **2-Button Jam**, the
 **Card Game Jam** (lists, arrays, ScriptableObjects — the AP's favorite
 data structures, built for real), the **Create PT** (30% of the AP
@@ -38,8 +38,10 @@ src/
   integrations/
     pacing-md.ts       # regenerates PACING.md + dist/sitemap.xml post-build
   pages/
-    index.astro        # Dashboard (6 phase tabs, My-work backup panel)
-    pace.astro         # Pacing Calendar: every B day mapped to its work
+    index.astro        # Unified Dashboard & Pacing: every B day with progress,
+                       #   lesson launch links, Next B-Day banner, My-work backup
+    pace.astro         # Printable full-year pacing table (the dashboard's
+                       #   compact print view; no separate nav item)
     projects.astro     # The Build: what ships each phase
     search.astro 404.astro
     docs/              # 12 unit guides + concept docs + quick reference
@@ -63,8 +65,9 @@ scripts/
 
 Everything on the site renders from `src/data/curriculum.ts`:
 - **Add/re-date a lesson**: edit `SEQUENCE` (and add metadata in
-  `lessons.ts`). The dashboard, prev/next chain, pacing calendar, and
-  PACING.md all follow automatically — no per-page wiring.
+  `lessons.ts`). The unified dashboard (which now carries the day-by-day
+  pacing schedule), prev/next chain, printable pacing table, and PACING.md
+  all follow automatically — no per-page wiring.
 - **Sanity checks run at build time**: a SEQUENCE date that is not a
   B day fails the build (this caught a real Nov 30 error during
   construction).

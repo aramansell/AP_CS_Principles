@@ -66,6 +66,7 @@ Inside the `const body` template literal:
 - **The "Break It Down" block is not hand-written.** It is rendered from a `DecomposeSpec` (`src/lib/decompose.ts`) — parts, plus `why`/`sizeTest`, plus `turns` (the lesson's own discussion questions). Copy the shape from `scripts/new-lesson.mjs`.
 - **Retired — do not use.** `<div class="tinker">`, `<div class="bug-hunt">` (kept only in 1.3, 1.4, 1.6, where breaking something IS the teaching method), a `pitfalls:` list on a walkthrough, and a `connect:` beat on a decompose spec. Each was one more block competing for the same 90 minutes; the thinking that earned its place now lives in the Socratic, in `turns`, or in a line's `why`.
 - Activities labelled **"The Problem: …"** stay. In the 26 lessons that have one, it carries that lesson's API table, its hands-on discovery steps ("open Platformer.unity and press Play") and its own Socratic — it *is* that lesson's Read the Docs section, so removing it removes the reference material rather than a redundant frame. Same for 2.1's "What You Just Switched On", which tells the student to go and observe something. Trim one only where its framing merely restates the Break It Down `big`.
+- **The banner at the top of the lesson is a search phrase, not a title.** It renders from `renderAskBanner(phrase, level)` and sits directly under the lesson lead, so its whole job is to be typeable: name the concrete operations the lesson teaches, comma-separated, starting lowercase — `'in unity how to apply a jump force, how to get the name of the current scene, how to adjust the gravity of a rigidbody 2d, how to get a key press'`. "How do I make the player jump in a cave?" searches to nothing; the named operations search to the answer, and writing them down is how a student notices they already know half the list. A lesson with no Unity in it (Unit 9, the concept days) drops the `in unity` prefix and searches plainly (`'how to convert a number to binary, what is a power of two'`). `npm run verify` reads the rendered banner and fails one that does not read like a query.
 - `<div class="checklist"><h3>Checkpoint — before moving on, you must be able to:</h3><ul>...</ul></div>` — 4-6 bullets, always near the end.
 - `<div class="resources"><h3>Reference Docs</h3><p>...</p><ul>...</ul></div>` — LAST block always.
 - Code: `<pre><code>...</code></pre>`. Tables: plain `<table><tr><th>...`. Output annotation: `<span class="output">...</span>` inside code samples for what the Console prints.
@@ -77,7 +78,7 @@ Inside the `const body` template literal:
 ## Link map — the ONLY pages you may link to
 
 Relative from a lesson page (lessons live at `lessons/`):
-- Root pages: `../index.html` (Dashboard), `../pace.html`, `../projects.html`, `../search.html`
+- Root pages: `../index.html` (Dashboard & Pacing — the unified schedule), `../pace.html` (printable pacing table), `../projects.html`, `../search.html`
 - Docs unit indexes (always exist, all 12): `../docs/unit-01/index.html` … `../docs/unit-12/index.html`
   - unit-01 Setup & Movement, unit-02 Stats & Pickups, unit-03 The Turret, unit-04 The Enemy,
     unit-05 The Axe & The Cave, unit-06 Jumping, unit-07 Level Building & Ladders, unit-08 The Boss Fight,

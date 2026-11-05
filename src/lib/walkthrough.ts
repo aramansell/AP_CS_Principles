@@ -358,8 +358,24 @@ export function renderWalkthrough(spec: WalkthroughSpec): string {
 }
 
 /**
- * A one-line banner naming the question a lesson answers, for lessons that
- * do not carry a full walkthrough (the later, solo end of the ladder).
+ * The search phrase a lesson answers, printed at the top of the page.
+ *
+ * `ask` is not a chapter title and not a riddle — it is what a student types
+ * into a search engine when they are stuck, so it is written as the concrete
+ * operations the lesson teaches, comma-separated and starting lowercase:
+ *
+ *   'in unity how to apply a jump force, how to get the name of the current
+ *    scene, how to adjust the gravity of a rigidbody 2d, how to get a key press'
+ *
+ * The reason is the one this course already teaches in the decompose block: a
+ * part you can name is a part you can search for. "How do I make the player
+ * jump in a cave?" returns nothing useful from a search engine. "Apply a jump
+ * force" returns the answer. Naming the operations is also how a student
+ * discovers that they already know two of the four things the lesson asks for.
+ *
+ * A concept lesson with no Unity in it drops the prefix and searches plainly
+ * ('how to convert a number to binary'). scripts/verify-site.mjs reads the
+ * rendered banner and fails one that does not read like a query.
  */
 export function renderAskBanner(ask: string, level: ScaffoldLevel, frame: LessonFrame = 'build'): string {
   // A concept lesson keeps `data-scaffold` — the checks read it, and the rung
@@ -372,7 +388,7 @@ export function renderAskBanner(ask: string, level: ScaffoldLevel, frame: Lesson
   return (
     '<div class="ask-banner" data-scaffold="' + level + '"' +
     (frame === 'concept' ? ' data-frame="concept"' : '') + '>' +
-    '<span class="ask-banner-label">In this lesson you will be able to answer</span>' +
+    '<span class="ask-banner-label">Search terms for this lesson</span>' +
     '<span class="ask-banner-q">&ldquo;' + prose(ask) + '&rdquo;</span>' +
     chip +
     '</div>'

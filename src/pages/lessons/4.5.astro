@@ -1,327 +1,297 @@
 ---
-// Lesson 4.5 — The Full State Machine: Patrol, Chase, Attack
-// Capstone of Unit 4. The enemy built across 4.1-4.4 is refactored so its
-// states are EXPLICIT: the student names them, holds the current one in a
-// field, and picks a representation — enum + switch, boolean flags, or one
-// method per state — from a priced comparison table, then justifies it.
-// The "attack is a callback, not a state" observation from the original lesson
-// is kept, because it is true of the code the student has written.
-// There is NO isPlatformer flag anywhere in this project and none is mentioned.
+// Lesson 4.5 — The Jump: Getting the Player Off the Ground
+// Scaffolding: FULL WALKTHROUGH (level 1). A jump has no precedent anywhere in
+// the course — the student has moved a transform (1.4), set a velocity (2.2) and
+// read a key (1.4), but has never changed a body's momentum in one instant. So
+// every line is given and explained, and the lesson is about WHERE each line
+// goes and WHY the push is an impulse rather than a force.
 //
-// Scaffolding: GUIDED (level 2). The student has written every line of this
-// enemy already — the beat (4.1), the pursuit (4.3), the contact damage and
-// its cooldown (4.4) — so the whole file is given and exactly ONE line is a
-// gap: the selection that reads the state field and picks a behaviour. That
-// single line is the new idea at the size it actually is. The reference build
-// is the enum + switch row; the other two rows are priced beside it in the
-// table, and the specification asks the student to defend the one they chose.
+// GROUND TRUTH (read from the teacher's project — Assets/Scripts/PlayerController.cs):
+//   - The same Player prefab is played in two worlds, and the SCRIPT decides
+//     which one it woke up in from the scene's NAME:
+//         Scene currentScene = SceneManager.GetActiveScene();
+//         if (currentScene.name == "Overworld") { rb.gravityScale = 0; isPlatformer = false; }
+//         else { rb.gravityScale = 1; isPlatformer = true; ... }
+//     `isPlatformer` is a plain private bool, NOT serialized. The old version of
+//     this page told the student to declare a serialized flag and tick it in the
+//     Inspector; the project does not do that, and no scene carries such an
+//     override any more. The page teaches the build's mechanism.
+//   - The jump key is J: `Input.GetKeyDown(KeyCode.J)`, inside `if (isPlatformer)`.
+//     Space is the projectile key in this project, not the jump key.
+//   - `jumpForce` is `[SerializeField] float jumpForce;` — no initializer; the
+//     value 7 lives on Player.prefab and is read from the Inspector. The page
+//     makes the student set it there, because a serialized field with no
+//     initializer jumps with 0 until they do.
+//   - `void Jump()` prints "jump" and calls
+//     `rb.AddForceY(jumpForce, ForceMode2D.Impulse);`
+//     (Unity 6's axis shorthands; `rb.linearVelocity` is the Unity 6 name.)
+//   - In the cave the player moves with `rb.linearVelocityX = xVector;` — gravity
+//     owns Y. Writing the full vector would erase the fall every frame. The hub
+//     keeps `rb.linearVelocity = new Vector2(xVector, yVector);` from 2.2.
+//   - Player.prefab carries no Rigidbody2D and no Collider2D of its own; the
+//     student added them in 2.1, where Gravity Scale was set to 0.
+//   - Scene names: Start, Overworld, Platformer. The string compared in code is
+//     the scene's NAME, not its file path.
 //
-// REPETITION CULL (teach it once), on top of the editor/code pass: the whole
-// "Read the Docs: The Pieces of the Machine, in C#" activity is gone — its
-// six-row table, its "Five facts a diagram cannot carry" callout and its
-// "Predict Before Building" socratic. The five facts were a second telling of
-// what the three-row representation table's cost column already says, and the
-// socratic was a third. The "Build Lab: Refactor to a Real Machine" activity
-// and its closing paragraph are gone for the same reason: the walkthrough
-// builds the enum machine and the specification makes the student say what
-// they chose, so a second five-step build was the same lesson twice.
-// The old "Read Function-Level Examples" activity (a washing machine, a lift,
-// a vending machine, a level crossing, a traffic signal) went earlier; none of
-// its five facts is now stated anywhere but the representation table.
+// PROTECTED BLOCKS — ids are POSITIONAL and persisted. One decompose block with
+// THREE turns (4.5:dc1:q1..q3) and one Socratic with THREE questions
+// (4.5:sc1:q1..q3). Questions were reworded in place; none inserted, deleted,
+// moved or reordered, so saved answers still belong to their prompts.
+// `what: ''` appears only on blank spacer lines.
 //
-// Answer-box ids: the trailing sc2 block ("Predict Before Building") is
-// deleted, which is the one direction check 12 allows — the surviving dc1
-// turns and the sc1 block ("Naming the Machine") keep their wording and their
-// order, so their ids and every saved answer under them are untouched. The
-// editor half is the hand-written "In the Editor" list; the "In the Code" half
-// is the walkthrough, whose spec carries label: 'In the Code' — a level-2
-// lesson renders its walkthrough with that label, which is what gives this
-// lesson both halves.
-// SECOND PASS (shape only): table rows and the editor steps are back to the
-// multi-line shape the 2.x lessons use. No word moved, and the two check-11
-// lines the coordinator fixed by hand are untouched.
+// CULLED FOR REPETITION: no paragraph above the walkthrough repeats the API
+// table's gravity or impulse rows. The lesson names the enemy nowhere.
 import Lesson from '../../layouts/LessonLayout.astro';
 import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
 
-// The two recurring questions, applied to the machine. Level 2, so exactly
-// one part is withheld — the one with no precedent in this course. Everything
-// this enemy remembers so far is a value that describes the WORLD (where the
-// player is, which way I am walking, when I last hit something); today's memory
-// describes the ENEMY, and the whole file reads off it. Its reading stays
-// attached, because finding the answer in the docs is the skill being practised.
+// Five parts: three the student has met before wearing another subject, and two
+// that are genuinely new. Level 1, so every part carries its `does` and `doc`.
 const DECOMPOSE = {
   big:
-    'The enemy should walk its beat, come for you when you get close, and hurt you when it ' +
-    'reaches you — and on every single frame it should be doing exactly one of those three. ' +
-    '"It behaves correctly, but nobody can say which one it is doing" is the whole problem.',
+    'The player should leap off the ground in the cave, and right now nothing in this project ' +
+    'can do it. The body you built in 2.1 has Gravity Scale 0, so the cave has no down; and no ' +
+    'line in PlayerController.cs has ever pushed the player up. "Make the player jump" is two ' +
+    'mechanisms wearing one name: a world that pulls you down, and one instant that spends that pull.',
   parts: [
     {
-      name: 'Name the states this enemy can be in',
-      does: 'Three names — PATROL, CHASE, ATTACK — and nothing else. Written down once, in one type, so a fourth value cannot arrive by accident and the enemy cannot be two of them at once.',
-      doc: 'the **Making states explicit** section of the Enemy State Machines reference.',
-      href: '../docs/unit-04/enemy-state-machines.html',
-    },
-    {
-      name: 'Hold which one it is in right now',
-      doc: 'the `enum` row in the Unity + C# Quick Reference, and the field-scope rule from 1.3 (the deadline you wrote as `nextReportTime`).',
+      name: 'Give the Player a body that falls in this scene',
+      does: 'Body Type **Dynamic** and Gravity Scale **above zero** - it takes both. Gravity Scale multiplies the project gravity Physics 2D holds at `-9.81` on Y. Your body has been Dynamic at Gravity Scale 0 since 2.1, because a top-down character who obeys gravity walks off the edge of the world.',
+      doc: 'the `rb.gravityScale` row of the quick reference.',
       href: '../docs/reference/unity-csharp-quickref.html',
-      blank: true,
     },
     {
-      name: 'Decide what moves it from one state to the next',
-      does: 'One assignment per arrow. `state = EnemyState.Chase;` **is** the transition — the comparison that used to decide whether to chase now only decides whether the machine **becomes** the chasing machine.',
-      doc: 'the four-part upgrade list in the Enemy State Machines reference, next to the transition table you drew at the top of this lesson.',
-      href: '../docs/unit-04/enemy-state-machines.html',
+      name: 'Ask the scene which world this is',
+      does: 'The same Player prefab is played in both worlds, so "am I in the cave?" is a fact about the **scene**. `SceneManager.GetActiveScene()` hands back the scene that is loaded, and its `.name` is the string `"Overworld"` or `"Platformer"` - the same fact the Build Settings window lists.',
+      doc: 'the `SceneManager` rows of the quick reference; you imported `UnityEngine.SceneManagement` for the first time today.',
+      href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
-      name: 'Keep the three behaviours you already wrote',
-      does: 'The beat from 4.1, the pursuit vector from 4.3 and the contact damage from 4.4 are not rewritten. They move behind the state that owns them, and not one line of them changes.',
-      doc: 'your own `EnemyController.cs` after 4.1, 4.3 and 4.4 — the walkthrough below shows where each piece lands.',
-      href: '4.4.html',
+      name: 'Turn gravity on once, when the scene loads',
+      does: 'A branch in `Start()`: the hub gets `0`, the cave gets `1`. Both numbers are written, not inherited, so a reader of the file can see the whole decision. Once, before the first frame - in `Update()` the same write happens sixty times a second for a value that never changes.',
+      doc: 'the `void Start()` row of the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
+    },
+    {
+      name: 'Notice one press of the jump key',
+      does: '`Input.GetKeyDown(KeyCode.J)` inside the `Update()` you have been adding to since 1.4. It is true on the single frame the key goes down; `Input.GetKey(KeyCode.J)` is true on every frame it is held - a jump is a moment, not a state.',
+      doc: 'the `Input.GetKeyDown(...)` row of the quick reference, and the input functions from 1.4.',
+      href: '1.4.html',
+    },
+    {
+      name: 'Hand the body one upward flick, and let gravity spend it',
+      does: '`rb` + `AddForceY(jumpForce, ForceMode2D.Impulse)`: one instant change in vertical momentum. The height is the impulse divided by mass, the rise is paid for by the gravity from part 1, and the apex is the frame the vertical velocity reaches zero.',
+      doc: 'the `AddForceY(... ForceMode2D.Impulse)` row of the quick reference.',
+      href: '../docs/reference/unity-csharp-quickref.html',
     },
   ],
   why:
-    'Three of those four parts are code you have already written, and the fourth is one field ' +
-    'plus the line that reads it. That is the honest size of this lesson. What you have never ' +
-    'had is a place in the file that says which behaviour is live — the state is **implied** by ' +
-    'which branch happened to run, which is why you cannot print it, cannot drive an animator ' +
-    'from it, and cannot answer "what is this enemy doing?" without reading the whole file.',
+    'Two of those five parts are new to this course, and they are the two that make a jump: a ' +
+    'number that changes momentum in one instant, and a world that spends it. The other three ' +
+    'are work you have already done - a Dynamic body is 2.1, a branch on a fact is 1.6, a key ' +
+    'check is 1.4 - which is why this lesson can hand you every line and still be worth the ' +
+    'hour. The new part is one call; the work is choosing where it goes.',
   sizeTest:
     'The test: could you look this part up on its own, right now, in one search? "Make the ' +
-    'enemy switch between behaviours" cannot be looked up. "Declare an enum, hold one value of ' +
-    'it, and switch on that value" can — and the reference page writes out all four pieces.',
+    'player jump" cannot be looked up - there is no such API. "Push a rigidbody upward once" ' +
+    'can, and the answer is one line long.',
   turns: [
-    'The table below prices three ways to hold the states. Which did you choose, and what does your choice cost you — in your own words, not the table\'s?',
-    'ATTACK is entered by a physics callback rather than by a comparison. If you make it a real state, what changes about when the enemy moves — and is that the fight you designed in 4.4?',
-    'Your animator\'s `Direction` parameter is an Int with four values and no idle states. Now that the machine has a state you can read, what could you drive from it that you could not drive before?',
+    'Part two asks the scene rather than the Inspector. Say what the same Player prefab would need if this game ever grew a third world with different gravity, and what the Inspector-tick version of the same idea would need instead.',
+    'Nothing in the jump code measures time, and yet the arc has a height. Where does the height come from, and which part would you change first if the jump felt wrong?',
+    'The flick is spent in one frame, but the rise takes about half a second. Which part of the five is doing the work in the frames where no key is pressed?',
   ],
 };
 
+// The single walkthrough. Level 1: every line is given, because every line is
+// either new or a placement decision the lesson is actually teaching.
 const WALK = {
-  ask: 'how do I make an enemy switch between patrolling, chasing and attacking?',
-  file: 'Assets/Scripts/EnemyController.cs',
+  ask: 'how do I make the player jump in the cave?',
+  file: 'Assets/Scripts/PlayerController.cs',
   label: 'In the Code',
-  intro: 'Everything you built in 4.1, 4.3 and 4.4 stays: the beat, the pursuit, the contact damage and its cooldown. Today adds two lines to the class body and one selection inside `Update()` — the line that was never there. The names below are the ones this course uses; if you named yours differently, keep your names and read the shape.',
-  level: 2,
+  intro:
+    'There is no `Jump()` in Unity, and nobody is going to give you one. What is left after the ' +
+    'editor half is one field, one scene check, one key check, one push and a way to see that it ' +
+    'worked. The push is where every mistake in this lesson happens.',
+  level: 1,
   steps: [
     {
-      title: 'Name the states, and give the class one field to hold the current one',
-      lead: 'Both lines go inside the class braces and outside every method — the placement rule from 1.3.',
+      title: 'Declare how hard the flick is',
+      lead: 'One field in the class body beside your movement fields, for the same reason those are there: it is a number a person tunes, not a value you bury inside a condition.',
       lines: [
-        { code: '    // ...the fields you wrote in 4.1, 4.3 and 4.4: speed, direction, the patrol memory, the aggro radius, the damage knob and its cooldown...', what: 'Not one of those fields is deleted or renamed today. The two lines below are the only additions to the class body.' },
-        { code: '', what: '' },
-        { code: '    private enum EnemyState { Patrol, Chase, Attack }', what: 'The legal states, written down in exactly one place. Three names, and from here on the compiler knows them.', why: '**The type is the point.** `EnemyState.Patrol` is the only spelling that compiles, so a typo is an error on the line you typed rather than a fourth state that silently matches nothing. A `string` holding `"patrol"` would compile happily — that is 4.2\'s lesson, where `Direction` meant Right on one controller and Up on the other and no error message ever mentioned it. `private`, because this is one enemy\'s own vocabulary and no other script has business naming its states.' },
-        { code: '', what: '' },
-        { code: '    private EnemyState state = EnemyState.Patrol;', what: '**The field this whole lesson is about.** One variable holding which of those three names the enemy is doing right now — the thing you could not print, could not drive an animator from, and could not ask about without reading the file.', why: '**Two things to notice, and both are 1.3.** **Where it lives**: in the class body, not inside `Update()`. Declared inside a method it would be rebuilt from nothing sixty times a second and carry nothing between frames — the same mistake as `lastAttackTime` in 3.3. **What it starts at**: `Patrol`. Frame one has to be **some** state, and a guard that spawns already hunting you has no first state at all; the beat you built in 4.1 is the machine at rest. Leave the starting value off and you get `0`, which is whichever name you happened to list first rather than the one you meant.' },
+        {
+          code: '    [SerializeField] float jumpForce;',
+          what: '**How hard the flick is.** `[SerializeField]` means the Inspector shows the field, which is the same shape as the fields you wrote in 1.3. The name says *force* because that is what the call takes, so no reader mistakes it for the speed the character leaves the ground at.',
+          why: '**No `= 7f` here, and that is on purpose.** A serialized field with no initializer starts at 0, so the character will not leave the ground until you type the number in the Inspector. That is not a bug to work around; it is a reminder that a serialized field has two homes, the script and the Inspector, and the Inspector wins. `Player.prefab` carries 7, and the cave\'s copy of the Player overrides it to 10 - you will see both in the editor half below.',
+        },
       ],
     },
     {
-      title: 'Let the state decide which behaviour runs',
-      lead: 'This is the line that did not exist. Until today, behaviour was decided by where the code sat — and nothing stopped two behaviours running in the same frame.',
+      title: 'Ask the scene which world this is, and set gravity once',
+      lead: 'At the top of the file, one import. In `Start()`, under the body lookup you already do, one branch. This is the only place the two worlds are allowed to differ.',
       lines: [
-        { code: '    void Update()', what: '' },
+        {
+          code: 'using UnityEngine.SceneManagement;',
+          what: 'The namespace that holds `SceneManager`. Without it the name does not exist, and the compiler says so on the line that uses it, not on this one - which is why the import goes at the top where you can find it.',
+          why: '**`using` names a shelf, not a file.** You have been writing `using UnityEngine;` since 1.3 without thinking about it; today you add a second shelf because the scene tools live on a different one. Every new namespace you meet this year arrives the same way: the class you want is somewhere, and `using` is how you say where.',
+        },
+        { code: '', what: '' },
+        {
+          code: '        Scene currentScene = SceneManager.GetActiveScene();',
+          what: '**The loaded scene, in a variable.** `SceneManager.GetActiveScene()` returns a `Scene`, and `currentScene` holds it so the next line can ask it a question once instead of twice.',
+          why: '**This goes in `Start()`, with the lookup.** The scene does not change while the game is running, so there is nothing to re-ask. Same rule as the `GetComponent()` above it: a fact that does not change is read where it is set up, not where it is used.',
+        },
+        {
+          code: '        if (currentScene.name == "Overworld")',
+          what: '**The question, in the only form Unity understands: the scene\'s name.** `"Overworld"` is the scene\'s name as the Build Settings window lists it - not the file path and not the folder. `==` compares two `string`s and gives back a `bool`.',
+          why: '**The string has to match, character for character.** If it does not, the `if` is false in both scenes and the cave gets hub behaviour - a player who will not fall and cannot jump. When the cave misbehaves, read this line against the Build Settings list before you read anything else.',
+        },
+        { code: '        {', what: '' },
+        {
+          code: '            rb.gravityScale = 0;',
+          what: '**The hub.** `0` is the top-down setting from 2.1, and it is written here rather than left to the prefab so the file shows both halves of the decision.',
+          why: '**Why `Start()` and not the Inspector.** You could set the cave copy to 1 by hand and write nothing - but that number is invisible to a reader of your script, and it has to be repeated on every new Player anyone places. One branch here serves every scene forever.',
+        },
+        { code: '        }', what: '' },
+        {
+          code: '        else',
+          what: 'Every scene that is not the hub. Today that is only the cave; a boss arena or a test scene would land here too, which is usually what you want for a world with ground.',
+          why: '**Catch-all beats a second string compare.** Writing `else if (name == "Platformer")` means the next scene silently keeps Gravity Scale 0. Defaulting the unknown to "has gravity" fails where you can see it, in a world you are standing in.',
+        },
+        { code: '        {', what: '' },
+        {
+          code: '            rb.gravityScale = 1;',
+          what: '**The whole of turning gravity on.** `rb.gravityScale` is the Rigidbody2D property behind the Inspector field you have been reading all year, and `1` means "the project gravity, undiluted".',
+        },
+        { code: '        }', what: '' },
+      ],
+    },
+    {
+      title: 'Notice the press, and spend it in one line',
+      lead: 'At the bottom of the `Update()` you have been adding to since 1.4 - after your movement and animation lines, where the frame already knows what the player is doing.',
+      lines: [
+        {
+          code: '        if (Input.GetKeyDown(KeyCode.J))',
+          what: '`Input` is the class from 1.4, `KeyCode.J` names the key, and `Input.GetKeyDown(KeyCode.J)` is true on the **single frame** the key goes down. `J` is this project\'s jump key; `Space` is already the projectile key.',
+          why: '**The wrong key check fails in the loudest way there is.** Without `Down`, the check is true on every frame the key is held, so half a second of holding J applies thirty pushes and the character leaves the top of the level. The jump looks broken; the condition is. And the check belongs in `Update()`: `FixedUpdate()` is the physics clock, which can run several times in one frame or skip frames, so a one-frame press can be counted twice or missed.',
+        },
+        { code: '        {', what: '' },
+        {
+          code: '            Jump();',
+          what: 'A method call, so the jump has a name. Point at `Jump()` and the file answers "what is a jump allowed to do?" in one place.',
+          why: '**Why a method for one line.** 6.2 adds a ground check that decides whether this call is allowed; 6.3 tunes it. Both of those edits happen in `Jump()` or in the condition around this call, and neither one has to hunt through `Update()` to find the push.',
+        },
+        { code: '        }', what: '' },
+        { code: '', what: '' },
+        {
+          code: '    void Jump()',
+          what: 'The method itself, outside `Update()`, beside `Shoot()` if you have written one.',
+          why: '**A method on the class, called by the frame.** `Update()` runs the game; `Jump()` describes one thing the game can do. Keeping those two jobs apart is what makes the file readable at a hundred lines.',
+        },
         { code: '    {', what: '' },
-        { code: '        float distance = DistanceToPlayer();', what: 'One measurement, made once, by a small method that answers the only question the machine ever asks about the player: how far away is it?', why: '**Why a distance and not a bool.** Every branch below compares a number against a radius, so "there is no player" has to arrive as a number that is never inside one. The helper below is where that number is produced.' },
-        { code: '', what: '' },
-        { code: '        if (playerTransform == null)', what: 'The guard from 4.3, with a new job: it no longer stops the frame, it forces the state.' },
-        { code: '        {', what: '' },
-        { code: '            state = EnemyState.Patrol;', what: 'An enemy with no target is a patrolling enemy. That is a **state**, not an exit — and it is the answer to what this machine does the moment your death rule from 2.2 takes the player out of the scene.', why: '**An early return here would delete the machine.** Return before the selection and no state is ever consulted again: the enemy freezes mid-beat, and the animator from 4.2 keeps playing the last clip it was given. The fallback for "no target" has to be a state, or the machine has a hole where its default should be.' },
-        { code: '        }', what: '' },
-        { code: '', what: '' },
-        { code: '        ________ (________)', blank: true, what: 'The selection. Read the field from step 1 and choose which of the three behaviours runs this frame. One construct, three branches, exactly one of them running — this line is the machine.', hint: 'The multi-branch selection statement you met in 1.5: the one that reads a value and picks a branch to run. The value is the field you declared in step 1, and its type is the enum you wrote beside it.', why: '**This is the line whose absence was the bug.** Before today, behaviour was decided by **where the code sat** — the patrol ran because it was there, the chase ran if its `if` matched — so on any frame where both matched, both moved the transform. That is 4.3\'s two-writers bug, the hunter that crabs sideways because it is patroling and chasing at once. Now a value decides, the value can be printed, and there is no arrangement of this file in which two branches run in the same frame.' },
-        { code: '        {', what: '' },
-        { code: '            // one branch per state — the next step fills them in', what: 'The three branches land here. Nothing else in `Update()` changes: this selection replaces the unconditional patrol and the hidden chase, and the distance is still measured exactly once, above it.' },
-        { code: '        }', what: '' },
-        { code: '    }', what: '' },
-        { code: '', what: '' },
-        { code: '    // No player is never in range, so the beat is never interrupted', what: 'The small helper the line above calls. Two lines of body and one idea.' },
-        { code: '    private float DistanceToPlayer()', what: 'A method with one job: return a number the machine can compare against a radius, whether or not there is anything to measure.' },
-        { code: '    {', what: '' },
-        { code: '        if (playerTransform == null)', what: 'The case that used to freeze the enemy in 4.3.' },
-        { code: '        {', what: '' },
-        { code: '            return float.MaxValue;', what: 'A number so far outside every radius in the Inspector that no comparison in the machine can match it. "There is no player" is expressed as a distance, so the rest of the file never has to ask the question again.' },
-        { code: '        }', what: '' },
-        { code: '        return Vector3.Distance(transform.position, playerTransform.position);', what: 'The measurement from 4.3, unchanged — the same two positions, the same call. If you chose `sqrMagnitude` there instead, keep it: what matters is that one place in the file answers this question.' },
+        {
+          code: '        rb.AddForceY(jumpForce, ForceMode2D.Impulse);',
+          what: '**The flick.** `AddForceY` pushes the body along Y only - up, because `jumpForce` is positive - and `ForceMode2D.Impulse` makes it one instant change in momentum rather than a push spread across frames.',
+          why: '**The second argument is the whole lesson, and leaving it out is the classic bug.** Without `ForceMode2D.Impulse` the default keeps applying while the calls keep coming - and since this call happens on exactly one frame, you get a dribble so small the character twitches and settles. Nothing errors, nothing warns, and "my jump does nothing" is what you write in the group chat.',
+        },
         { code: '    }', what: '' },
       ],
     },
     {
-      title: 'Move patrol and chase behind their states, and write both exits down',
-      lead: 'Every behaviour stays exactly as you wrote it — it only changes which lines it sits behind. What is new is the arrows: each `state = ...` line is one arrow from your diagram, in code.',
+      title: 'Prove the arc in the Console, then take the print out',
+      lead: 'There is no UI for vertical velocity, so the Console is your instrument. One temporary print, at the bottom of `Update()` where every frame runs.',
       lines: [
-        { code: '            case EnemyState.Patrol:', what: 'The state the machine starts in, and the one that runs when nothing is hunting you.' },
-        { code: '                if (distance <= aggroRadius)', what: 'The comparison from 4.3, measuring the same two things it always did. Its job changed: it no longer decides whether to chase this frame, it decides whether the machine **becomes** the chasing machine.' , why: '**The exit and the entry have to agree about the boundary.** Your entry uses `<=`, so the chase\'s way out uses the other side of it — `distance > aggroRadius`. Use the same side in both places and an enemy standing exactly on the line changes state on every frame and stutters there instead of committing.' },
-        { code: '                {', what: '' },
-        { code: '                    state = EnemyState.Chase;', what: '**The arrow.** One assignment **is** the transition: the machine is now the chasing machine, and it stays that way until some line changes it back.', why: '**One arrow, one assignment, and it lives in the case it leaves.** If the chase code could also write `state`, two places would be deciding this machine\'s next move and which one won would depend on the order of the lines — the same class of bug as two writers on one transform in 4.3. A transition belongs with the state you are leaving, never with the state you are entering.' },
-        { code: '                    break;', what: 'Ends this case for this frame.' , why: '**The one line a `switch` has that an `if`/`else` chain does not.** Leave it out and the machine falls through into the next case and runs the chase as well — in the same frame, from the state it was just leaving. Nothing crashes and nothing is underlined in red: the enemy simply behaves like two states at once, which is the exact thing this lesson exists to remove.' },
-        { code: '                }', what: '' },
-        { code: '', what: '' },
-        { code: '                // ...your beat from 4.1, unchanged: the anchor or waypoint check, the direction flip, the movement call and your animator line...', what: 'The patrol itself is untouched. It now runs on the frames where the machine is in PATROL and on no others — which is the whole difference from 4.1, where it ran on every frame there was.' },
-        { code: '                break;', what: 'Ends the PATROL case.' },
-        { code: '', what: '' },
-        { code: '            case EnemyState.Chase:', what: 'The hunting state: entered from PATROL, and left by the two lines inside it.' },
-        { code: '                if (distance > aggroRadius)', what: 'The return-to-patrol arrow, written down by hand. There was no such line in 4.3 — the chase ended when its `if` stopped matching, and the patrol was simply what was left. Now an exit nobody writes is an exit that does not exist.' , why: '**This is the line teams forget.** Delete it and the enemy follows you across the entire map, forever, because nothing in the machine can leave CHASE. Notice also which radius it uses: if you built a second, larger give-up radius in 4.3, this is where it belongs, and the gap between chase-in and give-up is what stops the state flickering on the boundary.' },
-        { code: '                {', what: '' },
-        { code: '                    state = EnemyState.Patrol;', what: 'The arrow back to the beat. The beat resumes where it was — the anchor and the direction field are still holding the values 4.1 gave them, which is a decision you can make the other way if you want a fresh beat.' },
-        { code: '                    break;', what: 'Without it the machine falls through and runs the chase body on the same frame it decided to stop chasing.' },
-        { code: '                }', what: '' },
-        { code: '', what: '' },
-        { code: '                // ...your pursuit from 4.3, unchanged: the normalized (player - me) vector, the movement call and your animator line...', what: 'The chase body — the same subtraction order, the same `.normalized`, the same movement call. Nothing about the pursuit changes; it has just been given a state to live in.' },
-        { code: '                break;', what: 'Ends the CHASE case.' },
-      ],
-    },
-    {
-      title: 'Say what the machine does while it is attacking, and let physics enter it',
-      lead: 'ATTACK is the state your contact damage reaches — but not from a comparison. It arrives from the collision callback you wrote in 4.4, which is the only place in the file where the physics engine tells you the fight started.',
-      lines: [
-        { code: '            case EnemyState.Attack:', what: 'The state a landing hit puts the machine into. Be honest about this one out loud: in your file the attack is not a movement — it is a callback — and this case is where you decide what the enemy does **while** a hit is landing. In this build that is nothing: no movement line runs here, so it stops for the length of its cooldown.' , why: '**Whether ATTACK is a state is a design decision, and this is where you make it.** Your diagram draws ATTACK as a box because that is how the fight feels to the player; your code reaches it from physics, which means it can fire while the enemy is calmly patrolling. Both are defensible. What is not defensible is a state that nothing ever enters.' },
-        { code: '                if (Time.time >= lastDamageTime + damageCooldown)', what: 'The cooldown gate from 4.4 doing a second job. The same pair of fields that stopped the damage running every frame now says when the swing is over.' , why: 'The seed you chose in 4.4 matters here too. `lastDamageTime` is stamped the moment a hit lands, so this comparison is false for exactly one cooldown — and if you never seeded it in `Start()`, an enemy that has never hit you is already "finished attacking" on frame one.' },
-        { code: '                {', what: '' },
-        { code: '                    state = EnemyState.Chase;', what: 'The exit: the swing is over, back to the hunt.' },
-        { code: '                }', what: '' },
-        { code: '                break;', what: 'Ends the ATTACK case. Every case in the selection ends this way, and every exit in the machine is a line you typed.' },
-        { code: '        }', what: '' },
-        { code: '    }', what: '' },
-        { code: '', what: '' },
-        { code: '    private void OnCollisionStay2D(Collision2D collision)', what: 'Whichever callback you chose in 4.4 — `OnCollisionStay2D(Collision2D collision)`, `OnTriggerStay2D(Collider2D other)`, or their `Enter` versions. The name is yours; the shape below is the same for all of them.' },
-        { code: '    {', what: '' },
-        { code: '        if (!collision.gameObject.CompareTag("Player")) return;', what: 'The tag check from 4.4, unchanged — one extra hop through `.gameObject` for a `Collision2D`, direct for a `Collider2D`.' },
-        { code: '        if (Time.time < lastDamageTime + damageCooldown) return;', what: 'The cooldown from 4.4, unchanged: a second touch inside the window is discarded, not queued.' },
-        { code: '', what: '' },
-        { code: '        // ...the single damage call you wrote in 4.4, unchanged...', what: 'Your `GetComponent(PlayerController)` call and the negative number you pass to the health method on `PlayerController`. Nothing about the damage itself changes today.' },
-        { code: '        lastDamageTime = Time.time;', what: 'The stamp from 4.4 that closes the damage gate. It is also the clock the ATTACK case reads to decide when the swing is over.' },
-        { code: '', what: '' },
-        { code: '        state = EnemyState.Attack;', what: 'The one new line here: the machine is now attacking. **This is what makes ATTACK reachable** — without it the state exists, compiles, and is never entered.', why: '**This is the row of your diagram that your code does not implement the way you drew it.** You drew an arrow from CHASE to ATTACK as if chasing led to attacking. In your file the arrow comes from physics instead: the enemy enters ATTACK from PATROL just as readily, which is why walking into a guard on its beat costs you health. Say that out loud once and you will never again mistake the diagram for the code.' },
-        { code: '    }', what: '' },
+        {
+          code: '        print("v.y = " + rb.linearVelocity.y);',
+          what: 'At the **bottom of `Update()`**, outside every condition. `rb.linearVelocity` is how fast the body is travelling, read instead of written, and `.y` is the half a jump cares about. `print` is Unity\'s shorthand for `Debug.Log()`, and it is the one this project uses.',
+          why: '**That number is the parabola.** It jumps to a peak when you press J, shrinks as gravity takes it back, crosses zero at the top of the arc, and grows negative all the way down. The apex is not a place in your code - it is the frame this number passes through nothing.',
+        },
+        {
+          code: '// Delete the print before you move on',
+          what: 'An instrument, not a feature. A print left here fills the Console with a thousand lines a minute and buries the next real error under them.',
+        },
       ],
     },
   ],
   finalFile: `using UnityEngine;
+using UnityEngine.SceneManagement;
 
-public class EnemyController : MonoBehaviour
+// PlayerController.cs - the jump, complete.
+// Everything from 1.4 to 4.4 (input, movement, animation, coins, health)
+// stays exactly as you wrote it. The scene check, the key check, the push
+// and the one field are the whole of what is new.
+public class PlayerController : MonoBehaviour
 {
-    [SerializeField] private float moveSpeed = 2f;              // your number from 4.1
-    [SerializeField] private float patrolDistance = 3f;         // the size of the beat (4.1)
-    [SerializeField] private float aggroRadius = 5f;            // your number from 4.3
-    [SerializeField] private int contactDamage = 1;             // your number from 4.4
-    [SerializeField] private float damageCooldown = 0.75f;      // your number from 4.4
+    float speed = 4;                    // your number, from 1.5
+    [SerializeField] float jumpForce;  // how hard the flick is - set in the Inspector
 
-    private Vector3 spawnPoint;                 // 4.1 - the anchor, saved once in Start()
-    private int direction = 1;                  // 4.1 - the sign that IS the beat
-    private Transform playerTransform;          // 4.3 - however you acquired it
-    private float lastDamageTime;               // 4.4 - the moment of the last hit
-
-    // ---- all of today, in two lines: three names, and which one is live ----
-    private enum EnemyState
-    {
-        Patrol,
-        Chase,
-        Attack
-    }
-
-    private EnemyState state = EnemyState.Patrol;   // frame one is a calm guard
+    Rigidbody2D rb;
+    bool isPlatformer = false;         // which world did I wake up in?
 
     void Start()
     {
-        spawnPoint = transform.position;
-        playerTransform = GameObject.FindWithTag("Player").transform;   // or your wired reference
-        lastDamageTime = -damageCooldown;           // "there has been no last hit"
-    }
+        // Looked up once, never inside Update() - the rule from 2.1.
+        rb = GetComponent<Rigidbody2D>();
 
-    private void Update()
-    {
-        // One measurement, and no early return: an enemy with no target is a
-        // patrolling enemy, not an enemy that stops thinking.
-        float distance = DistanceToPlayer();
-
-        if (playerTransform == null)
+        // Decided once, for both worlds. Both numbers are written here rather
+        // than inherited from the prefab, so the decision is visible to anyone
+        // reading this file instead of only to the Inspector.
+        Scene currentScene = SceneManager.GetActiveScene();
+        if (currentScene.name == "Overworld")
         {
-            state = EnemyState.Patrol;
+            rb.gravityScale = 0;
         }
-
-        switch (state)
+        else
         {
-            case EnemyState.Patrol: PatrolTick(distance); break;
-            case EnemyState.Chase:  ChaseTick(distance);  break;
-            case EnemyState.Attack: AttackTick();         break;
+            rb.gravityScale = 1;
+            isPlatformer = true;
         }
     }
 
-    // Same machine, arranged differently: each state's code is its own method,
-    // and the transition lives inside the method of the state it leaves.
-    private float DistanceToPlayer()
+    void Update()
     {
-        if (playerTransform == null)
+        // ... input, movement and animation, from 1.4 to 4.4 ...
+
+        if (isPlatformer)
         {
-            return float.MaxValue;                  // no player is never in range
+            // Gravity owns Y. Writing the full vector here would erase the
+            // fall every frame, which is the 2.2 bug wearing new clothes.
+            rb.linearVelocityX = speed * Input.GetAxisRaw("Horizontal");
+
+            if (Input.GetKeyDown(KeyCode.J))
+            {
+                Jump();
+            }
         }
-        return Vector3.Distance(transform.position, playerTransform.position);
+        else
+        {
+            rb.linearVelocity = new Vector2(
+                speed * Input.GetAxisRaw("Horizontal"),
+                speed * Input.GetAxisRaw("Vertical"));
+        }
     }
 
-    private void PatrolTick(float distance)
+    // The whole jump. One impulse, and gravity spends it over the next half
+    // second - which is why there is nothing here about coming back down.
+    void Jump()
     {
-        if (distance <= aggroRadius)
-        {
-            state = EnemyState.Chase;
-            return;
-        }
-
-        // ...your beat from 4.1, unchanged: the anchor check, the direction
-        //    flip, the movement call and your SetInteger("Direction", ...)...
-    }
-
-    private void ChaseTick(float distance)
-    {
-        if (distance > aggroRadius)
-        {
-            state = EnemyState.Patrol;              // the exit nobody writes
-            return;
-        }
-
-        // ...your pursuit from 4.3, unchanged: the normalized (player - me)
-        //    vector, the movement call and your animator line...
-    }
-
-    private void AttackTick()
-    {
-        if (Time.time >= lastDamageTime + damageCooldown)
-        {
-            state = EnemyState.Chase;               // the swing is over
-            return;
-        }
-
-        // Nothing here moves the enemy, so it stands still for the length of
-        // its cooldown. If you would rather it kept coming, that is the one
-        // line you move into this method - and it is a design decision.
-    }
-
-    private void OnCollisionStay2D(Collision2D collision)
-    {
-        if (!collision.gameObject.CompareTag("Player")) return;
-        if (Time.time < lastDamageTime + damageCooldown) return;
-
-        // ...the damage call you wrote in 4.4, unchanged...
-        lastDamageTime = Time.time;
-
-        state = EnemyState.Attack;      // physics is what enters ATTACK here
+        rb.AddForceY(jumpForce, ForceMode2D.Impulse);
     }
 }`,
   finalNote:
-    'Compare against your own file rather than copying it. This is the same machine arranged differently on purpose: the reference puts each state\'s code in its own method, so you can see that the arrangement was never the point — the state field, the selection that reads it, and the exits you wrote by hand are. Your names, your beat, your movement call and your damage flow are yours; the machine is what has to match.',
+    'Compare against your own file rather than copying it. Two differences are worth naming, and neither is a mistake. First, the movement: this file keeps the 2.2 rule that the cave writes only the horizontal speed and lets gravity own Y - if you wrote the full vector in both worlds, your character rises and never falls, and the cause is one line. Second, the shape: the walkthrough wrote the push inside `Jump()` and called it from the key check, which is where 6.2 will put the ground check. Your key, your number and the names of your own methods are yours.',
 };
 
-const body = `<h1>4.5 — The Full State Machine: Patrol, Chase, Attack</h1>
+const body = `<h1>4.5 — The Jump: Getting the Player Off the Ground</h1>
 
 <p class="lesson-lead">
-    You have written every line of this enemy already: the patrol, the chase, the contact damage.
-    What you do <em>not</em> have is a field saying which one it is doing right now — and that
-    missing field is the difference between a pile of behaviours and a machine.
+    The cave is the first place in this game where <em>down</em> means something. Walk off the
+    edge of the floor and you do not fall — you keep walking, level. Today you turn gravity back
+    on for one scene, and use the same body to throw the character into the air.
 </p>
 
-${renderAskBanner('how do I make an enemy switch between patrolling, chasing and attacking?', 2)}
+${renderAskBanner('in unity how to apply a jump force, how to get the name of the current scene, how to adjust the gravity of a rigidbody 2d, how to get a key press', 1)}
 
-${renderDecompose('4.5', DECOMPOSE, 2)}
+${renderDecompose('4.5', DECOMPOSE, 1)}
 
 <div class="activity discovery">
     <div class="activity-header">
@@ -331,115 +301,158 @@ ${renderDecompose('4.5', DECOMPOSE, 2)}
 
     <ol>
         <li>
-            <strong>Scene view →</strong> save the Overworld, then <strong>Project window →</strong>
-            <code>Assets/Scripts/EnemyController.cs</code>. Read it as it stands: the patrol runs
-            unconditionally, the chase hides inside an <code>if</code>, the attack is a collision
-            callback, and no line anywhere says what the enemy is doing.
+            <strong>Project window →</strong> open <code>Assets/_Scenes/Platformer.unity</code>
+            — the cave — then <strong>Game view →</strong> press Play and walk off the edge of
+            the floor. Nothing falls, and that is not a bug: the Rigidbody2D you gave the Player
+            in <a href="2.1.html">2.1</a> has <strong>Gravity Scale 0</strong>, because a
+            top-down character who obeys gravity falls through the world forever. You were right
+            then. The cave is the first place where you are wrong.
         </li>
         <li>
-            <strong>Game view →</strong> press Play, walk into a <em>patrolling</em> enemy and stand
-            still. Note exactly what happens and when — that observation is what the table below has
-            to be able to explain.
+            <strong>Hierarchy →</strong> select the <strong>Player</strong>, then
+            <strong>Inspector → Rigidbody 2D → Gravity Scale</strong>. Set it to <code>1</code>
+            <em>while the game is running</em> and watch the character drop. Then try
+            <code>0.2</code> and describe the difference out loud.
         </li>
         <li>
-            <strong>Inspector →</strong> the child named <em>Sprite</em>, then <strong>Window →
-            Animation → Animator</strong>: the two parameters from 4.2, <code>Direction</code> and
-            the <code>Attack</code> trigger, are waiting for something that can say which behaviour
-            is live.
+            <strong>Game view →</strong> stop Play, then <strong>Inspector → Gravity Scale</strong>:
+            it is back to <code>0</code>. Inspector edits made during Play are thrown away on Stop
+            (1.2) — which is why the cave's gravity has to end up in code.
         </li>
         <li>
-            <strong>Scene view →</strong> watch one full beat and mark the instant the enemy ought
-            to switch behaviour. That instant is an arrow, and every arrow needs a condition written
-            on it.
+            <strong>Hierarchy →</strong> open the <code>Overworld</code> scene — the top-down hub
+            — select its <strong>Player</strong>, and set <strong>Inspector → Gravity Scale</strong>
+            to <code>1</code>. <strong>Game view →</strong> press Play: you have just broken the
+            hub. Write down what it cost, then set it back to <code>0</code>.
+        </li>
+        <li>
+            <strong>Project window →</strong> click <code>Assets/_Scenes/Platformer.unity</code>
+            once and read <strong>Inspector →</strong> the scene's <strong>name</strong>. Then click
+            <code>Overworld.unity</code> and read that one. These two strings are what the script
+            below asks about, and they are not the file paths — a rename here is a rename in code.
+        </li>
+        <li>
+            <strong>Hierarchy →</strong> select the cave's <strong>Player</strong> and read
+            <strong>Inspector → Player Controller</strong>. Nothing there yet; the field arrives
+            with the walkthrough. When it does, open
+            <code>Assets/Prefabs/Player.prefab</code> in the Prefab editor and read Jump Force:
+            <code>7</code>. Then select the cave's Player again and set its Jump Force to
+            <code>10</code>. The row goes bold, with an override mark beside it — that is a
+            prefab override, the same idea as the position tweaks you have been making since 2.4.
+        </li>
+        <li>
+            <strong>Once the walkthrough is done — Game view →</strong> press Play in the cave,
+            press <strong>J</strong>, and watch the character rise and come back down. Walk back
+            out to the hub and press <strong>J</strong> there: nothing happens, and the player
+            still moves flat. Same script, two behaviours, and the scene name is the reason.
         </li>
     </ol>
+</div>
 
-    <p>The machine, as the player experiences it — and then the question of which of these rows your code actually implements:</p>
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">In the Code</span>
+        <span class="activity-time">~30 min</span>
+    </div>
+
+    <p>Four calls do all of it — the scene's name, the gravity, the key, and the push:</p>
+
     <table>
-        <tr><th>From</th><th>Condition or event</th><th>To</th></tr>
+        <tr><th>API</th><th>What it is</th><th>What you get</th><th>What it costs</th></tr>
         <tr>
-            <td>PATROL</td>
-            <td>distance to the player is inside the aggro radius</td>
-            <td>CHASE</td>
+            <td><code>SceneManager.GetActiveScene().name</code></td>
+            <td>The loaded scene, and its name as a string.</td>
+            <td>A fact about where the player is standing, readable anywhere in the script.</td>
+            <td>The string must match exactly. A renamed scene turns the branch false in both worlds, and nothing errors.</td>
         </tr>
         <tr>
-            <td>CHASE</td>
-            <td>every frame: move toward the player, normalized</td>
-            <td>CHASE (stay)</td>
+            <td><code>Input.GetKeyDown(KeyCode.J)</code></td>
+            <td>A key check that is true for exactly one frame.</td>
+            <td>A press you can act on once.</td>
+            <td>Nothing — unless you reach for <code>Input.GetKey(KeyCode.J)</code> instead. That one is true every frame the key is held, and a jump built on it is a jetpack.</td>
         </tr>
         <tr>
-            <td>CHASE</td>
-            <td>contact with the player, and the damage cooldown has elapsed</td>
-            <td>ATTACK</td>
+            <td><code>rb.gravityScale</code></td>
+            <td>A multiplier on the project gravity, set per body.</td>
+            <td>Down, at whatever strength you choose.</td>
+            <td>It means nothing on a Kinematic body. A body that ignores gravity still accepts a push, and then rises forever.</td>
         </tr>
         <tr>
-            <td>ATTACK</td>
-            <td>damage delivered, cooldown started</td>
-            <td>CHASE</td>
+            <td><code>rb.AddForceY(jumpForce, ForceMode2D.Impulse)</code></td>
+            <td>One instant change in vertical momentum.</td>
+            <td>A parabola that gravity finishes for you.</td>
+            <td>Mass divides into it, so retuning mass retunes every jump. Drop the force mode and the push becomes a dribble instead of a jump.</td>
         </tr>
         <tr>
-            <td>CHASE</td>
-            <td>distance is outside the radius (or outside the give-up radius if you built one)</td>
-            <td>PATROL</td>
+            <td><code>rb.linearVelocity</code></td>
+            <td>How fast the body is travelling, in units per second.</td>
+            <td>A number you can read to watch the arc.</td>
+            <td>Reading it is free. Writing it erases whatever vertical motion was already there — including gravity's.</td>
         </tr>
     </table>
 
-    <p><strong>One row of that table is a lie.</strong> In your code ATTACK is not a state — it is a callback that fires when the two colliders meet, so it can fire mid-chase <em>or mid-patrol</em>. Drawing it as a state is still right, because that is how it feels to the player; just be able to say which rows your code implements and which it only feels like.</p>
-
-    <p>There are three ways to hold those states, and they are priced rather than ranked — the question is never which is correct, but which cost you will pay for this enemy, this week:</p>
-    <table>
-        <tr><th>Representation</th><th>What it looks like in the file</th><th>What it buys you</th><th>What it costs you</th></tr>
-        <tr>
-            <td><strong>Boolean flags — one bool per behaviour</strong></td>
-            <td><code>isChasing</code>, <code>isAttacking</code>, and one per behaviour after that.</td>
-            <td>Cheap to add the first flag, and genuinely readable with exactly two behaviours. It is also the smallest change from what you have.</td>
-            <td>Every flag doubles the number of combinations: four flags describe sixteen situations and most of them are nonsense. Nothing in the language stops you being "chasing and attacking and fleeing" at once — you get a bug instead of a compile error.</td>
-        </tr>
-        <tr>
-            <td><strong>An enum state variable</strong></td>
-            <td>One enum listing the states, plus one field of that type, read by a <code>switch</code>.</td>
-            <td>The set of legal states is written down in exactly one place, so illegal combinations cannot even be expressed. You can print the state name, drive the animator from it, and read every transition out of one <code>switch</code>.</td>
-            <td>One field, one enum declaration and one transition rule — and you must decide <em>every</em> exit on purpose. The version you have gave you the exits for free; here the one you forget is a state the enemy can never leave.</td>
-        </tr>
-        <tr>
-            <td><strong>An enum, and one method per state</strong></td>
-            <td>The same enum and field, with each case in the <code>switch</code> reduced to a single call: <code>case EnemyState.Chase: ChaseTick(distance); break;</code></td>
-            <td>Each state's code becomes a named block you can read on its own, and the dispatch at the top of the frame reads as a table of contents.</td>
-            <td>You have to decide what each state is handed — the distance? the target? — and the transition now sits one hop away from the selection that reads the field.</td>
-        </tr>
-    </table>
+    <div class="callout">
+        <strong>Architectural specification: the gravity and the flick.</strong>
+        <ul>
+            <li>Where does the cave's gravity get turned on — a field default, <code>Start()</code>, or every frame? Say what breaks at the other two.</li>
+            <li>Which key did you choose, and is the check <code>Input.GetKeyDown(...)</code> or <code>Input.GetKey(...)</code>? Say what holding the key for two seconds does under each.</li>
+            <li>Is your jump force a serialized field or a number typed into the condition? Does its name say <em>force</em> or <em>speed</em> — and what does the name make the next reader believe?</li>
+            <li>How do you know the jump worked? Name what you would print, and what it proves.</li>
+        </ul>
+    </div>
 
     <div class="socratic">
-        <h3>Socratic: Naming the Machine</h3>
+        <h3>Socratic: Gravity Is a Number You Own</h3>
         <ol>
-<li>Right now, is there any field in <code>EnemyController.cs</code> that holds what the enemy is currently doing? If not, what <em>is</em> holding it — and what does that cost you when you want to debug?</li>
-<li>With two behaviours, a single bool is perfectly readable. How many combinations do four booleans describe, and how many of those are real states? What does that ratio tell you about scaling the flag approach?</li>
-<li>Your attack is a callback, not a state. Can it fire while the enemy is patrolling? Walk into a patrolling enemy and find out — then say whether your diagram is a description of the code or a description of the player's experience.</li>
-</ol>
+            <li>Real gravity is a constant of the universe. Unity ships it as an <em>Inspector field</em> you can set per object. Why would an engine make a law of physics editable?</li>
+            <li>Same Player prefab, same script, two worlds: the hub needs Gravity Scale 0 and the cave needs it above 0. Where should that difference live — the prefab, the scene, or the script — and what does each choice cost the next person who places a Player?</li>
+            <li>A Kinematic body ignores gravity, forces and mass entirely. Set Body Type to Kinematic in the cave, and what would your jump code have to do instead to look like a jump?</li>
+        </ol>
     </div>
 </div>
 
 ${renderWalkthrough(WALK)}
 
-<div class="callout">
-    <strong>Architectural specification for your machine.</strong>
-    <ul>
-        <li>Which of the three representations did you choose, what type holds the state, and where does that field live — class body or method — with what first value?</li>
-        <li>Where does each transition live, and what condition is written on the arrow back to PATROL? When the machine returns to PATROL, does the enemy resume its old beat or start a fresh one, and what does the player see either way?</li>
-        <li>How do you print the current state's <em>name</em> so you can read it in the Console, and which animator parameter from <a href="4.2.html">4.2</a> can now be driven from the state directly rather than guessed from the movement?</li>
-    </ul>
+<div class="activity basic-app">
+    <div class="activity-header">
+        <span class="activity-label">Build Lab: Tune It</span>
+        <span class="activity-time">~15 min</span>
+    </div>
+
+    <p>
+        Change one number at a time and write one sentence of feel for each, in a file you keep.
+        Three knobs, and the third one is the interesting one.
+    </p>
+
+    <table>
+        <tr><th>Knob</th><th>Try</th></tr>
+        <tr><td><code>Jump Force</code> — Inspector → Player Controller</td><td>half, then double</td></tr>
+        <tr><td><code>Gravity Scale</code> — Inspector → Rigidbody 2D</td><td>0.2, then 1, then 4</td></tr>
+        <tr><td><code>Mass</code> — Inspector → Rigidbody 2D</td><td>1, then 5 — watch the jump <em>and</em> the fall</td></tr>
+    </table>
+
+    <p>
+        The gravity row is a <em>live</em> experiment only: your <code>Start()</code> writes
+        <code>1</code> every time the cave loads, so a value you like has to be typed into that
+        line. That is the cost of moving a number out of the Inspector and into the file — you
+        bought a decision a reader can see, and you gave up a knob a designer can turn.
+    </p>
+
+    <p>
+        Then walk back through the cave mouth into the hub and press J there. It should do
+        nothing — and if it does something, read the scene's name and Gravity Scale on the
+        Overworld's Player before you read your code.
+    </p>
 </div>
 
 <div class="checklist">
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
-        <li>Break "the enemy should switch between patrolling, chasing and attacking" into its parts before you write any code, and name the earlier lesson you lifted each one from</li>
-        <li>Draw the enemy's state machine from memory, with a condition written on every arrow</li>
-        <li>Compare the flag-based and enum-based representations, and defend the one you chose</li>
-        <li>Say where the return-to-patrol transition lives in your code, and what condition it tests</li>
-        <li>Label sequencing, selection and iteration in real code</li>
-        <li>Explain why your drawn ATTACK state and your coded attack are not quite the same thing</li>
-        <li>Print the current state's name without a UI</li>
+        <li>Break "make the player jump" into its parts before you write any code, and name the earlier lesson you lifted each one from</li>
+        <li>Say why the cave needs gravity on and the hub needs it off, and where that difference is decided</li>
+        <li>Write a key check that fires on one frame, and say what the held-key version does instead</li>
+        <li>Explain what <code>ForceMode2D.Impulse</code> changes about the push, and what happens without it</li>
+        <li>Read <code>rb.linearVelocity.y</code> in the Console and point at the apex without a UI</li>
         <li>Commit and push</li>
     </ul>
 </div>
@@ -448,13 +461,12 @@ ${renderWalkthrough(WALK)}
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-04/enemy-state-machines.html">Enemy State Machines</a> — the full reference, with the four-part upgrade list for your own file</li>
-        <li><a href="../docs/unit-04/index.html">Unit 4: The Enemy</a> — every branch of the enemy annotated</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — enums, switch statements and the field-scope rule</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>GetActiveScene()</code>, <code>gravityScale</code>, the key check and the impulse call</li>
+        <li><a href="../docs/unit-02/index.html">Unit 2: Stats &amp; Pickups</a> — the Rigidbody2D and collision work this lesson stands on</li>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — where the jump goes next: ground checks, feel and a second jump</li>
     </ul>
-    <p>Next: <a href="8.1.html">8.1 — Boss Design: Spec It First</a>, where Unit 8 begins and you build the thing your cave deliberately does not have.</p>
 </div>`;
 ---
-<Lesson id="4.5" title="4.5 The Full State Machine: Patrol, Chase, Attack — AP CS Principles" root=".." css="../style.css">
+<Lesson id="4.5" title="4.5 The Jump: Getting the Player Off the Ground — AP CS Principles" root=".." css="../style.css">
   <Fragment set:html={body} />
 </Lesson>
