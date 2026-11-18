@@ -1,231 +1,86 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>5.3 Into the Cave: Persistence &amp; the HUD — AP CS Principles</title><meta name="description" content="Lesson 5.3 Into the Cave: Persistence &amp; the HUD — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="5.3 Into the Cave: Persistence &amp; the HUD — AP CS Principles"><meta property="og:description" content="Lesson 5.3 Into the Cave: Persistence &amp; the HUD — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="5.2.html">&#9664; 5.2</a><span class="lesson-id">5.3</span><a href="6.1.html">6.1 &#9654;</a></div><h1>5.3 — Into the Cave: Persistence &amp; the HUD</h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>5.3 Into the Cave: Persistence &amp; the HUD — AP CS Principles</title><meta name="description" content="Lesson 5.3 Into the Cave: Persistence &amp; the HUD — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="5.3 Into the Cave: Persistence &amp; the HUD — AP CS Principles"><meta property="og:description" content="Lesson 5.3 Into the Cave: Persistence &amp; the HUD — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="5.2.html">&#9664; 5.2</a><span class="lesson-id">5.3</span><a href="6.1.html">6.1 &#9654;</a></div>
+<div class="ask-banner" data-scaffold="1"><span class="ask-banner-label">Search terms for this lesson</span><span class="ask-banner-q">&ldquo;how do I keep my health and HUD alive across scene switches?&rdquo;</span><span class="ask-banner-level">Full walkthrough</span></div>
 
-<p class="lesson-lead">
-    You break the door, you walk in — and for the first time, your coins come with you. You built the
-    object that survives a scene load on <a href="2.7.html">2.7</a>; today you prove it works, and
-    then put the numbers where a player can see them instead of in the Console.
+<p class="lead">
+    Yesterday your player stayed in one scene. Today you wire the Canvas HUD onto
+    <code>StatManager</code>, parent that Canvas so it survives alongside
+    <code>DontDestroyOnLoad()</code>, and reload the current scene cleanly inside <code>Die()</code>.
 </p>
 
-<div class="ask-banner" data-scaffold="1"><span class="ask-banner-label">Search terms for this lesson</span><span class="ask-banner-q">&ldquo;in unity how to keep an object between scenes, how to make a singleton with dontdestroyonload, how to load another scene, how to show health on a canvas&rdquo;</span><span class="ask-banner-level">Full walkthrough</span></div>
-
-<div class="activity decompose" data-level="1" data-parts="5" data-given="5" data-docs="5"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Full walkthrough</span></div><p class="dc-big">The numbers the player earned should still be there after they walk through a cave mouth — and the player should finally be able to see them. The first half is already solved in this project; the second half has not been built at all.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Notice that a scene load replaces your objects, not just your view</span><span class="dc-does">Unity destroys every GameObject in the old scene and builds the next one from its file, so the Player you were holding is gone and the Player that appears starts from whatever its prefab and its fields say. Nothing was lost and nothing was saved — the numbers were replaced.</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">the <code>SceneManager.LoadScene(int)</code> row of the quick reference.</a></span></li><li class="dc-part"><span class="dc-name">Sort the facts: this room, or this run</span><span class="dc-does">Position, facing and the animation controller are facts about <em>this moment in this room</em> and must reset — <code>SceneSwitch.cs</code> already restores them, which is why walking into a cave does not strand you. Coins, current health and the maximum are facts about <em>this run</em> and must survive.</span><span class="dc-doc">Read: <a href="5.2.html"><code>SceneSwitch.cs</code>, the one given script in the project that already saves and restores something across a load.</a></span></li><li class="dc-part"><span class="dc-name">Check the owner a scene load is not allowed to destroy</span><span class="dc-does">The StatManager you built on 2.7: a <code>public static</code> field holding the one instance, an <code>Awake()</code> that claims it and calls <code>DontDestroyOnLoad(gameObject)</code> on the first load, and an early-return guard that destroys the copy every later load brings with it.</span><span class="dc-doc">Read: <a href="2.7.html">2.7 — Refactor Day: the singleton you wrote, and the <code>DontDestroyOnLoad(gameObject)</code> row of the quick reference.</a></span></li><li class="dc-part"><span class="dc-name">Know which method owns each number</span><span class="dc-does"><code>ChangeHealth()</code> is the only way in or out of health, and it carries the 2.3 ceiling and the death rule; <code>ChangeCoins()</code> floors the count at zero; <code>Die()</code> resets health and halves the coins. Nothing else may write those fields.</span><span class="dc-doc">Read: <a href="2.7.html">the three methods in your own 2.7 StatManager.</a></span></li><li class="dc-part"><span class="dc-name">Put the numbers on screen, read from that owner</span><span class="dc-does">A Canvas and a Text (TMP) label in the scene the game begins in, and a small script that reads <code>StatManager.original</code> every frame and writes the strings into <code>.text</code>.</span><span class="dc-doc">Read: <a href="2.7.html">the <code>TextMeshProUGUI.text</code> property, and the Console readouts you have been watching all year.</a></span></li></ol><p class="dc-why">The whole split falls along one line: what belongs to <em>this room</em> and what belongs to <em>this run</em>. The hard part is already built — the object the scene loader is not allowed to destroy — so today is about proving it works and then giving it a face.</p><p class="dc-size">The test: could you look this part up on its own, right now, in one search? "Keep my stats between scenes" cannot be looked up. "Do not destroy this object when a new scene loads" can — it is one row of the quick reference.</p><div class="dc-turns"><h4>Your turn</h4><p>The project already contains one thing that survives a scene load: <code>SceneSwitch.cs</code> remembers which scene you came from, in a <code>static</code> field. Why is that field allowed to be <code>static</code> when your coins are not — what is different about the two things being remembered?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:dc1:q1" data-block="decompose" data-question="The project already contains one thing that survives a scene load: `SceneSwitch.cs` remembers which scene you came from, in a `static` field. Why is that field allowed to be `static` when your coins are not — what is different about the two things being remembered?" placeholder="write your answer, then keep going"></textarea></label><p>Today's design keeps your numbers alive across a <em>scene</em> load, and that is all it keeps them across. Quit the game and they are gone — is that a hole in the design, or the design itself?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:dc1:q2" data-block="decompose" data-question="Today's design keeps your numbers alive across a *scene* load, and that is all it keeps them across. Quit the game and they are gone — is that a hole in the design, or the design itself?" placeholder="write your answer, then keep going"></textarea></label></div></div>
-
 <!-- ============================================================ -->
-<div class="activity discovery">
-    <div class="activity-header">
-        <span class="activity-label">In the Editor</span>
-        <span class="activity-time">~30 min</span>
-    </div>
-
-    <ol>
-        <li>
-            <strong>Game view →</strong> press Play from <strong>Start (index 0)</strong> and play for
-            a minute: collect a few coins, take a spike hit. Then walk into one of the cave mouths.
-            <em>The numbers follow you now</em> — the Console line is the same before and after.
-            Notice what did <em>not</em> follow: your position, your facing, your animation
-            controller. Those came back from somewhere else.
-        </li>
-        <li>
-            <strong>File → Build Profiles → Scene List</strong> (older tutorials call this Build
-            Settings): three scenes, and their order <em>is</em> the load index —
-            <strong>Start (index 0)</strong>, Overworld (index 1), Platformer (index 2).
-            <strong>Start (index 0)</strong> is what a built game loads first, and it is one of the
-            two scenes that contains a StatManager object.
-        </li>
-        <li>
-            <strong>Hierarchy → Overworld → one of the two cave mouths → Inspector → Scene Switch →
-            Scene</strong>: an <code>int</code>, holding <code>0</code> on one mouth and
-            <code>2</code> on the other. That number is a <em>position in that list</em>, not a
-            name: nothing checks that index <code>0</code> is still the scene you think it is.
-        </li>
-        <li>
-            <strong>Hierarchy →</strong> the <strong>StatManager</strong> object in
-            <code>Start (index 0)</code>. Press Play and walk to another scene: this object's name
-            now sits at the bottom of the Hierarchy under <strong>DontDestroyOnLoad</strong>, not
-            under the scene you entered.
-        </li>
-        <li>
-            <strong>Hierarchy (Start (index 0)) → GameObject → UI → Text - TextMeshPro</strong>: one
-            menu item makes three objects — a <strong>Canvas</strong>, a <strong>Text (TMP)</strong>
-            child, and an <strong>EventSystem</strong>, which the UI wants even when nothing on it
-            is clickable.
-        </li>
-        <li>
-            <strong>Inspector → Text (TMP) → RectTransform → anchor preset → top-left</strong>, with
-            a small offset from the corner, so the numbers stay put when the window is resized — a
-            centre-anchored label sits over the middle of the game.
-<figure class="pane"><svg class="pane-svg" viewBox="0 0 430 107" width="430" height="107" role="img" aria-label="Inspector showing Text (TMP) — RectTransform is the first component on anything the UI owns, and Anchor Presets is the grid of squares at the top of it: each square is one preset, and the light one is where this label is pinned now. Click the top-left square first — the boxes beside the grid are the offset, and until the anchor moves they are measuring from the wrong corner."><title>Inspector showing Text (TMP)</title><rect class="pane-bg" x="0" y="0" width="430" height="107" rx="5"/><rect class="pane-tab" x="0" y="0" width="430" height="30" rx="5"/><rect class="pane-tab-fill" x="0" y="24" width="430" height="6"/><rect class="pane-tab-line" x="0" y="29" width="430" height="1"/><text class="pane-title" x="10" y="19">Inspector</text><text class="pane-subject" x="420" y="19">Text (TMP)</text><rect class="pane-head-bar" x="0" y="30" width="430" height="21"/><text class="pane-label pane-strong" x="40" y="44">RectTransform</text><rect class="pane-mark" x="0" y="51" width="430" height="21"/><rect class="pane-mark-bar" x="0" y="51" width="3" height="21"/><circle class="pane-badge" cx="15" cy="61.5" r="7"/><text class="pane-badge-n" x="15" y="65">6</text><rect class="pane-field" x="26" y="52" width="19" height="19" rx="2"/><rect class="pane-anchor pane-anchor-on" x="29" y="55" width="4" height="4"/><rect class="pane-anchor" x="29" y="60" width="4" height="4"/><rect class="pane-anchor" x="29" y="65" width="4" height="4"/><rect class="pane-anchor" x="29" y="70" width="4" height="4"/><rect class="pane-anchor" x="34" y="55" width="4" height="4"/><rect class="pane-anchor" x="34" y="60" width="4" height="4"/><rect class="pane-anchor" x="34" y="65" width="4" height="4"/><rect class="pane-anchor" x="34" y="70" width="4" height="4"/><rect class="pane-anchor" x="39" y="55" width="4" height="4"/><rect class="pane-anchor" x="39" y="60" width="4" height="4"/><rect class="pane-anchor" x="39" y="65" width="4" height="4"/><rect class="pane-anchor" x="39" y="70" width="4" height="4"/><rect class="pane-anchor" x="44" y="55" width="4" height="4"/><rect class="pane-anchor" x="44" y="60" width="4" height="4"/><rect class="pane-anchor" x="44" y="65" width="4" height="4"/><rect class="pane-anchor" x="44" y="70" width="4" height="4"/><text class="pane-label" x="53" y="65">Anchor Presets</text><rect class="pane-head-bar" x="0" y="72" width="430" height="21"/><rect class="pane-tick" x="26" y="78" width="8" height="8" rx="1"/><path class="pane-tick-n" d="M27.6 82l1.8 2 3-4"/><text class="pane-label pane-strong" x="40" y="86">Text (TMP)</text></svg><figcaption><code>RectTransform</code> is the first component on anything the UI owns, and <code>Anchor Presets</code> is the grid of squares at the top of it: <strong>each square is one preset</strong>, and the light one is where this label is pinned now. Click the top-left square first — the boxes beside the grid are the offset, and until the anchor moves they are measuring from the wrong corner.</figcaption></figure>
-        </li>
-        <li>
-            <strong>Once <code>HudController.cs</code> exists — Inspector → Canvas → Add Component →
-            Hud Controller</strong>, then <strong>Hud Controller → Stats Text →</strong> drag the
-            <code>Text (TMP)</code> object in. An empty slot is a <code>null</code> reference that
-            nothing complains about until the line that reads it runs.
-        </li>
-    </ol>
-</div>
+<div class="activity decompose" data-level="1" data-parts="3" data-given="3" data-docs="3"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Full walkthrough</span></div><p class="dc-big">Keep my health and coins alive when I leave the Overworld — and show them on screen.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Keep one StatManager alive across scene loads</span><span class="dc-does">A <code>public static StatManager original</code> guard in <code>Awake()</code> destroys duplicates when a new scene loads and calls <code>DontDestroyOnLoad(gameObject)</code> on the first one.</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">2.7 (where <code>StatManager</code> became a singleton) and <code>DontDestroyOnLoad</code> in the quick reference</a></span></li><li class="dc-part"><span class="dc-name">Wire the TextMeshProUGUI labels inside StatManager</span><span class="dc-does">Two <code>[SerializeField] TextMeshProUGUI</code> fields (<code>coinText</code> and <code>healthText</code>) updated in <code>Start()</code>, <code>ChangeHealth()</code>, and <code>ChangeCoins()</code> — no separate HUD script needed.</span><span class="dc-doc">Read: Unity <code>TextMeshProUGUI.text</code> row in the reference table below</span></li><li class="dc-part"><span class="dc-name">Reset stats and reload the scene in Die()</span><span class="dc-does">Inside <code>Die()</code>, restore <code>health = maxHealth</code>, halve <code>coins = coins / 2</code>, refresh <code>healthText.text</code>, and call <code>SceneManager.LoadScene(current.name)</code> using <code>GetActiveScene()</code>.</span><span class="dc-doc">Read: <code>SceneManager</code> section in the reference table below</span></li></ol><p class="dc-why">In <code>2.7</code> you moved <code>health</code>, <code>maxHealth</code>, and <code>coins</code> onto <code>StatManager</code> because <code>PlayerController</code> resets every time a scene loads. Putting <code>coinText</code> and <code>healthText</code> on that same surviving manager — and letting <code>Die()</code> call <code>SceneManager.LoadScene()</code> — means both numbers stay glued to the screen through every transition.</p><div class="dc-turns"><h4>Your turn</h4><p>Before writing a line, look at <code>StatManager.Awake()</code>: what two things happen if <code>original != null &amp;&amp; original != this</code> when you walk into a scene that already has a <code>StatManager</code> in it?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:dc1:q1" data-block="decompose" data-question="Before writing a line, look at `StatManager.Awake()`: what two things happen if `original != null &amp;&amp; original != this` when you walk into a scene that already has a `StatManager` in it?" placeholder="write your answer, then keep going"></textarea></label><p>In <code>StatManager.Die()</code>, why does <code>SceneManager.LoadScene(current.name)</code> NOT reset <code>coins</code> back to 0 even though the scene reloads?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:dc1:q2" data-block="decompose" data-question="In `StatManager.Die()`, why does `SceneManager.LoadScene(current.name)` NOT reset `coins` back to 0 even though the scene reloads?" placeholder="write your answer, then keep going"></textarea></label></div></div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">In the Code</span>
-        <span class="activity-time">~45 min</span>
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <table>
-        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
-        <tr>
-            <td><code>public static StatManager original;</code></td>
-            <td>A field that belongs to the <strong>class</strong>, not to an object — reachable
-                with no reference and no search, and untouched by a scene load.</td>
-            <td>It starts as <code>null</code>, and nothing claims it for you.</td>
-        </tr>
-        <tr>
-            <td><code>void Awake()</code></td>
-            <td>Unity's earliest hook: every <code>Awake()</code> in a scene finishes before the
-                first <code>Start()</code> runs.</td>
-            <td>Order between two objects' <code>Awake()</code> methods is still not promised.</td>
-        </tr>
-        <tr>
-            <td><code>DontDestroyOnLoad(gameObject)</code></td>
-            <td>The object moves into a scene of its own that never unloads, so it survives every
-                load from then on.</td>
-            <td>It takes a whole <strong>GameObject</strong>, not a component.</td>
-        </tr>
-        <tr>
-            <td><code>Destroy(gameObject)</code></td>
-            <td>Removes an object — how the newcomer copy takes itself out of the game.</td>
-            <td>The removal is deferred to the end of the frame: a line running later in that same
-                frame can still reach it.</td>
-        </tr>
-        <tr>
-            <td><code>SceneManager.LoadScene(int buildIndex)</code></td>
-            <td>What <code>SceneSwitch.cs</code> calls at every cave mouth — the line that would
-                destroy your stats if nothing were persistent.</td>
-            <td>Hand it an <code>int</code> and it loads whatever scene sits at that
-                <em>position</em> in the build list.</td>
-        </tr>
-    </table>
+    <p>
+        Create the HUD once and child it under the <code>StatManager</code> GameObject so
+        <code>DontDestroyOnLoad(gameObject)</code> carries the UI from <code>Start (index 0)</code>
+        into <code>Overworld</code> and <code>Platformer</code> without duplicating it:
+    </p>
+
+    <ol>
+        <li>Open your starting scene (<code>Start (index 0)</code> or <code>Overworld</code> — whichever loads first in Build Profiles). Right-click the <code>StatManager</code> object in the Hierarchy and create a UI <strong>Canvas</strong> child (<code>UI → Text - TextMeshPro</code> creates both the Canvas and the first text object automatically; accept the TMP Essentials import if prompted).</li>
+        <li>Rename the two TextMeshProUGUI children to <code>HealthText</code> and <code>CoinText</code>, anchor them to the top-left corner of the Canvas, and position them clearly above gameplay.</li>
+        <li>Select <code>StatManager</code> in the Hierarchy and drag <code>CoinText</code> into the <code>Coin Text</code> slot and <code>HealthText</code> into the <code>Health Text</code> slot in the Inspector.</li>
+        <li>Open <code>File → Build Profiles</code> (Build Settings) and verify all three scenes — <code>Start (index 0)</code>, <code>Overworld</code>, and <code>Platformer</code> — are listed in the Scene List.</li>
+        <li>Press <strong>Play</strong>, collect a coin, walk through a scene switch, and take damage until <code>Die()</code> fires. Confirm that both numbers survive the scene switch and reset cleanly on death.</li>
+    </ol>
 
     <div class="callout">
-        <strong>Architectural specification — read the owner before you add a face.</strong>
-        <ul>
-            <li><strong>The owner.</strong> Which field is the only reason your numbers survive a
-                load, and what exactly does <code>static</code> change about where it lives? Which
-                hook claims it, and what does the other branch do with a second copy?</li>
-            <li><strong>The seam.</strong> Which methods may write health and coins, and where does
-                the ceiling live — at the call site, or inside the method that owns the number?</li>
-            <li><strong>The screen.</strong> Where does the HUD live, and what would one that read
-                from the player show after a scene change?</li>
-            <li><strong>The view.</strong> What state does <code>HudController</code> own? If the
-                answer is none, say what that buys you the first time a number changes.</li>
-        </ul>
+        <strong>Why child the Canvas under StatManager?</strong> When <code>StatManager.Awake()</code> calls
+        <code>DontDestroyOnLoad(gameObject)</code>, Unity preserves the GameObject <em>and every child attached to it</em>.
+        And if a later scene happens to hold its own spare copy of <code>StatManager</code>, the
+        <code>if (original != null &amp;&amp; original != this) Destroy(gameObject);</code> guard destroys the duplicate
+        along with its extra Canvas so two HUDs never overlap.
     </div>
 
     <div class="socratic">
-        <h3>Socratic: Three ways to make a number survive</h3>
-        <p>All three are real Unity techniques. Compare what each one costs you:</p>
-        <table>
-            <tr><th>Approach</th><th>How it works</th><th>What it costs</th></tr>
-            <tr>
-                <td><strong>A <code>static</code> field on its own</strong></td>
-                <td>Belongs to the <em>class</em> — destroying the objects does not touch it.</td>
-                <td>No lifecycle: you cannot reset it cleanly, and in the editor it survives between Play sessions, so testing lies to you.</td>
-            </tr>
-            <tr>
-                <td><strong>A persistent singleton object</strong> — <em>this project</em></td>
-                <td>One object registers as <em>the</em> instance and asks Unity not to destroy it.</td>
-                <td>You must handle the <em>second</em> copy a scene load brings.</td>
-            </tr>
-            <tr>
-                <td><strong>A ScriptableObject asset</strong></td>
-                <td>Lives in a project asset rather than in a scene, so no scene load can touch it.</td>
-                <td>A new concept and one more asset to manage — and it survives Play sessions too, which is either the point or a nuisance.</td>
-            </tr>
-        </table>
+        <h3>Socratic: Singletons &amp; Scene Persistence</h3>
         <ol>
-<li>Your stats should reset when you start a new game, and survive a scene change. Which of the three can express both of those, and which one cannot express the first?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q1" data-block="socratic" data-question="Your stats should reset when you start a new game, and survive a scene change. Which of the three can express both of those, and which one cannot express the first?" placeholder="write your answer, then keep going"></textarea></label></li>
-<li>Start (index 0) already contains its own StatManager object. If you walk back to it later, what will be there — and what happens if nothing stops it from registering itself a second time?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q2" data-block="socratic" data-question="Start (index 0) already contains its own StatManager object. If you walk back to it later, what will be there — and what happens if nothing stops it from registering itself a second time?" placeholder="write your answer, then keep going"></textarea></label></li>
-<li>Why can position <em>not</em> be handled this way? What is different about position that makes <code>SceneSwitch.cs</code> handle it instead?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q3" data-block="socratic" data-question="Why can position not be handled this way? What is different about position that makes SceneSwitch.cs handle it instead?" placeholder="write your answer, then keep going"></textarea></label></li>
-</ol>
+            <li>If <code>Overworld</code> also had a <code>StatManager</code> in its Hierarchy, why must <code>Destroy(gameObject)</code> happen inside <code>Awake()</code> instead of waiting for <code>Start()</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q1" data-block="socratic" data-question="If Overworld also had a StatManager in its Hierarchy, why must Destroy(gameObject) happen inside Awake() instead of waiting for Start() ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why does <code>Die()</code> refresh <code>healthText.text</code>, while <code>coinText.text</code> only changes on the next pickup unless you update it inside <code>Die()</code> too?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q2" data-block="socratic" data-question="Why does Die() refresh healthText.text , while coinText.text only changes on the next pickup unless you update it inside Die() too?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens in <code>PlayerController.Start()</code> if you run <code>Platformer</code> directly from the Editor without passing through <code>Start (index 0)</code> — does <code>FindAnyObjectByType&lt;StatManager&gt;()</code> find a manager if none was placed in that scene?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="5.3:sc1:q3" data-block="socratic" data-question="What happens in PlayerController.Start() if you run Platformer directly from the Editor without passing through Start (index 0) — does FindAnyObjectByType&lt;StatManager&gt;() find a manager if none was placed in that scene?" placeholder="write your answer, then keep going"></textarea></label></li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
-<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I keep my coins and my health when I change scenes?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/StatManager.cs</code>. You wrote this file on 2.7. Today you read it against the question it answers: which of these lines is what actually survives the scene load, and which one stops the second copy from overwriting your run?</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>The slot, and the object that claims it</h4><p class="wt-lead">The fields and <code>Awake()</code>. Everything that survives lives on this object.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-cm">// StatManager.cs — the fields, at the top of the class.</span></span>
-<span class="wt-line" data-n="2">    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">health</span> = <span class="tk-nu">3</span>;</span>
-<span class="wt-line" data-n="3">    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">maxHealth</span> = <span class="tk-nu">3</span>;</span>
-<span class="wt-line" data-n="4">    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">coins</span>;</span>
-<span class="wt-line" data-n="5"></span>
-<span class="wt-line wt-line-why" data-n="6">    <span class="tk-kw">public</span> <span class="tk-kw">static</span> <span class="tk-ty">StatManager</span> <span class="tk-va">original</span>;</span>
+<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I keep my health and HUD alive across scene switches?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/StatManager.cs</code>. Open <code>Assets/Scripts/StatManager.cs</code>. Your <code>original</code> singleton guard and <code>DontDestroyOnLoad(gameObject)</code> are already in <code>Awake()</code>. Here is the HUD and death-reload code that completes it.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Import TextMeshPro and SceneManagement, and declare the UI slots</h4><p class="wt-lead">Two <code>using</code> directives at the top of <code>StatManager.cs</code> and two serialized <code>TextMeshProUGUI</code> fields in the class body so Inspector UI objects can be dragged straight onto the manager.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-ct">using</span> <span class="tk-ty">TMPro</span>;</span>
+<span class="wt-line" data-n="2"><span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>.<span class="tk-ty">SceneManagement</span>;</span>
+<span class="wt-line" data-n="3"></span>
+<span class="wt-line wt-line-why" data-n="4">    [<span class="tk-ty">SerializeField</span>] <span class="tk-ty">TextMeshProUGUI</span> <span class="tk-va">coinText</span>;</span>
+<span class="wt-line" data-n="5">    [<span class="tk-ty">SerializeField</span>] <span class="tk-ty">TextMeshProUGUI</span> <span class="tk-va">healthText</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Brings <code>TextMeshProUGUI</code> into scope so C# knows what type <code>coinText</code> and <code>healthText</code> are.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">Brings <code>Scene</code> and <code>SceneManager</code> into scope for <code>Die()</code>.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Inspector slot pointing at the <code>Coins</code> TMP text object on your Canvas.</span><span class="wt-why"><strong>Storing text references on <code>StatManager</code> avoids a second script.</strong> The manager already runs whenever <code>ChangeCoins()</code> or <code>ChangeHealth()</code> is called, so updating the label right there guarantees the screen can never drift out of sync with the variable.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">Inspector slot pointing at the <code>Health</code> TMP text object on your Canvas.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Initialize the labels in Start() and update them when values change</h4><p class="wt-lead">Write the starting labels once in <code>Start()</code>, then refresh them inside <code>ChangeHealth(int amount)</code> and <code>ChangeCoins(int amount)</code> right after clamping.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    <span class="tk-kw">void</span> <span class="tk-fn">Start</span>()</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line" data-n="3">        <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;</span>
+<span class="wt-line" data-n="4">        <span class="tk-va">coinText</span>.<span class="tk-va">text</span> = <span class="tk-st">"Coins: "</span> +<span class="tk-va">coins</span>;</span>
+<span class="wt-line" data-n="5">        <span class="tk-va">healthText</span>.<span class="tk-va">text</span> = <span class="tk-st">"Health: "</span> +<span class="tk-va">health</span>;</span>
+<span class="wt-line" data-n="6">    }</span>
 <span class="wt-line" data-n="7"></span>
-<span class="wt-line" data-n="8"><span class="tk-cm">// StatManager.cs — Awake(), which runs before any Start().</span></span>
-<span class="wt-line" data-n="9">    <span class="tk-kw">void</span> <span class="tk-fn">Awake</span>()</span>
-<span class="wt-line" data-n="10">    {</span>
-<span class="wt-line" data-n="11">        <span class="tk-ct">if</span> (<span class="tk-va">original</span> != <span class="tk-kw">null</span> &amp;&amp; <span class="tk-va">original</span> != <span class="tk-kw">this</span>)</span>
-<span class="wt-line" data-n="12">        {</span>
-<span class="wt-line wt-line-why" data-n="13">            <span class="tk-fn">Destroy</span>(<span class="tk-va">gameObject</span>);</span>
-<span class="wt-line wt-line-why" data-n="14">            <span class="tk-ct">return</span>;</span>
-<span class="wt-line" data-n="15">        }</span>
-<span class="wt-line" data-n="16"></span>
-<span class="wt-line" data-n="17">        <span class="tk-va">original</span> = <span class="tk-kw">this</span>;</span>
-<span class="wt-line" data-n="18"></span>
-<span class="wt-line" data-n="19"><span class="tk-cm">        // Optional: Keep this object alive when switching scenes</span></span>
-<span class="wt-line wt-line-why" data-n="20">        <span class="tk-fn">DontDestroyOnLoad</span>(<span class="tk-va">gameObject</span>);</span>
-<span class="wt-line" data-n="21">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">2</span><span class="wt-what">Current health, public so every caller can read it and every method here can change it. It starts at <code>3</code> because a new run starts at three.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">The ceiling. It is a separate field from <code>health</code> on purpose: one is game state, the other is the designer's number.</span></li>
-<li><span class="wt-ref">4</span><span class="wt-what">The coin count. Defaults to <code>0</code>, which is the right starting value for a run.</span></li>
-<li><span class="wt-ref">6</span><span class="wt-what"><strong>The line the whole lesson rests on.</strong> <code>static</code> means the field belongs to the <em>class</em>, and a scene load destroys objects, not classes. It starts as <code>null</code>.</span><span class="wt-why"><strong>Every word is load-bearing.</strong> Drop <code>static</code> and the field becomes a fact about one object — and the object is exactly what the scene loader deletes. <code>original</code> is empty again the moment you walk through a cave mouth, and your coins with it.</span></li>
-<li><span class="wt-ref">9</span><span class="wt-what">The earliest lifecycle hook: Unity finishes every <code>Awake()</code> in a scene before it runs the first <code>Start()</code>. That is what lets every other script assume the slot is already filled.</span></li>
-<li><span class="wt-ref">11</span><span class="wt-what">The duplicate guard: <em>is there already a manager, and is it somebody else?</em> Walk back into a scene that contains its own StatManager and this is true.</span></li>
-<li><span class="wt-ref">13</span><span class="wt-what">The newcomer deletes itself — component, fields and the fresh <code>coins = 0</code> it was about to claim the slot with.</span><span class="wt-why"><strong>This branch is not a textbook exercise in this project.</strong> <code>Start (index 0)</code> contains its own StatManager, and the cave mouths can take you back to it. Without this line the newcomer overwrites <code>original</code> with default fields, and your run is erased the instant the scene finishes loading.</span></li>
-<li><span class="wt-ref">14</span><span class="wt-what"><strong>The line that makes the guard a guard.</strong> <code>Destroy()</code> is deferred to the end of the frame, so the code below would keep running — and the doomed copy would set <code>original = this</code> a moment before it vanished, leaving every later caller pointing at an object that no longer exists.</span><span class="wt-why"><strong>Read the shape, not just the words:</strong> one branch ends in <code>return;</code>, and everything that claims the slot sits <em>after</em> it. That is an early exit — the same shape as the <code>if</code> that stops a dead player in 2.7, used here to keep one object from doing two contradictory things in one frame.</span></li>
-<li><span class="wt-ref">17</span><span class="wt-what">The first manager to load claims the slot with itself.</span></li>
-<li><span class="wt-ref">19</span><span class="wt-what">The comment that ships with the file — and the one word in it you should argue with. In <em>this</em> project it is not optional: it is the entire mechanism. Delete the call and the comment above becomes true, which is the bug.</span></li>
-<li><span class="wt-ref">20</span><span class="wt-what">The one call in Unity that changes what a scene load is allowed to do: this whole object moves into a scene of its own that never unloads.</span><span class="wt-why"><strong><code>gameObject</code>, not <code>this</code>.</strong> <code>DontDestroyOnLoad()</code> takes whole objects, and a component cannot outlive the GameObject that carries it. Notice what is <strong>not</strong> happening: the numbers are not being saved anywhere. They simply live on an object the loader is no longer allowed to delete.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>The three methods that own the numbers</h4><p class="wt-lead">Nothing outside this file may write these fields — every change goes through one of these.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-cm">// StatManager.cs — the methods, below Awake().</span></span>
-<span class="wt-line" data-n="2">    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">ChangeHealth</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)</span>
-<span class="wt-line" data-n="3">    {</span>
-<span class="wt-line" data-n="4">        <span class="tk-va">health</span> = <span class="tk-va">health</span> + <span class="tk-va">amount</span>;</span>
-<span class="wt-line" data-n="5">        <span class="tk-ct">if</span> (<span class="tk-va">health</span> &gt; <span class="tk-va">maxHealth</span>)</span>
-<span class="wt-line" data-n="6">        {</span>
-<span class="wt-line" data-n="7">            <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;</span>
-<span class="wt-line" data-n="8">        }</span>
-<span class="wt-line wt-line-why" data-n="9">        <span class="tk-fn">print</span>(<span class="tk-st">"Health: "</span> + <span class="tk-va">health</span>);</span>
-<span class="wt-line" data-n="10">        <span class="tk-ct">if</span> (<span class="tk-va">health</span> &lt;= <span class="tk-nu">0</span>)</span>
-<span class="wt-line" data-n="11">        {</span>
-<span class="wt-line" data-n="12">            <span class="tk-fn">Die</span>();</span>
-<span class="wt-line" data-n="13">        }</span>
-<span class="wt-line" data-n="14">    }</span>
-<span class="wt-line" data-n="15"></span>
-<span class="wt-line" data-n="16">    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">ChangeCoins</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)</span>
-<span class="wt-line" data-n="17">    {</span>
-<span class="wt-line" data-n="18">        <span class="tk-va">coins</span> = <span class="tk-va">coins</span> + <span class="tk-va">amount</span>;</span>
-<span class="wt-line" data-n="19">        <span class="tk-ct">if</span> (<span class="tk-va">coins</span> &lt; <span class="tk-nu">0</span>)</span>
-<span class="wt-line" data-n="20">        {</span>
-<span class="wt-line" data-n="21">            <span class="tk-va">coins</span> = <span class="tk-nu">0</span>;</span>
-<span class="wt-line" data-n="22">        }</span>
-<span class="wt-line" data-n="23">        <span class="tk-fn">print</span>(<span class="tk-st">"Coins: "</span> + <span class="tk-va">coins</span>);</span>
-<span class="wt-line" data-n="24">    }</span>
-<span class="wt-line" data-n="25"></span>
-<span class="wt-line" data-n="26">    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">Die</span>()</span>
-<span class="wt-line" data-n="27">    {</span>
-<span class="wt-line" data-n="28">        <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;</span>
-<span class="wt-line" data-n="29">        <span class="tk-va">coins</span> = <span class="tk-va">coins</span> / <span class="tk-nu">2</span>;</span>
-<span class="wt-line" data-n="30">        <span class="tk-fn">print</span>(<span class="tk-st">"You died. Coins: "</span> + <span class="tk-va">coins</span>);</span>
-<span class="wt-line" data-n="31">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">2</span><span class="wt-what">The one door to health. <code>amount</code> is <strong>signed</strong>: a negative hurts, a positive heals, and the caller chooses the sign.</span></li>
-<li><span class="wt-ref">4</span><span class="wt-what">Apply the change. This is the line a spike, a potion and a fireball all end up at.</span></li>
-<li><span class="wt-ref">5</span><span class="wt-what">The ceiling from 2.3, applied <em>inside</em> the method that can bypass it — so no future caller can overheal. (The 2.3 page let you choose between an <code>if</code> and <code>Mathf.Clamp()</code>; this project took the <code>if</code>.)</span></li>
-<li><span class="wt-ref">7</span><span class="wt-what">Clamp down to the ceiling.</span></li>
-<li><span class="wt-ref">9</span><span class="wt-what">The Console readout you have watched since 2.1. It sits <em>after</em> the clamp, so it reports the value the game will actually use — which is also why 3.4's fireball shows the drop and 2.3's potion shows the cap.</span><span class="wt-why"><strong>This is the line the HUD is about to replace.</strong> The Console tells <em>you</em> the number; the HUD will tell the <em>player</em>. Same value, same source, one audience each — and because both read the field after the method has finished changing it, they can never disagree.</span></li>
-<li><span class="wt-ref">10</span><span class="wt-what">The death rule: at or below zero, the run ends. Note the <code>&lt;=</code> — the build checks at zero and below, so a hit that takes you exactly to zero still kills.</span></li>
-<li><span class="wt-ref">12</span><span class="wt-what">The method below, which owns what death means.</span></li>
-<li><span class="wt-ref">16</span><span class="wt-what">The one door to the coin count, same signed-amount shape.</span></li>
-<li><span class="wt-ref">19</span><span class="wt-what">The floor: a debt cannot show on the HUD as a negative number.</span></li>
-<li><span class="wt-ref">23</span><span class="wt-what">The same readout, for the same reason — and the same line the HUD will duplicate for the player.</span></li>
-<li><span class="wt-ref">26</span><span class="wt-what">Death, as this game defines it. <code>public</code> because the method is a promise the rest of the game can call — though today the only caller is <code>ChangeHealth()</code>. That is not an accident: it is what lets a later refactor add a respawn without moving the rule.</span></li>
-<li><span class="wt-ref">28</span><span class="wt-what">Back to full. The player does not move: this is a reset, not a respawn.</span></li>
-<li><span class="wt-ref">29</span><span class="wt-what">Half the coins are lost — integer division, so an odd coin disappears. That is the cost of dying.</span></li>
-<li><span class="wt-ref">30</span><span class="wt-what">A readout that makes the death visible in the Console, because nothing on screen shows it yet. The <code>else</code> of that sentence is the next lesson's work, not this one's.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare against your own file. Two lines have to be exactly right: <code>public static StatManager original;</code> — <code>static</code>, so the scene loader cannot reach it — and the duplicate guard, whose <code>return;</code> is what keeps the doomed copy from claiming the slot on its way out. Everything else you should be able to explain line by line; if you cannot, that is the line to re-read.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="wt-line" data-n="8">        <span class="tk-va">healthText</span>.<span class="tk-va">text</span> = <span class="tk-st">"Health: "</span> +<span class="tk-va">health</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Runs once after <code>Awake()</code> finishes on the surviving <code>StatManager</code>.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Starts the player at full health (<code>3</code> by default).</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Sets the initial coin readout so it does not stay as placeholder text (<code>"New Text"</code>).</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">Sets the initial health readout on frame 1.</span></li>
+<li><span class="wt-ref">8</span><span class="wt-what">Add this line at the bottom of <code>ChangeHealth(int amount)</code> (right before <code>if (health &lt;= 0)</code>), and add <code>coinText.text = "Coins: " +coins;</code> inside <code>ChangeCoins(int amount)</code>.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Reset stats and reload the current scene in Die()</h4><p class="wt-lead">When <code>health &lt;= 0</code>, <code>ChangeHealth()</code> calls <code>Die()</code>. Reset <code>health</code>, halve <code>coins</code>, update the text, and reload whichever scene the player died in.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">Die</span>()</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line" data-n="3">        <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;</span>
+<span class="wt-line" data-n="4">        <span class="tk-va">healthText</span>.<span class="tk-va">text</span> = <span class="tk-st">"Health: "</span> +<span class="tk-va">health</span>;</span>
+<span class="wt-line wt-line-why" data-n="5">        <span class="tk-va">coins</span> = <span class="tk-va">coins</span> / <span class="tk-nu">2</span>;</span>
+<span class="wt-line" data-n="6">        <span class="tk-ty">Scene</span> <span class="tk-va">current</span> = <span class="tk-va">SceneManager</span>.<span class="tk-fn">GetActiveScene</span>();</span>
+<span class="wt-line" data-n="7">        <span class="tk-va">SceneManager</span>.<span class="tk-fn">LoadScene</span>(<span class="tk-va">current</span>.<span class="tk-va">name</span>);</span>
+<span class="wt-line" data-n="8">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Called whenever <code>health &lt;= 0</code>. Must be <code>public</code> or callable from <code>ChangeHealth()</code>.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Refills <code>health</code> to <code>3</code> so the next life does not immediately die again.</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Updates the HUD immediately after restoring <code>health</code>.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">Integer division penalty: lose half your coins on death.</span><span class="wt-why"><strong>Integer division drops fractions automatically.</strong> <code>5 / 2</code> becomes <code>2</code> without any rounding call — a useful reminder when numbers are <code>int</code>.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what">Asks Unity which scene is currently open (works for both <code>"Overworld"</code> and <code>"Platformer"</code>).</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what">Reloads the active scene by name, respawning enemies, coins, and the player at the start point.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Notice what is NOT in <code>StatManager.cs</code>: a second <code>HudController</code> script. Because <code>StatManager</code> itself owns both <code>health</code>/<code>coins</code> and <code>healthText</code>/<code>coinText</code>, parenting your Canvas under <code>StatManager</code> lets one <code>DontDestroyOnLoad</code> object carry both data and HUD across every scene.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
 <span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/StatManager.cs</span>
 <span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
 <span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
@@ -233,15 +88,17 @@
 <span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
 <span class="tk-cm">// ------------------------------------------------------------------</span>
 <span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
-
+<span class="tk-ct">using</span> <span class="tk-ty">TMPro</span>;
+<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>.<span class="tk-ty">SceneManagement</span>;
 
 <span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">StatManager</span> : <span class="tk-ty">MonoBehaviour</span>
 {
-    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">health</span> = <span class="tk-nu">3</span>;
+    <span class="tk-kw">int</span> <span class="tk-va">health</span>;
+    <span class="tk-kw">int</span> <span class="tk-va">maxHealth</span> = <span class="tk-nu">3</span>;
+    <span class="tk-kw">int</span> <span class="tk-va">coins</span>;
 
-    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">maxHealth</span> = <span class="tk-nu">3</span>;
-
-    <span class="tk-kw">public</span> <span class="tk-kw">int</span> <span class="tk-va">coins</span>;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-ty">TextMeshProUGUI</span> <span class="tk-va">coinText</span>;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-ty">TextMeshProUGUI</span> <span class="tk-va">healthText</span>;
 
     <span class="tk-kw">public</span> <span class="tk-kw">static</span> <span class="tk-ty">StatManager</span> <span class="tk-va">original</span>;
 
@@ -254,23 +111,25 @@
         }
 
         <span class="tk-va">original</span> = <span class="tk-kw">this</span>;
-
-<span class="tk-cm">        // Optional: Keep this object alive when switching scenes</span>
         <span class="tk-fn">DontDestroyOnLoad</span>(<span class="tk-va">gameObject</span>);
     }
 
-<span class="tk-cm">    // Keeps track of health and prints it.</span>
-<span class="tk-cm">    // The cap and the death rule live here so every caller obeys them.</span>
+    <span class="tk-kw">void</span> <span class="tk-fn">Start</span>()
+    {
+        <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;
+        <span class="tk-va">coinText</span>.<span class="tk-va">text</span> = <span class="tk-st">"Coins: "</span> +<span class="tk-va">coins</span>;
+        <span class="tk-va">healthText</span>.<span class="tk-va">text</span> = <span class="tk-st">"Health: "</span> +<span class="tk-va">health</span>;
+    }
+
     <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">ChangeHealth</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)
     {
         <span class="tk-va">health</span> = <span class="tk-va">health</span> + <span class="tk-va">amount</span>;
-
         <span class="tk-ct">if</span> (<span class="tk-va">health</span> &gt; <span class="tk-va">maxHealth</span>)
         {
             <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;
         }
 
-        <span class="tk-fn">print</span>(<span class="tk-st">"Health: "</span> + <span class="tk-va">health</span>);
+        <span class="tk-va">healthText</span>.<span class="tk-va">text</span> = <span class="tk-st">"Health: "</span> +<span class="tk-va">health</span>;
 
         <span class="tk-ct">if</span> (<span class="tk-va">health</span> &lt;= <span class="tk-nu">0</span>)
         {
@@ -278,134 +137,72 @@
         }
     }
 
-<span class="tk-cm">    // Keeps track of coins and prints it.</span>
     <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">ChangeCoins</span>(<span class="tk-kw">int</span> <span class="tk-va">amount</span>)
     {
         <span class="tk-va">coins</span> = <span class="tk-va">coins</span> + <span class="tk-va">amount</span>;
-
         <span class="tk-ct">if</span> (<span class="tk-va">coins</span> &lt; <span class="tk-nu">0</span>)
         {
             <span class="tk-va">coins</span> = <span class="tk-nu">0</span>;
         }
 
-        <span class="tk-fn">print</span>(<span class="tk-st">"Coins: "</span> + <span class="tk-va">coins</span>);
+        <span class="tk-va">coinText</span>.<span class="tk-va">text</span> = <span class="tk-st">"Coins: "</span> +<span class="tk-va">coins</span>;
     }
 
-<span class="tk-cm">    // The MVP death rule: reset health and lose half the coins.</span>
-<span class="tk-cm">    // No scene reload or respawn yet; that comes in a later refactor.</span>
     <span class="tk-kw">public</span> <span class="tk-kw">void</span> <span class="tk-fn">Die</span>()
     {
         <span class="tk-va">health</span> = <span class="tk-va">maxHealth</span>;
+        <span class="tk-va">healthText</span>.<span class="tk-va">text</span> = <span class="tk-st">"Health: "</span> +<span class="tk-va">health</span>;
         <span class="tk-va">coins</span> = <span class="tk-va">coins</span> / <span class="tk-nu">2</span>;
-        <span class="tk-fn">print</span>(<span class="tk-st">"You died. Coins: "</span> + <span class="tk-va">coins</span>);
+        <span class="tk-ty">Scene</span> <span class="tk-va">current</span> = <span class="tk-va">SceneManager</span>.<span class="tk-fn">GetActiveScene</span>();
+        <span class="tk-va">SceneManager</span>.<span class="tk-fn">LoadScene</span>(<span class="tk-va">current</span>.<span class="tk-va">name</span>);
     }
 }</code></pre></details></div>
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: The HUD, and Where the Game Begins</span>
-        <span class="activity-time">~20 min</span>
+        <span class="activity-label">Quick Reference: Persistence &amp; Scene API</span>
+        <span class="activity-time">Read</span>
     </div>
 
-    <p>
-        One decision is left, and it is yours: <strong>which scene should the game actually begin
-        in?</strong> A Canvas is <em>not</em> persistent — it exists only in the scene that contains
-        it.
-    </p>
-
     <table>
-        <tr><th>Approach</th><th>What you do</th><th>What it costs</th></tr>
+        <tr><th>Member</th><th>What it does</th><th>Gotcha</th></tr>
         <tr>
-            <td><strong>Move the Overworld's Canvas into <code>Start (index 0)</code></strong></td>
-            <td>Drag the Canvas and its <code>Text (TMP)</code> child across, then repair whatever
-                breaks.</td>
-            <td>Less setup, but a Canvas carries its scene's wiring with it: any button or listener
-                that pointed at an Overworld object comes across as <em>Missing</em>, and the thing
-                it used to do quietly stops happening.</td>
+            <td><code>public static StatManager original;</code></td>
+            <td>Shared class-level slot holding the one surviving manager instance.</td>
+            <td>Check <code>if (original != null &amp;&amp; original != this)</code> before calling <code>DontDestroyOnLoad()</code>.</td>
         </tr>
         <tr>
-            <td><strong>Leave it alone and build a fresh Canvas in <code>Start (index 0)</code></strong></td>
-            <td>One menu item: <code>GameObject ▸ UI ▸ Text - TextMeshPro</code>.</td>
-            <td>A second Canvas exists in the project, and the Overworld's still switches off when
-                you leave it — harmlessly, because nothing is drawn on it. You break nothing you did
-                not write.</td>
+            <td><code>DontDestroyOnLoad(gameObject);</code></td>
+            <td>Keeps this GameObject (and child Canvas HUD) alive when loading a new scene.</td>
+            <td>Only works reliably on root GameObjects — do not nest <code>StatManager</code> under another object.</td>
+        </tr>
+        <tr>
+            <td><code>TextMeshProUGUI.text</code></td>
+            <td>Sets the visible string on screen (e.g. <code>"Coins: " +coins</code>).</td>
+            <td>Requires <code>using TMPro;</code> and assigning the Inspector field before pressing Play.</td>
+        </tr>
+        <tr>
+            <td><code>SceneManager.GetActiveScene()</code></td>
+            <td>Returns the current <code>Scene</code> struct so <code>current.name</code> gives the scene name.</td>
+            <td>Requires <code>using UnityEngine.SceneManagement;</code> and scenes added in Build Profiles.</td>
+        </tr>
+        <tr>
+            <td><code>SceneManager.LoadScene(current.name)</code></td>
+            <td>Reloads the current scene from scratch on death.</td>
+            <td>Scene-local pickups and enemies reset; <code>StatManager</code> fields do not unless you reset them in <code>Die()</code>.</td>
         </tr>
     </table>
-
-    <p>
-        Either is defensible. This lesson builds a fresh one, because that path leaves the wiring you
-        inherited exactly as you found it. Whichever you choose, <strong>write down your reason
-        before you start</strong>: the checkpoint asks you for it.
-    </p>
 </div>
-
-<!-- ============================================================ -->
-<div class="activity walkthrough" data-scaffold="1" data-gaps="0"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Full walkthrough</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;how do I put my coins and my health on the screen?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/HudController.cs</code>. A new script, and the Canvas you need for it is already standing in <code>Start (index 0)</code> — that was the editor work above. The script itself is a handful of lines: a slot for the text, a guard, and one string built from the values on <code>StatManager.original</code>. Every line is given.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Give the script a slot for the text</h4><p class="wt-lead">Two lines above the method: one <code>using</code> and one field.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1"><span class="tk-ct">using</span> <span class="tk-ty">TMPro</span>;</span>
-<span class="wt-line" data-n="2"></span>
-<span class="wt-line wt-line-why" data-n="3">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">TextMeshProUGUI</span> <span class="tk-va">statsText</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">TextMeshPro's types live in a namespace called <code>TMPro</code>, and the UI package that ships them does not put them in scope for you. Without this line the compiler cannot find the type on the next line, and reports an error that reads like a typo.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">The text object, wired from the Inspector. One thing here is new: the type is not <code>GameObject</code> or <code>Transform</code>, it is the <strong>component</strong> — because the component is what owns the <code>text</code> property you are about to write to.</span><span class="wt-why"><strong>A slot for the component, not for the object.</strong> You have held component references since 2.2, but always by looking them up at runtime with <code>GetComponent&lt;Rigidbody2D&gt;()</code>. This one is dragged in by hand, which is only possible because <code>TextMeshProUGUI</code> is a component type the Inspector can hold.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Read the numbers from the manager, and write them into the text</h4><p class="wt-lead">One method, <code>Update()</code>, and it takes a position on the design question this lesson asks out loud: read every frame, and do not get clever about it.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()</span>
-<span class="wt-line" data-n="2">    {</span>
-<span class="wt-line wt-line-why" data-n="3">        <span class="tk-ct">if</span> (<span class="tk-va">StatManager</span>.<span class="tk-va">original</span> == <span class="tk-kw">null</span>)</span>
-<span class="wt-line" data-n="4">        {</span>
-<span class="wt-line" data-n="5">            <span class="tk-ct">return</span>;</span>
-<span class="wt-line" data-n="6">        }</span>
-<span class="wt-line" data-n="7"></span>
-<span class="wt-line wt-line-why" data-n="8">        <span class="tk-kw">string</span> <span class="tk-va">statsLine</span> = <span class="tk-st">"Health: "</span> + <span class="tk-va">StatManager</span>.<span class="tk-va">original</span>.<span class="tk-va">health</span></span>
-<span class="wt-line" data-n="9">                         + <span class="tk-st">" / "</span> + <span class="tk-va">StatManager</span>.<span class="tk-va">original</span>.<span class="tk-va">maxHealth</span>;</span>
-<span class="wt-line" data-n="10"></span>
-<span class="wt-line" data-n="11">        <span class="tk-va">statsLine</span> = <span class="tk-va">statsLine</span> + <span class="tk-st">"   Coins: "</span> + <span class="tk-va">StatManager</span>.<span class="tk-va">original</span>.<span class="tk-va">coins</span>;</span>
-<span class="wt-line" data-n="12"></span>
-<span class="wt-line wt-line-why" data-n="13">        <span class="tk-va">statsText</span>.<span class="tk-va">text</span> = <span class="tk-va">statsLine</span>;</span>
-<span class="wt-line" data-n="14">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Every frame, like your movement and your enemy logic. A number can change at any moment — a coin is collected in a trigger callback, damage arrives from a fireball you never see coming — so a readout that is only correct sometimes is worse than no readout at all.</span><span class="wt-why"><strong>The alternative is "only rewrite the text when a value changes", and here it costs more than it saves.</strong> You would keep the last three values as fields and compare them every frame — three extra fields, and three extra chances for one of them to go stale and freeze the label forever. Reading a value is a field lookup; the expensive part is building the string, which is exactly what you would be avoiding. At this scale the honest engineering answer is the simple one, and the moment it stops being true the fix is right here: remember the last values, and rebuild the string only when one of them moves.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">The guard — and here it genuinely earns its place. This script can run in a scene with no manager at all: the Overworld and the Platformer both contain a Player, and neither contains a StatManager. Press Play from either one and this method runs every frame with nothing to read.</span><span class="wt-why"><strong>Without this line the Console fills with a NullReferenceException sixty times a second.</strong> That does not crash the game; it buries every other message you might need, which is worse. With the line, the label simply keeps whatever it last said. Neither is a <em>fix</em> — the real fix is that the game begins in <code>Start (index 0)</code> — but the guard turns a flood into a blank label, which is a failure you can see.</span></li>
-<li><span class="wt-ref">5</span><span class="wt-what">Nothing to show, so show nothing. <code>return</code> leaves the method immediately — the same early-exit shape as the death rule in your 2.7 health method.</span></li>
-<li><span class="wt-ref">8</span><span class="wt-what">Build the line. The left-hand side is a <strong>local</strong> — a string that exists for this frame only, which is correct: it is thrown away and rebuilt next frame anyway, and a field would just be a place for a stale one to hide.</span><span class="wt-why"><strong>Every value comes from <code>StatManager.original</code>, not from the player.</strong> The manager is the only object that still has the numbers, and the only one that survived the scene change — which is why the HUD can be trusted at all. Read them off the player and you get a fresh copy of the player's starting values in every new scene, which is the bug this lesson is about.</span></li>
-<li><span class="wt-ref">9</span><span class="wt-what">And the ceiling, so the label reads <code>2 / 3</code>. Showing the maximum and not just the current health is a small design decision worth naming: a player can only judge "am I in trouble?" against what full looks like.</span></li>
-<li><span class="wt-ref">11</span><span class="wt-what">Appending to the string you already built. Note the shape: assign back to the same name, because a string cannot be changed in place — this makes a new one and points the name at it.</span></li>
-<li><span class="wt-ref">13</span><span class="wt-what">The write. <code>statsText</code> is the component you wired in the Inspector; <code>.text</code> is the property holding the characters on screen. Assign to it and the label changes on this frame.</span><span class="wt-why"><strong>Nothing reads the text back, and nothing stores it.</strong> The label is a <em>view</em> of the numbers, not a copy of them — it holds no game state of its own. That is what makes it impossible for the HUD and the truth to disagree. The moment you cache a number in this script "to save time", you have built a second source of truth, and it will be the wrong one.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">build it as you read &mdash; then open this to check every line</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things to check: the <code>using TMPro;</code> line is there, the string is built inside <code>Update()</code> rather than once in <code>Start()</code>, and every value is read from <code>StatManager.original</code> rather than from the player. Your label text, your placement and what you choose to display are yours — the shape is the slot, the guard, and the rebuild in <code>Update()</code>.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
-<span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/HudController.cs</span>
-<span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
-<span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
-<span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
-<span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
-<span class="tk-cm">// ------------------------------------------------------------------</span>
-<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
-<span class="tk-ct">using</span> <span class="tk-ty">TMPro</span>;
-
-<span class="tk-cm">// HudController.cs — the numbers, on screen. It owns no state at all: every</span>
-<span class="tk-cm">// value is read from the manager each frame and thrown away again.</span>
-<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">HudController</span> : <span class="tk-ty">MonoBehaviour</span>
-{
-    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">private</span> <span class="tk-ty">TextMeshProUGUI</span> <span class="tk-va">statsText</span>;
-
-    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
-    {
-<span class="tk-cm">        // No manager in this scene (you pressed Play in the Overworld)? There</span>
-<span class="tk-cm">        // is nothing to show and nothing to crash over.</span>
-        <span class="tk-ct">if</span> (<span class="tk-va">StatManager</span>.<span class="tk-va">original</span> == <span class="tk-kw">null</span>)
-        {
-            <span class="tk-ct">return</span>;
-        }
-
-        <span class="tk-kw">string</span> <span class="tk-va">statsLine</span> = <span class="tk-st">"Health: "</span> + <span class="tk-va">StatManager</span>.<span class="tk-va">original</span>.<span class="tk-va">health</span>
-                         + <span class="tk-st">" / "</span> + <span class="tk-va">StatManager</span>.<span class="tk-va">original</span>.<span class="tk-va">maxHealth</span>;
-
-        <span class="tk-va">statsLine</span> = <span class="tk-va">statsLine</span> + <span class="tk-st">"   Coins: "</span> + <span class="tk-va">StatManager</span>.<span class="tk-va">original</span>.<span class="tk-va">coins</span>;
-
-        <span class="tk-va">statsText</span>.<span class="tk-va">text</span> = <span class="tk-va">statsLine</span>;
-    }
-}</code></pre></details></div>
 
 <!-- ============================================================ -->
 <div class="checklist">
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
-        <li>Explain why a scene load <em>replaces</em> your stats rather than losing them</li>
-        <li>Point at the one field that makes the numbers survive, and say what <code>static</code> changes about where it lives</li>
-        <li>Explain why the duplicate guard is genuinely necessary in <em>this</em> project</li>
-        <li>Say which method owns health, where the ceiling is applied, and why no caller can bypass it</li>
-        <li>Put the HUD in the scene where the game begins, and say what that costs you</li>
+        <li>Explain how <code>original</code> and <code>DontDestroyOnLoad()</code> keep one <code>StatManager</code> and Canvas HUD alive across scenes</li>
+        <li>Update <code>healthText</code> and <code>coinText</code> directly from <code>StatManager.Start()</code>, <code>ChangeHealth()</code>, and <code>ChangeCoins()</code></li>
+        <li>Reload the active scene in <code>Die()</code> while resetting <code>health</code> and halving <code>coins</code></li>
+        <li>Verify that all scenes (<code>Start (index 0)</code>, <code>Overworld</code>, <code>Platformer</code>) are in Build Profiles</li>
         <li>Commit and push</li>
     </ul>
 </div>
@@ -415,11 +212,11 @@
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — every question this course answers, in the words you would search with</li>
-        <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — the scene-switch reference</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — SceneManager, DontDestroyOnLoad and the singleton pattern</li>
+        <li><a href="../docs/unit-05/index.html">Unit 5: Inventory, Events &amp; Persistence</a> — singleton &amp; scene flow notes</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>DontDestroyOnLoad()</code> and <code>SceneManager</code></li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
     </ul>
-    <p>Next: <a href="6.1.html">6.1 — Gravity &amp; Jump: The First Flick</a>, where the cave arrives and <em>down</em> starts to mean something.</p>
+    <p>Next: <a href="6.1.html">6.1 — Gravity &amp; Jump: The First Flick</a>, where the scene check turns gravity on inside the cave.</p>
 </div><div class="lab-bar" data-lesson="5.3" data-lesson-title="Into the Cave: Persistence &amp; the HUD" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="5.3" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="5.2.html"><span class="dir">&#9664; Previous</span><span class="where">5.2 — The Door: Opening It with Events</span></a><a class="foot-next" href="6.1.html"><span class="dir">Next &#9654;</span><span class="where">6.1 — Gravity &amp; Jump: The First Flick</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
      restores the hidden bridge textareas first, and mc-quiz.js reads those
      restored values to re-check the radios. Swapping the order breaks

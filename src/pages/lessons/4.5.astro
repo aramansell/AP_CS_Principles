@@ -115,9 +115,14 @@ const WALK = {
   level: 1,
   steps: [
     {
-      title: 'Declare how hard the flick is',
-      lead: 'One field in the class body beside your movement fields, for the same reason those are there: it is a number a person tunes, not a value you bury inside a condition.',
+      title: 'Declare the gravity and jump knobs',
+      lead: 'Two fields in the class body beside your movement fields, for the same reason those are there: both are numbers a person tunes in the Inspector, not values you bury inside a condition.',
       lines: [
+        {
+          code: '    [SerializeField] float gravityScale;',
+          what: 'How hard the physics engine pulls you down once you leave the top-down hub. On the starter prefab this is tuned around `4.5` so jumps snap instead of floating.',
+          why: '**Storing `gravityScale` as a field lets you tune fall weight without editing code**, and keeps the same Inspector number handy later when ladders switch gravity off and back on.',
+        },
         {
           code: '    [SerializeField] float jumpForce;',
           what: '**How hard the flick is.** `[SerializeField]` means the Inspector shows the field, which is the same shape as the fields you wrote in 1.3. The name says *force* because that is what the call takes, so no reader mistakes it for the speed the character leaves the ground at.',
@@ -159,8 +164,8 @@ const WALK = {
         },
         { code: '        {', what: '' },
         {
-          code: '            rb.gravityScale = 1;',
-          what: '**The whole of turning gravity on.** `rb.gravityScale` is the Rigidbody2D property behind the Inspector field you have been reading all year, and `1` means "the project gravity, undiluted".',
+          code: '            rb.gravityScale = gravityScale;',
+          what: '**Turning gravity on from your Inspector knob.** `rb.gravityScale` is the Rigidbody2D property behind the Inspector field you have been reading all year, and setting it to your `gravityScale` field switches the body into platformer weight.',
         },
         { code: '        }', what: '' },
       ],
@@ -222,6 +227,7 @@ using UnityEngine.SceneManagement;
 public class PlayerController : MonoBehaviour
 {
     float speed = 4;                    // your number, from 1.5
+    [SerializeField] float gravityScale; // how heavy the fall feels - set in the Inspector
     [SerializeField] float jumpForce;  // how hard the flick is - set in the Inspector
 
     Rigidbody2D rb;
@@ -242,7 +248,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            rb.gravityScale = 1;
+            rb.gravityScale = gravityScale;
             isPlatformer = true;
         }
     }

@@ -24,27 +24,27 @@ Exam: **Friday, May 14, 2027**, 8:00 AM (Session 1). Create PT due **Friday, Apr
 | 2026-10-22 (Thu) | Lesson | 4.2 | Enemy Animation: A Different State Machine | AAP-2 CRD-2 |
 | 2026-10-26 (Mon) | Lesson | 4.3 | Chase: The Aggro Radius | AAP-2 |
 | 2026-10-28 (Wed) | Lesson | 4.4 | Attack: Close-Range Contact Damage — The enemy hits you; then you hit back. A sprite child with a BoxCollider2D, moved to the side you are facing. Whatever it touches is stored in a variable, and the swing calls ChangeHealth(int amount) on it - the first time your player does something to the world instead of the world doing something to the player. | AAP-2 |
-| 2026-11-03 (Tue) | Lesson | 4.5 | The Jump: Getting the Player Off the Ground — The cave opens early: gravity for one scene, one key press and one impulse. The enemy state machine waits. | AAP-2 |
-| 2026-11-05 (Thu) | Lesson | 5.1 | The Axe: Item Pickups & Inventory Bools | AAP-1 CRD-2 |
-| 2026-11-09 (Mon) | Lesson | 5.2 | The Door: Opening It with Events | AAP-2 CRD-2 |
-| 2026-11-12 (Thu) | Lesson | 5.3 | Into the Cave: Persistence & the HUD — The architectural payoff. Leaving the overworld destroys every stat the student owns, because a scene load replaces rather than loses. The StatManager from 2.7 is the answer; today they verify it does its three jobs - one original, surviving the load, and clamping - and then build the HUD that shows health and coins where the game begins. | AAP-1 CRD-2 |
-| 2026-11-16 (Mon) | Lesson | 6.1 | Gravity & Jump: The First Flick | AAP-2 |
-| 2026-11-18 (Wed) | Lesson | 6.2 | Ground Checks: No Infinite Jumps | AAP-2 |
-| 2026-11-20 (Fri) | Lesson | 6.3 | Jump Feel & Double Jump | AAP-2 |
-| 2026-12-01 (Tue) | Studio | 6.5 | Platforming Studio: The Gauntlet — Back from Thanksgiving week. Studio day: build the Gauntlet. | CRD-2 |
-| 2026-12-03 (Thu) | Lesson | 7.1 | Tilemaps: The Level Editor — Today you learn to build worlds. | CRD-2 |
-| 2026-12-07 (Mon) | Lesson | 7.2 | Tile Collision, Layers & Sorting | CRD-2 |
-| 2026-12-09 (Wed) | Lesson | 7.3 | Ladders I: The Climbing State | AAP-2 |
-| 2026-12-11 (Fri) | Lesson | 7.4 | Ladders II: Mounts, Tops & Polish | AAP-2 |
-| 2026-12-15 (Tue) | Studio | 7.5 | Design a Big Cave + Level Studio I | CRD-2 |
-| 2026-12-17 (Thu) | Studio | 7.7 | Level Studio II + Cross-Playtest — Last class before winter break - your cave is playable before you go. | CRD-2 |
-| 2027-01-04 (Mon) | Lesson | 8.1 | Boss Design: Spec It First — The first build that is fully yours. Design on paper before you open Unity. | CRD-2 |
-| 2027-01-06 (Wed) | Lesson | 8.2 | Boss Body, Health & Phases | AAP-1 CRD-2 |
-| 2027-01-08 (Fri) | Lesson | 8.3 | Player Attack: Fight Back | AAP-2 AAP-3 |
-| 2027-01-12 (Tue) | Lesson | 8.4 | Boss Attacks: Patterns & Phases | AAP-2 |
-| 2027-01-14 (Thu) | Lesson | 8.5 | Win, Lose & the Death Loop | CRD-2 |
-| 2027-01-19 (Tue) | Studio | 8.6 | Boss Studio + Final Review | CRD-2 |
-| 2027-01-21 (Thu) | Final | T1 | Semester 1 Final (a normal B day) — Finals-week B day, normal bell schedule. Practical + concepts from Units 1-8. |  |
+| 2026-11-03 (Tue) | Lesson | 4.5 | Jump Switch, Axe & Cave Door — Catch-up wrap of Overworld mechanics: scene-based gravityScale & isPlatformer in Start(), axe pickup bool, and Lever interaction. | AAP-2 |
+| 2026-11-05 (Thu) | Lesson | 5.3 | Into the Cave: StatManager Persistence & HUD — StatManager owns health, maxHealth, coins, and the Canvas TextMeshProUGUI HUD across scenes, resetting and reloading the active scene inside Die(). | AAP-1 CRD-2 |
+| 2026-11-09 (Mon) | Lesson | 6.1 | Jumping & Ground Collision Tags — KeyCode.J + AddForceY jump gated by jumpsRemaining >= 1 and reset in OnCollisionEnter2D when CompareTag("Ground") fires. | AAP-2 |
+| 2026-11-12 (Thu) | Studio | 7.1 | Tilemaps, Ground Colliders & Cave Blockout — Build the Platformer cave scene out of painted tilemaps tagged Ground and block out the vertical traversal course. | CRD-2 |
+| 2026-11-16 (Mon) | Lesson | 6.3 | Moving Platforms, Jump Tuning & Level Studio — Build Platform.cs (wayPoints, isOn, MoveTowards, SetParent), tune gravityScale & jumpForce, unlock vertical camera tracking, and expand the cave. | AAP-2 CRD-2 |
+| 2026-11-18 (Wed) | Lesson | 7.3 | Ladders (isPlatformer) & Cave Level Studio — Short lesson (~15 min): in OnTriggerEnter2D(), touching a Ladder trigger sets isPlatformer = false (and rb.gravityScale = 0); in OnTriggerExit2D(), exiting sets isPlatformer = true (and restores gravityScale). Most of the period is building your cave level and prepping for the boss fight. | AAP-2 CRD-2 |
+| 2026-11-20 (Fri) | Lesson | 6.4 | Double Jump (StatManager) & Boss Prep Studio — Short lesson (~15 min): move jumpsRemaining and maxJumps into StatManager so multi-jump upgrades persist cleanly. Most of the period is finishing your cave level and getting ready for the boss fight. | AAP-1 AAP-2 CRD-2 |
+| 2026-12-01 (Tue) | Lesson | 8.1 | Boss Design: Reuse Parts & Brainstorm — Back from Thanksgiving week. Kick off two weeks of independent boss building: brainstorm ideas by reusing EnemyController, TurretController, projectiles, Platform, Spawner, and StatManager. | CRD-2 |
+| 2026-12-03 (Thu) | Studio | 8.2 | Boss Prototype I: Arena, Body & Health — Build the first rough prototype on screen: boss body, health/phases, and reused arena parts so something is playable right away. | AAP-1 CRD-2 |
+| 2026-12-07 (Mon) | Studio | 8.3 | Boss Prototype II: Player Attacks & Hitbox — Wire your existing melee (attackBox + KeyCode.E) and ranged (PlayerProjectile + KeyCode.Space) attacks into the boss prototype and verify clear damage feedback. | AAP-2 AAP-3 |
+| 2026-12-09 (Wed) | Studio | 8.4 | Boss Prototype III: Patterns & Reused Hazards — Combine turrets, moving platforms, spawners, and movement phases into readable attack patterns and phase shifts. | AAP-2 |
+| 2026-12-11 (Fri) | Studio | 8.4 | Boss Studio: Self-Playtest & Tune — Self-playtest day. Fight your own boss end-to-end, log every unfair overlap, blind spot, or dead stretch, and tune numbers before friends play. | CRD-2 |
+| 2026-12-15 (Tue) | Studio | 8.5 | Boss Playtest with Friends & Win/Lose Loop — Have friends playtest your boss cold without coaching; fix confusion first, and hook up the real victory trigger and StatManager death reset. | CRD-2 |
+| 2026-12-17 (Thu) | Studio | 8.6 | Boss Revisions & Pre-Break Showcase — Apply friend-playtest revisions, freeze changes cleanly, and showcase your finished boss fight before Winter Break. | CRD-2 |
+| 2027-01-04 (Mon) | Jam | J1 | 3-Button Jam: Brainstorm & Pitch — Jam 1 of 3. Runs through the end of Semester 1. One constraint: the whole game uses at most three buttons of input. Brainstorm widely, sketch multiple ideas, and pitch the crispest one. | CRD-2 |
+| 2027-01-06 (Wed) | Jam | J1 | 3-Button Jam: Rapid Prototype — Build the greybox prototype fast: all three button verbs working with placeholder blocks so you can test whether the idea is fun before art or polish. | CRD-2 |
+| 2027-01-08 (Fri) | Jam | J1 | 3-Button Jam: Expand Loop & Self-Playtest — Flesh out the winning/losing condition and one real escalation mechanic, then self-playtest with structured bug and feel notes. | CRD-2 |
+| 2027-01-12 (Tue) | Jam | J1 | 3-Button Jam: Friend Playtest & Triage — Swap seats and have friends playtest blind (zero verbal instructions). Watch where they hesitate, record every surprise, and triage fixes. | CRD-2 |
+| 2027-01-14 (Thu) | Jam | J1 | 3-Button Jam: Iterate, Polish & Freeze — Revise the top gameplay issues your friends found, run a follow-up check to confirm each fix worked, then add readability polish and freeze. | CRD-2 |
+| 2027-01-19 (Tue) | Jam | J1 | 3-Button Jam: Final Revisions & Build Check — Last work day before finals: verify controls work cleanly in a fresh build, fix any soft-locks from playtest 2, and write your 2-sentence instructions card. | CRD-2 |
+| 2027-01-21 (Thu) | Final | T1 | 3-Button Jam: Showcase & Semester 1 Retro — Finals-week B day (normal bell schedule). Play classmates' 3-button games, give written feedback, and complete the Semester 1 retrospective. | CRD-2 |
 | 2027-01-28 (Thu) | Lesson | 9.1 | Binary: How Numbers Live in Memory | DAT-1 |
 | 2027-02-01 (Mon) | Lesson | 9.2 | Hex, RGB & Data Abstraction | DAT-1 |
 | 2027-02-03 (Wed) | Lesson | 9.3 | Compression: Lossy vs Lossless | DAT-1 |
@@ -55,12 +55,12 @@ Exam: **Friday, May 14, 2027**, 8:00 AM (Session 1). Create PT due **Friday, Apr
 | 2027-02-18 (Thu) | Lesson | 9.8 | The Internet: Packets, Routing & DNS | CSN-2 |
 | 2027-02-22 (Mon) | Lesson | 9.9 | Encryption: Keys, TLS & Public Key | CSN-2 |
 | 2027-02-24 (Wed) | Lesson | 9.10 | Impact, Ethics & Licenses (Your Fork!) | IOC-1 CRD-1 |
-| 2027-02-26 (Fri) | Jam | J1 | 2-Button Jam: Kickoff & Pitch — Jam 1 of 3. One rule: the whole game runs on exactly two inputs. Constraints breed creativity. | CRD-2 |
-| 2027-03-02 (Tue) | Jam | J1 | 2-Button Jam: Build Day 1 | CRD-2 |
-| 2027-03-05 (Fri) | Jam | J1 | 2-Button Jam: Build Day 2 | CRD-2 |
-| 2027-03-09 (Tue) | Jam | J1 | 2-Button Jam: Playtest | CRD-2 |
-| 2027-03-11 (Thu) | Jam | J1 | 2-Button Jam: Polish | CRD-2 |
-| 2027-03-15 (Mon) | Jam | J1 | 2-Button Jam: Showcase & Retro | CRD-2 |
+| 2027-02-26 (Fri) | Jam | J2-prep | Micro-Jam: Constraint Pitch & Prototype — 3-Button Jam wrapped in January; open 6-day Spring Micro-Jam sprint before Card Jam (apply the brainstorm -> prototype -> playtest -> revise loop). | CRD-2 |
+| 2027-03-02 (Tue) | Jam | J2-prep | Micro-Jam: Core Loop Build Day — Get the core interaction playable today and run a quick self-playtest. | CRD-2 |
+| 2027-03-05 (Fri) | Jam | J2-prep | Micro-Jam: Expand & Tune — Add difficulty ramp or win/lose state and tune the controls. | CRD-2 |
+| 2027-03-09 (Tue) | Jam | J2-prep | Micro-Jam: Friend Playtest — Have friends playtest blind without explaining controls; write down the top three surprises. | CRD-2 |
+| 2027-03-11 (Thu) | Jam | J2-prep | Micro-Jam: Revise & Polish — Fix the playtest blockers first, then add clean feedback and freeze. | CRD-2 |
+| 2027-03-15 (Mon) | Jam | J2-prep | Micro-Jam: Showcase & Card Prep — Class showcase + setup check before Card Game Jam kicks off next class. | CRD-2 |
 | 2027-03-17 (Wed) | Lesson | 10.2 | Card Jam Kickoff: Lists & Arrays — Jam 2 of 3. Fork the Card-Game-Template repo. Lists are the biggest idea on the CSP exam - a deck of cards is the perfect list. | AAP-1 AAP-2 |
 | 2027-03-19 (Fri) | Lesson | 10.2 | ScriptableObjects: Card Data as Assets | AAP-1 |
 | 2027-03-30 (Tue) | Lesson | 10.2 | Decks: Shuffle, Draw & Traverse — Back from spring break. Fill in GameManager.Shuffle() - your first real traversal. | AAP-2 |

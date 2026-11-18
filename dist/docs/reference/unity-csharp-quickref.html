@@ -43,32 +43,32 @@
     <tr><td><code>(a - b).normalized</code></td><td>Direction from b to a, length exactly 1</td><td>Chase (4.3), aiming a projectile (3.2)</td></tr>
     <tr><td><code>Time.deltaTime</code></td><td>Seconds since last frame</td><td>Multiply motion by it: per-frame, not per-second</td></tr>
     <tr><td><code>Time.time</code></td><td>Seconds since the scene started</td><td>Cooldowns (3.3, 4.4)</td></tr>
-    <tr><td><code>rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse)</code></td><td>Push the rigidbody — one impulse beat</td><td>Jump (4.5, 6.1)</td></tr>
-    <tr><td><code>rb.gravityScale</code></td><td>0 = float, 2 = fall; swap for game modes</td><td>Top-down vs cave (4.5, 5.3), ladders (7.3)</td></tr>
+    <tr><td><code>rb.AddForceY(jumpForce, ForceMode2D.Impulse)</code></td><td>Push the rigidbody upward — one impulse beat</td><td>Jump (4.5, 6.1)</td></tr>
+    <tr><td><code>rb.gravityScale</code></td><td>0 = float, 4.5 = heavy cave fall; swap for ladders</td><td>Top-down vs cave (4.5, 6.1), ladders (7.3)</td></tr>
     <tr><td><code>Instantiate(prefab, pos, rot)</code></td><td>Clone a prefab into the scene</td><td>Projectiles (3.2), card deals (10.2)</td></tr>
     <tr><td><code>Destroy(gameObject)</code></td><td>Remove an object</td><td>Coin pickup (2.1), projectile death</td></tr>
-    <tr><td><code>OnTriggerEnter2D(Collider2D other)</code></td><td>Fires when a trigger overlaps</td><td>Coins, pickups, ladders</td></tr>
-    <tr><td><code>OnCollisionEnter2D(Collision2D c)</code></td><td>Fires when solid colliders hit</td><td>Spikes, enemy attack</td></tr>
-    <tr><td><code>other.CompareTag("Coin")</code></td><td>Identity check by tag</td><td>Every pickup pattern</td></tr>
+    <tr><td><code>OnTriggerEnter2D(Collider2D other)</code> / <code>Exit2D</code></td><td>Fires when a trigger enters or leaves</td><td>Coins, pickups, ladders (<code>isPlatformer</code>)</td></tr>
+    <tr><td><code>OnCollisionEnter2D(Collision2D other)</code></td><td>Fires when solid colliders hit</td><td>Ground jump reset (<code>CompareTag("Ground")</code>), spikes, moving platforms (<code>SetParent()</code>)</td></tr>
+    <tr><td><code>other.gameObject.CompareTag("Ground")</code></td><td>Identity check by tag</td><td>Pickups, hazards, Ground reset, Ladders</td></tr>
     <tr><td><code>GameObject.FindWithTag("Player")</code></td><td>Locate an object by tag</td><td>Turret and enemy finding you</td></tr>
-    <tr><td><code>SceneManager.LoadScene(n)</code> — an <code>int</code> build index, or <code>LoadScene("Platformer")</code> by name</td><td>Swap scenes. The index overload is the one this project ships: <code>SceneSwitch.cs</code> holds a serialized <code>int scene</code>, so its value is really a <em>position</em> in Build Settings, not a name.</td><td>The cave (5.3), the death loop. Reorder Build Settings and every serialized index now points at a different scene — silently, with no error.</td></tr>
-    <tr><td><code>SceneManager.GetActiveScene().name</code></td><td>Which scene is running</td><td>Deciding what kind of scene you are in (5.3)</td></tr>
+    <tr><td><code>SceneManager.LoadScene(n)</code> — an <code>int</code> build index, or <code>LoadScene(current.name)</code></td><td>Swap or reload scenes. <code>StatManager.Die()</code> reloads the active scene by name, while <code>SceneSwitch</code> uses build index.</td><td>The cave (5.3), the death loop. Reorder Build Settings and every serialized index points at a different scene.</td></tr>
+    <tr><td><code>SceneManager.GetActiveScene().name</code></td><td>Which scene is running</td><td>Overworld vs cave gravity (6.1), active scene reload in <code>Die()</code> (5.3)</td></tr>
     <tr><td><code>anim.SetBool("IsWalking", b)</code> / <code>SetInteger</code> / <code>SetTrigger</code></td><td>Drive the Animator</td><td>WalkDir 0 up / 1 side / 2 down</td></tr>
-    <tr><td><code>sprite.flipX = b</code></td><td>Mirror a sprite</td><td>Face the walk direction</td></tr>
+    <tr><td><code>renderer.flipX = b</code></td><td>Mirror a sprite using cached <code>SpriteRenderer renderer</code></td><td>Face the walk direction</td></tr>
     <tr><td><code>Random.Range(0, n)</code></td><td>Random int 0..n-1 (or float version)</td><td>Shuffles (10.2c)</td></tr>
-    <tr><td><code>DontDestroyOnLoad(gameObject)</code></td><td>Survive a scene change</td><td>StatManager carrying your coins</td></tr>
+    <tr><td><code>DontDestroyOnLoad(gameObject)</code></td><td>Survive a scene change</td><td><code>StatManager.original</code> carrying health, coins, HUD &amp; <code>maxJumps</code></td></tr>
     <tr><td><code>Mathf.Min / Max / Abs / FloorToInt</code></td><td>Number helpers</td><td>Health cap (2.3), coin halving on death</td></tr>
-    <tr><td><code>List&lt;T&gt;</code> + <code>.Add / .RemoveAt / .Count</code></td><td>Dynamic list</td><td>Card decks and hands (10.2)</td></tr>
+    <tr><td><code>List&lt;T&gt;</code> + <code>.Add / .RemoveAt / .Count</code></td><td>Dynamic list</td><td>Platform <code>wayPoints</code> (6.3), Patrol (4.1), Card decks (10.2)</td></tr>
 </table>
 
 <h2>The five patterns that run the whole year</h2>
 <table>
     <tr><th>Pattern</th><th>Shape</th><th>Seen in</th></tr>
-    <tr><td><strong>Pickup</strong></td><td>trigger → CompareTag → change state → Destroy</td><td>coins, axe, boots, ladders</td></tr>
-    <tr><td><strong>Cooldown</strong></td><td>if (Time.time &gt;= last + cooldown) → act, set last = Time.time</td><td>turret fire, enemy damage</td></tr>
-    <tr><td><strong>Scene awareness</strong></td><td>read the scene name once in Start → set flags (gravity, movement style)</td><td>overworld ↔ cave ↔ ladder</td></tr>
+    <tr><td><strong>Pickup</strong></td><td>trigger → CompareTag → change state → Destroy</td><td>coins, axe, double jump boots, ladders</td></tr>
+    <tr><td><strong>Cooldown</strong></td><td>if (cooldownTimer &lt; 0) or Time.time check → act, reset timer</td><td>turret fire, sword swing, boss waves</td></tr>
+    <tr><td><strong>Scene &amp; mode flag</strong></td><td>read scene/trigger → set <code>isPlatformer</code> &amp; <code>gravityScale</code></td><td>overworld ↔ cave ↔ ladder (6.1, 7.3)</td></tr>
     <tr><td><strong>State machine</strong></td><td>flags + nested if/else → behavior per state</td><td>enemy patrol/chase/attack, boss phases</td></tr>
-    <tr><td><strong>Singleton</strong></td><td>static instance + Awake guard + DontDestroyOnLoad</td><td>StatManager (5.3), GameManager (cards)</td></tr>
+    <tr><td><strong>Singleton</strong></td><td><code>public static StatManager original</code> + Awake guard + DontDestroyOnLoad</td><td>StatManager (5.3, 6.4), GameManager (cards)</td></tr>
 </table>
 <p>If you can rebuild those five from memory, you can rebuild this entire game — which is more or less the point of the semester.</p>
 

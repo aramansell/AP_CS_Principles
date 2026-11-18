@@ -158,10 +158,10 @@ const DECOMPOSE: DecomposeSpec = {
       href: '2.1.html',
     },
     {
-      name: 'Point the ground mask at a layer that exists',
+      name: 'Tag solid walkable surfaces Ground',
       does:
-        'The LayerMask field from 6.2 is a filter, and a filter needs something real to filter on. A mask naming a layer nobody made does not widen to everything — it goes empty, and an empty mask means the ray is allowed to notice nothing at all.',
-      doc: '6.2 — Ground Checks: No Infinite Jumps, where the mask field and the ground check live',
+        'In `6.2`, `PlayerController.OnCollisionEnter2D()` resets `jumpsRemaining` only when `other.gameObject.CompareTag("Ground")` matches. An untagged tilemap or platform still holds you up physically, but never gives your jump back.',
+      doc: '6.2 — Ground Collision & Jump Count, where `CompareTag("Ground")` and `jumpsRemaining` live',
       href: '6.2.html',
     },
     {
@@ -329,19 +329,14 @@ ${renderPane({
     </div>
 
     <div class="callout trap">
-        <strong>Layer or tag — they are not the same tool, and this project shipped with only
-        one of them.</strong> The <code>Collision</code> tilemap carries the <em>tag</em>
-        <code>Ground</code>, and that tag is what your <code>CompareTag()</code> checks read. But a
-        raycast mask cannot use a tag — it needs a <em>layer</em>, and the project you were
-        handed had none. The part that catches people: a mask naming a layer that does not
-        exist does <strong>not</strong> quietly widen to everything.
-        <code>LayerMask.GetMask("Ground")</code> in a project with no <code>Ground</code> layer
-        logs an error and hands back a mask with <em>no bits set</em> — and an empty mask is not
-        a wide mask. The ray notices nothing, the ground check reads false on a floor you can
-        see, and the player jumps in mid-air forever. An unset Inspector dropdown is the same
-        silence by another route: Unity draws it as <strong>Nothing</strong>. Prove it once, on
-        purpose, by renaming the layer and watching the check stop working. Tags
-        <em>identify</em> one object; layers <em>filter</em> whole categories in a query.
+        <strong>Tag or layer — they solve two different jobs.</strong> Your
+        <code>Collision</code> tilemap carries the <em>tag</em> <code>Ground</code> so
+        <code>PlayerController.OnCollisionEnter2D()</code> sees
+        <code>other.gameObject.CompareTag("Ground")</code> and refills <code>jumpsRemaining</code>.
+        <em>Layers</em>, on the other hand, control whole-category collision rules in Physics 2D
+        (like keeping a turret's bullet from colliding with walls or itself) and decide which objects
+        share a bucket. Leave <code>Collision</code> tagged <code>Ground</code> and keep walls or
+        hazards separated cleanly so bumping a wall mid-air never gives you an unintended jump reset.
     </div>
 
     <div class="callout trap">
@@ -367,14 +362,14 @@ ${renderPane({
     </p>
 
     <div class="callout">
-        <strong>Architectural specification: the ground check you already own.</strong> In
-        <a href="6.2.html">6.2</a> you wrote a <code>LayerMask</code> field and passed it into
-        <code>Physics2D.Raycast</code>. Open that script and answer <em>before you touch
-        anything</em>:
+        <strong>Architectural specification: the ground collision check you already own.</strong> In
+        <a href="6.2.html">6.2</a> you used <code>OnCollisionEnter2D(Collision2D other)</code> and
+        <code>other.gameObject.CompareTag("Ground")</code> to reset <code>jumpsRemaining</code>.
+        Open that script and inspect your scene <em>before you touch anything</em>:
         <ul>
-            <li>What is that mask field currently set to in the Inspector? Not what you intended — what is actually ticked in the dropdown.</li>
-            <li>Name the two solid surfaces in this cave that a <code>Ground</code> mask includes and a <code>Default</code> mask does not — and say which of the two you would have forgotten to put in the bucket.</li>
-            <li>The tag <code>Ground</code> already exists and is already on the <code>Collision</code> tilemap. If you could fix this with a tag instead of a layer, what would the raycast call look like, and what would it cost you every frame?</li>
+            <li>Check the <code>Collision</code> tilemap and any solid floor objects in the Inspector: is the Tag dropdown genuinely set to <code>Ground</code> (capital <code>G</code>), or left on <code>Untagged</code>?</li>
+            <li>What happens if a vertical cave wall shares the same <code>Collision</code> tilemap object tagged <code>Ground</code> versus living on its own separate collider object? When could touching a wall give you a free jump?</li>
+            <li>Look at your projectiles (<code>E_Fireball</code>, <code>PlayerProjectile</code>) in <code>Platformer</code>: are they triggers, and do they pass through painted decoration cleanly?</li>
         </ul>
     </div>
 
@@ -392,7 +387,7 @@ ${renderPane({
         <ol>
 <li>The tilemap collider builds a shape per tile, and the composite merges them. With the merge switched off, how many physics shapes would the cave have?</li>
 <li>The rigidbody is Static. What does Static mean about the body's willingness to move, and why is that the correct choice for a cave floor rather than an oversight?</li>
-<li>Standing on this floor, your ground check from <a href="6.2.html">6.2</a> succeeds. So does the raycast care whether it hit one merged polygon or four hundred separate tile shapes?</li>
+<li>Standing on this floor, <code>OnCollisionEnter2D()</code> from <a href="6.2.html">6.2</a> refilled <code>jumpsRemaining</code>. Does that collision callback care whether the floor is one merged polygon or four hundred separate tile shapes?</li>
 </ol>
     </div>
 </div>
@@ -450,9 +445,9 @@ ${renderPane({
     <ul>
         <li>Name the three components already on <code>Collision</code>, and what each does</li>
         <li>Explain what a composite fixes, and the setting that switches it on</li>
-        <li>Say out loud why <code>Ground</code> being a tag was not enough, and extend the physics layers</li>
+        <li>Say out loud why <code>Collision</code> needs the <code>Ground</code> tag for jumps while physics layers separate whole object categories</li>
         <li>Explain the difference between a physics layer and a sorting layer, with one use of each</li>
-        <li>Fix your 6.2 ground-check mask and prove the fix with a test</li>
+        <li>Verify your <code>6.2</code> Ground collision reset works on solid tiles and never grants jumps from mid-air decoration</li>
         <li>Defend your choice of one-way platform approach</li>
         <li>Break this feature into parts small enough to look each one up on its own, and say in one line what each part does</li>
         <li>Say which earlier lesson each part of this feature came from, and where you would reread it</li>
@@ -468,7 +463,7 @@ ${renderPane({
         <li><a href="../docs/unit-07/index.html">Unit 7: Level Building &amp; Ladders</a></li>
         <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — collider, layer and <code>CompareTag()</code> rows</li>
     </ul>
-    <p>Next: <a href="7.3.html">7.3 — Ladders I: The Climbing State</a>.</p>
+    <p>Next: <a href="6.5.html">6.5 — Platforming Studio: The Gauntlet</a>.</p>
 </div>`;
 ---
 <Lesson id="7.2" title="7.2 Tile Collision, Layers &amp; Sorting — AP CS Principles" root=".." css="../style.css">

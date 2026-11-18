@@ -123,6 +123,11 @@ const WALK_GRAVITY = {
           what: '**Which world this Player woke up in.** Private, because only this script needs it, and not serialized, because `Start()` is about to decide it - an Inspector box you still have to tick by hand is a fact you have to remember, not a fact the code knows.',
           why: '**Why keep the flag at all, if `Start()` already knows?** Because `Update()` runs every frame and needs the answer sixty times a second, and asking the scene engine sixty times a second to answer a question that cannot change is work for nothing. Read the world once, remember it in a bool.',
         },
+        {
+          code: '    [SerializeField] float gravityScale;',
+          what: '**How hard gravity pulls in platformer scenes.** Serialized so you can tune fall weight in the Inspector (around `4.5` on the starter Player prefab) without touching code — and stored so ladders can turn gravity off and back on later.',
+          why: '**Storing `gravityScale` as a field beats hardcoding `1`.** Platformers feel floaty at gravity `1`; a serialized field lets you tune heavy, crisp arcs and reuse the exact same weight later.',
+        },
       ],
     },
     {
@@ -157,9 +162,9 @@ const WALK_GRAVITY = {
         },
         { code: '        {', what: '' },
         {
-          code: '            rb.gravityScale = 1;',
-          what: '**The whole of turning gravity on.** `1` means "the project gravity, undiluted" - Project Settings, Physics 2D, Y at `-9.81`.',
-          why: '**Why this is code and not a number in the Inspector.** You could set the cave copy to 1 by hand and write nothing - but that number is invisible to a reader of your script, and has to be repeated on every new Player anyone places.',
+          code: '            rb.gravityScale = gravityScale;',
+          what: '**Turning gravity on from your Inspector knob.** Project Settings, Physics 2D gives the world `-9.81`, and your `gravityScale` field (e.g. `4.5` on the prefab) scales how fast the cave pulls you down.',
+          why: '**Why this is code and not only a number in the Inspector.** One `else` branch applies your cave gravity across every platformer scene automatically instead of resetting `Rigidbody2D.Gravity Scale` by hand on every Player.',
         },
         {
           code: '            isPlatformer = true;',
@@ -180,6 +185,7 @@ public class PlayerController : MonoBehaviour
 {
     float speed = 4;              // your number from 2.2
     bool isPlatformer = false;    // which world did I wake up in?
+    [SerializeField] float gravityScale; // cave gravity weight - set in the Inspector
 
     Rigidbody2D rb;
 
@@ -198,7 +204,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            rb.gravityScale = 1;
+            rb.gravityScale = gravityScale;
             isPlatformer = true;
         }
     }
@@ -289,6 +295,7 @@ public class PlayerController : MonoBehaviour
 {
     float speed = 4;              // your number from 2.2
     bool isPlatformer = false;    // which world did I wake up in?
+    [SerializeField] float gravityScale; // cave gravity weight - set in the Inspector
 
     Rigidbody2D rb;
 
@@ -306,7 +313,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            rb.gravityScale = 1;
+            rb.gravityScale = gravityScale;
             isPlatformer = true;
         }
     }
@@ -498,7 +505,7 @@ ${renderWalkthrough(WALK_JUMP)}
     <table>
         <tr><th>Knob</th><th>Try</th></tr>
         <tr><td><code>jumpForce</code> — Inspector → Player Controller</td><td>half, then double</td></tr>
-        <tr><td><code>Gravity Scale</code> — Inspector → Rigidbody2D</td><td>0.2, then 1, then 4</td></tr>
+        <tr><td><code>gravityScale</code> — Inspector → Player Controller</td><td>1, then 4.5, then 8</td></tr>
         <tr><td><code>Mass</code> — Inspector → Rigidbody2D</td><td>1, then 5 — watch the jump <em>and</em> the fall</td></tr>
     </table>
 

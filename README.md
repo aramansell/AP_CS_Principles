@@ -13,11 +13,12 @@ deployed to GitHub Pages.
 
 ## The course in one paragraph
 
-Semester 1 is one long build: movement → coins & health → a turret → an
-enemy state machine → the axe & the cave → jumping → tilemap levels →
-ladders → **your own boss fight**, ending with a semester final that is
-"a normal B day" (Jan 21). Semester 2: the CSP big ideas Unity cannot
-teach alone (data, systems, impact), then the **2-Button Jam**, the
+Semester 1 builds from Overworld fundamentals into Cave platforming: movement →
+coins & health → a turret → an enemy state machine → the axe & the cave →
+jumping, moving platforms & ladders → **your own boss fight** (built
+independently before winter break by reusing existing components) → the **3-Button
+Jam** in January ending Semester 1 (Jan 21 Showcase). Semester 2: the CSP big
+ideas Unity cannot teach alone (data, systems, impact), a Spring Micro-Jam, the
 **Card Game Jam** (lists, arrays, ScriptableObjects — the AP's favorite
 data structures, built for real), the **Create PT** (30% of the AP
 score, due Apr 30), the **AP exam** (May 14, 2027, Bluebook), and a

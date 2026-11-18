@@ -1,218 +1,109 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>6.2 Ground Checks: No Infinite Jumps — AP CS Principles</title><meta name="description" content="Lesson 6.2 Ground Checks: No Infinite Jumps — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="6.2 Ground Checks: No Infinite Jumps — AP CS Principles"><meta property="og:description" content="Lesson 6.2 Ground Checks: No Infinite Jumps — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="6.1.html">&#9664; 6.1</a><span class="lesson-id">6.2</span><a href="6.3.html">6.3 &#9654;</a></div><h1>6.2 — Ground Checks: No Infinite Jumps</h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>6.2 Ground Collision &amp; Jump Count — AP CS Principles</title><meta name="description" content="Lesson 6.2 Ground Collision &amp; Jump Count — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:title" content="6.2 Ground Collision &amp; Jump Count — AP CS Principles"><meta property="og:description" content="Lesson 6.2 Ground Collision &amp; Jump Count — AP CS Principles (Unity). Build labs, bug hunts, and checkpoints with answer boxes you can download and turn in."><meta property="og:type" content="website"><meta property="og:site_name" content="AP CS Principles"><link rel="icon" type="image/svg+xml" href="../favicon.svg"><link rel="stylesheet" href="../style.css"></head><body><a class="skip-link" href="#main-content">Skip to content</a><nav class="top-nav" data-pagefind-ignore><a href="../index.html" class="active" aria-current="page">Dashboard</a><a href="../docs/index.html">Docs</a><a href="../projects.html">Projects</a><a href="../exam/index.html">Exam</a><a href="../search.html">Search</a></nav><div class="page" id="main-content"><div class="lesson-nav" data-pagefind-ignore><a href="6.1.html">&#9664; 6.1</a><span class="lesson-id">6.2</span><a href="7.1.html">7.1 &#9654;</a></div>
+<div class="ask-banner" data-scaffold="2"><span class="ask-banner-label">Search terms for this lesson</span><span class="ask-banner-q">&ldquo;why can I jump forever in mid-air?&rdquo;</span><span class="ask-banner-level">Guided build</span></div>
 
-<p class="lesson-lead">
-    Your jump is limited, and the limit has a hole in it. The budget — <code>jumpsRemaining</code>,
-    <code>maxJumps</code>, one refill per landing — is right. What is wrong is <em>how it learns
-    you are on the ground</em>: a collision callback that fires when something tagged
-    <code>Ground</code> touches you. That callback never tells you when you <strong>leave</strong>,
-    so stepping off a ledge leaves you a full jump you did not earn. And it only answers for
-    surfaces somebody remembered to tag. Today you replace the ear with a question: a ray, cast
-    every frame from the player's feet, filtered to one layer — and then use it to charge one jump
-    for walking off.
+<p class="lead">
+    In <a href="6.1.html">6.1</a> your jump impulse worked — so well that mashing <code>J</code> flew
+    straight to the ceiling. Today we cap jumps with <code>jumpsRemaining</code> and refill it only
+    when <code>OnCollisionEnter2D()</code> hits an object tagged <code>"Ground"</code>.
 </p>
 
-<div class="ask-banner" data-scaffold="2"><span class="ask-banner-label">Search terms for this lesson</span><span class="ask-banner-q">&ldquo;in unity how to check if the player is on the ground, how to raycast downward with physics2d.raycast, how to use a layermask to find ground, how to stop infinite jumping&rdquo;</span><span class="ask-banner-level">Guided build</span></div>
-
-<div class="activity decompose" data-level="2" data-parts="7" data-given="6" data-docs="7"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Guided build</span></div><p class="dc-big">Your file already limits the jump: a <code>jumpsRemaining</code> count, a <code>maxJumps</code> ceiling, and a refill that fires when a <strong>collision callback</strong> reports something tagged <code>Ground</code>. It works — and it has two holes you can feel. Walk off a ledge and your budget is still full, because nothing ever told you that you <em>left</em>. And every surface that should count has to be tagged by hand, so one forgotten object is a floor that silently is not ground. The count is right; the way it learns is wrong. Three changes: ask a ray instead of waiting for a callback, charge one jump when you leave without jumping, and move the answer from a name to a category.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Ask the ground a question once per frame</span><span class="dc-does">A <code>Physics2D.Raycast()</code> from an empty child at the player's feet, pointed down, a short distance, and filtered to one layer. It runs in <code>Update()</code> because it answers a question about <em>now</em> — unlike the lookups in <code>Start()</code>, which answer questions about <em>setup</em>.</span><span class="dc-doc">Read: <a href="../docs/reference/unity-csharp-quickref.html">the <code>Physics2D.Raycast()</code> row of the quick reference, and the <code>void Update()</code> row from 1.4</a></span></li><li class="dc-part"><span class="dc-name">Write the budget you already have, in the frame loop</span><span class="dc-does"><code>jumpsRemaining</code> and <code>maxJumps</code> keep their names and their meaning; they just get written in <code>Update()</code> — refilled while the ray hits, spent when you jump — instead of inside a collision callback. The collision method comes out.</span><span class="dc-doc">Read: <a href="1.3.html">the field declarations from 1.3</a></span></li><li class="dc-part"><span class="dc-name">Spend one when the key goes down</span><span class="dc-does">The jump condition from 6.1 with one term added, then <code>jumpsRemaining -= 1</code> right after the jump. The gate decides; the decrement records. Both lines, in that order.</span><span class="dc-doc">Read: <a href="6.1.html">the jump you wrote in 6.1</a></span></li><li class="dc-part dc-part-blank"><span class="dc-gap">write this part</span><span class="dc-doc">Read: <a href="6.1.html">the <code>if (isGrounded)</code> branch you are about to write, and 6.1's rule that a value which does not change is written where it is decided</a></span></li><li class="dc-part"><span class="dc-name">Charge yourself one for walking off</span><span class="dc-does">The same budget, written from the other side: if the ray misses <em>and</em> the count is still full, then nobody jumped — you fell. A full budget in mid-air is the definition of "I walked off", and it needs no history to detect.</span><span class="dc-doc">Read: <a href="1.6.html">the <code>else if</code> you have been writing since 1.6, and the budget from part two</a></span></li><li class="dc-part"><span class="dc-name">Say which surfaces count as ground</span><span class="dc-does">The <code>Ground</code> layer, and the two objects you put in it. Because a mask filters by category rather than by name, the cave mouth joins the floor without a second line of code — and anything you forget to assign silently does not count.</span><span class="dc-doc">Read: <a href="7.2.html">the layer list in Edit → Project Settings → Tags and Layers</a></span></li><li class="dc-part"><span class="dc-name">Watch the number while you build, then take the instrument out</span><span class="dc-does">A <code>print()</code> in <code>Start()</code> reports the budget you begin with, and the ray drawn in the Scene view shows what the check can see. Both are instruments for one afternoon, not features.</span><span class="dc-doc">Read: <a href="1.3.html"><code>print()</code> from 1.3</a></span></li></ol><p class="dc-why">Most of those seven parts are work you have already done: the two <code>int</code>s are already in your file, the jump is 6.1, an <code>if</code>/<code>else if</code> is 1.6, and a layer is a name you type once. The new idea is narrow and worth saying out loud — <strong>a check that only listens cannot answer a question about now</strong>. A collision callback fires on the frame something changes; "am I standing on something?" is a question whose answer can change while nothing happens at all. The second new idea is the mirror image: once you can ask that question every frame, the ledge stops being a free jump, because a full budget in the air is proof that you walked off.</p><p class="dc-size">The test: could you look this part up on its own, right now, in one search? "Stop the free jump off a ledge" cannot be looked up. "Cast a ray downward and report whether it hit" can.</p><div class="dc-turns"><h4>Your turn</h4><p>Your budget is refilled by asking a question every frame, not by waiting for a message from the physics engine. Name one moment where asking is the only way to know, and what the player sees when a check that only listens gets it wrong.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:dc1:q1" data-block="decompose" data-question="Your budget is refilled by asking a question every frame, not by waiting for a message from the physics engine. Name one moment where asking is the only way to know, and what the player sees when a check that only listens gets it wrong." placeholder="write your answer, then keep going"></textarea></label><p><code>maxJumps</code> is 1. Before you change it to 2, say what else in this lesson would have to be true for a second jump to actually be a second jump — and what the walk-off rule does to a player carrying two.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:dc1:q2" data-block="decompose" data-question="`maxJumps` is 1. Before you change it to 2, say what else in this lesson would have to be true for a second jump to actually be a second jump — and what the walk-off rule does to a player carrying two." placeholder="write your answer, then keep going"></textarea></label></div></div>
+<!-- ============================================================ -->
+<div class="activity decompose" data-level="2" data-parts="3" data-given="2" data-docs="3"><div class="activity-header"><span class="activity-label">Break It Down</span><span class="activity-time">~10 min</span><span class="dc-level">Guided build</span></div><p class="dc-big">Stop the player from jumping infinitely in mid-air — give them one jump per landing.</p><p class="dc-ask"><strong>First, before any code:</strong> cut that into parts small enough that you could look each one up on its own.</p><ol class="dc-parts"><li class="dc-part"><span class="dc-name">Track how many jumps are left</span><span class="dc-does">Add <code>int jumpsRemaining;</code> and <code>int maxJumps = 1;</code> to <code>PlayerController</code>, initialized to <code>maxJumps</code> inside <code>Start()</code> when entering a platformer scene.</span><span class="dc-doc">Read: <a href="6.1.html">2.1 (<code>int</code> fields in the class body) and <code>Start()</code> in <code>6.1</code></a></span></li><li class="dc-part dc-part-blank"><span class="dc-gap">write this part</span><span class="dc-doc">Read: the <code>Update()</code> jump gate in the walkthrough below (<code>KeyCode.J</code> + <code>jumpsRemaining &gt;= 1</code>)</span></li><li class="dc-part"><span class="dc-name">Refill jumps when touching tagged Ground</span><span class="dc-does">In <code>OnCollisionEnter2D(Collision2D other)</code>, check <code>other.gameObject.CompareTag("Ground")</code> and reset <code>jumpsRemaining = maxJumps;</code>.</span><span class="dc-doc">Read: <a href="../docs/unit-02/triggers-vs-collisions.html">Unity <code>OnCollisionEnter2D()</code> &amp; <code>CompareTag()</code> in <code>2.1</code> / quick reference</a></span></li></ol><p class="dc-why">Notice the pattern from <code>2.1</code> and <code>3.3</code> coming back: you already stopped infinite firing with <code>cooldownTimer</code>. Here you stop infinite jumping with an integer counter (<code>jumpsRemaining</code>), spend <code>1</code> inside <code>Update()</code>, and refill it inside a solid collision callback (<code>OnCollisionEnter2D()</code>) whenever the player touches an object tagged <code>"Ground"</code>.</p><div class="dc-turns"><h4>Your turn</h4><p>Before writing code, explain what breaks if you reset <code>jumpsRemaining = maxJumps</code> inside <code>OnCollisionEnter2D()</code> WITHOUT checking <code>CompareTag("Ground")</code> first.</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:dc1:q1" data-block="decompose" data-question="Before writing code, explain what breaks if you reset `jumpsRemaining = maxJumps` inside `OnCollisionEnter2D()` WITHOUT checking `CompareTag(&quot;Ground&quot;)` first." placeholder="write your answer, then keep going"></textarea></label><p>Why do we check <code>other.gameObject.CompareTag("Ground")</code> instead of <code>other.CompareTag("Ground")</code> inside <code>OnCollisionEnter2D(Collision2D other)</code>?</p><label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:dc1:q2" data-block="decompose" data-question="Why do we check `other.gameObject.CompareTag(&quot;Ground&quot;)` instead of `other.CompareTag(&quot;Ground&quot;)` inside `OnCollisionEnter2D(Collision2D other)`?" placeholder="write your answer, then keep going"></textarea></label></div></div>
 
 <!-- ============================================================ -->
-<div class="activity discovery">
+<div class="activity basic-app">
     <div class="activity-header">
         <span class="activity-label">In the Editor</span>
-        <span class="activity-time">~15 min</span>
+        <span class="activity-time">~10 min</span>
     </div>
 
+    <p>
+        Before writing C#, make sure Unity has a <code>Ground</code> tag and your platformer floor carries it:
+    </p>
+
     <ol>
-        <li>
-            <strong>Project window →</strong> open <code>Assets/_Scenes/Platformer.unity</code>,
-            then <strong>Game view →</strong> press Play and try both holes. Walk off a ledge and
-            press the jump key while falling: you jump, because the budget has been full since
-            your last landing and nothing ever spent it. Then jump onto the <code>Cave Exit</code>
-            at the mouth of the cave and press it again: you get nothing, because that object is
-            solid but untagged, so the callback never heard it. One rule, two failures, and the
-            Console says nothing either time.
-        </li>
-        <li>
-            <strong>Project window → Assets/Prefabs/Player</strong>, then
-            <strong>Hierarchy →</strong> right-click the Player root and
-            <strong>Create Empty</strong>. Rename it <code>GroundCheck</code>, then
-            <strong>Inspector → Transform → Position</strong> set it to <code>0, -0.5, 0</code>:
-            the bottom of the collider, in the player's own coordinates. This is the point the ray
-            will start from.
-        </li>
-        <li>
-            <strong>Edit → Project Settings → Tags and Layers → Layers →</strong> take the first
-            empty user slot (index 8) and name it <code>Ground</code>. Read the list while you are
-            in there: the project ships with <code>Layer 1</code>, <code>Layer 2</code>,
-            <code>Layer 3</code> — placeholders nobody ever renamed — and no
-            <code>Ground</code> layer at all.
-        </li>
-        <li>
-            <strong>Hierarchy → Grid → Collision → Inspector → Layer</strong> set it to
-            <code>Ground</code>. Then <strong>Hierarchy → Cave Exit → Inspector → Layer</strong>:
-            also <code>Ground</code>. Nothing else changes, and nothing is tagged.
-        </li>
-        <li>
-            <strong>Hierarchy → the Player → Inspector → Player Controller</strong>: drag the
-            <code>GroundCheck</code> child into the <strong>Ground Check</strong> slot, leave
-            <strong>Ground Distance</strong> at <code>0.2</code>, and open the
-            <strong>Ground Mask</strong> dropdown to tick <code>Ground</code> and nothing else.
-        </li>
-        <li>
-            <strong>Game view →</strong> press Play and look at the <strong>Scene view</strong>: a
-            short red line hangs under the player's feet while your code runs.
-            <a href="7.2.html">7.2</a> finishes the rest of the layer list, but the one layer your
-            check needs exists after this step.
-        </li>
+        <li>Open <code>Assets/Scenes/Platformer.unity</code>. Select any GameObject in the Inspector → click the <strong>Tag</strong> dropdown → <strong>Add Tag...</strong> → create a tag named <code>Ground</code> (exact spelling and capital <code>G</code>).</li>
+        <li>Assign the <code>Ground</code> tag to your floor platforms (or Tilemap collider object in the cave).</li>
+        <li>Confirm the floor collider has <strong>Is Trigger</strong> UNCHECKED, because <code>OnCollisionEnter2D()</code> only fires for solid collisions — triggers fire <code>OnTriggerEnter2D()</code> instead.</li>
+        <li>Test pressing <code>J</code> twice in the air after updating the script: the first press fires, the second ignores you until feet touch <code>"Ground"</code>.</li>
     </ol>
 
     <div class="callout trap">
-        <strong>The cave mouth used to be a trap. The layer is why it is not.</strong> In the
-        tag version of this check, <code>Cave Exit</code> is solid and untagged, so landing on it
-        gave nothing back and the player would tell you the game was broken. A mask asks
-        <em>"is this in the category?"</em> instead of <em>"is this that one named thing?"</em> —
-        so assigning the layer fixes the cave mouth without touching a script and without
-        tagging anything else. What it does <em>not</em> fix: anything you forget to assign is
-        silently not ground, and nothing warns you.
+        <strong>Two common bugs when jumps stop refilling:</strong>
+        <ul>
+            <li><strong>Wrong Tag spelling or left on <code>Untagged</code>:</strong> <code>CompareTag("Ground")</code> fails silently or throws an error if the tag does not exist in Tag Manager.</li>
+            <li><strong>Wall touching resets jumps:</strong> if a vertical wall shares the <code>"Ground"</code> tag and uses the same collider, brushing against the side wall can count as landing. Put separate walls on an untagged or <code>"Wall"</code> object, or test how your level behaves.</li>
+        </ul>
     </div>
 
     <div class="socratic">
-        <h3>Socratic: Asking Versus Being Told</h3>
+        <h3>Socratic: Collision Counters vs. Continuous Checks</h3>
         <ol>
-            <li>Which spot in your cave is a poor stand-in for your whole body under one exact point — and what does the player experience there?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:sc1:q1" data-block="socratic" data-question="Which spot in your cave is a poor stand-in for your whole body under one exact point — and what does the player experience there?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li>Why is "a full budget while airborne" the same fact as "I walked off"? And what would the rule have to remember if you wrote it the other way?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:sc1:q2" data-block="socratic" data-question="Why is &quot;a full budget while airborne&quot; the same fact as &quot;I walked off&quot;? And what would the rule have to remember if you wrote it the other way?" placeholder="write your answer, then keep going"></textarea></label></li>
-            <li><code>maxJumps</code> is <code>1</code> today. If you changed it to <code>2</code> right now, would you get a double jump? Name every line that would have to be true for the second jump to actually work — including what the walk-off rule does to a player carrying two.<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:sc1:q3" data-block="socratic" data-question="maxJumps is 1 today. If you changed it to 2 right now, would you get a double jump? Name every line that would have to be true for the second jump to actually work — including what the walk-off rule does to a player carrying two." placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why does setting <code>rb.linearVelocityX = xVector;</code> instead of <code>rb.linearVelocity = new Vector2(xVector, 0);</code> matter when the player jumps or falls?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:sc1:q1" data-block="socratic" data-question="Why does setting rb.linearVelocityX = xVector; instead of rb.linearVelocity = new Vector2(xVector, 0); matter when the player jumps or falls?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>Why is <code>jumpsRemaining</code> better as an <code>int</code> counter starting at <code>maxJumps = 1</code> instead of a <code>bool canJump</code>?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:sc1:q2" data-block="socratic" data-question="Why is jumpsRemaining better as an int counter starting at maxJumps = 1 instead of a bool canJump ?" placeholder="write your answer, then keep going"></textarea></label></li>
+            <li>What happens if the player walks off a ledge WITHOUT jumping first — what is <code>jumpsRemaining</code> still set to in mid-air, and is that a bug or an intentional feel choice?<label class="lab-field" data-pagefind-ignore><span class="lab-field-label">Your answer</span><textarea class="lab-answer" rows="2" data-q="6.2:sc1:q3" data-block="socratic" data-question="What happens if the player walks off a ledge WITHOUT jumping first — what is jumpsRemaining still set to in mid-air, and is that a bug or an intentional feel choice?" placeholder="write your answer, then keep going"></textarea></label></li>
         </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">In the Code</span>
-        <span class="activity-time">~20 min</span>
-    </div>
-
-    <p>
-        There are three common ways to answer <em>"am I standing on something?"</em>. Your file
-        uses the first row right now, and the two failures you found in the editor are the two
-        holes that row has. Today you move to the third. Read all three — the difference is in
-        <em>when</em> each one knows, and what it can tell you when it does.
-    </p>
-
-    <table>
-        <tr><th>Technique</th><th>When it knows</th><th>What it can tell you</th><th>Where it lies to you</th></tr>
-        <tr>
-            <td><code>OnCollisionEnter2D()</code> plus <code>CompareTag()</code></td>
-            <td>On the frame contact begins — a message from the engine.</td>
-            <td>That you touched <em>something</em>, and what that something is named.</td>
-            <td>Nothing fires when you <em>leave</em>, so the budget stays full until you land again; and every new surface needs the tag by hand.</td>
-        </tr>
-        <tr>
-            <td><code>OnTriggerEnter2D()</code> on a small child under your feet</td>
-            <td>On the frame the child's trigger overlaps something.</td>
-            <td>That a particular point on your body is touching something.</td>
-            <td>The child has to be placed by hand, and a trigger that starts inside a collider reports it forever.</td>
-        </tr>
-        <tr>
-            <td><code>Physics2D.Raycast()</code> every frame</td>
-            <td>Whenever you ask — every frame, for as long as you want.</td>
-            <td>Whether something is under one exact point, <em>how far</em> away it is, and what it is.</td>
-            <td>An infinitely thin line: a pixel of your foot over a ledge reports air. It also needs a <code>LayerMask</code> to filter what it may notice.</td>
-        </tr>
-    </table>
-
-    <p>
-        The third row is what you build today, and it is what makes the walk-off rule possible:
-        a callback only fires when something changes, and "did I leave the ground this frame?"
-        is a question you can only ask.
-    </p>
-</div>
-
-<!-- ============================================================ -->
-<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;in unity how to check if the player is on the ground, how to raycast downward with physics2d.raycast, how to use a layermask to find ground, how to stop jumping after walking off a ledge&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. One new method, two new fields for it to read, and four blocks that move the budget out of a collision callback and into the frame loop. Everything is a shape from earlier in the course except the ray itself and the charge for walking off — and one line is yours: the refill.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Give the check somewhere to stand, and a distance to look</h4><p class="wt-lead">Three fields in the class body, beside <code>jumpForce</code> from 6.1. The child they point at is the one you made in the editor half.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    [<span class="tk-ty">SerializeField</span>] <span class="tk-ty">Transform</span> <span class="tk-va">groundCheck</span>;</span>
-<span class="wt-line" data-n="2">    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">float</span> <span class="tk-va">groundDistance</span> = <span class="tk-nu">0.2f</span>;</span>
-<span class="wt-line wt-line-why" data-n="3">    [<span class="tk-ty">SerializeField</span>] <span class="tk-ty">LayerMask</span> <span class="tk-va">groundMask</span>;</span>
-<span class="wt-line" data-n="4"></span>
-<span class="wt-line" data-n="5">    <span class="tk-kw">bool</span> <span class="tk-va">isGrounded</span>;</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what"><strong>The empty child at the player's feet.</strong> Declared as a <code>Transform</code> because that is all a ray needs — a position and a direction. <code>[SerializeField]</code> because it is a reference you wire in the Inspector, exactly like the prefab and spawn point slots on the turret.</span><span class="wt-why"><strong>Why not <code>transform.position</code>?</strong> Because the player's <em>centre</em> is not the player's <em>feet</em>. A ray from the middle of the body starts inside the floor it is standing on, or misses it entirely, depending on the sprite's pivot. A named child is a decision you can see and move.</span></li>
-<li><span class="wt-ref">2</span><span class="wt-what"><strong>How far below the feet the ray is allowed to look.</strong> A fifth of a unit: long enough to reach the floor when the body settles, short enough that the player is not "grounded" while visibly floating.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what"><strong>What the ray is allowed to notice.</strong> An <code>int</code> in a mask's clothing: each tick in the Inspector sets one bit. Point it at the <code>Ground</code> layer and the ray ignores coins, enemies and the backdrop without a single <code>if</code>.</span><span class="wt-why"><strong>A mask that names a layer nobody made goes empty, and empty means "notice nothing".</strong> Then the ray never hits, <code>isGrounded</code> is always false, and the player jumps in mid-air forever — the exact bug this lesson is supposed to cure, reached by a different road. When the check "does not work", read this field before you read your logic.</span></li>
-<li><span class="wt-ref">5</span><span class="wt-what"><strong>The answer, remembered for one frame.</strong> A field rather than a local because three different blocks in <code>Update()</code> ask the same question and must get the same answer.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Ask the question in a method of its own</h4><p class="wt-lead">Beside <code>Jump()</code>. One line of work, one line of signature — and the name is what lets 6.3 and 7.2 point at it.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    <span class="tk-kw">void</span> <span class="tk-fn">CheckGround</span>()</span>
-<span class="wt-line" data-n="2">    {</span>
-<span class="wt-line wt-line-why" data-n="3">        <span class="tk-va">isGrounded</span> = <span class="tk-va">Physics2D</span>.<span class="tk-fn">Raycast</span>(<span class="tk-va">groundCheck</span>.<span class="tk-va">position</span>, <span class="tk-va">Vector2</span>.<span class="tk-va">down</span>, <span class="tk-va">groundDistance</span>, <span class="tk-va">groundMask</span>);</span>
-<span class="wt-line" data-n="4">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">A method with no parameters and no return value: it writes the field instead of handing an answer back. That is the same shape as <code>Jump()</code>, which writes to the body.</span><span class="wt-why"><strong>One question, one place.</strong> 6.3 adds a coyote window that reads this field, and 7.2 changes what sits in the mask. Neither has to find the ray again if the ray lives here.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">**Read the call as a sentence: cast a ray from <em>here</em>, downward, <em>this far</em>, noticing only <em>these layers</em>.** It returns a <code>RaycastHit2D</code>, which you can treat as a <code>bool</code> — true when it hit something.</span><span class="wt-why"><strong>The return value is more than a yes.</strong> <code>RaycastHit2D</code> also carries the point it struck, the distance, and the collider — the ground check only needs the "did it hit", and the other fields are there the day you need to know <em>what</em> you landed on. That is the whole difference from a collision callback: the ray is a question, and you choose when to ask it.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Make the invisible ray visible</h4><p class="wt-lead">A gizmo. It draws in the Scene view, it costs nothing at runtime, and it is how you find out your child is two units above the floor.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    <span class="tk-kw">void</span> <span class="tk-fn">OnDrawGizmos</span>()</span>
-<span class="wt-line" data-n="2">    {</span>
-<span class="wt-line" data-n="3">        <span class="tk-ct">if</span> (<span class="tk-va">groundCheck</span> == <span class="tk-kw">null</span>) { <span class="tk-ct">return</span>; }</span>
-<span class="wt-line" data-n="4">        <span class="tk-va">Gizmos</span>.<span class="tk-va">color</span> = <span class="tk-va">Color</span>.<span class="tk-va">red</span>;</span>
-<span class="wt-line" data-n="5">        <span class="tk-va">Gizmos</span>.<span class="tk-fn">DrawLine</span>(<span class="tk-va">groundCheck</span>.<span class="tk-va">position</span>, <span class="tk-va">groundCheck</span>.<span class="tk-va">position</span> + <span class="tk-va">Vector3</span>.<span class="tk-va">down</span> * <span class="tk-va">groundDistance</span>);</span>
-<span class="wt-line" data-n="6">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">A Unity message that runs in the editor, outside Play mode. It draws shapes into the Scene view and does nothing in the built game.</span><span class="wt-why"><strong>Check for a null first.</strong> Before the slot is wired, <code>groundCheck</code> is <code>null</code> and reading <code>.position</code> throws. A one-line guard keeps the editor quiet while the half-built script sits on the Player.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what">Leave without drawing when there is nothing to draw from. <code>return</code> in a <code>void</code> method ends it on the spot — the early exit you first saw in <code>UpdateAnimation()</code> and again in the turret's guard.</span></li>
-<li><span class="wt-ref">4</span><span class="wt-what">Set the drawing colour before you draw. <code>Color.red</code> is a built-in constant, the same idea as <code>Vector2.down</code>.</span></li>
-<li><span class="wt-ref">5</span><span class="wt-what"><strong>A line from the feet to the end of the ray.</strong> <code>Vector3.down * groundDistance</code> is the same direction-and-length the ray uses, which is why the gizmo is worth writing: the two must agree.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 4</span>Keep the budget. Change where it is written</h4><p class="wt-lead">These two fields are already in your file from the day you built the jump limit — keep their names and their values. What moves is the refill: it comes out of the collision callback and into the frame loop.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">    <span class="tk-kw">int</span> <span class="tk-va">jumpsRemaining</span>;</span>
-<span class="wt-line wt-line-why" data-n="2">    <span class="tk-kw">int</span> <span class="tk-va">maxJumps</span> = <span class="tk-nu">1</span>;</span>
+<div class="activity walkthrough" data-scaffold="2" data-gaps="1"><div class="activity-header"><span class="activity-label">In the Code</span><span class="activity-time">Guided build</span></div><p class="wt-ask"><span class="wt-ask-label">The question this answers</span>&ldquo;why can I jump forever in mid-air?&rdquo;</p><p class="wt-lead wt-file">You are editing <code>Assets/Scripts/PlayerController.cs</code>. Open <code>Assets/Scripts/PlayerController.cs</code>. You already added <code>isPlatformer</code>, <code>gravityScale</code>, and <code>Jump()</code> in <code>6.1</code>. Fill in the jump counter, spend it in <code>Update()</code>, and refill it on <code>"Ground"</code> collisions.</p><p class="wt-gapcount">This build leaves <strong>1 line</strong> for you to write. Everything around it is given, so you always know the shape of what you are producing.</p><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 1</span>Declare the jump budget fields and initialize in Start()</h4><p class="wt-lead">Add two integer fields in <code>PlayerController</code> and initialize <code>jumpsRemaining = maxJumps;</code> inside the platformer branch of <code>Start()</code>.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    <span class="tk-kw">int</span> <span class="tk-va">jumpsRemaining</span>;</span>
+<span class="wt-line" data-n="2">    <span class="tk-kw">int</span> <span class="tk-va">maxJumps</span> = <span class="tk-nu">1</span>;</span>
 <span class="wt-line" data-n="3"></span>
-<span class="wt-line wt-line-why" data-n="4">            <span class="tk-va">jumpsRemaining</span> = <span class="tk-va">maxJumps</span>;</span>
-<span class="wt-line wt-line-why" data-n="5">            <span class="tk-fn">print</span>(<span class="tk-va">jumpsRemaining</span>);</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">How many jumps are left <strong>right now</strong>. No initializer: a field of type <code>int</code> starts at <code>0</code>, and <code>Start()</code> fills it. Nothing here changes today.</span><span class="wt-why"><strong>Why not just start it at 1?</strong> Because a value that is set in two places is a value you can forget to reset in one of them. Give it one source of truth — <code>maxJumps</code> — and set it from that everywhere.</span></li>
-<li><span class="wt-ref">2</span><span class="wt-what"><strong>How many jumps you are allowed between landings.</strong> <code>1</code> today; <code>2</code> is a double jump, and that is the whole of 6.4 — one number, plus a pickup that changes it.</span><span class="wt-why"><strong>The limit lives in its own field, not in the condition.</strong> Written as <code>jumpsRemaining &gt;= 1</code> the <code>1</code> is hidden inside the gate; written as <code>maxJumps</code> the number has a name you can find, change and explain.</span></li>
-<li><span class="wt-ref">4</span><span class="wt-what"><strong>Start on the floor with a full budget.</strong> In the <code>else</code> branch of <code>Start()</code> — the platformer branch from 6.1 — beside the gravity line. If it is already there, leave it: the first frame of the cave is a special case, and this is where special cases go.</span><span class="wt-why"><strong>This is the same sentence as the landing, said once at the beginning.</strong> A field that gets its value from another field is telling you where the real number lives.</span></li>
-<li><span class="wt-ref">5</span><span class="wt-what"><strong>An instrument, not a feature.</strong> One line in the Console at the start of the cave. Delete it once the number is right — or leave it and be able to say why.</span><span class="wt-why"><strong>Not a <code>Debug.LogError()</code>.</strong> This is not a failure; the game is working. A red line in the Console means "something is wrong", and spending that colour on a number you are watching trains you to ignore it.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 5</span>Spend it, refill it, and charge for the fall</h4><p class="wt-lead">In <code>Update()</code>, the platformer branch — the <code>else</code> where <code>linearVelocityX</code> is set. Four blocks, in this order, and the order is the lesson.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line wt-line-why" data-n="1">            <span class="tk-fn">CheckGround</span>();</span>
-<span class="wt-line" data-n="2"></span>
-<span class="wt-line" data-n="3">            <span class="tk-ct">if</span> (<span class="tk-va">isGrounded</span>)</span>
-<span class="wt-line" data-n="4">            {</span>
-<span class="wt-line wt-line-why wt-blank" data-n="5"><span class="wt-gap">________________</span></span>
-<span class="wt-line" data-n="6">            }</span>
-<span class="wt-line wt-line-why" data-n="7">            <span class="tk-ct">else</span> <span class="tk-ct">if</span> (<span class="tk-va">jumpsRemaining</span> == <span class="tk-va">maxJumps</span>)</span>
+<span class="wt-line" data-n="4">        <span class="tk-ct">else</span></span>
+<span class="wt-line" data-n="5">        {</span>
+<span class="wt-line" data-n="6">            <span class="tk-va">rb</span>.<span class="tk-va">gravityScale</span> = <span class="tk-va">gravityScale</span>;</span>
+<span class="wt-line" data-n="7">            <span class="tk-va">isPlatformer</span> = <span class="tk-kw">true</span>;</span>
+<span class="wt-line" data-n="8">            <span class="tk-va">jumpsRemaining</span> = <span class="tk-va">maxJumps</span>;</span>
+<span class="wt-line" data-n="9">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Counts how many jumps the player currently has left before needing to land.</span></li>
+<li><span class="wt-ref">2</span><span class="wt-what">The jump limit (<code>1</code> for a standard single jump today; later you will upgrade this in <code>StatManager</code>).</span></li>
+<li><span class="wt-ref">4</span><span class="wt-what">Inside the <code>else</code> (platformer) branch of <code>Start()</code> from <code>6.1</code>.</span></li>
+<li><span class="wt-ref">6</span><span class="wt-what">Turns gravity on from your <code>6.1</code> field.</span></li>
+<li><span class="wt-ref">7</span><span class="wt-what">Enables platformer movement.</span></li>
+<li><span class="wt-ref">8</span><span class="wt-what">Gives the player their full starting jump budget as soon as the cave loads.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 2</span>Gate the jump key and spend one jump</h4><p class="wt-lead">Replace the old jump <code>if</code> inside the platformer branch (<code>else</code> of <code>if (!isPlatformer)</code>) so pressing <code>J</code> only fires when <code>jumpsRemaining &gt;= 1</code>, then decrements <code>jumpsRemaining</code>.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">        <span class="tk-ct">if</span> (!<span class="tk-va">isPlatformer</span>)</span>
+<span class="wt-line" data-n="2">        {</span>
+<span class="wt-line" data-n="3">            <span class="tk-va">rb</span>.<span class="tk-va">linearVelocity</span> = <span class="tk-kw">new</span> <span class="tk-ty">Vector2</span>(<span class="tk-va">xVector</span>, <span class="tk-va">yVector</span>);</span>
+<span class="wt-line" data-n="4">        }</span>
+<span class="wt-line" data-n="5">        <span class="tk-ct">else</span></span>
+<span class="wt-line" data-n="6">        {</span>
+<span class="wt-line wt-line-why wt-blank" data-n="7"><span class="wt-gap">            if (____ &amp;&amp; ____)</span></span>
 <span class="wt-line" data-n="8">            {</span>
-<span class="wt-line wt-line-why" data-n="9">                <span class="tk-va">jumpsRemaining</span> -= <span class="tk-nu">1</span>;</span>
-<span class="wt-line" data-n="10">            }</span>
-<span class="wt-line" data-n="11"></span>
-<span class="wt-line wt-line-why" data-n="12">            <span class="tk-ct">if</span> (<span class="tk-va">Input</span>.<span class="tk-fn">GetKeyDown</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">J</span>) &amp;&amp; <span class="tk-va">jumpsRemaining</span> &gt;= <span class="tk-nu">1</span>)</span>
-<span class="wt-line" data-n="13">            {</span>
-<span class="wt-line" data-n="14">                <span class="tk-fn">Jump</span>();</span>
-<span class="wt-line wt-line-why" data-n="15">                <span class="tk-va">jumpsRemaining</span> -= <span class="tk-nu">1</span>;</span>
-<span class="wt-line" data-n="16">            }</span>
-<span class="wt-line" data-n="17"></span>
-<span class="wt-line" data-n="18">            <span class="tk-va">rb</span>.<span class="tk-va">linearVelocityX</span> = <span class="tk-va">xVector</span>;</span>
-<span class="wt-line" data-n="19"></span>
-<span class="wt-line wt-line-why" data-n="20"><span class="tk-cm">// OnCollisionEnter2D — delete this method</span></span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Ask the question first, every frame, before anything reads the answer.</span><span class="wt-why"><strong><code>Update()</code> is the frame clock, and this is a question about now.</strong> Put the same call in <code>Start()</code> and <code>isGrounded</code> is a fact about the first frame of the game, which is not what a ground check means.</span></li>
-<li><span class="wt-ref">3</span><span class="wt-what"><strong>Feet down.</strong> The one branch that makes the budget rechargeable.</span></li>
-<li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">5</span><span class="wt-what"><strong>Put the budget back.</strong> One statement, using the two fields from the previous step: the one you spend from gets the value of the one that sets the limit. Do not write a number here — if you write <code>= 1</code> you have made <code>maxJumps</code> a lie, and the double jump in 6.4 will not work no matter what you set it to.</span><span class="wt-hint">The field that counts down is assigned the field that holds the maximum. Same line as the one you wrote in <code>Start()</code>, for the same reason — one source of truth.</span><span class="wt-why"><strong>This line is what makes the other three mean something.</strong> Without it the player jumps once per scene and then walks. A budget with no refill is not a limit, it is a one-way door.</span></li>
-<li><span class="wt-ref">7</span><span class="wt-what"><strong>In the air with a full budget.</strong> Nothing has been spent, so nobody jumped — which means the player walked off the edge. Read the condition as "I am falling, and I have not used a single jump".</span><span class="wt-why"><strong>This is the walk-off rule, and it needs no memory.</strong> You could write it with a <code>wasGrounded</code> field, or a timestamp, or a flag set when you jump. All of those are history, and history is another thing to keep in step. A full budget in mid-air is already the proof.</span></li>
-<li><span class="wt-ref">9</span><span class="wt-what"><strong>Charge yourself one.</strong> With <code>maxJumps</code> at 1 this takes the budget to zero, so a player who walks off a ledge cannot then jump in mid-air. With two, it leaves one: the ground jump is gone, the air jump survives — which is what a player carrying boots expects.</span><span class="wt-why"><strong>Why not set it to zero?</strong> Because the budget is a count, not a boolean, and this is the first line in the course that treats it as one. Charging one keeps the rule true no matter what <code>maxJumps</code> becomes — and <code>maxJumps</code> becoming 2 is the next lesson.</span></li>
-<li><span class="wt-ref">12</span><span class="wt-what"><strong>The jump condition you already have.</strong> <code>GetKeyDown</code> is what makes one press one jump; <code>jumpsRemaining &gt;= 1</code> is the budget term — the same line, kept. What changes is that it now reads a count maintained in this loop instead of one maintained by a callback.</span><span class="wt-why"><strong><code>&gt;= 1</code>, not <code>&gt; 0</code>.</strong> They mean the same thing here, and both are correct. Pick one and be able to say why: <code>&gt;= 1</code> reads as "at least one", which is what the player is thinking.</span></li>
-<li><span class="wt-ref">14</span><span class="wt-what">The method from 6.1, unchanged. The force, the <code>ForceMode2D.Impulse</code>, the <code>print</code> inside it — none of it moves today.</span></li>
-<li><span class="wt-ref">15</span><span class="wt-what"><strong>Spend it, inside the <code>if</code>.</strong> Inside is the whole point: a jump you were not allowed to take must not cost you one.</span><span class="wt-why"><strong><code>-= 1</code> is <code>jumpsRemaining = jumpsRemaining - 1</code>.</strong> It reads left to right as "take one away", which is what the player just did.</span></li>
-<li><span class="wt-ref">18</span><span class="wt-what">Your horizontal movement from 6.1, untouched. It sits after every jump block on purpose — you can always walk, whether or not you have a jump.</span></li>
-<li><span class="wt-ref">20</span><span class="wt-what"><strong>Take the old refill out.</strong> Once the budget is written in the frame loop, the collision callback is a second source of truth for the same number — and it is the source that is wrong about ledges. Delete the whole method. If the jump still behaves, the loop owns the budget now; if something breaks, you have just found out which line was really doing the work.</span><span class="wt-why"><strong>Deleting it also deletes last week's answer to "what counts as ground".</strong> The tag check goes with it, and the <code>Ground</code> tag stops mattering to the jump entirely — that is the trade this lesson makes, and the layer is what replaces it.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Compare against your own file rather than copying it. Three things are worth checking. First, the refill: <code>jumpsRemaining = maxJumps</code> — written from the field, never from a literal. Second, the charge for walking off: one statement, in the branch that asks whether the budget is still full. Third, the order — <code>CheckGround()</code> runs before anything reads <code>isGrounded</code>, and the jump check runs after both budget rules, so one press can never be counted twice.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
+<span class="wt-line" data-n="9">                <span class="tk-fn">Jump</span>();</span>
+<span class="wt-line" data-n="10">                <span class="tk-va">jumpsRemaining</span> -= <span class="tk-nu">1</span>;</span>
+<span class="wt-line" data-n="11">            }</span>
+<span class="wt-line" data-n="12">            <span class="tk-va">rb</span>.<span class="tk-va">linearVelocityX</span> = <span class="tk-va">xVector</span>;</span>
+<span class="wt-line" data-n="13">        }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Top-down branch from Overworld: full 2D <code>new Vector2(xVector, yVector)</code> movement.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Keeps top-down movement untouched.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">Platformer branch: jump on <code>KeyCode.J</code>, and only overwrite horizontal <code>rb.linearVelocityX</code> so gravity owns vertical falling.</span></li>
+<li class="wt-your-turn"><span class="wt-turn-tag">Your turn</span><span class="wt-ref">7</span><span class="wt-what">Write the jump gate: require BOTH the <code>KeyCode.J</code> press this frame AND at least <code>1</code> jump left in your counter.</span><span class="wt-hint">Reach for <code>Input.GetKeyDown()</code>, <code>KeyCode.J</code>, and your <code>jumpsRemaining</code> field.</span><span class="wt-why"><strong>Two facts have to agree before physics pushes upward.</strong> Using <code>isPlatformer</code> put us inside this <code>else</code> branch; checking the jump budget stops mid-air climbing without blocking future multi-jump upgrades.</span></li>
+<li><span class="wt-ref">9</span><span class="wt-what">Runs your existing <code>Jump()</code> impulse method.</span></li>
+<li><span class="wt-ref">10</span><span class="wt-what">Spends <code>1</code> jump immediately so pressing <code>J</code> a second time in mid-air fails the <code>&gt;= 1</code> check.</span></li>
+<li><span class="wt-ref">12</span><span class="wt-what">Drives left/right speed without stomping vertical fall velocity from gravity.</span></li></ol></div><div class="wt-step"><h4 class="wt-step-title"><span class="wt-num">Step 3</span>Refill jumpsRemaining on Ground collision</h4><p class="wt-lead">Add <code>OnCollisionEnter2D(Collision2D other)</code> below <code>OnTriggerExit2D()</code> so landing on any solid collider tagged <code>"Ground"</code> restores <code>jumpsRemaining</code>.</p><pre class="wt-code lang-cs" data-lang="C#"><code><span class="wt-line" data-n="1">    <span class="tk-kw">void</span> <span class="tk-fn">OnCollisionEnter2D</span>(<span class="tk-ty">Collision2D</span> <span class="tk-va">other</span>)</span>
+<span class="wt-line" data-n="2">    {</span>
+<span class="wt-line wt-line-why" data-n="3">        <span class="tk-ct">if</span> (<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Ground"</span>))</span>
+<span class="wt-line" data-n="4">        {</span>
+<span class="wt-line" data-n="5">            <span class="tk-va">jumpsRemaining</span> = <span class="tk-va">maxJumps</span>;</span>
+<span class="wt-line" data-n="6">        }</span>
+<span class="wt-line" data-n="7">    }</span></code></pre><ol class="wt-annot"><li><span class="wt-ref">1</span><span class="wt-what">Called automatically by Unity Physics 2D when two solid (non-trigger) colliders start touching.</span></li>
+<li><span class="wt-ref">3</span><span class="wt-what">Checks the Tag on the GameObject you landed on.</span><span class="wt-why"><strong>Not every solid object is a floor.</strong> Walls, enemies, and moving barriers can also trigger <code>OnCollisionEnter2D()</code>; checking <code>CompareTag("Ground")</code> prevents wall-jumping off anything unintended.</span></li>
+<li><span class="wt-ref">5</span><span class="wt-what">Restores the jump count so the player can jump again once grounded.</span></li></ol></div><details class="wt-final wt-gated"><summary><span class="wt-gated-title">Check your work: the finished file</span><span class="wt-gated-peek">try every gap first &mdash; then open this to compare</span></summary><p class="wt-lead">Look how small that architecture is: NO raycast, NO LayerMask, and the <code>else</code> branch setting <code>rb.linearVelocityX = xVector;</code> preserves gravity's downward acceleration every frame while keeping <code>if (!isPlatformer)</code> ready for top-down movement and ladders.</p><pre class="wt-code wt-code-full lang-cs" data-lang="C#"><code><span class="tk-cm">// ------------------------------------------------------------------</span>
 <span class="tk-cm">//  REFERENCE FILE — Assets/Scripts/PlayerController.cs</span>
 <span class="tk-cm">//  Written to be read, not pasted. Build it with the walkthrough</span>
 <span class="tk-cm">//  above, one step at a time, then open this and compare.</span>
 <span class="tk-cm">//  If it is sitting in your project unchanged, that is the thing</span>
 <span class="tk-cm">//  to go and do now — the walkthrough is still above you.</span>
 <span class="tk-cm">// ------------------------------------------------------------------</span>
-<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>;
-<span class="tk-ct">using</span> <span class="tk-ty">UnityEngine</span>.<span class="tk-ty">SceneManagement</span>;
+<span class="tk-cm">// Relevant fields and methods in PlayerController.cs (6.2)</span>
+    <span class="tk-kw">int</span> <span class="tk-va">jumpsRemaining</span>;
+    <span class="tk-kw">int</span> <span class="tk-va">maxJumps</span> = <span class="tk-nu">1</span>;
 
-<span class="tk-kw">public</span> <span class="tk-kw">class</span> <span class="tk-ty">PlayerController</span> : <span class="tk-ty">MonoBehaviour</span>
-{
-<span class="tk-cm">    // ... speed, direction, animator, renderer, cooldownTimer, rb ...</span>
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">float</span> <span class="tk-va">jumpForce</span>;
+    <span class="tk-kw">bool</span> <span class="tk-va">isPlatformer</span> = <span class="tk-kw">false</span>;
+    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">float</span> <span class="tk-va">gravityScale</span>;
 
-    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">float</span> <span class="tk-va">jumpForce</span>;          <span class="tk-cm">// 6.1 — the number you tuned</span>
-    <span class="tk-kw">bool</span> <span class="tk-va">isPlatformer</span> = <span class="tk-kw">false</span>;                 <span class="tk-cm">// 6.1 — set from the scene name</span>
-
-    [<span class="tk-ty">SerializeField</span>] <span class="tk-ty">Transform</span> <span class="tk-va">groundCheck</span>;    <span class="tk-cm">// an empty child at the feet</span>
-    [<span class="tk-ty">SerializeField</span>] <span class="tk-kw">float</span> <span class="tk-va">groundDistance</span> = <span class="tk-nu">0.2f</span>;
-    [<span class="tk-ty">SerializeField</span>] <span class="tk-ty">LayerMask</span> <span class="tk-va">groundMask</span>;     <span class="tk-cm">// the Ground layer, and only it</span>
-    <span class="tk-kw">bool</span> <span class="tk-va">isGrounded</span>;
-
-    <span class="tk-kw">int</span> <span class="tk-va">jumpsRemaining</span>;                        <span class="tk-cm">// how many are left right now</span>
-    <span class="tk-kw">int</span> <span class="tk-va">maxJumps</span> = <span class="tk-nu">1</span>;                          <span class="tk-cm">// how many you get between landings</span>
-
-    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">Start</span>()
+    <span class="tk-kw">void</span> <span class="tk-fn">Start</span>()
     {
-<span class="tk-cm">        // ... the component lookups and the StatManager check ...</span>
-
+<span class="tk-cm">        // ... GetComponent lookups from 1.6 / 2.2 / 2.7 ...</span>
         <span class="tk-ty">Scene</span> <span class="tk-va">currentScene</span> = <span class="tk-va">SceneManager</span>.<span class="tk-fn">GetActiveScene</span>();
         <span class="tk-ct">if</span> (<span class="tk-va">currentScene</span>.<span class="tk-va">name</span> == <span class="tk-st">"Overworld"</span>)
         {
@@ -221,123 +112,47 @@
         }
         <span class="tk-ct">else</span>
         {
-            <span class="tk-va">rb</span>.<span class="tk-va">gravityScale</span> = <span class="tk-nu">1</span>;
+            <span class="tk-va">rb</span>.<span class="tk-va">gravityScale</span> = <span class="tk-va">gravityScale</span>;
             <span class="tk-va">isPlatformer</span> = <span class="tk-kw">true</span>;
-            <span class="tk-va">jumpsRemaining</span> = <span class="tk-va">maxJumps</span>;         <span class="tk-cm">// you start on the floor</span>
-            <span class="tk-fn">print</span>(<span class="tk-va">jumpsRemaining</span>);             <span class="tk-cm">// an instrument — delete when it is right</span>
+            <span class="tk-va">jumpsRemaining</span> = <span class="tk-va">maxJumps</span>;
+            <span class="tk-fn">print</span>(<span class="tk-va">jumpsRemaining</span>);
         }
     }
 
-    <span class="tk-kw">private</span> <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
+    <span class="tk-kw">void</span> <span class="tk-fn">Update</span>()
     {
-<span class="tk-cm">        // ... input, the facing block, the sword and the bullet ...</span>
-
+<span class="tk-cm">        // ... read xDirection / yDirection -&gt; xVector / yVector ...</span>
         <span class="tk-ct">if</span> (!<span class="tk-va">isPlatformer</span>)
         {
             <span class="tk-va">rb</span>.<span class="tk-va">linearVelocity</span> = <span class="tk-kw">new</span> <span class="tk-ty">Vector2</span>(<span class="tk-va">xVector</span>, <span class="tk-va">yVector</span>);
         }
         <span class="tk-ct">else</span>
         {
-            <span class="tk-fn">CheckGround</span>();
-
-            <span class="tk-ct">if</span> (<span class="tk-va">isGrounded</span>)
-            {
-                <span class="tk-va">jumpsRemaining</span> = <span class="tk-va">maxJumps</span>;     <span class="tk-cm">// feet down: the budget is full</span>
-            }
-            <span class="tk-ct">else</span> <span class="tk-ct">if</span> (<span class="tk-va">jumpsRemaining</span> == <span class="tk-va">maxJumps</span>)
-            {
-                <span class="tk-va">jumpsRemaining</span> -= <span class="tk-nu">1</span>;           <span class="tk-cm">// full budget in the air: you fell</span>
-            }
-
             <span class="tk-ct">if</span> (<span class="tk-va">Input</span>.<span class="tk-fn">GetKeyDown</span>(<span class="tk-va">KeyCode</span>.<span class="tk-va">J</span>) &amp;&amp; <span class="tk-va">jumpsRemaining</span> &gt;= <span class="tk-nu">1</span>)
             {
                 <span class="tk-fn">Jump</span>();
-                <span class="tk-va">jumpsRemaining</span> -= <span class="tk-nu">1</span>;           <span class="tk-cm">// spend it only if you jumped</span>
+                <span class="tk-va">jumpsRemaining</span> -= <span class="tk-nu">1</span>;
             }
-
             <span class="tk-va">rb</span>.<span class="tk-va">linearVelocityX</span> = <span class="tk-va">xVector</span>;
         }
-
-<span class="tk-cm">        // ... cooldownTimer, the sword, the bullet, UpdateAnimation() ...</span>
     }
 
-    <span class="tk-kw">void</span> <span class="tk-fn">CheckGround</span>()
+    <span class="tk-kw">void</span> <span class="tk-fn">OnCollisionEnter2D</span>(<span class="tk-ty">Collision2D</span> <span class="tk-va">other</span>)
     {
-        <span class="tk-va">isGrounded</span> = <span class="tk-va">Physics2D</span>.<span class="tk-fn">Raycast</span>(<span class="tk-va">groundCheck</span>.<span class="tk-va">position</span>, <span class="tk-va">Vector2</span>.<span class="tk-va">down</span>, <span class="tk-va">groundDistance</span>, <span class="tk-va">groundMask</span>);
-    }
-
-    <span class="tk-kw">void</span> <span class="tk-fn">OnDrawGizmos</span>()
-    {
-        <span class="tk-ct">if</span> (<span class="tk-va">groundCheck</span> == <span class="tk-kw">null</span>) { <span class="tk-ct">return</span>; }
-        <span class="tk-va">Gizmos</span>.<span class="tk-va">color</span> = <span class="tk-va">Color</span>.<span class="tk-va">red</span>;
-        <span class="tk-va">Gizmos</span>.<span class="tk-fn">DrawLine</span>(<span class="tk-va">groundCheck</span>.<span class="tk-va">position</span>, <span class="tk-va">groundCheck</span>.<span class="tk-va">position</span> + <span class="tk-va">Vector3</span>.<span class="tk-va">down</span> * <span class="tk-va">groundDistance</span>);
-    }
-
-    <span class="tk-kw">void</span> <span class="tk-fn">Jump</span>()
-    {
-        <span class="tk-fn">print</span>(<span class="tk-st">"jump"</span>);
-        <span class="tk-va">rb</span>.<span class="tk-fn">AddForceY</span>(<span class="tk-va">jumpForce</span>, <span class="tk-va">ForceMode2D</span>.<span class="tk-va">Impulse</span>);
-    }
-}</code></pre></details></div>
+        <span class="tk-ct">if</span> (<span class="tk-va">other</span>.<span class="tk-va">gameObject</span>.<span class="tk-fn">CompareTag</span>(<span class="tk-st">"Ground"</span>))
+        {
+            <span class="tk-va">jumpsRemaining</span> = <span class="tk-va">maxJumps</span>;
+        }
+    }</code></pre></details></div>
 
 <!-- ============================================================ -->
-<div class="activity basic-app">
-    <div class="activity-header">
-        <span class="activity-label">Build Lab: Prove It, Then Break It</span>
-        <span class="activity-time">~20 min</span>
-    </div>
-
-    <p>
-        <strong>Step 1 — the five jumps.</strong> Press Play and count in each situation: on the
-        floor (<em>one, then nothing</em>), landing again (<em>one again</em>), walking off a ledge
-        and pressing J (<em>nothing — the walk-off rule charged you</em>), landing on the cave mouth
-        (<em>one — the layer caught it</em>), and in mid-air over nothing after a normal jump
-        (<em>nothing</em>).
-    </p>
-
-    <p>
-        <strong>Step 2 — watch the number.</strong> Keep the <code>print()</code> in
-        <code>Start()</code> and add one to the charge for a minute. Press Play, then walk off a
-        ledge: the Console should read the budget drop by one the frame the red line stops hitting.
-        Take both prints out before you commit.
-    </p>
-
-    <p>
-        <strong>Step 3 — the empty mask.</strong> Set <strong>Ground Mask</strong> to
-        <code>Nothing</code> and play. The red line still draws, the floor is still there, and you
-        can jump forever — nothing errors. Put it back, and say which line of your code was right
-        the whole time.
-    </p>
-
-    <p>
-        <strong>Step 4 — the charge that is a literal.</strong> Change
-        <code>jumpsRemaining -= 1;</code> in the walk-off branch to
-        <code>jumpsRemaining = 0;</code>, then later set <code>maxJumps = 2</code>. Walking off now
-        costs both jumps. One of those two versions is a game rule and the other is a coincidence
-        of today's number.
-    </p>
-
-    <div class="callout">
-        <strong>Architectural specification: the budget.</strong>
-        <ul>
-            <li>Where does the number of allowed jumps live, and how many places read it? A limit written into a condition is a limit nobody can tune.</li>
-            <li>Is the spend inside the same condition as the jump? Say what the player experiences when it is not.</li>
-            <li>Which surfaces count as ground, and how does the code know? Name the mechanism — a tag, a layer, a component — and one surface it gets wrong.</li>
-            <li>Which of the two budget rules is the refill, and which is the charge? Say what a player loses if you ship only one of them.</li>
-        </ul>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-
 <div class="checklist">
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
-        <li>Explain why a jump needs a budget rather than a rule</li>
-        <li>Say why <code>maxJumps</code> exists as a field and why the refill reads it instead of a literal</li>
-        <li>Explain why the decrement sits inside the <code>if</code></li>
-        <li>Say what a raycast tells you that a collision callback cannot, and what a <code>LayerMask</code> is for</li>
-        <li>Explain why a full budget in mid-air is proof that the player walked off, with no previous frame remembered</li>
+        <li>Explain why <code>rb.linearVelocityX = xVector;</code> leaves Y gravity intact inside the platformer branch</li>
+        <li>Spend <code>jumpsRemaining</code> on <code>KeyCode.J</code> and refuse mid-air presses when <code>jumpsRemaining &lt; 1</code></li>
+        <li>Refill <code>jumpsRemaining = maxJumps</code> in <code>OnCollisionEnter2D()</code> only when <code>CompareTag("Ground")</code> matches</li>
+        <li>Verify that your <code>Platformer</code> floor carries the exact <code>Ground</code> tag with a solid collider</li>
         <li>Commit and push</li>
     </ul>
 </div>
@@ -347,13 +162,12 @@
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — the unit this lesson sits in: the flick, the honest check, and the mercy timers that come next</li>
-        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — what the physics engine reports, and when</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>Physics2D.Raycast()</code>, <code>LayerMask</code>, Rigidbody2D and Body Type</li>
+        <li><a href="../docs/unit-06/index.html">Unit 6: Jumping</a> — jump counter and collision notes</li>
+        <li><a href="../docs/unit-02/triggers-vs-collisions.html">Triggers vs Collisions</a> — why <code>OnCollisionEnter2D()</code> needs solid colliders</li>
         <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
     </ul>
-    <p>Next: <a href="6.3.html">6.3 — Jump Feel: Fall Speed &amp; Coyote Time</a>, where a jump that works starts to feel like a jump that is <em>yours</em>.</p>
-</div><div class="lab-bar" data-lesson="6.2" data-lesson-title="Ground Checks: No Infinite Jumps" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="6.2" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="6.1.html"><span class="dir">&#9664; Previous</span><span class="where">6.1 — Gravity &amp; Jump: The First Flick</span></a><a class="foot-next" href="6.3.html"><span class="dir">Next &#9654;</span><span class="where">6.3 — Jump Feel: Fall Speed &amp; Coyote Time</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
+    <p>Next: <a href="7.1.html">7.1 — Tilemaps: The Level Editor</a>, to paint the cave around your new jump.</p>
+</div><div class="lab-bar" data-lesson="6.2" data-lesson-title="Ground Collision &amp; Jump Count" data-count="5" data-pagefind-ignore><div class="lab-bar-row"><label class="lab-name">Student name<input id="lab-student" type="text" autocomplete="name" placeholder="First Last"></label><span class="lab-count" id="lab-count">0/5 answered</span><button type="button" class="lab-download" id="lab-download">Download answers (.json)</button></div><p class="lab-note">Answers save on this device as you type. At the end of class, click Download and upload the file to the Canvas assignment.</p></div><label class="progress-toggle" data-lesson="6.2" data-pagefind-ignore><input type="checkbox"><span>I finished this lesson</span></label><p class="progress-note" data-pagefind-ignore>Saved on this device only — the Dashboard tracks your progress.</p><nav class="lesson-foot" data-pagefind-ignore aria-label="Lesson navigation"><a class="foot-prev" href="6.1.html"><span class="dir">&#9664; Previous</span><span class="where">6.1 — Gravity &amp; Jump: The First Flick</span></a><a class="foot-next" href="7.1.html"><span class="dir">Next &#9654;</span><span class="where">7.1 — Tilemaps: The Level Editor</span></a></nav></div><!-- .page --></body></html><script src="../js/lab-forms.js"></script><!-- MCQ practice sets. Loaded AFTER lab-forms.js on purpose: lab-forms.js
      restores the hidden bridge textareas first, and mc-quiz.js reads those
      restored values to re-check the radios. Swapping the order breaks
      answer restore on the clinic lessons. --><script src="../js/mc-quiz.js"></script><script type="module">var e=`apcsp-progress`,t=()=>{try{return JSON.parse(localStorage.getItem(e)??`{}`)}catch{return{}}},n=document.querySelector(`.progress-toggle`),r=n?.querySelector(`input`);if(n&&r){let i=n.dataset.lesson??``,a=()=>n.classList.toggle(`done`,r.checked);r.checked=!!t()[i],a(),r.addEventListener(`change`,()=>{let n=t();n[i]=r.checked,localStorage.setItem(e,JSON.stringify(n)),a()})}</script>

@@ -111,7 +111,7 @@ export const ASK_GROUPS: AskGroup[] = [
     blurb: 'Animation, on-screen text, and feedback.',
     asks: [
       { q: 'how do I play a walking animation?', lesson: '1.6', note: 'Animator parameters, and driving them from your own variables.', level: 1 },
-      { q: 'how do I put my health on the screen?', lesson: '5.3', note: 'A Canvas HUD, and why it has to live in a different scene.', level: 1 },
+      { q: 'how do I put my health on the screen?', lesson: '5.3', note: 'Canvas TextMeshProUGUI fields directly inside StatManager, updating on Start(), ChangeHealth(), and ChangeCoins().', level: 1 },
     ],
   },
   {
@@ -120,36 +120,36 @@ export const ASK_GROUPS: AskGroup[] = [
     asks: [
       { q: 'how do I open a door with a key?', lesson: '5.2', note: 'Events — letting one object tell another that something happened.', level: 1 },
       { q: 'how do I switch scenes?', lesson: '5.3', note: 'SceneManager, and what happens to everything you were carrying.', level: 1 },
-      { q: 'how do I keep my health when I change scenes?', lesson: '5.3', note: 'DontDestroyOnLoad, singletons, and the duplicate guard you will need.', level: 1 },
+      { q: 'how do I keep my health when I change scenes?', lesson: '5.3', note: 'DontDestroyOnLoad, StatManager.original, and resetting the active scene on Die().', level: 1 },
     ],
   },
   {
     title: 'Jumping and platforming',
-    blurb: 'Gravity, ground checks, and making a jump feel good.',
+    blurb: 'Gravity, ground collision, moving platforms, and double jump.',
     asks: [
       { q: 'how do I jump?', lesson: '6.1', note: 'Gravity, vertical velocity, and the first flick upward.', level: 1 },
-      { q: 'why can I jump forever in mid-air?', lesson: '6.2', note: 'Ground checks — proving you are standing on something before you jump.', level: 2 },
-      { q: 'how do I make a double jump?', lesson: '6.4', note: 'A counter, and resetting it on landing.', level: 3 },
-      { q: 'how do I make my jump feel good?', lesson: '6.3', note: 'Fall speed, coyote time and the jump buffer — four numbers, two of them timers that remember a moment.', level: 2 },
+      { q: 'why can I jump forever in mid-air?', lesson: '6.2', note: 'Resetting jumpsRemaining in OnCollisionEnter2D() when CompareTag("Ground") fires.', level: 2 },
+      { q: 'how do I make a double jump?', lesson: '6.4', note: 'Moving jumpsRemaining and maxJumps onto StatManager so jumps persist across scenes and upgrades.', level: 3 },
+      { q: 'how do I make moving platforms and tune jump feel?', lesson: '6.3', note: 'Waypoints with Vector3.MoveTowards(), SetParent() so the player rides along, and tuning gravityScale and jumpForce.', level: 2 },
       // 7.1 is level 3 by necessity, not by choice: the lesson is entirely editor
       // work (Grid, Tile Palette, painting) with no script for the student to
       // write, and check 7 refuses a level 1-2 lesson that renders no
       // walkthrough. There is nothing honest to walk through, so the rung is the
       // only reachable one and the decompose withholds what each part DOES.
       { q: 'how do I build a level out of tiles?', lesson: '7.1', note: 'The Grid, the palette and the paint tools — drawing a level instead of placing one object at a time.', level: 3 },
-      { q: 'why is my tilemap solid, and why is my player in front of it?', lesson: '7.2', note: 'The colliders you inherited, the layers your ground check was already gambling on, and sorting order.', level: 3 },
-      { q: 'how do I climb a ladder?', lesson: '7.3', note: 'Climbing as a state, and switching off gravity while you are in it.', level: 3 },
-      { q: 'how do I stop my ladder breaking at the top and bottom?', lesson: '7.4', note: 'Mount and dismount conditions — the edge cases that make a climb feel finished.', level: 3 },
+      { q: 'why is my tilemap solid, and why is my player in front of it?', lesson: '7.2', note: 'The colliders you inherited, the Ground tag your jump counter resets on, and sorting order.', level: 3 },
+      { q: 'how do I climb a ladder?', lesson: '7.3', note: 'Setting isPlatformer = false (and gravityScale = 0) in OnTriggerEnter2D(), and restoring true on exit.', level: 3 },
+      { q: 'how do I refine ladder colliders and finish my cave for the boss?', lesson: '7.4', note: 'Trigger fit at tops and bottoms, edge-case testing, and building the cave toward your boss arena.', level: 3 },
     ],
   },
   {
     title: 'Building a boss fight',
-    blurb: 'Assembling an enemy out of parts that already exist, and making a fight the player can read.',
+    blurb: 'Reusing existing game parts to brainstorm, prototype, playtest, and revise your own boss.',
     asks: [
-      { q: 'how do I build a boss when there is no boss prefab?', lesson: '8.2', note: 'Assembling a body, a collider and a health number out of art that is already in the project.', level: 3 },
-      { q: 'how do I make my swing actually hurt something?', lesson: '8.3', note: 'A damage window, and an overlap query that asks the physics engine what is in front of you.', level: 2 },
-      { q: 'how do I give a boss two attacks and a phase table?', lesson: '8.4', note: 'Telegraphed attacks, and moving every timing number into data so Phase 3 is a change of values.', level: 3 },
-      { q: 'how do I make winning and dying both real?', lesson: '8.5', note: 'End states, and what your death loop costs when two systems turn out to disagree.', level: 3 },
+      { q: 'how do I prototype a boss using parts I already built?', lesson: '8.2', note: 'Combining EnemyController, TurretController, moving platforms and StatManager into a playable arena.', level: 3 },
+      { q: 'how do I connect my sword swing and fireballs to the boss?', lesson: '8.3', note: 'Wiring attackBox (KeyCode.E) and PlayerProjectile (KeyCode.Space) into the boss\'s ChangeHealth() method.', level: 2 },
+      { q: 'how do I layer reused hazards into boss phases?', lesson: '8.4', note: 'Combining turrets, spawners, platforms and health thresholds so self-playtesters can read each wave.', level: 3 },
+      { q: 'how do I test a boss with friends and wire winning and dying?', lesson: '8.5', note: 'Blind friend playtests to catch confusion, plus ending the fight cleanly or resetting on StatManager.Die().', level: 3 },
     ],
   },
   {

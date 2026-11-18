@@ -1,183 +1,147 @@
 ---
 // Lesson 5.3 — Into the Cave: Persistence & the HUD
-// The architectural payoff lesson. The student walks into a cave, discovers what
-// a scene load actually does, and then puts the numbers on screen for the first
-// time.
-//
-// WHAT CHANGED AND WHY (alignment pass, 2026-11-05): the StatManager singleton
-// used to be BUILT here — as `Instance`, with `TakeDamage(int)` (positive hurts),
-// `Mathf.Clamp`, `GetCoins()`/`GetHealth()` accessors and an axe flag, and with
-// the refactor of PlayerController as the lesson's centre. The project did that
-// refactor on 2.7 instead, and the file it produced is different in every one of
-// those details:
-//
-//     public int health = 3;  public int maxHealth = 3;  public int coins;
-//     public static StatManager original;
-//     Awake(): if (original != null && original != this) { Destroy(gameObject); }
-//              else { original = this; DontDestroyOnLoad(gameObject); }
-//     ChangeHealth(int amount)  // signed: negative hurts, clamps at maxHealth, Die() at <= 0
-//     ChangeCoins(int amount)   // signed, floors at 0
-//     Die()                     // health = maxHealth; coins = coins / 2
-//
-// So the singleton walkthrough became a READ-AND-VERIFY walkthrough of the file
-// the student already owns (level 1, every line given), and the lesson's build
-// is the HUD, which reads `StatManager.original.health` etc. There is no axe
-// flag in the build, so all axe references are gone — 5.1's axe pickup stays a
-// player-side bool until a lesson gives it a home.
-//
-// Scaffolding: FULL WALKTHROUGH (level 1) — TWO of them, both level 1, because
-// neither mechanism is code the student has written before: reading the object
-// that survives a load, and driving a TextMeshPro label from it. verify-site
-// reads the level from EVERY walkthrough on the page and refuses a page whose
-// walkthroughs disagree. The DECOMPOSE block is level 1 too.
-//
-// Answer-box ids are positional and persisted, so the socratic block keeps its
-// three questions in order and the decompose block keeps both of its turns.
+// Level 1 (Full Walkthrough): StatManager already carries DontDestroyOnLoad and
+// the `original` duplicate guard. Today we wire coinText + healthText directly
+// inside StatManager.cs, reload the active scene in Die(), and build the Canvas HUD.
 import Lesson from '../../layouts/LessonLayout.astro';
-import { renderPane } from '../../lib/panes';
 import { renderWalkthrough, renderAskBanner } from '../../lib/walkthrough';
 import { renderDecompose } from '../../lib/decompose';
 
-// The two recurring questions, applied to the cave mouth. Level 1, so every
-// part is given: what it does, and where to read about it. The split falls
-// along one line — the facts that belong to THIS ROOM (position, facing, the
-// animator) and the facts that belong to THIS RUN (coins, health, the ceiling).
 const DECOMPOSE = {
-  big:
-    'The numbers the player earned should still be there after they walk through a cave mouth — ' +
-    'and the player should finally be able to see them. The first half is already solved in this ' +
-    'project; the second half has not been built at all.',
+  big: 'Keep my health and coins alive when I leave the Overworld — and show them on screen.',
   parts: [
     {
-      name: 'Notice that a scene load replaces your objects, not just your view',
-      does: 'Unity destroys every GameObject in the old scene and builds the next one from its file, so the Player you were holding is gone and the Player that appears starts from whatever its prefab and its fields say. Nothing was lost and nothing was saved — the numbers were replaced.',
-      doc: 'the `SceneManager.LoadScene(int)` row of the quick reference.',
+      name: 'Keep one StatManager alive across scene loads',
+      does: 'A `public static StatManager original` guard in `Awake()` destroys duplicates when a new scene loads and calls `DontDestroyOnLoad(gameObject)` on the first one.',
+      doc: '2.7 (where `StatManager` became a singleton) and `DontDestroyOnLoad` in the quick reference',
       href: '../docs/reference/unity-csharp-quickref.html',
     },
     {
-      name: 'Sort the facts: this room, or this run',
-      does: 'Position, facing and the animation controller are facts about *this moment in this room* and must reset — `SceneSwitch.cs` already restores them, which is why walking into a cave does not strand you. Coins, current health and the maximum are facts about *this run* and must survive.',
-      doc: '`SceneSwitch.cs`, the one given script in the project that already saves and restores something across a load.',
-      href: '5.2.html',
+      name: 'Wire the TextMeshProUGUI labels inside StatManager',
+      does: 'Two `[SerializeField] TextMeshProUGUI` fields (`coinText` and `healthText`) updated in `Start()`, `ChangeHealth()`, and `ChangeCoins()` — no separate HUD script needed.',
+      doc: 'Unity `TextMeshProUGUI.text` row in the reference table below',
     },
     {
-      name: 'Check the owner a scene load is not allowed to destroy',
-      does: 'The StatManager you built on 2.7: a `public static` field holding the one instance, an `Awake()` that claims it and calls `DontDestroyOnLoad(gameObject)` on the first load, and an early-return guard that destroys the copy every later load brings with it.',
-      doc: '2.7 — Refactor Day: the singleton you wrote, and the `DontDestroyOnLoad(gameObject)` row of the quick reference.',
-      href: '2.7.html',
-    },
-    {
-      name: 'Know which method owns each number',
-      does: '`ChangeHealth()` is the only way in or out of health, and it carries the 2.3 ceiling and the death rule; `ChangeCoins()` floors the count at zero; `Die()` resets health and halves the coins. Nothing else may write those fields.',
-      doc: 'the three methods in your own 2.7 StatManager.',
-      href: '2.7.html',
-    },
-    {
-      name: 'Put the numbers on screen, read from that owner',
-      does: 'A Canvas and a Text (TMP) label in the scene the game begins in, and a small script that reads `StatManager.original` every frame and writes the strings into `.text`.',
-      doc: 'the `TextMeshProUGUI.text` property, and the Console readouts you have been watching all year.',
-      href: '2.7.html',
+      name: 'Reset stats and reload the scene in Die()',
+      does: 'Inside `Die()`, restore `health = maxHealth`, halve `coins = coins / 2`, refresh `healthText.text`, and call `SceneManager.LoadScene(current.name)` using `GetActiveScene()`.',
+      doc: '`SceneManager` section in the reference table below',
     },
   ],
   why:
-    'The whole split falls along one line: what belongs to *this room* and what belongs to *this run*. ' +
-    'The hard part is already built — the object the scene loader is not allowed to destroy — so today is ' +
-    'about proving it works and then giving it a face.',
-  sizeTest:
-    'The test: could you look this part up on its own, right now, in one search? "Keep my stats between ' +
-    'scenes" cannot be looked up. "Do not destroy this object when a new scene loads" can — it is one ' +
-    'row of the quick reference.',
+    'In `2.7` you moved `health`, `maxHealth`, and `coins` onto `StatManager` because `PlayerController` resets every time a scene loads. Putting `coinText` and `healthText` on that same surviving manager — and letting `Die()` call `SceneManager.LoadScene()` — means both numbers stay glued to the screen through every transition.',
   turns: [
-    'The project already contains one thing that survives a scene load: `SceneSwitch.cs` remembers which scene you came from, in a `static` field. Why is that field allowed to be `static` when your coins are not — what is different about the two things being remembered?',
-    'Today\'s design keeps your numbers alive across a *scene* load, and that is all it keeps them across. Quit the game and they are gone — is that a hole in the design, or the design itself?',
+    'Before writing a line, look at `StatManager.Awake()`: what two things happen if `original != null && original != this` when you walk into a scene that already has a `StatManager` in it?',
+    'In `StatManager.Die()`, why does `SceneManager.LoadScene(current.name)` NOT reset `coins` back to 0 even though the scene reloads?',
   ],
 };
 
-// Level 1: this is a READ of the file the student wrote on 2.7, not a build.
-// Every line is given, and the annotation is the lesson — the student should be
-// able to point at each line in their own copy and say why it is there.
-const WALK_VERIFY = {
-  ask: 'how do I keep my coins and my health when I change scenes?',
+const WALK = {
+  ask: 'how do I keep my health and HUD alive across scene switches?',
   file: 'Assets/Scripts/StatManager.cs',
   label: 'In the Code',
-  intro: 'You wrote this file on 2.7. Today you read it against the question it answers: which of these lines is what actually survives the scene load, and which one stops the second copy from overwriting your run?',
-  level: 1,
+  level: 1 as const,
+  intro:
+    'Open `Assets/Scripts/StatManager.cs`. Your `original` singleton guard and `DontDestroyOnLoad(gameObject)` are already in `Awake()`. Here is the HUD and death-reload code that completes it.',
   steps: [
     {
-      title: 'The slot, and the object that claims it',
-      lead: 'The fields and `Awake()`. Everything that survives lives on this object.',
+      title: 'Import TextMeshPro and SceneManagement, and declare the UI slots',
+      lead: 'Two `using` directives at the top of `StatManager.cs` and two serialized `TextMeshProUGUI` fields in the class body so Inspector UI objects can be dragged straight onto the manager.',
       lines: [
-        { code: '// StatManager.cs — the fields, at the top of the class.', what: '' },
-        { code: '    public int health = 3;', what: 'Current health, public so every caller can read it and every method here can change it. It starts at `3` because a new run starts at three.' },
-        { code: '    public int maxHealth = 3;', what: 'The ceiling. It is a separate field from `health` on purpose: one is game state, the other is the designer\'s number.' },
-        { code: '    public int coins;', what: 'The coin count. Defaults to `0`, which is the right starting value for a run.' },
+        {
+          code: 'using TMPro;',
+          what: 'Brings `TextMeshProUGUI` into scope so C# knows what type `coinText` and `healthText` are.',
+        },
+        {
+          code: 'using UnityEngine.SceneManagement;',
+          what: 'Brings `Scene` and `SceneManager` into scope for `Die()`.',
+        },
         { code: '', what: '' },
-        { code: '    public static StatManager original;', what: '**The line the whole lesson rests on.** `static` means the field belongs to the *class*, and a scene load destroys objects, not classes. It starts as `null`.', why: '**Every word is load-bearing.** Drop `static` and the field becomes a fact about one object — and the object is exactly what the scene loader deletes. `original` is empty again the moment you walk through a cave mouth, and your coins with it.' },
-        { code: '', what: '' },
-        { code: '// StatManager.cs — Awake(), which runs before any Start().', what: '' },
-        { code: '    void Awake()', what: 'The earliest lifecycle hook: Unity finishes every `Awake()` in a scene before it runs the first `Start()`. That is what lets every other script assume the slot is already filled.' },
-        { code: '    {', what: '' },
-        { code: '        if (original != null && original != this)', what: 'The duplicate guard: *is there already a manager, and is it somebody else?* Walk back into a scene that contains its own StatManager and this is true.' },
-        { code: '        {', what: '' },
-        { code: '            Destroy(gameObject);', what: 'The newcomer deletes itself — component, fields and the fresh `coins = 0` it was about to claim the slot with.' , why: '**This branch is not a textbook exercise in this project.** `Start (index 0)` contains its own StatManager, and the cave mouths can take you back to it. Without this line the newcomer overwrites `original` with default fields, and your run is erased the instant the scene finishes loading.' },
-        { code: '            return;', what: '**The line that makes the guard a guard.** `Destroy()` is deferred to the end of the frame, so the code below would keep running — and the doomed copy would set `original = this` a moment before it vanished, leaving every later caller pointing at an object that no longer exists.' , why: '**Read the shape, not just the words:** one branch ends in `return;`, and everything that claims the slot sits *after* it. That is an early exit — the same shape as the `if` that stops a dead player in 2.7, used here to keep one object from doing two contradictory things in one frame.' },
-        { code: '        }', what: '' },
-        { code: '', what: '' },
-        { code: '        original = this;', what: 'The first manager to load claims the slot with itself.' },
-        { code: '', what: '' },
-        { code: '        // Optional: Keep this object alive when switching scenes', what: 'The comment that ships with the file — and the one word in it you should argue with. In *this* project it is not optional: it is the entire mechanism. Delete the call and the comment above becomes true, which is the bug.' },
-        { code: '        DontDestroyOnLoad(gameObject);', what: 'The one call in Unity that changes what a scene load is allowed to do: this whole object moves into a scene of its own that never unloads.' , why: '**`gameObject`, not `this`.** `DontDestroyOnLoad()` takes whole objects, and a component cannot outlive the GameObject that carries it. Notice what is **not** happening: the numbers are not being saved anywhere. They simply live on an object the loader is no longer allowed to delete.' },
-        { code: '    }', what: '' },
+        {
+          code: '    [SerializeField] TextMeshProUGUI coinText;',
+          what: 'Inspector slot pointing at the `Coins` TMP text object on your Canvas.',
+          why: '**Storing text references on `StatManager` avoids a second script.** The manager already runs whenever `ChangeCoins()` or `ChangeHealth()` is called, so updating the label right there guarantees the screen can never drift out of sync with the variable.',
+        },
+        {
+          code: '    [SerializeField] TextMeshProUGUI healthText;',
+          what: 'Inspector slot pointing at the `Health` TMP text object on your Canvas.',
+        },
       ],
     },
     {
-      title: 'The three methods that own the numbers',
-      lead: 'Nothing outside this file may write these fields — every change goes through one of these.',
+      title: 'Initialize the labels in Start() and update them when values change',
+      lead: 'Write the starting labels once in `Start()`, then refresh them inside `ChangeHealth(int amount)` and `ChangeCoins(int amount)` right after clamping.',
       lines: [
-        { code: '// StatManager.cs — the methods, below Awake().', what: '' },
-        { code: '    public void ChangeHealth(int amount)', what: 'The one door to health. `amount` is **signed**: a negative hurts, a positive heals, and the caller chooses the sign.' },
+        {
+          code: '    void Start()',
+          what: 'Runs once after `Awake()` finishes on the surviving `StatManager`.',
+        },
         { code: '    {', what: '' },
-        { code: '        health = health + amount;', what: 'Apply the change. This is the line a spike, a potion and a fireball all end up at.' },
-        { code: '        if (health > maxHealth)', what: 'The ceiling from 2.3, applied *inside* the method that can bypass it — so no future caller can overheal. (The 2.3 page let you choose between an `if` and `Mathf.Clamp()`; this project took the `if`.)' },
-        { code: '        {', what: '' },
-        { code: '            health = maxHealth;', what: 'Clamp down to the ceiling.' },
-        { code: '        }', what: '' },
-        { code: '        print("Health: " + health);', what: 'The Console readout you have watched since 2.1. It sits *after* the clamp, so it reports the value the game will actually use — which is also why 3.4\'s fireball shows the drop and 2.3\'s potion shows the cap.' , why: '**This is the line the HUD is about to replace.** The Console tells *you* the number; the HUD will tell the *player*. Same value, same source, one audience each — and because both read the field after the method has finished changing it, they can never disagree.' },
-        { code: '        if (health <= 0)', what: 'The death rule: at or below zero, the run ends. Note the `<=` — the build checks at zero and below, so a hit that takes you exactly to zero still kills.' },
-        { code: '        {', what: '' },
-        { code: '            Die();', what: 'The method below, which owns what death means.' },
-        { code: '        }', what: '' },
+        {
+          code: '        health = maxHealth;',
+          what: 'Starts the player at full health (`3` by default).',
+        },
+        {
+          code: '        coinText.text = "Coins: " +coins;',
+          what: 'Sets the initial coin readout so it does not stay as placeholder text (`"New Text"`).',
+        },
+        {
+          code: '        healthText.text = "Health: " +health;',
+          what: 'Sets the initial health readout on frame 1.',
+        },
         { code: '    }', what: '' },
         { code: '', what: '' },
-        { code: '    public void ChangeCoins(int amount)', what: 'The one door to the coin count, same signed-amount shape.' },
+        {
+          code: '        healthText.text = "Health: " +health;',
+          what: 'Add this line at the bottom of `ChangeHealth(int amount)` (right before `if (health <= 0)`), and add `coinText.text = "Coins: " +coins;` inside `ChangeCoins(int amount)`.',
+        },
+      ],
+    },
+    {
+      title: 'Reset stats and reload the current scene in Die()',
+      lead: 'When `health <= 0`, `ChangeHealth()` calls `Die()`. Reset `health`, halve `coins`, update the text, and reload whichever scene the player died in.',
+      lines: [
+        {
+          code: '    public void Die()',
+          what: 'Called whenever `health <= 0`. Must be `public` or callable from `ChangeHealth()`.',
+        },
         { code: '    {', what: '' },
-        { code: '        coins = coins + amount;', what: '' },
-        { code: '        if (coins < 0)', what: 'The floor: a debt cannot show on the HUD as a negative number.' },
-        { code: '        {', what: '' },
-        { code: '            coins = 0;', what: '' },
-        { code: '        }', what: '' },
-        { code: '        print("Coins: " + coins);', what: 'The same readout, for the same reason — and the same line the HUD will duplicate for the player.' },
-        { code: '    }', what: '' },
-        { code: '', what: '' },
-        { code: '    public void Die()', what: 'Death, as this game defines it. `public` because the method is a promise the rest of the game can call — though today the only caller is `ChangeHealth()`. That is not an accident: it is what lets a later refactor add a respawn without moving the rule.' },
-        { code: '    {', what: '' },
-        { code: '        health = maxHealth;', what: 'Back to full. The player does not move: this is a reset, not a respawn.' },
-        { code: '        coins = coins / 2;', what: 'Half the coins are lost — integer division, so an odd coin disappears. That is the cost of dying.' },
-        { code: '        print("You died. Coins: " + coins);', what: 'A readout that makes the death visible in the Console, because nothing on screen shows it yet. The `else` of that sentence is the next lesson\'s work, not this one\'s.' },
+        {
+          code: '        health = maxHealth;',
+          what: 'Refills `health` to `3` so the next life does not immediately die again.',
+        },
+        {
+          code: '        healthText.text = "Health: " +health;',
+          what: 'Updates the HUD immediately after restoring `health`.',
+        },
+        {
+          code: '        coins = coins / 2;',
+          what: 'Integer division penalty: lose half your coins on death.',
+          why: '**Integer division drops fractions automatically.** `5 / 2` becomes `2` without any rounding call — a useful reminder when numbers are `int`.',
+        },
+        {
+          code: '        Scene current = SceneManager.GetActiveScene();',
+          what: 'Asks Unity which scene is currently open (works for both `"Overworld"` and `"Platformer"`).',
+        },
+        {
+          code: '        SceneManager.LoadScene(current.name);',
+          what: 'Reloads the active scene by name, respawning enemies, coins, and the player at the start point.',
+        },
         { code: '    }', what: '' },
       ],
     },
   ],
   finalFile: `using UnityEngine;
-
+using TMPro;
+using UnityEngine.SceneManagement;
 
 public class StatManager : MonoBehaviour
 {
-    public int health = 3;
+    int health;
+    int maxHealth = 3;
+    int coins;
 
-    public int maxHealth = 3;
-
-    public int coins;
+    [SerializeField] TextMeshProUGUI coinText;
+    [SerializeField] TextMeshProUGUI healthText;
 
     public static StatManager original;
 
@@ -190,23 +154,25 @@ public class StatManager : MonoBehaviour
         }
 
         original = this;
-
-        // Optional: Keep this object alive when switching scenes
         DontDestroyOnLoad(gameObject);
     }
 
-    // Keeps track of health and prints it.
-    // The cap and the death rule live here so every caller obeys them.
+    void Start()
+    {
+        health = maxHealth;
+        coinText.text = "Coins: " +coins;
+        healthText.text = "Health: " +health;
+    }
+
     public void ChangeHealth(int amount)
     {
         health = health + amount;
-
         if (health > maxHealth)
         {
             health = maxHealth;
         }
 
-        print("Health: " + health);
+        healthText.text = "Health: " +health;
 
         if (health <= 0)
         {
@@ -214,319 +180,129 @@ public class StatManager : MonoBehaviour
         }
     }
 
-    // Keeps track of coins and prints it.
     public void ChangeCoins(int amount)
     {
         coins = coins + amount;
-
         if (coins < 0)
         {
             coins = 0;
         }
 
-        print("Coins: " + coins);
+        coinText.text = "Coins: " +coins;
     }
 
-    // The MVP death rule: reset health and lose half the coins.
-    // No scene reload or respawn yet; that comes in a later refactor.
     public void Die()
     {
         health = maxHealth;
+        healthText.text = "Health: " +health;
         coins = coins / 2;
-        print("You died. Coins: " + coins);
+        Scene current = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(current.name);
     }
 }`,
   finalNote:
-    'Compare against your own file. Two lines have to be exactly right: `public static StatManager original;` — `static`, so the scene loader cannot reach it — and the duplicate guard, whose `return;` is what keeps the doomed copy from claiming the slot on its way out. Everything else you should be able to explain line by line; if you cannot, that is the line to re-read.',
+    'Notice what is NOT in `StatManager.cs`: a second `HudController` script. Because `StatManager` itself owns both `health`/`coins` and `healthText`/`coinText`, parenting your Canvas under `StatManager` lets one `DontDestroyOnLoad` object carry both data and HUD across every scene.',
 };
 
-const WALK_HUD = {
-  ask: 'how do I put my coins and my health on the screen?',
-  file: 'Assets/Scripts/HudController.cs',
-  label: 'In the Code',
-  intro: 'A new script, and the Canvas you need for it is already standing in `Start (index 0)` — that was the editor work above. The script itself is a handful of lines: a slot for the text, a guard, and one string built from the values on `StatManager.original`. Every line is given.',
-  level: 1,
-  steps: [
-    {
-      title: 'Give the script a slot for the text',
-      lead: 'Two lines above the method: one `using` and one field.',
-      lines: [
-        { code: 'using TMPro;', what: 'TextMeshPro\'s types live in a namespace called `TMPro`, and the UI package that ships them does not put them in scope for you. Without this line the compiler cannot find the type on the next line, and reports an error that reads like a typo.' },
-        { code: '', what: '' },
-        { code: '    [SerializeField] private TextMeshProUGUI statsText;', what: 'The text object, wired from the Inspector. One thing here is new: the type is not `GameObject` or `Transform`, it is the **component** — because the component is what owns the `text` property you are about to write to.' , why: '**A slot for the component, not for the object.** You have held component references since 2.2, but always by looking them up at runtime with `GetComponent<Rigidbody2D>()`. This one is dragged in by hand, which is only possible because `TextMeshProUGUI` is a component type the Inspector can hold.' },
-      ],
-    },
-    {
-      title: 'Read the numbers from the manager, and write them into the text',
-      lead: 'One method, `Update()`, and it takes a position on the design question this lesson asks out loud: read every frame, and do not get clever about it.',
-      lines: [
-        { code: '    void Update()', what: 'Every frame, like your movement and your enemy logic. A number can change at any moment — a coin is collected in a trigger callback, damage arrives from a fireball you never see coming — so a readout that is only correct sometimes is worse than no readout at all.' , why: '**The alternative is "only rewrite the text when a value changes", and here it costs more than it saves.** You would keep the last three values as fields and compare them every frame — three extra fields, and three extra chances for one of them to go stale and freeze the label forever. Reading a value is a field lookup; the expensive part is building the string, which is exactly what you would be avoiding. At this scale the honest engineering answer is the simple one, and the moment it stops being true the fix is right here: remember the last values, and rebuild the string only when one of them moves.' },
-        { code: '    {', what: '' },
-        { code: '        if (StatManager.original == null)', what: 'The guard — and here it genuinely earns its place. This script can run in a scene with no manager at all: the Overworld and the Platformer both contain a Player, and neither contains a StatManager. Press Play from either one and this method runs every frame with nothing to read.' , why: '**Without this line the Console fills with a NullReferenceException sixty times a second.** That does not crash the game; it buries every other message you might need, which is worse. With the line, the label simply keeps whatever it last said. Neither is a *fix* — the real fix is that the game begins in `Start (index 0)` — but the guard turns a flood into a blank label, which is a failure you can see.' },
-        { code: '        {', what: '' },
-        { code: '            return;', what: 'Nothing to show, so show nothing. `return` leaves the method immediately — the same early-exit shape as the death rule in your 2.7 health method.' },
-        { code: '        }', what: '' },
-        { code: '', what: '' },
-        { code: '        string statsLine = "Health: " + StatManager.original.health', what: 'Build the line. The left-hand side is a **local** — a string that exists for this frame only, which is correct: it is thrown away and rebuilt next frame anyway, and a field would just be a place for a stale one to hide.' , why: '**Every value comes from `StatManager.original`, not from the player.** The manager is the only object that still has the numbers, and the only one that survived the scene change — which is why the HUD can be trusted at all. Read them off the player and you get a fresh copy of the player\'s starting values in every new scene, which is the bug this lesson is about.' },
-        { code: '                         + " / " + StatManager.original.maxHealth;', what: 'And the ceiling, so the label reads `2 / 3`. Showing the maximum and not just the current health is a small design decision worth naming: a player can only judge "am I in trouble?" against what full looks like.' },
-        { code: '', what: '' },
-        { code: '        statsLine = statsLine + "   Coins: " + StatManager.original.coins;', what: 'Appending to the string you already built. Note the shape: assign back to the same name, because a string cannot be changed in place — this makes a new one and points the name at it.' },
-        { code: '', what: '' },
-        { code: '        statsText.text = statsLine;', what: 'The write. `statsText` is the component you wired in the Inspector; `.text` is the property holding the characters on screen. Assign to it and the label changes on this frame.' , why: '**Nothing reads the text back, and nothing stores it.** The label is a *view* of the numbers, not a copy of them — it holds no game state of its own. That is what makes it impossible for the HUD and the truth to disagree. The moment you cache a number in this script "to save time", you have built a second source of truth, and it will be the wrong one.' },
-        { code: '    }', what: '' },
-      ],
-    },
-  ],
-  finalFile: `using UnityEngine;
-using TMPro;
+const body = `
+${renderAskBanner('how do I keep my health and HUD alive across scene switches?', 1)}
 
-// HudController.cs — the numbers, on screen. It owns no state at all: every
-// value is read from the manager each frame and thrown away again.
-public class HudController : MonoBehaviour
-{
-    [SerializeField] private TextMeshProUGUI statsText;
-
-    void Update()
-    {
-        // No manager in this scene (you pressed Play in the Overworld)? There
-        // is nothing to show and nothing to crash over.
-        if (StatManager.original == null)
-        {
-            return;
-        }
-
-        string statsLine = "Health: " + StatManager.original.health
-                         + " / " + StatManager.original.maxHealth;
-
-        statsLine = statsLine + "   Coins: " + StatManager.original.coins;
-
-        statsText.text = statsLine;
-    }
-}`,
-  finalNote:
-    'Compare against your own file rather than copying it. Three things to check: the `using TMPro;` line is there, the string is built inside `Update()` rather than once in `Start()`, and every value is read from `StatManager.original` rather than from the player. Your label text, your placement and what you choose to display are yours — the shape is the slot, the guard, and the rebuild in `Update()`.',
-};
-
-const body = `<h1>5.3 — Into the Cave: Persistence &amp; the HUD</h1>
-
-<p class="lesson-lead">
-    You break the door, you walk in — and for the first time, your coins come with you. You built the
-    object that survives a scene load on <a href="2.7.html">2.7</a>; today you prove it works, and
-    then put the numbers where a player can see them instead of in the Console.
+<p class="lead">
+    Yesterday your player stayed in one scene. Today you wire the Canvas HUD onto
+    <code>StatManager</code>, parent that Canvas so it survives alongside
+    <code>DontDestroyOnLoad()</code>, and reload the current scene cleanly inside <code>Die()</code>.
 </p>
 
-${renderAskBanner('in unity how to keep an object between scenes, how to make a singleton with dontdestroyonload, how to load another scene, how to show health on a canvas', 1)}
-
+<!-- ============================================================ -->
 ${renderDecompose('5.3', DECOMPOSE, 1)}
 
 <!-- ============================================================ -->
-<div class="activity discovery">
-    <div class="activity-header">
-        <span class="activity-label">In the Editor</span>
-        <span class="activity-time">~30 min</span>
-    </div>
-
-    <ol>
-        <li>
-            <strong>Game view →</strong> press Play from <strong>Start (index 0)</strong> and play for
-            a minute: collect a few coins, take a spike hit. Then walk into one of the cave mouths.
-            <em>The numbers follow you now</em> — the Console line is the same before and after.
-            Notice what did <em>not</em> follow: your position, your facing, your animation
-            controller. Those came back from somewhere else.
-        </li>
-        <li>
-            <strong>File → Build Profiles → Scene List</strong> (older tutorials call this Build
-            Settings): three scenes, and their order <em>is</em> the load index —
-            <strong>Start (index 0)</strong>, Overworld (index 1), Platformer (index 2).
-            <strong>Start (index 0)</strong> is what a built game loads first, and it is one of the
-            two scenes that contains a StatManager object.
-        </li>
-        <li>
-            <strong>Hierarchy → Overworld → one of the two cave mouths → Inspector → Scene Switch →
-            Scene</strong>: an <code>int</code>, holding <code>0</code> on one mouth and
-            <code>2</code> on the other. That number is a <em>position in that list</em>, not a
-            name: nothing checks that index <code>0</code> is still the scene you think it is.
-        </li>
-        <li>
-            <strong>Hierarchy →</strong> the <strong>StatManager</strong> object in
-            <code>Start (index 0)</code>. Press Play and walk to another scene: this object's name
-            now sits at the bottom of the Hierarchy under <strong>DontDestroyOnLoad</strong>, not
-            under the scene you entered.
-        </li>
-        <li>
-            <strong>Hierarchy (Start (index 0)) → GameObject → UI → Text - TextMeshPro</strong>: one
-            menu item makes three objects — a <strong>Canvas</strong>, a <strong>Text (TMP)</strong>
-            child, and an <strong>EventSystem</strong>, which the UI wants even when nothing on it
-            is clickable.
-        </li>
-        <li>
-            <strong>Inspector → Text (TMP) → RectTransform → anchor preset → top-left</strong>, with
-            a small offset from the corner, so the numbers stay put when the window is resized — a
-            centre-anchored label sits over the middle of the game.
-${renderPane({
-    pane: 'Inspector',
-    subject: 'Text (TMP)',
-    caption: '`RectTransform` is the first component on anything the UI owns, and `Anchor ' +
-        'Presets` is the grid of squares at the top of it: **each square is one preset**, and the ' +
-        'light one is where this label is pinned now. Click the top-left square first — the boxes ' +
-        'beside the grid are the offset, and until the anchor moves they are measuring from the ' +
-        'wrong corner.',
-    rows: [
-        { kind: 'component', label: 'RectTransform', tick: false },
-        { kind: 'anchor', label: 'Anchor Presets', at: 'top-left', step: 6 },
-        { kind: 'component', label: 'Text (TMP)' },
-    ],
-})}
-        </li>
-        <li>
-            <strong>Once <code>HudController.cs</code> exists — Inspector → Canvas → Add Component →
-            Hud Controller</strong>, then <strong>Hud Controller → Stats Text →</strong> drag the
-            <code>Text (TMP)</code> object in. An empty slot is a <code>null</code> reference that
-            nothing complains about until the line that reads it runs.
-        </li>
-    </ol>
-</div>
-
-<!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">In the Code</span>
-        <span class="activity-time">~45 min</span>
+        <span class="activity-label">In the Editor</span>
+        <span class="activity-time">~15 min</span>
     </div>
 
-    <table>
-        <tr><th>API</th><th>What it gives you</th><th>What it costs</th></tr>
-        <tr>
-            <td><code>public static StatManager original;</code></td>
-            <td>A field that belongs to the <strong>class</strong>, not to an object — reachable
-                with no reference and no search, and untouched by a scene load.</td>
-            <td>It starts as <code>null</code>, and nothing claims it for you.</td>
-        </tr>
-        <tr>
-            <td><code>void Awake()</code></td>
-            <td>Unity's earliest hook: every <code>Awake()</code> in a scene finishes before the
-                first <code>Start()</code> runs.</td>
-            <td>Order between two objects' <code>Awake()</code> methods is still not promised.</td>
-        </tr>
-        <tr>
-            <td><code>DontDestroyOnLoad(gameObject)</code></td>
-            <td>The object moves into a scene of its own that never unloads, so it survives every
-                load from then on.</td>
-            <td>It takes a whole <strong>GameObject</strong>, not a component.</td>
-        </tr>
-        <tr>
-            <td><code>Destroy(gameObject)</code></td>
-            <td>Removes an object — how the newcomer copy takes itself out of the game.</td>
-            <td>The removal is deferred to the end of the frame: a line running later in that same
-                frame can still reach it.</td>
-        </tr>
-        <tr>
-            <td><code>SceneManager.LoadScene(int buildIndex)</code></td>
-            <td>What <code>SceneSwitch.cs</code> calls at every cave mouth — the line that would
-                destroy your stats if nothing were persistent.</td>
-            <td>Hand it an <code>int</code> and it loads whatever scene sits at that
-                <em>position</em> in the build list.</td>
-        </tr>
-    </table>
+    <p>
+        Create the HUD once and child it under the <code>StatManager</code> GameObject so
+        <code>DontDestroyOnLoad(gameObject)</code> carries the UI from <code>Start (index 0)</code>
+        into <code>Overworld</code> and <code>Platformer</code> without duplicating it:
+    </p>
+
+    <ol>
+        <li>Open your starting scene (<code>Start (index 0)</code> or <code>Overworld</code> — whichever loads first in Build Profiles). Right-click the <code>StatManager</code> object in the Hierarchy and create a UI <strong>Canvas</strong> child (<code>UI → Text - TextMeshPro</code> creates both the Canvas and the first text object automatically; accept the TMP Essentials import if prompted).</li>
+        <li>Rename the two TextMeshProUGUI children to <code>HealthText</code> and <code>CoinText</code>, anchor them to the top-left corner of the Canvas, and position them clearly above gameplay.</li>
+        <li>Select <code>StatManager</code> in the Hierarchy and drag <code>CoinText</code> into the <code>Coin Text</code> slot and <code>HealthText</code> into the <code>Health Text</code> slot in the Inspector.</li>
+        <li>Open <code>File → Build Profiles</code> (Build Settings) and verify all three scenes — <code>Start (index 0)</code>, <code>Overworld</code>, and <code>Platformer</code> — are listed in the Scene List.</li>
+        <li>Press <strong>Play</strong>, collect a coin, walk through a scene switch, and take damage until <code>Die()</code> fires. Confirm that both numbers survive the scene switch and reset cleanly on death.</li>
+    </ol>
 
     <div class="callout">
-        <strong>Architectural specification — read the owner before you add a face.</strong>
-        <ul>
-            <li><strong>The owner.</strong> Which field is the only reason your numbers survive a
-                load, and what exactly does <code>static</code> change about where it lives? Which
-                hook claims it, and what does the other branch do with a second copy?</li>
-            <li><strong>The seam.</strong> Which methods may write health and coins, and where does
-                the ceiling live — at the call site, or inside the method that owns the number?</li>
-            <li><strong>The screen.</strong> Where does the HUD live, and what would one that read
-                from the player show after a scene change?</li>
-            <li><strong>The view.</strong> What state does <code>HudController</code> own? If the
-                answer is none, say what that buys you the first time a number changes.</li>
-        </ul>
+        <strong>Why child the Canvas under StatManager?</strong> When <code>StatManager.Awake()</code> calls
+        <code>DontDestroyOnLoad(gameObject)</code>, Unity preserves the GameObject <em>and every child attached to it</em>.
+        And if a later scene happens to hold its own spare copy of <code>StatManager</code>, the
+        <code>if (original != null &amp;&amp; original != this) Destroy(gameObject);</code> guard destroys the duplicate
+        along with its extra Canvas so two HUDs never overlap.
     </div>
 
     <div class="socratic">
-        <h3>Socratic: Three ways to make a number survive</h3>
-        <p>All three are real Unity techniques. Compare what each one costs you:</p>
-        <table>
-            <tr><th>Approach</th><th>How it works</th><th>What it costs</th></tr>
-            <tr>
-                <td><strong>A <code>static</code> field on its own</strong></td>
-                <td>Belongs to the <em>class</em> — destroying the objects does not touch it.</td>
-                <td>No lifecycle: you cannot reset it cleanly, and in the editor it survives between Play sessions, so testing lies to you.</td>
-            </tr>
-            <tr>
-                <td><strong>A persistent singleton object</strong> — <em>this project</em></td>
-                <td>One object registers as <em>the</em> instance and asks Unity not to destroy it.</td>
-                <td>You must handle the <em>second</em> copy a scene load brings.</td>
-            </tr>
-            <tr>
-                <td><strong>A ScriptableObject asset</strong></td>
-                <td>Lives in a project asset rather than in a scene, so no scene load can touch it.</td>
-                <td>A new concept and one more asset to manage — and it survives Play sessions too, which is either the point or a nuisance.</td>
-            </tr>
-        </table>
+        <h3>Socratic: Singletons &amp; Scene Persistence</h3>
         <ol>
-<li>Your stats should reset when you start a new game, and survive a scene change. Which of the three can express both of those, and which one cannot express the first?</li>
-<li>Start (index 0) already contains its own StatManager object. If you walk back to it later, what will be there — and what happens if nothing stops it from registering itself a second time?</li>
-<li>Why can position <em>not</em> be handled this way? What is different about position that makes <code>SceneSwitch.cs</code> handle it instead?</li>
-</ol>
+            <li>If <code>Overworld</code> also had a <code>StatManager</code> in its Hierarchy, why must <code>Destroy(gameObject)</code> happen inside <code>Awake()</code> instead of waiting for <code>Start()</code>?</li>
+            <li>Why does <code>Die()</code> refresh <code>healthText.text</code>, while <code>coinText.text</code> only changes on the next pickup unless you update it inside <code>Die()</code> too?</li>
+            <li>What happens in <code>PlayerController.Start()</code> if you run <code>Platformer</code> directly from the Editor without passing through <code>Start (index 0)</code> — does <code>FindAnyObjectByType&lt;StatManager&gt;()</code> find a manager if none was placed in that scene?</li>
+        </ol>
     </div>
 </div>
 
 <!-- ============================================================ -->
-${renderWalkthrough(WALK_VERIFY)}
+${renderWalkthrough(WALK)}
 
 <!-- ============================================================ -->
 <div class="activity basic-app">
     <div class="activity-header">
-        <span class="activity-label">Build Lab: The HUD, and Where the Game Begins</span>
-        <span class="activity-time">~20 min</span>
+        <span class="activity-label">Quick Reference: Persistence &amp; Scene API</span>
+        <span class="activity-time">Read</span>
     </div>
 
-    <p>
-        One decision is left, and it is yours: <strong>which scene should the game actually begin
-        in?</strong> A Canvas is <em>not</em> persistent — it exists only in the scene that contains
-        it.
-    </p>
-
     <table>
-        <tr><th>Approach</th><th>What you do</th><th>What it costs</th></tr>
+        <tr><th>Member</th><th>What it does</th><th>Gotcha</th></tr>
         <tr>
-            <td><strong>Move the Overworld's Canvas into <code>Start (index 0)</code></strong></td>
-            <td>Drag the Canvas and its <code>Text (TMP)</code> child across, then repair whatever
-                breaks.</td>
-            <td>Less setup, but a Canvas carries its scene's wiring with it: any button or listener
-                that pointed at an Overworld object comes across as <em>Missing</em>, and the thing
-                it used to do quietly stops happening.</td>
+            <td><code>public static StatManager original;</code></td>
+            <td>Shared class-level slot holding the one surviving manager instance.</td>
+            <td>Check <code>if (original != null &amp;&amp; original != this)</code> before calling <code>DontDestroyOnLoad()</code>.</td>
         </tr>
         <tr>
-            <td><strong>Leave it alone and build a fresh Canvas in <code>Start (index 0)</code></strong></td>
-            <td>One menu item: <code>GameObject ▸ UI ▸ Text - TextMeshPro</code>.</td>
-            <td>A second Canvas exists in the project, and the Overworld's still switches off when
-                you leave it — harmlessly, because nothing is drawn on it. You break nothing you did
-                not write.</td>
+            <td><code>DontDestroyOnLoad(gameObject);</code></td>
+            <td>Keeps this GameObject (and child Canvas HUD) alive when loading a new scene.</td>
+            <td>Only works reliably on root GameObjects — do not nest <code>StatManager</code> under another object.</td>
+        </tr>
+        <tr>
+            <td><code>TextMeshProUGUI.text</code></td>
+            <td>Sets the visible string on screen (e.g. <code>"Coins: " +coins</code>).</td>
+            <td>Requires <code>using TMPro;</code> and assigning the Inspector field before pressing Play.</td>
+        </tr>
+        <tr>
+            <td><code>SceneManager.GetActiveScene()</code></td>
+            <td>Returns the current <code>Scene</code> struct so <code>current.name</code> gives the scene name.</td>
+            <td>Requires <code>using UnityEngine.SceneManagement;</code> and scenes added in Build Profiles.</td>
+        </tr>
+        <tr>
+            <td><code>SceneManager.LoadScene(current.name)</code></td>
+            <td>Reloads the current scene from scratch on death.</td>
+            <td>Scene-local pickups and enemies reset; <code>StatManager</code> fields do not unless you reset them in <code>Die()</code>.</td>
         </tr>
     </table>
-
-    <p>
-        Either is defensible. This lesson builds a fresh one, because that path leaves the wiring you
-        inherited exactly as you found it. Whichever you choose, <strong>write down your reason
-        before you start</strong>: the checkpoint asks you for it.
-    </p>
 </div>
-
-<!-- ============================================================ -->
-${renderWalkthrough(WALK_HUD)}
 
 <!-- ============================================================ -->
 <div class="checklist">
     <h3>Checkpoint — before moving on, you must be able to:</h3>
     <ul>
-        <li>Explain why a scene load <em>replaces</em> your stats rather than losing them</li>
-        <li>Point at the one field that makes the numbers survive, and say what <code>static</code> changes about where it lives</li>
-        <li>Explain why the duplicate guard is genuinely necessary in <em>this</em> project</li>
-        <li>Say which method owns health, where the ceiling is applied, and why no caller can bypass it</li>
-        <li>Put the HUD in the scene where the game begins, and say what that costs you</li>
+        <li>Explain how <code>original</code> and <code>DontDestroyOnLoad()</code> keep one <code>StatManager</code> and Canvas HUD alive across scenes</li>
+        <li>Update <code>healthText</code> and <code>coinText</code> directly from <code>StatManager.Start()</code>, <code>ChangeHealth()</code>, and <code>ChangeCoins()</code></li>
+        <li>Reload the active scene in <code>Die()</code> while resetting <code>health</code> and halving <code>coins</code></li>
+        <li>Verify that all scenes (<code>Start (index 0)</code>, <code>Overworld</code>, <code>Platformer</code>) are in Build Profiles</li>
         <li>Commit and push</li>
     </ul>
 </div>
@@ -536,11 +312,11 @@ ${renderWalkthrough(WALK_HUD)}
     <h3>Reference Docs</h3>
     <p>Need a deeper explanation? These pages cover the same concepts:</p>
     <ul>
-        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — every question this course answers, in the words you would search with</li>
-        <li><a href="../docs/unit-05/index.html">Unit 5: The Axe &amp; The Cave</a> — the scene-switch reference</li>
-        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — SceneManager, DontDestroyOnLoad and the singleton pattern</li>
+        <li><a href="../docs/unit-05/index.html">Unit 5: Inventory, Events &amp; Persistence</a> — singleton &amp; scene flow notes</li>
+        <li><a href="../docs/reference/unity-csharp-quickref.html">Unity + C# Quick Reference</a> — <code>DontDestroyOnLoad()</code> and <code>SceneManager</code></li>
+        <li><a href="../docs/ask.html">How do I&hellip;? index</a> — find this lesson again by the question you were asking</li>
     </ul>
-    <p>Next: <a href="6.1.html">6.1 — Gravity &amp; Jump: The First Flick</a>, where the cave arrives and <em>down</em> starts to mean something.</p>
+    <p>Next: <a href="6.1.html">6.1 — Gravity &amp; Jump: The First Flick</a>, where the scene check turns gravity on inside the cave.</p>
 </div>`;
 ---
 <Lesson id="5.3" title="5.3 Into the Cave: Persistence &amp; the HUD — AP CS Principles" root=".." css="../style.css">

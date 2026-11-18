@@ -61,27 +61,27 @@ export const LESSONS: Record<string, LessonMeta> = {
 
   // Unit 6 — Jumping
   '6.1': { title: "Gravity & Jump: The First Flick", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.1' },
-  '6.2': { title: "Ground Checks: No Infinite Jumps", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.2' },
-  '6.3': { title: "Jump Feel: Fall Speed & Coyote Time", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.3' },
-  '6.4': { title: "Double Jump: Boots or Potion", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.4' },
+  '6.2': { title: "Ground Collision & Jump Count", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.2' },
+  '6.3': { title: "Moving Platforms & Jump Tuning", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.3' },
+  '6.4': { title: "Double Jump: Moving Jumps to StatManager", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.4' },
   '6.5': { title: "Platforming Studio: The Gauntlet", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '6.5' },
 
   // Unit 7 — Level Building & Ladders
   '7.1': { title: "Tilemaps: The Level Editor", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '7.1' },
   '7.2': { title: "Tile Collision, Layers & Sorting", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '7.2' },
-  '7.3': { title: "Ladders I: The Climbing State", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '7.3' },
-  '7.4': { title: "Ladders II: Mounts, Tops & Polish", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '7.4' },
+  '7.3': { title: "Ladders I: Climbing with isPlatformer", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '7.3' },
+  '7.4': { title: "Ladders II: Collider Fit & Cave Level Studio", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '7.4' },
   '7.5': { title: "Design a Big Cave: Flow & Difficulty", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '7.5' },
   '7.6': { title: "Level Studio I", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '7.6' },
-  '7.7': { title: "Level Studio II + Cross-Playtest", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '7.7' },
+  '7.7': { title: "Level Studio II + Boss Prep Studio", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '7.7' },
 
   // Unit 8 — Boss Fight
-  '8.1': { title: "Boss Design: Spec It First", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.1' },
-  '8.2': { title: "Boss Body, Health & Phases", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.2' },
-  '8.3': { title: "Player Attack: Fight Back", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.3' },
-  '8.4': { title: "Boss Attacks: Patterns & Phases", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.4' },
-  '8.5': { title: "Win, Lose & the Death Loop", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.5' },
-  '8.6': { title: "Boss Studio + Final Review", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.6' },
+  '8.1': { title: "Boss Design: Reuse & Brainstorm", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.1' },
+  '8.2': { title: "Boss Prototype I: Arena, Body & Health", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.2' },
+  '8.3': { title: "Boss Prototype II: Player Attacks & Hitbox", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.3' },
+  '8.4': { title: "Boss Prototype III: Patterns & Reused Hazards", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.4' },
+  '8.5': { title: "Boss Playtest with Friends & Win/Lose Loop", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.5' },
+  '8.6': { title: "Boss Revisions & Pre-Break Showcase", badgeClass: 'basic-app', badgeLabel: 'Build Lab', group: '8.6' },
 
   // Unit 9 — Data & Systems
   '9.1': { title: "Binary: How Numbers Live in Memory", badgeClass: 'expand-app', badgeLabel: 'CSP Concept', group: '9.1' },
@@ -96,12 +96,12 @@ export const LESSONS: Record<string, LessonMeta> = {
   '9.10': { title: "Impact, Ethics & Licenses (Your Fork!)", badgeClass: 'expand-app', badgeLabel: 'CSP Concept', group: '9.10' },
 
   // Unit 10 — Jam Season
-  '10.1a': { title: "2-Button Jam: Kickoff & Pitch", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
-  '10.1b': { title: "2-Button Jam: Build Day 1", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
-  '10.1c': { title: "2-Button Jam: Build Day 2", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
-  '10.1d': { title: "2-Button Jam: Playtest", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
-  '10.1e': { title: "2-Button Jam: Polish", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
-  '10.1f': { title: "2-Button Jam: Showcase & Retro", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
+  '10.1a': { title: "3-Button Jam: Brainstorm & Pitch", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
+  '10.1b': { title: "3-Button Jam: Rapid Prototype", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
+  '10.1c': { title: "3-Button Jam: Core Loop & Self-Playtest", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
+  '10.1d': { title: "3-Button Jam: Friend Playtest & Triage", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
+  '10.1e': { title: "3-Button Jam: Revisions & Polish", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
+  '10.1f': { title: "3-Button Jam: Showcase & Semester 1 Retro", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.1' },
   '10.2a': { title: "Card Jam Kickoff: Lists & Arrays", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.2' },
   '10.2b': { title: "ScriptableObjects: Card Data as Assets", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.2' },
   '10.2c': { title: "Decks: Shuffle, Draw & Traverse", badgeClass: 'rpg', badgeLabel: 'Game Jam', group: '10.2' },
